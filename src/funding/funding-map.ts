@@ -116,24 +116,23 @@ export interface FundingMapData {
   unclassified: number;
   generatedAt: string;
   /**
-   * **이번 결과에서 실제로 판정이 난 조건의 수**(코덱스 2차 #1, 2026-09-04) — 「조건을 맞춰 봤는가」의
-   * 정본 신호다. 화면은 이 값 하나로만 「조건을 맞춰 보지 않은 목록입니다」·「자동 대조 결과입니다」를
-   * 가른다(예전엔 `usedProfile` 요약의 길이로 갈랐다).
+   * **판정에 쓸 회사 정보가 하나도 없었는가**(코덱스 3차 #C, 2026-09-04) — 화면이 「조건을 맞춰 보지
+   * 않은 목록입니다」라고 **단정해도 되는 유일한 근거**다.
    *
-   * ★왜 요약(`usedProfileSummary`)이 신호가 될 수 없나: 그 요약은 `companyScale`·`hasCert`·`hasPatent`
-   *  세 칸을 **아예 요약하지 않는다**. 그 셋만 채워진 회사는 판정이 실제로 돌았는데도 요약이 빈 배열이라
-   *  화면이 항목을 「맞음」으로 그리면서 동시에 「조건을 맞춰 보지 않은 목록」이라 말했다(자기모순).
-   *  반대로 요약이 하나 있어도 공고 조건이 전부 비었거나 기계가 못 읽는 것이면 자동 판정은 0건인데
-   *  「자동 대조 결과입니다」가 떴다.
+   * ★왜 「센 조건 수」를 버렸나: 판정 엔진은 「이 조건을 회사 정보와 실제로 견줘 봤다」를 기록하지
+   *  않는다. 그래서 어떤 셈도 근사치였다 — 인증 조건은 프로필을 **읽고도** `unknown` 을 내고
+   *  (`certRequired`: 보유해도 「종류 확인」), 요약에 있는 값이 어느 조건에도 안 쓰였을 수도 있다.
+   *  근사치로 단정문을 만들면 계속 틀린다. 그래서 셈을 정교하게 만드는 대신 **확실히 아는 것만**
+   *  말하기로 바꿨다: 회사 정보 자체가 비었으면 아무 조건도 못 맞춰 본 것이 **확실하다**.
    *
-   * 세는 법(`buildFundingMap`): 이번 결과가 들고 있는 항목(정상 풀 + 안 맞음 풀)의 판정 목록(`fit`)에서
-   * **`verdict` 가 `pass`·`fail` 인 것**만 센다 — `unknown` 은 조건을 읽기만 하고 프로필과 견주지
-   * 못한 자리라 「맞춰 봤다」의 근거가 아니다.
+   * 판정법(`buildFundingMap`): 받은 `profile`(BusinessProfile)의 값이 전부 비어 있으면(`undefined`·
+   * `null`·빈 문자열) 참. `false`·`0` 은 **채워진 값**이다.
    *
    * ★**선택 칸이다** — 이 칸이 없던 판의 통로(옛 앱 배포본)가 보낸 응답도 그대로 그려야 한다.
-   *  없으면(`undefined`) 화면은 **어느 쪽도 말하지 않는다**(모르면 단정하지 않는다).
+   *  없으면(`undefined`) 화면은 **어느 쪽도 단정하지 않는다**(모르면 말하지 않는다).
+   *  그래서 읽는 자리는 전부 `=== true` 로 본다.
    */
-  evaluatedConditions?: number;
+  profileEmpty?: boolean;
 }
 
 export type FundingSort = "rec" | "dead" | "rate" | "amt";
@@ -821,8 +820,13 @@ function bandEntry(entry: string): string {
  * `""` 는 그대로 `""` 다. 예전엔 그 빈 조각을 그대로 이어 붙여 「이 사업장 정보로 판정: 」처럼 **라벨만
  * 남은 문장**이나 `" · 부산"` 처럼 앞에 구분점이 붙은 값이 나왔다. 조각이 하나도 안 남으면 부르는 쪽은
  * 「빈 배열과 똑같이」 다룬다.
+ *
+ * ★**배열이 아닌 값은 전부 빈 배열로 본다**(코덱스 3차 #A2, 2026-09-04). 서버·옛 앱이 JSON 으로
+ *  `"usedProfile": null` 을 보내면 예전엔 `null.map` 에서 터져 **지도 화면 전체가 안 그려졌다**.
+ *  타입은 `string[]` 이지만 통로를 건너온 값이라 타입이 지켜 주지 못한다.
  */
-function bandEntries(usedProfile: string[]): string[] {
+function bandEntries(usedProfile: string[] | null | undefined): string[] {
+  if (!Array.isArray(usedProfile)) return [];
   return usedProfile.map((e) => bandEntry(e).trim()).filter((e) => e !== "");
 }
 
@@ -831,7 +835,7 @@ function bandEntries(usedProfile: string[]): string[] {
  * 대조에 실제로 쓴 칸만 있는 값만) 을 사람이 읽는 문장으로 다시 쓴다. 「대조 기준」 낱말은 쓰지 않는다
  * (계약 낱말 규칙 — G3 가 이 함수로 옛 「대조에 쓴 정보: …」 안내를 통일한다).
  */
-export function profileBandWords(usedProfile: string[]): string {
+export function profileBandWords(usedProfile: string[] | null | undefined): string {
   // 적을 조각이 0개면 빈 문자열 — 이 옛 함수는 「띠 자체를 안 그린다」는 뜻으로 계속 쓰인다.
   // (새 `profileBandParts` 는 같은 자리에서 「없음 — …」을 **말하도록** 바뀌었다. 두 함수의 뜻이
   //  이 한 자리에서만 갈리므로 값을 되받아 쓰지 않고 여기서 먼저 걸러낸다.)
@@ -866,7 +870,7 @@ const PROFILE_BAND_NONE = "없음 — 조건을 맞춰 보지 않은 목록입�
  * 옛 한 줄 함수 `profileBandWords` 만 0개일 때 빈 문자열을 그대로 유지한다.
  * (라벨은 값이 있든 없든 늘 같은 글자다.)
  */
-export function profileBandParts(usedProfile: string[]): { label: string; value: string } {
+export function profileBandParts(usedProfile: string[] | null | undefined): { label: string; value: string } {
   // ★빈 배열과 **값이 빈 배열**(`[""]`·`["지역 "]`)을 같게 다룬다(코덱스 2차 #7, 2026-09-04) —
   //  예전엔 뒤쪽이 라벨만 남은 빈 값으로 그려졌다.
   const parts = bandEntries(usedProfile);
@@ -876,29 +880,30 @@ export function profileBandParts(usedProfile: string[]): { label: string; value:
 /**
  * 머리 카드의 「판정에 쓴 정보」 구역에 **무엇을 그릴지** — 그릴 것이 없으면 `null`(구역 자체를 안 그린다).
  *
- * 세 갈래를 가른다(코덱스 2차 #1·#2, 2026-09-04):
- *  · `usedProfile` 이 **응답에 없으면**(undefined) → `null`. 옛 통로는 이 칸을 아예 안 싣는다 —
- *    「없는 것」과 「빈 것」을 같게 다루면 옛 통로 화면에 「없음 — 조건을 맞춰 보지 않은 목록입니다」라는
- *    **근거 없는 단정**이 뜬다.
+ * 세 갈래를 가른다(코덱스 3차 #C, 2026-09-04 — 신호를 `evaluatedConditions` 에서 `profileEmpty` 로 바꿨다):
  *  · 적을 조각이 있으면 → 라벨 + 그 값(지금까지와 같다).
- *  · 조각이 하나도 없으면(빈 배열·빈 값) → **`evaluatedConditions === 0` 일 때만** 「없음 — 조건을
- *    맞춰 보지 않은 목록입니다」. 판정이 실제로 돌았거나(>0) 셈이 응답에 없으면(undefined) `null` 이다:
- *    요약은 `companyScale`·`hasCert`·`hasPatent` 를 안 담으므로 「요약이 비었다」가 곧 「안 맞춰 봤다」가
- *    아니고, 그 자리에서 「없음」이라 적으면 실제로 쓴 정보를 없다고 말하는 셈이다.
+ *  · 조각이 하나도 없고(빈 배열·빈 값·배열 아님·응답에 없음) **`profileEmpty === true`** 면
+ *    → 「없음 — 조건을 맞춰 보지 않은 목록입니다」. 회사 정보 자체가 비었으면 아무 조건도 못 맞춰
+ *    본 것이 **확실하다** — 이때만 단정한다.
+ *  · 그 밖에는 전부 → `null`(구역을 안 그린다). 요약이 비어도 실제로는 인증·특허·기업 규모 같은
+ *    값이 판정에 쓰였을 수 있어 「없음」이 거짓일 수 있고, 옛 통로는 `profileEmpty` 를 아예 안 싣는다.
+ *    **모르면 아무 말도 하지 않는다.**
  */
 export function profileBandOf(
-  usedProfile: string[] | undefined,
-  evaluatedConditions: number | undefined,
+  usedProfile: string[] | null | undefined,
+  profileEmpty: boolean | undefined,
 ): { label: string; value: string } | null {
-  if (usedProfile === undefined) return null;
   const parts = bandEntries(usedProfile);
   if (parts.length > 0) return { label: PROFILE_BAND_LABEL, value: parts.join(" · ") };
-  return evaluatedConditions === 0 ? { label: PROFILE_BAND_LABEL, value: PROFILE_BAND_NONE } : null;
+  return profileEmpty === true ? { label: PROFILE_BAND_LABEL, value: PROFILE_BAND_NONE } : null;
 }
 
-/** 회사 정보 빈 칸 힌트 — `profileGaps`(funding-map-build.ts 의 `profileGapsOf`)를 사람 말 한 줄로. */
-export function gapWords(profileGaps: string[]): string {
-  if (profileGaps.length === 0) return "";
+/**
+ * 회사 정보 빈 칸 힌트 — `profileGaps`(funding-map-build.ts 의 `profileGapsOf`)를 사람 말 한 줄로.
+ * 배열이 아닌 값(통로가 `null` 을 보낸 경우 등)은 빈 배열과 같게 본다(코덱스 3차 #A2).
+ */
+export function gapWords(profileGaps: string[] | null | undefined): string {
+  if (!Array.isArray(profileGaps) || profileGaps.length === 0) return "";
   return `회사 정보에 ${profileGaps.join("·")}가 비어 있어 일부 조건은 「확인 필요」로 남습니다 — 채우면 자동 판정됩니다`;
 }
 
@@ -967,8 +972,10 @@ const GAP_BODY = "입력하면 조건을 더 정확하게 맞춰 볼 수 있어�
  *  붙으므로 어떤 이름이 와도 늘 옳다. 지금 쓰는 칸 이름 7개는 전부 한글이라 이 갈래로 오지 않지만,
  *  타입이 `string[]` 이라 언제든 들어올 수 있다(들어오면 「URL를 입력해 주세요」가 됐다).
  */
-export function gapParts(profileGaps: string[]): { title: string; body: string } | null {
-  if (profileGaps.length === 0) return null;
+export function gapParts(profileGaps: string[] | null | undefined): { title: string; body: string } | null {
+  // ★배열이 아닌 값(`null`·없는 칸)은 빈 배열과 같게 본다(코덱스 3차 #A2, 2026-09-04) — 통로를
+  //  건너온 값이라 타입이 지켜 주지 못하고, `null.length` 는 화면 전체를 죽인다.
+  if (!Array.isArray(profileGaps) || profileGaps.length === 0) return null;
   if (!profileGaps.every(endsWithHangulSyllable)) {
     return { title: `다음 정보를 입력해 주세요 — ${profileGaps.join(", ")}`, body: GAP_BODY };
   }

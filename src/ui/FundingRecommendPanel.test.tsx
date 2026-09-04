@@ -136,8 +136,8 @@ function 자료(over: Partial<RecommendFundingData> = {}): RecommendFundingData 
     generatedAt: "2026-09-03T01:00:00.000Z",
     matchedCompany: "삼영식품",
     usedProfile: ["지역 전북", "직원수 10명"],
-    // 「조건을 맞춰 봤는가」의 정본 신호(코덱스 2차 #1) — 기본 자료는 **실제로 판정이 돈** 회사다.
-    evaluatedConditions: 2,
+    // 단정문의 유일한 근거(코덱스 3차 #C) — 기본 자료는 **회사 정보가 있는** 회사다.
+    profileEmpty: false,
     ...over,
   };
 }
@@ -221,7 +221,7 @@ describe("추천 정책 탭 — 자금 조달 지도", () => {
 
   /** ★A안 문구 교체 — 「통합 고객에서 …」 같은 내부 이름을 빼고, 무엇이 보이는지를 두 줄로 나눴다. */
   it("고객을 못 찾으면 「이 사업장 정보를 찾지 못했어요」 안내가 뜬다(새 문구)", () => {
-    const html = 판({ data: 자료({ matchedCompany: null, usedProfile: [], evaluatedConditions: 0 }) });
+    const html = 판({ data: 자료({ matchedCompany: null, usedProfile: [], profileEmpty: true }) });
     expect(html).toContain("이 사업장 정보를 찾지 못했어요");
     expect(html).toContain("조건 판정 없이 지금 열려 있는 자금만 보여 드립니다");
     expect(html, "옛 문구가 남아 있다").not.toContain("찾지 못해,");
@@ -235,7 +235,7 @@ describe("추천 정책 탭 — 자금 조달 지도", () => {
    *  같은 말이 화면에 두 번 나왔다. 이제 「무엇을 입력해 달라」는 머리 카드 한 곳에서만 말한다.
    */
   it("「찾았는데 쓸 정보 0개」면 「입력해 주세요」가 한 번만 나온다 — 같은 말이 두 번 안 나온다(A안)", () => {
-    const html = 판({ data: 자료({ usedProfile: [], evaluatedConditions: 0 }) });
+    const html = 판({ data: 자료({ usedProfile: [], profileEmpty: true }) });
     const 힌트 = gapParts(["신용점수"]);
     expect(힌트, "이 시험 자료엔 빈 칸이 1개다").not.toBeNull();
     expect(세기(html, "입력해 주세요"), "같은 말이 두 번 나온다").toBe(1);
@@ -247,13 +247,13 @@ describe("추천 정책 탭 — 자금 조달 지도", () => {
   });
 
   /**
-   * ★코덱스 5차 #1(2026-09-04) — 「조건을 안 맞춰 봤다」는 사실이 화면에서 사라졌던 자리.
+   * ★코덱스 5차 #1 → 3차 #C(2026-09-04) — 「조건을 안 맞춰 봤다」는 사실이 화면에서 사라졌던 자리.
    *  ⓐ 머리 카드 위 구역이 그 사실을 말하고 ⓑ 발 안내의 「자동 대조 결과입니다」는 **참일 때만** 쓴다.
-   *  판정에 쓴 정보가 0개면 아무 조건도 안 맞춰 본 목록이라 그 말이 거짓이 된다.
+   *  회사 정보 자체가 비면 아무 조건도 못 맞춰 본 것이 **확실하므로** 둘 다 그 자리에서만 움직인다.
    */
-  it("판정에 쓴 정보가 0개면 「조건을 맞춰 보지 않은 목록」이라 밝히고 「자동 대조 결과」라고 하지 않는다", () => {
+  it("회사 정보가 비면 「조건을 맞춰 보지 않은 목록」이라 밝히고 「자동 대조 결과」라고 하지 않는다", () => {
     const 없음값 = profileBandParts([]).value;
-    const html = 판({ data: 자료({ usedProfile: [], evaluatedConditions: 0 }) });
+    const html = 판({ data: 자료({ usedProfile: [], profileEmpty: true }) });
     expect(html, "위 구역이 그 사실을 말해야 한다").toContain(없음값);
     expect(없음값).toBe("없음 — 조건을 맞춰 보지 않은 목록입니다");
     expect(html, "조건을 안 맞춰 본 목록을 「자동 대조 결과」라고 한다").not.toContain("자동 대조 결과입니다");
@@ -273,7 +273,7 @@ describe("추천 정책 탭 — 자금 조달 지도", () => {
    *  판정까지 한 목록을 「조건 판정 없는 목록」이라 단정하게 된다 — 모르면 아무 말도 하지 않는다.
    */
   it("matchedCompany 는 null 일 때만 「찾지 못했어요」 — 칸이 없으면(undefined) 아무 말도 안 한다", () => {
-    const 없는칸 = 자료({ usedProfile: [], evaluatedConditions: 0 });
+    const 없는칸 = 자료({ usedProfile: [], profileEmpty: true });
     delete (없는칸 as { matchedCompany?: string | null }).matchedCompany;
     expect(없는칸.matchedCompany, "이 시험은 칸이 아예 없는 자료를 잰다").toBeUndefined();
 
@@ -283,7 +283,7 @@ describe("추천 정책 탭 — 자금 조달 지도", () => {
     expect(생략, "지도 자체는 그대로 그린다").toContain("안 갚아도 되는 돈");
 
     // 못 찾았다고 **말한** 자료에서는 그대로 뜬다
-    const 못찾음 = 판({ data: 자료({ matchedCompany: null, usedProfile: [], evaluatedConditions: 0 }) });
+    const 못찾음 = 판({ data: 자료({ matchedCompany: null, usedProfile: [], profileEmpty: true }) });
     expect(못찾음).toContain("이 사업장 정보를 찾지 못했어요");
 
     // 부품을 직접 불러도 세 갈래가 그대로다
@@ -298,25 +298,30 @@ describe("추천 정책 탭 — 자금 조달 지도", () => {
   });
 
   /**
-   * ★코덱스 2차 #1(2026-09-04) — 발 안내의 신호를 `usedProfile`(사람용 요약)에서
-   *  `evaluatedConditions`(서버가 센 판정 수)로 바꾼 자리. 요약은 `companyScale`·`hasCert`·`hasPatent`
-   *  를 안 담아 **판정이 돌았는데도 빈 배열**일 수 있어, 그 회사에게서 이 줄이 사라졌다.
+   * ★코덱스 3차 #C(2026-09-04) — 발 안내의 「자동 대조 결과입니다」를 **확실히 아닐 때만** 뺀다.
+   *  앞선 두 판(요약 길이 → `evaluatedConditions`)은 둘 다 근사치라 자꾸 틀렸다: 요약은
+   *  `companyScale`·`hasCert`·`hasPatent` 를 안 담고, 셈은 「견줘 봤다」를 기록하지 않는 엔진에서 나온
+   *  어림값이다. 이제 **회사 정보 자체가 빈 회사**(`profileEmpty`)에서만 빼고, 나머지는 그대로 둔다.
    */
-  it("발 안내는 evaluatedConditions 로만 가린다 — 요약이 비어도 판정이 돌았으면 「자동 대조 결과」다", () => {
-    const 요약없이판정 = 판({ data: 자료({ usedProfile: [], evaluatedConditions: 3 }) });
-    expect(요약없이판정, "판정을 해 놓고 안 했다는 듯이 말한다").toContain("자동 대조 결과입니다");
-    expect(요약없이판정, "판정을 해 놓고 「안 맞춰 봤다」고 말한다").not.toContain(profileBandParts([]).value);
+  it("발 안내는 profileEmpty 로만 가린다 — 요약이 비어도 정보가 있으면 「자동 대조 결과」다", () => {
+    const 요약없이정보있음 = 판({ data: 자료({ usedProfile: [], profileEmpty: false }) });
+    expect(요약없이정보있음, "모르면서 안 했다는 듯이 말한다").toContain("자동 대조 결과입니다");
+    expect(요약없이정보있음, "모르는데 「안 맞춰 봤다」고 말한다").not.toContain(profileBandParts([]).value);
 
-    // 반대로 요약이 있어도 판정이 0건이면 「자동 대조 결과」가 아니다
-    const 요약만 = 판({ data: 자료({ usedProfile: ["지역 전북"], evaluatedConditions: 0 }) });
-    expect(요약만, "맞춰 본 조건이 0건인데 자동 대조 결과라 한다").not.toContain("자동 대조 결과입니다");
-    expect(요약만).toContain("최종 자격은 공고 원문에서 확인하세요.");
+    // 회사 정보가 통째로 비면 그 말이 확실히 거짓이라 뺀다
+    const 정보없음 = 판({ data: 자료({ usedProfile: [], profileEmpty: true }) });
+    expect(정보없음, "정보가 하나도 없는데 자동 대조 결과라 한다").not.toContain("자동 대조 결과입니다");
+    expect(정보없음).toContain("최종 자격은 공고 원문에서 확인하세요.");
 
-    // 셈이 응답에 없으면(옛 통로) 단정하지 않는다 — 늘 참인 뒷부분만 남는다
+    // 요약이 있으면 정보가 있는 것이므로 예전처럼 그대로다
+    const 요약만 = 판({ data: 자료({ usedProfile: ["지역 전북"], profileEmpty: false }) });
+    expect(요약만).toContain("자동 대조 결과입니다");
+
+    // 칸이 응답에 없으면(옛 통로) 예전 문구 그대로 둔다 — 모르면 안 바꾼다
     const 옛통로 = 자료({ usedProfile: ["지역 전북"] });
-    delete (옛통로 as { evaluatedConditions?: number }).evaluatedConditions;
+    delete (옛통로 as { profileEmpty?: boolean }).profileEmpty;
     const 옛html = 판({ data: 옛통로 });
-    expect(옛html, "모르는데 단정한다").not.toContain("자동 대조 결과입니다");
+    expect(옛html, "모르는데 문구를 바꾼다").toContain("자동 대조 결과입니다");
     expect(옛html).toContain("최종 자격은 공고 원문에서 확인하세요.");
   });
 
@@ -679,12 +684,53 @@ describe("추천 정책 탭 — 재조회 연타로 요청이 쌓이지 않는�
     정리2();
   });
 
-  it("취소로 난 오류는 사용자 오류 문구로 보여 주지 않는다", async () => {
-    vi.stubGlobal("fetch", vi.fn(() => Promise.reject(취소오류())));
+  /**
+   * ★코덱스 3차 #A1(2026-09-04, 높음) — **영원한 로딩**이 나던 자리.
+   *
+   *  예전엔 오류의 **이름**이 `AbortError` 이기만 하면 결과 처리를 건너뛰었다. 그런데 앱의 fetch
+   *  감싸개(프록시·계측 래퍼 등)가 **자체 시간 제한**으로 끊으면 우리 controller 는 취소한 적이
+   *  없는데도 같은 이름의 오류가 온다 → `onResult` 가 영영 안 불려 화면이 뼈대(또는 흐린 옛 자료)에
+   *  머문다. 이제 「우리가 취소했나」는 `controller.signal.aborted` 하나로만 가른다.
+   */
+  it("우리가 취소한 게 아닌 AbortError 는 오류로 처리한다 — 로딩이 안 끝나면 안 된다(3차 #A1)", async () => {
+    // 감싸개의 자체 시간 제한 흉내: 우리 신호는 멀쩡한데 AbortError 이름으로 거절한다.
+    const signals: AbortSignal[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init?: { signal?: AbortSignal }) => {
+        signals.push(init!.signal!);
+        return Promise.reject(취소오류());
+      }),
+    );
     const 받은: FundingFetchResult[] = [];
     시작("/api/x?1", "r1", 받은);
     await 한바퀴();
-    expect(받은, "취소를 「불러오지 못했습니다」로 보여 준다").toEqual([]);
+
+    expect(signals[0].aborted, "이 시험은 **우리가 안 끊은** 자리를 잰다").toBe(false);
+    expect(받은, "결과가 안 와서 화면이 영원히 로딩에 머문다").toHaveLength(1);
+    expect(받은[0].error).toBe(LOAD_ERROR);
+    expect(받은[0].data).toBeNull();
+  });
+
+  it("우리가 끊은 요청의 오류는 이름이 무엇이든 조용히 넘긴다 — 신호 하나로만 가른다", async () => {
+    // 이름이 AbortError 가 아닌 오류로 거절해도, 우리가 끊었으면 사용자 오류 문구를 안 띄운다.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (_url: string, init?: { signal?: AbortSignal }) =>
+          new Promise((_, reject) => {
+            init!.signal!.addEventListener("abort", () => reject(new Error("연결이 닫혔습니다")));
+          }),
+      ),
+    );
+    const 받은: FundingFetchResult[] = [];
+    const 정리 = 시작("/api/x?1", "r1", 받은);
+    정리();
+    await 한바퀴();
+    expect(받은, "우리가 시킨 취소를 「불러오지 못했습니다」로 보여 준다").toEqual([]);
+  });
+
+  it("isAbortError 는 오류 **모양**만 가른다 — 취소 판정에는 쓰지 않는다", () => {
     expect(isAbortError(취소오류())).toBe(true);
     expect(isAbortError(new Error("네트워크 끊김")), "진짜 오류까지 취소로 읽는다").toBe(false);
     expect(isAbortError(null)).toBe(false);

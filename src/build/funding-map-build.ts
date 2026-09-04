@@ -421,7 +421,15 @@ function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): Buil
   return { item, gapLabels: gapLabelsOfConditions(conditions) };
 }
 
-/** 프로필에서 빈 칸을 사람 말로 — 「무엇을 입력해 달라」 힌트에 쓴다. */
+/**
+ * 프로필에서 빈 칸을 사람 말로 — 「무엇을 입력해 달라」 힌트에 쓴다.
+ *
+ * ★뒤쪽 다섯(기업 규모·체납 여부·인증 보유·특허 보유·사업자번호)은 코덱스 3차 #B2(2026-09-04)에서
+ *  더했다. 예전엔 「짝지을 이름이 없다」며 뺐는데, 이 다섯은 **채우면 판정이 실제로 달라지는** 칸이다
+ *  (`checkCondition` 이 비면 곧바로 「…미입력」 unknown 을 낸다). 이름은 그 함수가 쓰는 오류 문구에서
+ *  그대로 가져왔다 — 「기업 규모 미입력」·「체납 여부 미입력」·「인증 보유 미입력」·「특허 보유 미입력」·
+ *  「사업자번호로 법인 여부를 알 수 없음」.
+ */
 function profileGapsOf(p: BusinessProfile): string[] {
   const gaps: string[] = [];
   if (p.creditScore == null) gaps.push("신용점수");
@@ -431,7 +439,28 @@ function profileGapsOf(p: BusinessProfile): string[] {
   if (!p.foundedDate) gaps.push("설립일");
   if (p.lastYearRevenueKrw == null) gaps.push("연매출");
   if (p.employeeCount == null) gaps.push("직원 수");
+  if (!p.companyScale) gaps.push("기업 규모");
+  if (p.taxDelinquent == null) gaps.push("체납 여부");
+  if (p.hasCert == null) gaps.push("인증 보유");
+  if (p.hasPatent == null) gaps.push("특허 보유");
+  // `isCorporation` 은 사업자번호에서 법인 여부를 읽는다 — **비어 있을 때만** 빈 칸으로 센다.
+  // 적혀 있는데 못 읽는 번호(가운데 두 자리가 89·90 등)는 「빈 칸」이 아니라 「읽을 수 없는 값」이라
+  // 「입력해 주세요」가 거짓이 된다 — 그 자리는 조건 쪽 note 가 말한다.
+  if (!p.bizno) gaps.push("사업자번호");
   return gaps;
+}
+
+/**
+ * 판정에 쓸 회사 정보가 **하나도 없는가**(`FundingMapData.profileEmpty`, 코덱스 3차 #C 2026-09-04).
+ *
+ * 화면이 「조건을 맞춰 보지 않은 목록입니다」라고 **단정해도 되는 유일한 근거**다 — 정보가 통째로
+ * 비었으면 어떤 조건도 못 맞춰 본 것이 확실하다. 반대로 값이 하나라도 있으면 우리는 **모른다**
+ * (판정 엔진이 「견줘 봤다」를 기록하지 않는다). 모르면 화면이 아무 말도 하지 않는다.
+ *
+ * `false`·`0` 은 **채워진 값**이다(체납 없음·직원 0명) — 비었다고 세면 안 된다.
+ */
+function isProfileEmpty(p: BusinessProfile): boolean {
+  return Object.values(p).every((v) => v === undefined || v === null || v === "");
 }
 
 /**
@@ -446,10 +475,12 @@ function profileGapsOf(p: BusinessProfile): string[] {
  *  · creditScoreMin·creditScoreMax → `p.creditScore`(신용점수)
  *  · hasExistingLoan → `p.hasExistingLoan`(기존 대출 유무)
  *
- * **여기 없는 조건 키 5개**(`companyScale`·`noTaxDelinquency`·`certRequired`·`patentRequired`·
- * `isCorporation`)는 일부러 뺐다 — 그 조건들이 읽는 칸(`companyScale`·`taxDelinquent`·`hasCert`·
- * `hasPatent`·`bizno`)은 `profileGapsOf` 가 빈 칸으로 세지 않아 **짝지을 이름 자체가 없다**.
- * 없는 이름을 지어내면 화면이 「입력해 주세요」라고 시킨 칸을 사용자가 찾을 수 없다.
+ * ★뒤 다섯은 코덱스 3차 #B2(2026-09-04)에서 더했다 — 예전엔 「`profileGapsOf` 가 안 세니 짝지을
+ *  이름이 없다」며 뺐지만, 그것은 `profileGapsOf` 쪽 누락이었다. 채우면 판정이 실제로 갈린다:
+ *  · companyScale → `p.companyScale`(기업 규모) · noTaxDelinquency → `p.taxDelinquent`(체납 여부)
+ *  · certRequired → `p.hasCert`(인증 보유) · patentRequired → `p.hasPatent`(특허 보유)
+ *  · isCorporation → `p.bizno`(사업자번호)
+ *  「other」처럼 프로필을 아예 안 읽는 키는 여전히 여기 없다(짝이 없다).
  */
 const GAP_LABEL_BY_CONDITION_KEY: Record<string, string> = {
   region: "소재지",
@@ -463,6 +494,11 @@ const GAP_LABEL_BY_CONDITION_KEY: Record<string, string> = {
   creditScoreMin: "신용점수",
   creditScoreMax: "신용점수",
   hasExistingLoan: "기존 대출 유무",
+  companyScale: "기업 규모",
+  noTaxDelinquency: "체납 여부",
+  certRequired: "인증 보유",
+  patentRequired: "특허 보유",
+  isCorporation: "사업자번호",
 };
 
 /**
@@ -479,18 +515,6 @@ function gapLabelsOfConditions(conditions: StructuredCondition[]): string[] {
     if (label) out.push(label);
   }
   return out;
-}
-
-/**
- * 이번 결과에서 **실제로 판정이 난 조건의 수**(`FundingMapData.evaluatedConditions`).
- *
- * `verdict` 가 `unknown` 인 것은 세지 않는다 — 조건을 읽기만 하고 프로필과 견주지 못한 자리(값 미입력·
- * 기계로 못 읽는 조건·비교 방식 불일치)라 「조건을 맞춰 봤다」의 근거가 아니다(`checkCondition` 참고).
- */
-function countEvaluatedConditions(items: FundingItem[]): number {
-  let n = 0;
-  for (const it of items) for (const f of it.fit) if (f.verdict !== "unknown") n += 1;
-  return n;
 }
 
 /**
@@ -698,6 +722,11 @@ export const PRODUCT_SELECT = {
 
 /** 지도 + 「거르기 전 / 거른 뒤」 건수. 화면 발 hint 가 「표시 N / 조건에 맞는 M / 전체 K」로 쓴다. */
 export interface FundingMapResult extends FundingMapData {
+  /**
+   * 조립은 이 칸을 **반드시** 싣는다 — `FundingMapData` 쪽은 선택이다(옛 통로가 보낸 응답도
+   * 그대로 그려야 하므로). 여기서 필수로 좁혀 두면 나중에 빠뜨렸을 때 타입검사가 잡는다.
+   */
+  profileEmpty: boolean;
   totals: {
     /**
      * 칩을 걸기 전 전체 건수(공고 + 상시 상품 + 손 등록) — **묶고 쌍둥이 상품을 접은 뒤**의 수다
@@ -773,12 +802,13 @@ export async function buildFundingMap(
   const excludedShown = foldTwinProducts(excludedPool);
   const unclassified = shown.filter((it) => it.unclassified).length;
 
-  // ★「조건을 맞춰 봤는가」와 「무엇을 채우면 좋은가」는 **이번 결과가 들고 있는 항목 전부**로 센다
-  //  (코덱스 2차 #1·#6, 2026-09-04) — 정상 풀만 세면 두 곳에서 거짓말이 된다:
-  //   ⓐ 조건을 다 맞춰 본 끝에 전부 안 맞음으로 걸러진 회사에게 「조건을 맞춰 보지 않은 목록」이라 말한다,
-  //   ⓑ 「안 맞아서 뺀 항목 보기」 스위치 하나에 머리 카드의 단정이 흔들린다(그 스위치는 판정과 무관하다).
-  const judged = [...shown, ...excludedShown];
-  const evaluatedConditions = countEvaluatedConditions(judged);
+  // ★「무엇을 채우면 좋은가」(빈칸 힌트)는 **판정이 끝난 목록 전부**로 센다 — 정상 풀 + 안 맞음 풀을
+  //  **겹친 상품을 접기 전**(`filtered`·`excludedPool`)으로 본다(코덱스 3차 #B1, 2026-09-04).
+  //   ⓐ 정상 풀만 세면 전부 안 맞음으로 걸러진 회사에게 힌트가 사라지고, 「안 맞아서 뺀 항목 보기」
+  //     스위치 하나에 머리 카드가 흔들린다(그 스위치는 판정과 무관하다 — 2차 #1·#6).
+  //   ⓑ 접은 **뒤**로 세면 접힌 쌍둥이 상품이 들고 있던 조건을 통째로 잃는다. 접기는 「같은 사업을
+  //     두 줄로 보여 주지 않기」일 뿐, 그 줄에서 판정이 안 돌았다는 뜻이 아니다(3차 #B1).
+  const judged = [...filtered, ...excludedPool];
   const profileGaps = usedProfileGapsOf(profile, judged, gapLabelsByItem);
 
   const glance = glanceOf(shown);
@@ -805,7 +835,10 @@ export async function buildFundingMap(
     glance,
     profileGaps,
     unclassified,
-    evaluatedConditions,
+    // ★화면이 「조건을 맞춰 보지 않은 목록입니다」라고 단정해도 되는 **유일한 근거**(3차 #C).
+    //  옛 칸 `evaluatedConditions`(판정이 난 조건 수)는 없앴다 — 판정 엔진이 「견줘 봤다」를 기록하지
+    //  않아 어떤 셈도 근사치였고, 근사치로 만든 단정문은 계속 틀렸다.
+    profileEmpty: isProfileEmpty(profile),
     // 화면이 「상위 N 건만 실렸다」와 「칩으로 몇 건이 빠졌다」를 구분해 말할 수 있게 둘 다 준다.
     // `all` 은 **묶고(dedupKey) 쌍둥이 상품까지 접은 뒤** 건수다(13차 #5) — 접힌 줄까지 세면
     // 화면 발 hint 가 지도에 없는 줄을 말한다.

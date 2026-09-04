@@ -1121,47 +1121,60 @@ describe("profileBandParts — 판정 근거 띠를 라벨과 값 두 조각으�
 });
 
 /**
- * ★코덱스 2차 #1·#2(2026-09-04) — 머리 카드 「판정에 쓴 정보」 구역이 **무엇을 근거로** 말하는지.
- *  ⓐ 신호는 `usedProfile`(사람용 요약)이 아니라 `evaluatedConditions`(서버가 센 판정 수)다.
- *  ⓑ 「없는 칸(undefined)」과 「빈 배열」은 다르다 — 옛 통로에 거짓 안내를 띄우지 않는다.
+ * ★코덱스 3차 #C(2026-09-04) — 머리 카드 「판정에 쓴 정보」 구역이 **무엇을 근거로** 말하는지.
+ *  단정문(「없음 — 조건을 맞춰 보지 않은 목록입니다」)의 근거를 근사치(`evaluatedConditions`)에서
+ *  **확실히 아는 사실**(`profileEmpty` — 회사 정보 자체가 비었다)로 바꿨다.
+ *  요약이 비어도 인증·특허·기업 규모 같은 값이 판정에 쓰였을 수 있어 「없음」이 거짓일 수 있다.
  */
 describe("profileBandOf — 판정 근거 구역을 그릴지, 무엇이라 적을지", () => {
   const 없음값 = profileBandParts([]).value;
 
-  it("응답에 usedProfile 칸이 아예 없으면(옛 통로) 구역을 안 그린다 — 빈 배열과 다르다", () => {
-    expect(profileBandOf(undefined, 0)).toBeNull();
-    expect(profileBandOf(undefined, 5)).toBeNull();
-    expect(profileBandOf(undefined, undefined)).toBeNull();
-    // 빈 배열은 「없다고 말한 것」이라 다르게 다룬다
-    expect(profileBandOf([], 0)).not.toBeNull();
-  });
-
-  it("적을 것이 있으면 그대로 적는다 — 판정 수와 무관하다", () => {
-    for (const n of [0, 3, undefined]) {
-      expect(profileBandOf(["지역 전북", "직원수 10명"], n)).toEqual({
+  it("적을 것이 있으면 그대로 적는다 — profileEmpty 와 무관하다", () => {
+    for (const 빔 of [true, false, undefined]) {
+      expect(profileBandOf(["지역 전북", "직원수 10명"], 빔)).toEqual({
         label: profileBandParts(["지역 전북"]).label,
         value: "전북 · 직원수 10명",
       });
     }
   });
 
-  it("요약이 비었을 때 「조건을 맞춰 보지 않은 목록」은 **판정 0건일 때만** 말한다", () => {
-    expect(profileBandOf([], 0)!.value).toBe(없음값);
+  it("요약이 비었을 때 「조건을 맞춰 보지 않은 목록」은 **회사 정보가 비었을 때만** 말한다", () => {
+    expect(profileBandOf([], true)!.value).toBe(없음값);
     expect(없음값).toBe("없음 — 조건을 맞춰 보지 않은 목록입니다");
 
-    // ★자기모순이 나던 자리 — 요약은 비었지만 판정은 돌았다(companyScale·hasCert·hasPatent 만 채운 회사).
-    //  그 자리에서 「없음」이라 적으면 실제로 쓴 정보를 없다고 말하는 셈이다.
-    expect(profileBandOf([], 1), "판정이 돌았는데 「안 맞춰 봤다」고 말한다").toBeNull();
-    expect(profileBandOf([], 42)).toBeNull();
+    // ★거짓말이 나던 자리 — 요약은 비었지만 회사 정보는 있다(companyScale·hasCert·hasPatent 만 채운 회사).
+    //  요약이 안 담는 값이 판정에 쓰였을 수 있으므로 「없음」이라 적으면 실제로 쓴 정보를 없다고 말한다.
+    expect(profileBandOf([], false), "정보가 있는데 「안 맞춰 봤다」고 말한다").toBeNull();
 
-    // 셈이 응답에 없으면(옛 통로) 어느 쪽도 단정하지 않는다
+    // 칸이 응답에 없으면(옛 통로) 어느 쪽도 단정하지 않는다
     expect(profileBandOf([], undefined), "모르는데 단정한다").toBeNull();
   });
 
+  it("응답에 usedProfile 칸이 없어도 profileEmpty 하나로 가른다 — 모르면 아무 말 안 한다", () => {
+    expect(profileBandOf(undefined, undefined)).toBeNull();
+    expect(profileBandOf(undefined, false)).toBeNull();
+    expect(profileBandOf(undefined, true)!.value, "회사 정보가 빈 것은 확실히 안다").toBe(없음값);
+  });
+
   it("값이 비어 있는 줄만 있는 것도 빈 배열과 같게 다룬다(코덱스 2차 #7과 한 기준)", () => {
-    expect(profileBandOf([""], 0)!.value).toBe(없음값);
+    expect(profileBandOf([""], true)!.value).toBe(없음값);
     expect(profileBandOf(["지역 "], undefined)).toBeNull();
-    expect(profileBandOf(["", "지역 부산"], 0)!.value).toBe("부산");
+    expect(profileBandOf(["", "지역 부산"], true)!.value).toBe("부산");
+  });
+
+  /**
+   * ★코덱스 3차 #A2(2026-09-04) — 서버·옛 앱이 JSON 으로 `"usedProfile": null` 을 보내면 예전엔
+   *  `null.map` 에서 터져 **지도 화면 전체가 안 그려졌다**. 배열이 아닌 값은 전부 「모름」과 같게 본다.
+   */
+  it("배열이 아닌 값(null 포함)에도 안 터진다 — undefined 와 같게 다룬다(3차 #A2)", () => {
+    for (const 이상한값 of [null, undefined, "지역 서울", 0, {}] as unknown[]) {
+      const 값 = 이상한값 as string[] | null | undefined;
+      expect(() => profileBandOf(값, false)).not.toThrow();
+      expect(profileBandOf(값, false)).toBeNull();
+      expect(profileBandOf(값, true)!.value).toBe(없음값);
+    }
+    expect(profileBandParts(null).value, "라벨+값 한 벌도 안 터진다").toBe(없음값);
+    expect(profileBandWords(null)).toBe("");
   });
 });
 
@@ -1214,6 +1227,19 @@ describe("gapParts — 빠진 칸 힌트를 「할 일 제목 + 본문」으로(
     expect(
       gapParts(["신용점수", "기존 대출 유무", "소재지", "업종", "설립일", "연매출", "직원 수"])?.title,
     ).toBe("신용점수, 기존 대출 유무, 소재지, 업종, 설립일, 연매출, 직원 수를 입력해 주세요");
+  });
+
+  /**
+   * ★코덱스 3차 #A2(2026-09-04) — `profileGaps` 도 통로를 건너온 값이라 타입이 못 지킨다.
+   *  `null` 이 오면 `null.length` 에서 터져 지도 화면 전체가 안 그려졌다.
+   */
+  it("배열이 아닌 값(null 포함)에도 안 터진다 — 빈 배열과 같게 다룬다(3차 #A2)", () => {
+    for (const 이상한값 of [null, undefined, "신용점수", 0, {}] as unknown[]) {
+      const 값 = 이상한값 as string[] | null | undefined;
+      expect(() => gapParts(값)).not.toThrow();
+      expect(gapParts(값)).toBeNull();
+      expect(gapWords(값)).toBe("");
+    }
   });
 
   it("3개 이상은 가운뎃점(·)이 아니라 쉼표로 잇는다 — 옛 한 줄 힌트와 다른 규칙", () => {

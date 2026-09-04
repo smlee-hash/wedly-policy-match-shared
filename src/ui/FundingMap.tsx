@@ -756,12 +756,12 @@ export function FundingMapView({
   const glance = data.glance;
   const totals = data.totals;
   const unclassified = useMemo(() => unclassifiedGroupItems(data.groups), [data]);
-  // ★「조건을 맞춰 봤는가」는 **`evaluatedConditions`(서버가 센 판정 수)** 하나로만 가린다
-  //  (코덱스 2차 #1·#2, 2026-09-04). `usedProfile`(사람에게 보여 줄 요약)은 그 신호가 못 된다 —
-  //  요약이 `companyScale`·`hasCert`·`hasPatent` 를 안 담아 판정이 돌았는데도 빈 배열일 수 있고,
-  //  반대로 요약이 있어도 공고 조건이 전부 비면 자동 판정은 0건이다. 셈이 응답에 없으면(옛 통로)
-  //  `profileBandOf` 가 아무 말도 하지 않는다.
-  const band = profileBandOf(data.usedProfile, data.evaluatedConditions);
+  // ★머리 띠는 **요약에 적을 것이 있을 때만** 그린다. 요약이 비었을 때 「없음 — 조건을 맞춰 보지
+  //  않은 목록입니다」라고 단정하는 것은 **`profileEmpty`(회사 정보 자체가 비었다)** 하나뿐이다
+  //  (코덱스 3차 #C, 2026-09-04 — 옛 신호 `evaluatedConditions` 는 근사치라 폐기했다).
+  //  요약이 비어도 인증·특허·기업 규모 같은 값이 판정에 쓰였을 수 있어 「없음」이 거짓일 수 있고,
+  //  옛 통로는 이 칸을 아예 안 싣는다 — 그럴 땐 `profileBandOf` 가 아무 말도 하지 않는다.
+  const band = profileBandOf(data.usedProfile, data.profileEmpty);
   const gap = gapParts(data.profileGaps);
   // 머리 카드는 **할 말이 있을 때만** 그린다. 판정 근거도 빈칸 힌트도 없으면 카드 자체를 안 그린다.
   const 머리카드 = band !== null || gap !== null;

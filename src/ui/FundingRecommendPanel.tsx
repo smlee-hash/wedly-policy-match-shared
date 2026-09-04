@@ -136,8 +136,14 @@ export function fundingFetchKeys(a: {
 }
 
 /**
- * 취소 때문에 난 오류인가 — **사용자 오류 문구로 보여 주면 안 된다**(코덱스 2차 #5, 2026-09-04).
- * 취소는 우리가 시킨 일이지 고장이 아니다. `fetch` 는 `AbortError`(DOMException)로 거절한다.
+ * 오류의 **모양**이 취소처럼 생겼는가 — `fetch` 는 `AbortError`(DOMException) 이름으로 거절한다.
+ *
+ * ★이 함수로 「우리가 취소했다」를 판정하면 안 된다(코덱스 3차 #A1, 2026-09-04).
+ *  앱의 fetch 감싸개(프록시·계측 래퍼 등)가 **자체 시간 제한**으로 요청을 끊으면, 우리 controller 는
+ *  취소한 적이 없는데도 이름이 같은 오류가 올라온다. 그때 결과 처리를 건너뛰면 `onResult` 가 영영
+ *  안 불려 화면이 **영원한 로딩**(뼈대 또는 흐린 옛 자료)에 머문다.
+ *  「우리가 취소했나」의 정본은 **`controller.signal.aborted`** 하나뿐이다.
+ *  (이 함수는 오류를 분류해 기록하는 자리에서만 쓴다.)
  */
 export function isAbortError(e: unknown): boolean {
   return typeof e === "object" && e !== null && (e as { name?: unknown }).name === "AbortError";
@@ -153,6 +159,11 @@ export function isAbortError(e: unknown): boolean {
  *
  * 깃발(`alive`)은 그대로 남긴다 — 취소가 걸린 뒤에도 이미 풀린 약속의 뒷단계가 한 번 더 돌 수 있다.
  * 취소로 난 오류는 **삼킨다**(사용자에게 「불러오지 못했습니다」를 띄우지 않는다).
+ *
+ * ★삼키는 기준은 **`controller.signal.aborted` 하나**다(코덱스 3차 #A1, 2026-09-04). 예전엔 오류
+ *  **이름**(`AbortError`)만으로도 삼켰는데, 앱의 fetch 감싸개가 자체 시간 제한으로 끊으면 우리가
+ *  취소한 적이 없어도 같은 이름이 온다 → `onResult` 가 안 불려 화면이 영원히 로딩에 머물렀다.
+ *  우리가 안 끊었으면 이름이 무엇이든 **오류로 처리해 로딩을 끝낸다**.
  *
  * 조회 자체(`fetch`)는 전역에서 그때그때 찾는다 — 시험이 전역을 갈아 끼워 잴 수 있게.
  */
@@ -175,8 +186,9 @@ export function startFundingMapFetch(a: {
       if (b?.success && b.data) done({ data: b.data as RecommendFundingData });
       else done({ error: a.parseError(b) });
     })
-    .catch((e) => {
-      if (controller.signal.aborted || isAbortError(e)) return;
+    .catch(() => {
+      // 우리가 끊었을 때만 조용히 넘긴다 — 오류 이름은 보지 않는다(위 주석).
+      if (controller.signal.aborted) return;
       done({ error: LOAD_ERROR });
     });
   return () => {
@@ -303,17 +315,16 @@ export function RecommendPanel({
           </button>
         }
       />
-      {/* 발 안내 — ★「자동 대조 결과입니다」는 **조건을 실제로 맞춰 봤을 때만** 참이다.
-          ★신호를 바꿨다(코덱스 2차 #1, 2026-09-04): 예전엔 `usedProfile`(사람에게 보여 줄 요약)의
-           길이로 갈랐는데, 그 요약은 `companyScale`·`hasCert`·`hasPatent` 를 안 담아 **판정이 돌았는데도
-           빈 배열**일 수 있었다(그 회사에게 이 줄이 사라졌다). 이제 서버가 센 `evaluatedConditions`
-           (판정이 실제로 난 조건 수)만 본다 — **0보다 클 때만** 「자동 대조 결과입니다」를 쓰고,
-           0이거나 **응답에 없으면**(옛 통로) 늘 참인 뒷부분만 남긴다(모르면 단정하지 않는다). */}
+      {/* 발 안내 — ★「자동 대조 결과입니다」는 **확실히 아닐 때만** 뺀다(코덱스 3차 #C, 2026-09-04).
+           앞선 두 판(요약 길이 → `evaluatedConditions` 판정 수)은 둘 다 근사치였다: 판정 엔진이
+           「이 조건을 회사 정보와 견줘 봤다」를 기록하지 않아 어떤 셈도 사실을 못 말한다.
+           이제 **회사 정보 자체가 비었을 때**(`profileEmpty === true`)만 이 말을 빼고, 그 밖에는
+           예전처럼 그대로 둔다 — 응답에 칸이 없는 옛 통로도 「그 밖」이다(모르면 안 바꾼다). */}
       {data && (
         <p className="mt-3 break-keep text-xs text-wedly-muted">
-          {(data.evaluatedConditions ?? 0) > 0
-            ? "자동 대조 결과입니다 — 최종 자격은 공고 원문에서 확인하세요."
-            : "최종 자격은 공고 원문에서 확인하세요."}
+          {data.profileEmpty === true
+            ? "최종 자격은 공고 원문에서 확인하세요."
+            : "자동 대조 결과입니다 — 최종 자격은 공고 원문에서 확인하세요."}
         </p>
       )}
       <FundingDrawer item={drawerItem} onClose={onCloseDrawer} onOpenDetail={onOpenDetail} />

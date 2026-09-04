@@ -482,75 +482,109 @@ describe("자금 조달 지도 조립 — 두 표를 한 모양으로", () => {
   });
 
   /**
-   * ★코덱스 2차 #1(2026-09-04) — 「조건을 맞춰 봤는가」의 정본 신호. 예전엔 화면이 `usedProfile`
-   *  (사람에게 보여 줄 요약)의 길이로 갈랐는데 그건 틀린 신호였다(아래 마지막 시험이 그 자리를 잰다).
+   * ★코덱스 3차 #C(2026-09-04) — 「조건을 맞춰 보지 않은 목록입니다」라고 **단정해도 되는 근거**.
+   *
+   *  앞선 두 판(요약 길이 → `evaluatedConditions` 판정 수)은 둘 다 근사치였다: 판정 엔진이
+   *  「이 조건을 회사 정보와 견줘 봤다」를 기록하지 않아 어떤 셈도 사실을 못 말한다. 그래서 셈을
+   *  정교하게 만드는 대신 **확실히 아는 것 하나**만 싣는다 — 회사 정보 자체가 비었는가.
    */
-  it("evaluatedConditions — 판정이 **난** 조건만 센다(확인 필요는 안 센다)", async () => {
+  it("profileEmpty — 회사 정보가 통째로 비었을 때만 참이다", async () => {
     loadOpenAnnouncements.mockResolvedValue([]);
     productFindMany.mockResolvedValue([prod({ id: "p9", targetRules: { creditScoreMin: 700 } })]);
 
-    // 신용점수를 안 적으면 그 조건은 「확인 필요」로만 남는다 — 맞춰 본 것이 아니다
-    const 미입력 = await buildFundingMap({}, NOW);
-    expect(미입력.evaluatedConditions).toBe(0);
-
-    // 적으면 그 조건 하나가 실제로 판정된다(손 등록 명부의 업력 조건은 설립일이 없어 여전히 확인 필요)
-    const 통과 = await buildFundingMap({ creditScore: 800 }, NOW);
-    expect(통과.evaluatedConditions).toBe(1);
+    expect((await buildFundingMap({}, NOW)).profileEmpty, "빈 프로필인데 거짓이다").toBe(true);
+    expect((await buildFundingMap({ region: "서울" }, NOW)).profileEmpty).toBe(false);
+    // 「값이 없다」와 「빈 문자열」은 같게 본다 — 통로가 안 채운 칸을 ""로 보내기도 한다
+    expect((await buildFundingMap({ region: "", industry: "" }, NOW)).profileEmpty).toBe(true);
   });
 
-  it("조건을 하나도 못 읽은 목록은 evaluatedConditions 가 0이다 — 「자동 대조 결과」라 부를 근거가 없다", async () => {
-    loadOpenAnnouncements.mockResolvedValue([ann()]);
-    productFindMany.mockResolvedValue([prod({ id: "p0", targetRules: {} })]);
-    // 프로필을 채워도 공고·상품에 기계 대조 조건이 없으면 판정은 0건이다.
-    // 설립일만 비워 둔다 — 손 등록 명부의 업력 조건은 이 시험이 부르지 않아도 늘 끼어들어,
-    // 채우면 그 한 줄이 판정되어 0이 아니게 된다(자료가 아니라 상수 몫이다).
-    const data = await buildFundingMap({ region: "서울", industry: "제조", creditScore: 800, employeeCount: 3 }, NOW);
-    expect(data.evaluatedConditions).toBe(0);
+  it("false·0 은 **채워진 값**이다 — 체납 없음·직원 0명을 「정보 없음」으로 세지 않는다", async () => {
+    loadOpenAnnouncements.mockResolvedValue([]);
+    productFindMany.mockResolvedValue([]);
+    expect((await buildFundingMap({ taxDelinquent: false }, NOW)).profileEmpty).toBe(false);
+    expect((await buildFundingMap({ employeeCount: 0 }, NOW)).profileEmpty).toBe(false);
+    expect((await buildFundingMap({ hasExistingLoan: false }, NOW)).profileEmpty).toBe(false);
   });
 
   /**
-   * ★자기모순이 나던 자리 — 전부 안 맞음으로 걸러지면 정상 목록이 비는데, 그때 「정상 풀만」 세면
-   *  판정을 다 해 놓고 「조건을 맞춰 보지 않은 목록입니다」라고 말하게 된다. 안 맞음 풀도 함께 센다.
+   * ★뿌리 원인 그 자체(코덱스 2차 #1 → 3차 #3·#6) — `usedProfileSummary` 는 `companyScale`·
+   *  `hasCert`·`hasPatent` 를 **아예 요약하지 않는다**. 그 셋만 채운 회사는 요약이 빈 배열이다.
+   *  그 자리에서 화면이 「조건을 맞춰 보지 않은 목록」이라 말하면 거짓이다 — `profileEmpty` 는
+   *  거짓이라 화면이 **아무 말도 하지 않는다**(이 시험이 그 계약을 못 박는다).
    */
-  it("전부 안 맞음으로 걸러져도 맞춰 본 사실은 남는다 — 안 맞음 풀의 조건도 센다", async () => {
-    loadOpenAnnouncements.mockResolvedValue([]);
-    productFindMany.mockResolvedValue([prod({ id: "p9", targetRules: { creditScoreMin: 700 } })]);
-    const data = await buildFundingMap({ creditScore: 600 }, NOW); // 700 미만 → fail → 안 맞음
-    expect(shownOf(data.groups).some((it) => it.id === "p:p9"), "정상 목록에서는 빠진다").toBe(false);
-    expect(data.evaluatedConditions, "걸러졌다고 판정한 사실까지 지우면 안 된다").toBe(1);
-  });
-
-  it("「안 맞아서 뺀 항목 보기」 스위치는 evaluatedConditions 를 흔들지 않는다", async () => {
-    loadOpenAnnouncements.mockResolvedValue([]);
-    productFindMany.mockResolvedValue([prod({ id: "p9", targetRules: { creditScoreMin: 700 } })]);
-    const 꺼짐 = await buildFundingMap({ creditScore: 600 }, NOW);
-    const 켜짐 = await buildFundingMap({ creditScore: 600 }, NOW, { filters: { includeExcluded: true } });
-    expect(켜짐.evaluatedConditions).toBe(꺼짐.evaluatedConditions);
-  });
-
-  /**
-   * ★뿌리 원인 그 자체(코덱스 2차 #1) — `usedProfileSummary` 는 `companyScale`·`hasCert`·`hasPatent`
-   *  세 칸을 **아예 요약하지 않는다**. 그 셋만 채운 회사는 판정이 실제로 돌았는데도 요약이 빈 배열이라,
-   *  요약 길이를 신호로 쓰면 화면이 항목을 「맞음」으로 그리면서 동시에 「조건을 맞춰 보지 않은 목록」
-   *  이라고 말했다(자기모순). 여기서 두 값이 실제로 어긋나는 것을 못 박아 둔다.
-   */
-  it("요약이 비어도 판정은 돈다 — 그 자리에서 evaluatedConditions 만이 사실을 말한다", async () => {
+  it("요약이 비어도 회사 정보는 있다 — 그 회사에는 profileEmpty 가 거짓이다", async () => {
     const 규모만: BusinessProfile = { companyScale: "중소기업" };
     expect(usedProfileSummary(규모만), "요약은 기업 규모를 안 담는다").toEqual([]);
 
     loadOpenAnnouncements.mockResolvedValue([]);
     productFindMany.mockResolvedValue([prod({ id: "ps", targetRules: { scale: ["중소기업"] } })]);
     const data = await buildFundingMap(규모만, NOW);
-    expect(data.evaluatedConditions, "판정은 실제로 돌았다").toBe(1);
+    expect(data.profileEmpty, "요약이 비었다고 정보가 없다고 말한다").toBe(false);
     expect(shownOf(data.groups).find((it) => it.id === "p:ps")!.fit[0].verdict).toBe("pass");
   });
 
-  it("짝지을 프로필 항목 이름이 없는 조건(기업 규모·법인 여부)은 힌트를 만들지 않는다", async () => {
+  /**
+   * ★코덱스 3차 #B1(2026-09-04) — 빈칸 힌트를 **겹친 상품을 접은 뒤** 목록으로 세면, 접힌 쌍둥이
+   *  상품이 들고 있던 조건이 통째로 사라진다. 접기는 「같은 사업을 두 줄로 안 보여 주기」일 뿐
+   *  그 줄에서 판정이 안 돌았다는 뜻이 아니다.
+   */
+  it("접힌 쌍둥이 상품의 조건도 빈칸 힌트에 센다 — 접기 전 목록으로 센다(3차 #B1)", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({ id: "f1", title: "소공인특화자금", agency: "중소벤처기업진흥공단", dedupKey: "소공인특화자금|중소벤처기업진흥공단", fundingGroup: "policy" }),
+    ]);
+    // 같은 이름·같은 기관이라 이 상품 줄은 공고에 접힌다. 신용점수 조건은 이 줄에만 있다.
+    productFindMany.mockResolvedValue([
+      prod({ id: "pf1", name: "소공인특화자금", institution: "중소벤처기업진흥공단", fundingGroup: "policy", targetRules: { creditScoreMin: 700 } }),
+    ]);
+    // 설립일은 손 등록 명부 몫이라 채워서 지운다 — 남는 것은 접힌 줄이 만든 힌트뿐이다.
+    const data = await buildFundingMap({ foundedDate: "2020-01-01" }, NOW);
+    expect(byId(data.groups, "p:pf1"), "이 시험은 실제로 접힌 자리를 잰다").toBeUndefined();
+    expect(data.profileGaps, "접힌 상품의 조건을 통째로 잃었다").toEqual(["신용점수"]);
+  });
+
+  /**
+   * ★코덱스 3차 #B2(2026-09-04) — 다섯 조건(`companyScale`·`noTaxDelinquency`·`certRequired`·
+   *  `patentRequired`·`isCorporation`)이 빈칸 안내에서 빠져 있었다. 「짝지을 이름이 없다」던 것은
+   *  `profileGapsOf` 쪽 누락이었다 — 채우면 판정이 실제로 갈리는 칸들이다.
+   */
+  it("기업 규모·법인 여부도 빈칸 안내에 나온다 — 채우면 판정이 갈린다(3차 #B2)", async () => {
     loadOpenAnnouncements.mockResolvedValue([]);
     productFindMany.mockResolvedValue([prod({ id: "ps", targetRules: { scale: ["중소기업"], isCorporation: true } })]);
-    // 설립일은 손 등록 명부 몫이라 채워서 지운다 — 남는 것이 있으면 그건 위 두 조건이 지어낸 이름이다
     const data = await buildFundingMap({ foundedDate: "2020-01-01" }, NOW);
-    expect(data.profileGaps, "profileGapsOf 에 없는 칸 이름을 지어냈다").toEqual([]);
+    expect(data.profileGaps).toEqual(["기업 규모", "사업자번호"]);
+
+    // 채우면 힌트에서 빠진다 — 「입력해 주세요」가 사라지는 자리가 실제로 있다
+    const 채움 = await buildFundingMap({ foundedDate: "2020-01-01", companyScale: "중소기업", bizno: "1018147521" }, NOW);
+    expect(채움.profileGaps).toEqual([]);
+  });
+
+  it("체납·인증·특허 조건도 빈칸 안내에 나온다(3차 #B2)", async () => {
+    const 세조건 = {
+      ...EMPTY_RULE,
+      conditions: [
+        { key: "noTaxDelinquency", op: "eq", value: true, rawText: "국세·지방세 체납 없을 것", machineReadable: true },
+        { key: "certRequired", op: "eq", value: true, rawText: "벤처기업 인증 보유", machineReadable: true },
+        { key: "patentRequired", op: "eq", value: true, rawText: "특허 보유", machineReadable: true },
+      ],
+    };
+    loadOpenAnnouncements.mockResolvedValue([ann({ ruleStructure: 세조건 })]);
+    productFindMany.mockResolvedValue([]);
+    const data = await buildFundingMap({ foundedDate: "2020-01-01" }, NOW);
+    expect(data.profileGaps).toEqual(["체납 여부", "인증 보유", "특허 보유"]);
+
+    const 채움 = await buildFundingMap(
+      { foundedDate: "2020-01-01", taxDelinquent: false, hasCert: true, hasPatent: false },
+      NOW,
+    );
+    expect(채움.profileGaps).toEqual([]);
+  });
+
+  it("적혀 있지만 못 읽는 사업자번호는 「빈 칸」이 아니다 — 입력해 달라고 시키지 않는다", async () => {
+    loadOpenAnnouncements.mockResolvedValue([]);
+    productFindMany.mockResolvedValue([prod({ id: "ps", targetRules: { isCorporation: true } })]);
+    // 가운데 두 자리 89 — 법인·개인을 못 가르는 번호다. 그래도 사람이 적어 둔 값이라 빈 칸이 아니다.
+    const data = await buildFundingMap({ foundedDate: "2020-01-01", bizno: "1018947521" }, NOW);
+    expect(data.profileGaps, "적어 둔 칸을 다시 입력하라고 시킨다").toEqual([]);
   });
 
   it("기계로 못 읽는 조건(machineReadable:false)은 그 항목을 쓴다고 치지 않는다", async () => {

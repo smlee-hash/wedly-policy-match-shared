@@ -174,8 +174,8 @@ function 자료(items: FundingItem[] = 항목8, over: Partial<FundingMapPayload>
     // bandEntry(funding-map.ts)가 정확히 미리보기 시안 문장으로 바꾸는 원문 5종.
     usedProfile: ["지역 서울", "업종 음식점/카페", "매출 1.3억", "설립일 2023-01-15", "법인 여부 개인"],
     profileGaps: ["신용점수", "기존 대출 유무"],
-    // 「조건을 맞춰 봤는가」의 정본 신호(코덱스 2차 #1) — 이 기본 자료는 **실제로 판정이 돈** 회사다.
-    evaluatedConditions: 4,
+    // 단정문의 유일한 근거(코덱스 3차 #C) — 이 기본 자료는 **회사 정보가 있는** 회사다.
+    profileEmpty: false,
     unclassified: 0,
     generatedAt: "2026-09-03T01:00:00.000Z",
     ...over,
@@ -1056,8 +1056,8 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     expect(html, "옛 「대조 기준」 문구").not.toContain("대조 기준");
     expect(html, "옛 「대조에 쓴 정보」 문구").not.toContain("대조에 쓴 정보");
 
-    // ★코덱스 5차 #1 — 쓸 정보 0개여도 카드는 그린다(값이 「없음 — …」이라 라벨+값이 늘 찬다).
-    const 빈띠 = 그린다({ data: 자료(항목8, { usedProfile: [], profileGaps: [], evaluatedConditions: 0 }) });
+    // ★코덱스 5차 #1 — 회사 정보가 통째로 빈 회사는 카드를 그린다(값이 「없음 — …」이라 라벨+값이 찬다).
+    const 빈띠 = 그린다({ data: 자료(항목8, { usedProfile: [], profileGaps: [], profileEmpty: true }) });
     expect(빈띠, "쓸 정보 0개인데 머리 카드가 사라졌다").toContain(띠.label);
     expect(빈띠, "빈 칸이 없으니 「입력해 주세요」는 안 나온다").not.toContain("입력해 주세요");
   });
@@ -1067,7 +1067,7 @@ describe("자금 조달 지도 — 그려서 재기", () => {
    *  예전엔 `usedProfile` 이 빈 배열이면 값이 빈 문자열이라 이 구역을 통째로 안 그렸고, 그래서
    *  ⓐ 조건을 하나도 안 맞춘 목록이 맞춤 추천처럼 보였고 ⓑ 손잡이만 덩그러니 남은 빈 구역이 생겼다.
    */
-  it("⑪-d 판정에 쓴 정보가 0개면 위 구역이 「조건을 맞춰 보지 않은 목록」이라고 말한다 — 빈 구역이 아니다", () => {
+  it("⑪-d 회사 정보 자체가 비면 위 구역이 「조건을 맞춰 보지 않은 목록」이라고 말한다 — 빈 구역이 아니다", () => {
     const 없음 = profileBandParts([]);
     const 손잡이 = (
       <button type="button" data-probe="refresh">
@@ -1075,7 +1075,7 @@ describe("자금 조달 지도 — 그려서 재기", () => {
       </button>
     );
     const 카드 = 머리카드(
-      그린다({ data: 자료(항목8, { usedProfile: [], evaluatedConditions: 0 }), headerAction: 손잡이 }),
+      그린다({ data: 자료(항목8, { usedProfile: [], profileEmpty: true }), headerAction: 손잡이 }),
     );
 
     expect(카드, "라벨 줄이 없다").toContain(없음.label);
@@ -1097,46 +1097,66 @@ describe("자금 조달 지도 — 그려서 재기", () => {
   });
 
   /**
-   * ★코덱스 2차 #2(2026-09-04) — `usedProfile` 은 **선택 칸**이다. 「응답에 없는 것(undefined)」과
-   *  「없다고 말한 것(빈 배열)」을 같게 다루면, 그 칸을 안 싣는 옛 통로 화면에 「없음 — 조건을 맞춰
-   *  보지 않은 목록입니다」라는 근거 없는 단정이 뜬다.
+   * ★코덱스 3차 #C(2026-09-04) — 요약이 없어도(옛 통로) 회사 정보가 비었다는 사실은 확실히 알 수 있다.
+   *  「요약이 없다」는 아무것도 말해 주지 않는다 — 단정의 근거는 `profileEmpty` 하나다.
    */
-  it("⑪-e usedProfile 칸이 아예 없으면(옛 통로) 판정 근거 구역을 안 그린다 — 빈 배열과 다르다", () => {
+  it("⑪-e usedProfile 칸이 없어도 profileEmpty 가 거짓이면 판정 근거 구역을 안 그린다", () => {
     const 없는칸 = 자료(항목8, { profileGaps: [] });
     delete (없는칸 as { usedProfile?: string[] }).usedProfile;
     expect(없는칸.usedProfile, "이 시험은 칸이 아예 없는 자료를 잰다").toBeUndefined();
+    expect(없는칸.profileEmpty, "이 회사는 정보가 있다").toBe(false);
 
     const html = 그린다({ data: 없는칸 });
-    expect(html, "옛 통로에 없는 사실을 단정한다").not.toContain("조건을 맞춰 보지 않은 목록입니다");
+    expect(html, "모르는 사실을 단정한다").not.toContain("조건을 맞춰 보지 않은 목록입니다");
     expect(html, "적을 것이 없는데 라벨만 남았다").not.toContain(profileBandParts([]).label);
     expect(html.indexOf('class="rounded-xl border border-wedly-bd bg-white'), "머리 카드가 통째로 안 그려져야 한다").toBe(-1);
     expect(html, "지도 자체는 그대로 그린다").toContain("안 갚아도 되는 돈");
 
-    // 같은 자료라도 **빈 배열**이면(판정 0건) 라벨+「없음」을 그린다 — 둘은 다른 사실이다
-    const 빈배열 = 그린다({ data: 자료(항목8, { usedProfile: [], profileGaps: [], evaluatedConditions: 0 }) });
-    expect(빈배열).toContain("없음 — 조건을 맞춰 보지 않은 목록입니다");
+    // 회사 정보가 통째로 비었으면 요약 칸이 없어도 라벨+「없음」을 그린다 — 그건 확실히 안다
+    const 정보없음 = 자료(항목8, { profileGaps: [], profileEmpty: true });
+    delete (정보없음 as { usedProfile?: string[] }).usedProfile;
+    expect(그린다({ data: 정보없음 })).toContain("없음 — 조건을 맞춰 보지 않은 목록입니다");
   });
 
   /**
-   * ★뿌리 원인(코덱스 2차 #1) — `usedProfileSummary` 는 `companyScale`·`hasCert`·`hasPatent` 를
-   *  요약하지 않는다. 그 셋만 채운 회사는 **판정이 실제로 돌았는데도** 요약이 빈 배열이라, 예전 화면은
-   *  항목을 「맞음」으로 그리면서 동시에 「조건을 맞춰 보지 않은 목록」이라고 말했다(자기모순).
+   * ★뿌리 원인(코덱스 3차 #3·#6) — `usedProfileSummary` 는 `companyScale`·`hasCert`·`hasPatent` 를
+   *  요약하지 않는다. 그 셋만 채운 회사는 요약이 빈 배열인데, 그 자리에서 「조건을 맞춰 보지 않은
+   *  목록」이라 말하면 거짓이다. 판정 엔진이 「견줘 봤다」를 기록하지 않으므로 그 반대도 단정 못 한다
+   *  — 그래서 화면은 **아무 말도 하지 않는다**(띠도, 단정도 없다).
    */
-  it("⑪-f 요약이 비어도 판정이 돌았으면(evaluatedConditions>0) 「안 맞춰 봤다」고 말하지 않는다", () => {
-    const html = 그린다({ data: 자료(항목8, { usedProfile: [], profileGaps: [], evaluatedConditions: 3 }) });
-    expect(html, "판정을 해 놓고 안 맞춰 봤다고 말한다(자기모순)").not.toContain("조건을 맞춰 보지 않은 목록입니다");
+  it("⑪-f 요약이 비었지만 회사 정보는 있으면 띠도 단정도 없다(3차 #C)", () => {
+    const html = 그린다({ data: 자료(항목8, { usedProfile: [], profileGaps: [], profileEmpty: false }) });
+    expect(html, "모르는데 「안 맞춰 봤다」고 말한다").not.toContain("조건을 맞춰 보지 않은 목록입니다");
     expect(html, "적을 것이 없는데 「없음」 라벨만 남았다").not.toContain(profileBandParts([]).label);
     expect(html, "지도는 그대로 그린다").toContain("안 갚아도 되는 돈");
   });
 
-  it("⑪-g evaluatedConditions 가 응답에 없으면(옛 통로) 어느 쪽도 단정하지 않는다", () => {
+  it("⑪-g profileEmpty 가 응답에 없으면(옛 통로) 어느 쪽도 단정하지 않는다", () => {
     const 옛통로 = 자료(항목8, { usedProfile: [], profileGaps: [] });
-    delete (옛통로 as { evaluatedConditions?: number }).evaluatedConditions;
-    expect(옛통로.evaluatedConditions).toBeUndefined();
+    delete (옛통로 as { profileEmpty?: boolean }).profileEmpty;
+    expect(옛통로.profileEmpty).toBeUndefined();
 
     const html = 그린다({ data: 옛통로 });
     expect(html, "모르는데 「안 맞춰 봤다」고 단정한다").not.toContain("조건을 맞춰 보지 않은 목록입니다");
     expect(html).not.toContain(profileBandParts([]).label);
+  });
+
+  /**
+   * ★코덱스 3차 #A2(2026-09-04) — 서버·옛 앱이 JSON 으로 `"usedProfile": null` 을 보내면 예전엔
+   *  `null.map` 에서 터져 **지도 화면 전체가 안 그려졌다**(빈 화면). `profileGaps` 도 같은 위험이었다.
+   */
+  it("⑪-h usedProfile·profileGaps 가 null 이어도 지도가 그려진다(3차 #A2)", () => {
+    const 널자료 = 자료(항목8, {});
+    (널자료 as unknown as Record<string, unknown>).usedProfile = null;
+    (널자료 as unknown as Record<string, unknown>).profileGaps = null;
+
+    let html = "";
+    expect(() => {
+      html = 그린다({ data: 널자료 });
+    }, "null 하나에 화면 전체가 죽는다").not.toThrow();
+    expect(html, "지도가 안 그려졌다").toContain("안 갚아도 되는 돈");
+    expect(html, "모르는데 단정한다").not.toContain("조건을 맞춰 보지 않은 목록입니다");
+    expect(html, "빈 칸이 뭔지 모르는데 입력하라고 시킨다").not.toContain("입력해 주세요");
   });
 
   /**
