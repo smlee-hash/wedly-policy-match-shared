@@ -13,7 +13,7 @@
  * ★공고를 누르면 이 상세창이 **이미 가진** 상세(`onOpenDetail` → `swapDetail`)로 보낸다 —
  *  상세창 위에 서랍을 또 겹치지 않는다. 상세 화면이 없는 상시 상품만 `FundingDrawer` 가 맡는다.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Info, RotateCw } from "lucide-react";
 import FundingDrawer from "./FundingDrawer";
 import FundingMap, { type FundingMapPayload } from "./FundingMap";
@@ -104,20 +104,41 @@ export function openTargetOf(item: FundingItem, canOpenDetail: boolean): "detail
   return item.kind === "announcement" && canOpenDetail ? "detail" : "drawer";
 }
 
-/** 한 번의 조회 결과 — 「어느 회사·어느 요청」 것인지를 함께 담는다. */
+/** 한 번의 조회 결과 — 「어느 통로·어느 회사·어느 요청」 것인지를 함께 담는다. */
 export interface FundingFetchResult {
-  /** 회사·칩·정렬·다시추천 회차까지 담은 요청 열쇠. 지금 열쇠와 다르면 아직 도는 중이다. */
+  /** 통로·회사·칩·정렬·다시추천 회차까지 담은 요청 열쇠. 지금 열쇠와 다르면 아직 도는 중이다. */
   requestKey: string;
-  /** 사업자번호|상호. 회사가 바뀌면 앞 회사 자료를 절대 안 보여 준다. */
+  /** 통로|사업자번호|상호. 통로나 회사가 바뀌면 앞 자료를 절대 안 보여 준다. */
   companyKey: string;
   data: RecommendFundingData | null;
   error: string;
 }
 
 /**
+ * 조회 열쇠 두 개를 한 자리에서 만든다 — **통로(`endpoint`)까지 섞는다**(코덱스 3차 #3, 2026-09-04).
+ *
+ * ★왜 통로가 열쇠에 들어가나: 같은 사업자번호·같은 칩인 채 통로만 `/api/a` → `/api/b` 로 바뀌면
+ *  (앱마다 통로가 다르다) 예전엔 두 열쇠가 그대로라 **재조회가 아예 안 돌고, 앞 통로에서 받은 자료가
+ *  새 통로 결과인 척** 계속 보였다. 통로를 회사 열쇠에 섞으면 세 가지가 한꺼번에 풀린다:
+ *   ① 열쇠가 달라지니 조회 효과가 다시 돈다(새 통로로 나간다),
+ *   ② `viewState` 가 앞 통로 자료를 「남의 것」으로 가려낸다(빈 화면 + 로딩),
+ *   ③ 늦게 도착한 앞 통로 응답도 열쇠가 달라 새 화면에 못 앉는다.
+ */
+export function fundingFetchKeys(a: {
+  endpoint: string;
+  bizno?: string;
+  companyName?: string;
+  refreshKey: number;
+  query: string;
+}): { companyKey: string; requestKey: string } {
+  const companyKey = `${a.endpoint}|${a.bizno ?? ""}|${a.companyName ?? ""}`;
+  return { companyKey, requestKey: `${a.refreshKey}|${companyKey}|${a.query}` };
+}
+
+/**
  * 그릴 것을 **그리는 순간에 가려낸다** — 효과 안에서 상태를 지우면 쓸데없는 다시 그리기가 한 번 더 돌고,
  * 그 사이 한 프레임 동안 앞 회사 지도가 이 회사 것처럼 보인다.
- *  · 회사가 바뀌면 앞 회사의 자료·오류는 없는 셈 친다(남의 회사 자금을 이 회사 것으로 읽지 않게).
+ *  · 통로나 회사가 바뀌면 앞 자료·오류는 없는 셈 친다(남의 회사·앞 통로 자금을 지금 것으로 읽지 않게).
  *  · 칩·정렬만 바꾼 재조회 중에는 **앞 자료를 그대로 둔다**(지도가 사라졌다 나타나지 않게 — 흐려질 뿐).
  */
 export function viewState(
@@ -284,11 +305,19 @@ export default function FundingRecommendPanel({
   // 여기(부모)가 쥔다.
   const [showExcluded, setShowExcluded] = useState<ReadonlySet<FundingGroup>>(() => new Set<FundingGroup>());
 
-  const companyKey = `${bizno ?? ""}|${companyName ?? ""}`;
   const query = buildQuery({ bizno, companyName, filters, sort });
-  const requestKey = `${refreshKey}|${query}`;
+  // 통로까지 섞은 열쇠 — 통로만 바뀌어도 재조회가 돌고 앞 통로 자료가 안 남는다(코덱스 3차 #3).
+  const { companyKey, requestKey } = fundingFetchKeys({ endpoint, bizno, companyName, refreshKey, query });
   const { data, error, loading } = viewState(result, requestKey, companyKey);
   const drawerItem = opened?.companyKey === companyKey ? opened.item : null;
+
+  // 오류 문구 규칙은 **의존 배열에 넣지 않는다** — 부모가 화살표 함수를 그 자리에서 만들어 주면
+  // 매 렌더마다 새 함수라 재조회가 끝없이 돈다. 대신 늘 최신 것을 쓰도록 ref 로 받는다
+  // (이 저장소 관례: `StepDraftEditor.tsx`·`SkeletonStepEditor.tsx` 의 onChangeRef 와 같은 꼴).
+  const parseErrorRef = useRef(parseError);
+  useEffect(() => {
+    parseErrorRef.current = parseError;
+  }, [parseError]);
 
   useEffect(() => {
     // 칸을 연달아 채우면 신호가 몰린다 — 600ms 로 묶어 재대조를 한 번만(적대 리뷰 사소1).
@@ -304,7 +333,7 @@ export default function FundingRecommendPanel({
     };
   }, [refreshEventName]);
 
-  // 회사가 바뀌면 앞 회사에서 펼쳐 둔 「안 맞아서 뺀 항목」을 접고 재조회 스위치도 끈다(11차 #10).
+  // 회사(또는 통로)가 바뀌면 앞서 펼쳐 둔 「안 맞아서 뺀 항목」을 접고 재조회 스위치도 끈다(11차 #10).
   // 둘 다 바꿀 것이 없으면 **같은 값**을 돌려주므로 다시 그리기·재조회가 헛돌지 않는다.
   useEffect(() => {
     setShowExcluded((prev) => (prev.size > 0 ? new Set<FundingGroup>() : prev));
@@ -323,13 +352,13 @@ export default function FundingRecommendPanel({
       .then((r) => r.json())
       .then((b) => {
         if (b?.success && b.data) done({ data: b.data as RecommendFundingData });
-        else done({ error: parseError(b) });
+        else done({ error: parseErrorRef.current(b) });
       })
       .catch(() => done({ error: LOAD_ERROR }));
     return () => {
       alive = false;
     };
-  }, [bizno, companyName, companyKey, query, requestKey]);
+  }, [endpoint, bizno, companyName, companyKey, query, requestKey]);
 
   if (!bizno && !companyName) {
     return <p className="text-sm text-wedly-t2">사업자번호가 있어야 정책을 대조할 수 있습니다.</p>;

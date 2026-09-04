@@ -5,6 +5,7 @@ import FundingRecommendPanel, {
   LOAD_ERROR,
   ProfileNotice,
   RecommendPanel,
+  fundingFetchKeys,
   fundingMapQuery,
   openTargetOf,
   resetExcludedForCompany,
@@ -380,6 +381,69 @@ describe("추천 정책 탭 — 「안 맞아서 뺀 항목 보기」 배선(재
     // 이미 꺼져 있으면 **같은 객체**를 돌려준다 — 새 객체를 만들면 조회 열쇠가 바뀌어 조회가 한 번 더 돈다
     const 꺼짐 = { ...기본거르개 };
     expect(resetExcludedForCompany(꺼짐)).toBe(꺼짐);
+  });
+});
+
+/**
+ * ★코덱스 3차 #3(2026-09-04) — 같은 사업자번호·같은 칩인 채 통로(`endpoint`)만 바뀌면
+ *  예전엔 조회 열쇠가 그대로라 재조회가 안 돌고 **앞 통로 자료가 새 통로 결과인 척** 계속 보였다.
+ *  통로를 회사 열쇠에 섞어(그래서 요청 열쇠에도 섞여) 고쳤다.
+ *
+ *  재는 방법은 이 파일의 다른 배선 시험과 같다 — 효과를 돌릴 브라우저 흉내(jsdom)가 없으니
+ *  화면이 실제로 쓰는 순수 함수 두 개(`fundingFetchKeys` → `viewState`)를 이어 붙여 잰다.
+ *  열쇠가 바뀌면 조회 효과의 의존 배열(companyKey·requestKey)이 바뀌므로 재조회는 자동으로 따라온다.
+ */
+describe("추천 정책 탭 — 통로(endpoint)가 바뀌면 다시 부르고 앞 통로 자료를 안 보여 준다", () => {
+  const 같은조회 = fundingMapQuery({ bizno: "1234567890", companyName: "삼영식품", filters: 기본거르개, sort: "rec" });
+  const 앞통로 = fundingFetchKeys({ endpoint: "/api/a", bizno: "1234567890", companyName: "삼영식품", refreshKey: 0, query: 같은조회 });
+  const 새통로 = fundingFetchKeys({ endpoint: "/api/b", bizno: "1234567890", companyName: "삼영식품", refreshKey: 0, query: 같은조회 });
+
+  it("사업자번호·칩·정렬이 같아도 통로가 다르면 두 열쇠가 모두 달라진다(재조회가 돈다)", () => {
+    expect(앞통로.companyKey, "통로가 회사 열쇠에 섞여야 한다").not.toBe(새통로.companyKey);
+    expect(앞통로.requestKey, "통로가 요청 열쇠에도 섞여야 한다").not.toBe(새통로.requestKey);
+    expect(앞통로.companyKey).toContain("/api/a");
+    expect(새통로.companyKey).toContain("/api/b");
+  });
+
+  it("통로가 같으면 열쇠도 같다 — 헛조회를 만들지 않는다", () => {
+    const 다시 = fundingFetchKeys({ endpoint: "/api/a", bizno: "1234567890", companyName: "삼영식품", refreshKey: 0, query: 같은조회 });
+    expect(다시).toEqual(앞통로);
+    // 「다시 추천」 회차만 올라도 요청 열쇠는 달라진다(회사 열쇠는 그대로)
+    const 다시추천 = fundingFetchKeys({ endpoint: "/api/a", bizno: "1234567890", companyName: "삼영식품", refreshKey: 1, query: 같은조회 });
+    expect(다시추천.companyKey).toBe(앞통로.companyKey);
+    expect(다시추천.requestKey).not.toBe(앞통로.requestKey);
+  });
+
+  it("통로가 바뀐 순간 앞 통로 지도가 사라지고 로딩으로 바뀐다(앞 자료가 새 결과인 척 안 남는다)", () => {
+    const 앞결과: FundingFetchResult = { requestKey: 앞통로.requestKey, companyKey: 앞통로.companyKey, data: 자료(), error: "" };
+    const v = viewState(앞결과, 새통로.requestKey, 새통로.companyKey);
+    expect(v.data, "앞 통로에서 받은 지도를 새 통로 화면에 그대로 두면 안 된다").toBeNull();
+    expect(v.error).toBe("");
+    expect(v.loading).toBe(true);
+    const html = 판({ data: v.data, loading: v.loading });
+    expect(html).toContain('aria-busy="true"');
+    expect(html, "앞 통로 공고가 새 통로 화면에 남지 않는다").not.toContain("스마트상점 기술보급사업 3차");
+  });
+
+  it("새 통로 응답이 도착하면 화면이 새 결과로 바뀐다", () => {
+    const 새자료 = 자료({
+      groups: FUNDING_GROUPS.map((group) =>
+        갈래칸(group, group === "grant" ? [mk({ id: "a:7", group: "grant", refId: "ann-7", title: "새 통로 전용 공고" })] : []),
+      ),
+    });
+    const 새결과: FundingFetchResult = { requestKey: 새통로.requestKey, companyKey: 새통로.companyKey, data: 새자료, error: "" };
+    const v = viewState(새결과, 새통로.requestKey, 새통로.companyKey);
+    expect(v.loading).toBe(false);
+    const html = 판({ data: v.data, loading: v.loading });
+    expect(html).toContain("새 통로 전용 공고");
+    expect(html).not.toContain("스마트상점 기술보급사업 3차");
+  });
+
+  it("앞 통로 응답이 늦게 도착해도 새 통로 화면에 못 앉는다", () => {
+    const 늦게온앞결과: FundingFetchResult = { requestKey: 앞통로.requestKey, companyKey: 앞통로.companyKey, data: 자료(), error: "" };
+    const v = viewState(늦게온앞결과, 새통로.requestKey, 새통로.companyKey);
+    expect(v.data).toBeNull();
+    expect(v.loading).toBe(true);
   });
 });
 
