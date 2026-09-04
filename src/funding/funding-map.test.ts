@@ -18,6 +18,7 @@ import {
   isOpen,
   isSoon,
   normalizeAmountUnits,
+  profileBandOf,
   profileBandParts,
   profileBandWords,
   repayWords,
@@ -1083,9 +1084,11 @@ describe("profileBandParts — 판정 근거 띠를 라벨과 값 두 조각으�
     expect(profileBandWords([])).toBe("");
   });
 
-  it("옛 한 줄 함수 = 이 함수의 값에 옛 앞머리만 붙인 것(0개일 때만 예외) — 두 벌로 갈라지지 않는다", () => {
+  it("옛 한 줄 함수 = 이 함수의 값에 옛 앞머리만 붙인 것(적을 것이 0개일 때만 예외) — 두 벌로 갈라지지 않는다", () => {
     const 입력들: string[][] = [
       [],
+      [""],
+      ["지역 "],
       ["지역 서울"],
       ["법인 여부 법인"],
       ["지역 전북", "직원수 10명"],
@@ -1093,8 +1096,72 @@ describe("profileBandParts — 판정 근거 띠를 라벨과 값 두 조각으�
     ];
     for (const used of 입력들) {
       const { value } = profileBandParts(used);
-      expect(profileBandWords(used)).toBe(used.length === 0 ? "" : `이 사업장 정보로 판정: ${value}`);
+      const 없음 = value === profileBandParts([]).value;
+      expect(profileBandWords(used)).toBe(없음 ? "" : `이 사업장 정보로 판정: ${value}`);
     }
+  });
+
+  /**
+   * ★코덱스 2차 #7(2026-09-04) — 값이 **비어 있는** 요약 줄(`""`·`"지역 "`)이 오면 예전엔
+   *  「이 사업장 정보로 판정: 」처럼 **라벨만 남은 문장**이 나왔다. 빈 배열과 똑같이 다룬다.
+   */
+  it("값이 비어 있는 줄은 빈 배열과 똑같이 다룬다 — 라벨만 남은 문장을 만들지 않는다", () => {
+    const 없음 = profileBandParts([]).value;
+    expect(profileBandWords([""])).toBe("");
+    expect(profileBandWords(["지역 "])).toBe("");
+    expect(profileBandWords(["  "])).toBe("");
+    expect(profileBandWords(["", "지역 "])).toBe("");
+    expect(profileBandParts([""]).value).toBe(없음);
+    expect(profileBandParts(["지역 "]).value).toBe(없음);
+
+    // 섞여 있으면 빈 조각만 버린다 — 앞에 구분점(「 · 부산」)이 남지 않는다
+    expect(profileBandParts(["", "지역 부산"]).value).toBe("부산");
+    expect(profileBandWords(["지역 ", "직원수 10명"])).toBe("이 사업장 정보로 판정: 직원수 10명");
+  });
+});
+
+/**
+ * ★코덱스 2차 #1·#2(2026-09-04) — 머리 카드 「판정에 쓴 정보」 구역이 **무엇을 근거로** 말하는지.
+ *  ⓐ 신호는 `usedProfile`(사람용 요약)이 아니라 `evaluatedConditions`(서버가 센 판정 수)다.
+ *  ⓑ 「없는 칸(undefined)」과 「빈 배열」은 다르다 — 옛 통로에 거짓 안내를 띄우지 않는다.
+ */
+describe("profileBandOf — 판정 근거 구역을 그릴지, 무엇이라 적을지", () => {
+  const 없음값 = profileBandParts([]).value;
+
+  it("응답에 usedProfile 칸이 아예 없으면(옛 통로) 구역을 안 그린다 — 빈 배열과 다르다", () => {
+    expect(profileBandOf(undefined, 0)).toBeNull();
+    expect(profileBandOf(undefined, 5)).toBeNull();
+    expect(profileBandOf(undefined, undefined)).toBeNull();
+    // 빈 배열은 「없다고 말한 것」이라 다르게 다룬다
+    expect(profileBandOf([], 0)).not.toBeNull();
+  });
+
+  it("적을 것이 있으면 그대로 적는다 — 판정 수와 무관하다", () => {
+    for (const n of [0, 3, undefined]) {
+      expect(profileBandOf(["지역 전북", "직원수 10명"], n)).toEqual({
+        label: profileBandParts(["지역 전북"]).label,
+        value: "전북 · 직원수 10명",
+      });
+    }
+  });
+
+  it("요약이 비었을 때 「조건을 맞춰 보지 않은 목록」은 **판정 0건일 때만** 말한다", () => {
+    expect(profileBandOf([], 0)!.value).toBe(없음값);
+    expect(없음값).toBe("없음 — 조건을 맞춰 보지 않은 목록입니다");
+
+    // ★자기모순이 나던 자리 — 요약은 비었지만 판정은 돌았다(companyScale·hasCert·hasPatent 만 채운 회사).
+    //  그 자리에서 「없음」이라 적으면 실제로 쓴 정보를 없다고 말하는 셈이다.
+    expect(profileBandOf([], 1), "판정이 돌았는데 「안 맞춰 봤다」고 말한다").toBeNull();
+    expect(profileBandOf([], 42)).toBeNull();
+
+    // 셈이 응답에 없으면(옛 통로) 어느 쪽도 단정하지 않는다
+    expect(profileBandOf([], undefined), "모르는데 단정한다").toBeNull();
+  });
+
+  it("값이 비어 있는 줄만 있는 것도 빈 배열과 같게 다룬다(코덱스 2차 #7과 한 기준)", () => {
+    expect(profileBandOf([""], 0)!.value).toBe(없음값);
+    expect(profileBandOf(["지역 "], undefined)).toBeNull();
+    expect(profileBandOf(["", "지역 부산"], 0)!.value).toBe("부산");
   });
 });
 

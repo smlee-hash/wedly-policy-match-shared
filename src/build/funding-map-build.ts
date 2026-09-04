@@ -31,6 +31,7 @@ import {
   type BusinessProfile,
 } from "../engine/match-engine";
 import { withRegionConditions } from "../engine/region-augment";
+import type { StructuredCondition } from "../engine/structure-types";
 import { fitVerdictOf, scoreOf, type FitVerdict } from "../engine/recommend-score";
 import { rulesToConditions } from "../funding/products/rules-to-conditions";
 import { MANUAL_PRODUCTS } from "../funding/products/sources/manual";
@@ -282,8 +283,18 @@ function isNewSince(firstSeenAt: Date | null | undefined, now: Date): boolean {
   return Number.isFinite(t) && now.getTime() - t < NEW_MS;
 }
 
+/**
+ * 지도 항목 + **응답에 안 싣는 곁가지**. `gapLabels` 는 이 항목의 기계 대조 조건이 실제로 읽는
+ * 프로필 항목 이름들이다 — 빈칸 힌트(`profileGaps`)를 「이번 결과가 쓰는 것」으로 좁히는 데만 쓴다.
+ * 항목(`FundingItem`)에 칸으로 넣지 않는 이유: 그 모양은 그대로 JSON 응답이 되어 응답이 커진다.
+ */
+interface BuiltItem {
+  item: FundingItem;
+  gapLabels: string[];
+}
+
 /** 공고 한 건 → 지도 항목. 갈래를 못 붙이면 grant 칸에 싣고 미분류 표식을 남긴다(빼면 누락이다). */
-function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: Date): FundingItem {
+function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: Date): BuiltItem {
   const stored = isFundingGroup(r.fundingGroup) ? r.fundingGroup : null;
   const guessed =
     stored ??
@@ -303,7 +314,7 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
   const why = whyOf(fit, humanCheck);
 
   const rateText = r.rateText || (group === "grant" && !unclassified ? "무상" : "");
-  return {
+  const item: FundingItem = {
     id: `a:${r.id}`,
     kind: "announcement",
     refId: r.id,
@@ -335,6 +346,7 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
     // 빈 값으로 물으면 통로가 빈 배열을 주고 화면엔 뜻 없는 빈 목록이 남는다.
     ...((r.dedupKey ?? "").trim() ? { dedupKey: (r.dedupKey ?? "").trim() } : {}),
   };
+  return { item, gapLabels: gapLabelsOfConditions(structure.conditions) };
 }
 
 /** 상시 상품 한 줄 — DB 에서 읽는 칸(select)과 짝이 맞아야 한다. */
@@ -360,7 +372,7 @@ interface ProductRow {
   firstSeenAt: Date | null;
 }
 
-function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): FundingItem {
+function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): BuiltItem {
   const stored = isFundingGroup(p.fundingGroup) ? p.fundingGroup : null;
   // 갈래 칸이 비거나 이상하면 기관 성격으로 다시 붙인다 — 은행 상품 876건이 미분류로 새면 지도가 무너진다.
   const guessed =
@@ -376,7 +388,7 @@ function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): Fund
   const humanCheck = conditions.filter((c) => !c.machineReadable).length;
   const why = whyOf(fit, humanCheck);
 
-  return {
+  const item: FundingItem = {
     id: `p:${p.id}`,
     kind: "product",
     refId: p.id,
@@ -406,9 +418,10 @@ function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): Fund
     isNew: isNewSince(p.firstSeenAt, now),
     ...(unclassified ? { unclassified: true } : {}),
   };
+  return { item, gapLabels: gapLabelsOfConditions(conditions) };
 }
 
-/** 프로필에서 빈 칸을 사람 말로 — 「N칸 채우면 확인 필요 M건이 판정됩니다」 안내에 쓴다. */
+/** 프로필에서 빈 칸을 사람 말로 — 「무엇을 입력해 달라」 힌트에 쓴다. */
 function profileGapsOf(p: BusinessProfile): string[] {
   const gaps: string[] = [];
   if (p.creditScore == null) gaps.push("신용점수");
@@ -419,6 +432,85 @@ function profileGapsOf(p: BusinessProfile): string[] {
   if (p.lastYearRevenueKrw == null) gaps.push("연매출");
   if (p.employeeCount == null) gaps.push("직원 수");
   return gaps;
+}
+
+/**
+ * 조건 키 → 그 조건이 **읽는 프로필 항목의 사람 말 이름**. 이름은 위 `profileGapsOf` 가 쓰는 글자와
+ * 한 글자도 다르면 안 된다(그 글자로 걸러 내기 때문이다).
+ *
+ * 짝은 지어내지 않고 `checkCondition`(`src/engine/match-engine.ts`)이 **실제로 읽는 칸**을 그대로 옮겼다:
+ *  · region → `p.region`(소재지) · industry → `p.industry`(업종)
+ *  · businessAgeMaxYears·businessAgeMinYears → `p.foundedDate`(설립일)
+ *  · revenueMaxKrw·revenueMinKrw → `p.lastYearRevenueKrw`(연매출)
+ *  · employeeMax·employeeMin → `p.employeeCount`(직원 수)
+ *  · creditScoreMin·creditScoreMax → `p.creditScore`(신용점수)
+ *  · hasExistingLoan → `p.hasExistingLoan`(기존 대출 유무)
+ *
+ * **여기 없는 조건 키 5개**(`companyScale`·`noTaxDelinquency`·`certRequired`·`patentRequired`·
+ * `isCorporation`)는 일부러 뺐다 — 그 조건들이 읽는 칸(`companyScale`·`taxDelinquent`·`hasCert`·
+ * `hasPatent`·`bizno`)은 `profileGapsOf` 가 빈 칸으로 세지 않아 **짝지을 이름 자체가 없다**.
+ * 없는 이름을 지어내면 화면이 「입력해 주세요」라고 시킨 칸을 사용자가 찾을 수 없다.
+ */
+const GAP_LABEL_BY_CONDITION_KEY: Record<string, string> = {
+  region: "소재지",
+  industry: "업종",
+  businessAgeMaxYears: "설립일",
+  businessAgeMinYears: "설립일",
+  revenueMaxKrw: "연매출",
+  revenueMinKrw: "연매출",
+  employeeMax: "직원 수",
+  employeeMin: "직원 수",
+  creditScoreMin: "신용점수",
+  creditScoreMax: "신용점수",
+  hasExistingLoan: "기존 대출 유무",
+};
+
+/**
+ * 한 항목이 **기계 대조에 실제로 쓰는** 프로필 항목 이름들 — 빈칸 힌트를 좁히는 데만 쓰고 응답에는 안 싣는다.
+ *
+ * `machineReadable` 이 false 인 조건은 뺀다: `checkCondition` 이 그 조건에서는 프로필을 **아예 읽지 않고**
+ * 바로 「확인 필요」를 내므로, 그 칸을 채워도 달라질 것이 없다.
+ */
+function gapLabelsOfConditions(conditions: StructuredCondition[]): string[] {
+  const out: string[] = [];
+  for (const c of conditions) {
+    if (!c.machineReadable) continue;
+    const label = GAP_LABEL_BY_CONDITION_KEY[c.key];
+    if (label) out.push(label);
+  }
+  return out;
+}
+
+/**
+ * 이번 결과에서 **실제로 판정이 난 조건의 수**(`FundingMapData.evaluatedConditions`).
+ *
+ * `verdict` 가 `unknown` 인 것은 세지 않는다 — 조건을 읽기만 하고 프로필과 견주지 못한 자리(값 미입력·
+ * 기계로 못 읽는 조건·비교 방식 불일치)라 「조건을 맞춰 봤다」의 근거가 아니다(`checkCondition` 참고).
+ */
+function countEvaluatedConditions(items: FundingItem[]): number {
+  let n = 0;
+  for (const it of items) for (const f of it.fit) if (f.verdict !== "unknown") n += 1;
+  return n;
+}
+
+/**
+ * 빈칸 힌트 = 「비어 있는 프로필 항목」 ∩ 「이번 결과의 기계 대조 조건이 실제로 읽는 항목」
+ * (코덱스 2차 #6, 2026-09-04).
+ *
+ * 예전엔 앞쪽(빈 칸 7종)만 보고 전부 나열했다 — 지금 결과에 신용점수를 보는 조건이 하나도 없어도
+ * 「신용점수를 입력해 주세요 · 입력하면 조건을 더 정확하게 맞춰 볼 수 있어요」라고 시켰다(근거 없는 안내).
+ *
+ * 두 조건이 함께 참이면 그 항목은 **지금 확인 필요로 남아 있는 조건을 실제로 막고 있다**:
+ * `checkCondition` 은 그 키의 프로필 칸이 비면 곧바로 「…미입력」 unknown 을 내기 때문이다.
+ */
+function usedProfileGapsOf(
+  profile: BusinessProfile,
+  items: FundingItem[],
+  gapLabelsByItem: Map<FundingItem, string[]>,
+): string[] {
+  const used = new Set<string>();
+  for (const it of items) for (const label of gapLabelsByItem.get(it) ?? []) used.add(label);
+  return profileGapsOf(profile).filter((g) => used.has(g));
 }
 
 /**
@@ -644,10 +736,19 @@ export async function buildFundingMap(
   // ★묶기가 **맨 먼저**다 — 접기(relatedProductId)·칩·정렬·상위 N 은 전부 그 뒤다.
   //  뒤로 미루면 같은 공고 두 줄이 각자 다른 상품을 접거나(접기 규칙과 어긋남) 표 앞자리를
   //  둘이 나눠 차지한다(운영 실측: 한도 큰 순 1·2위가 같은 공고였다).
+  // 항목이 「어떤 프로필 항목을 읽는지」는 **응답에 안 싣고** 여기서만 들고 다닌다(빈칸 힌트 좁히기).
+  // 열쇠는 항목 **객체 그대로**다 — 묶기(groupAnnouncements)·거르기(splitByFit)·접기(foldTwinProducts)
+  // 어디서도 항목을 복사하지 않아(칸만 덧쓴다) 신원이 끝까지 유지된다.
+  const gapLabelsByItem = new Map<FundingItem, string[]>();
+  const remember = (b: BuiltItem): FundingItem => {
+    gapLabelsByItem.set(b.item, b.gapLabels);
+    return b.item;
+  };
+
   const items: FundingItem[] = [
-    ...groupAnnouncements(rows.map((r) => ({ row: r, item: itemOfAnnouncement(r, profile, now) }))),
-    ...(products as ProductRow[]).map((p) => itemOfProduct(p, profile, now)),
-    ...manualRows.map((m) => itemOfProduct(m, profile, now)),
+    ...groupAnnouncements(rows.map((r) => ({ row: r, item: remember(itemOfAnnouncement(r, profile, now)) }))),
+    ...(products as ProductRow[]).map((p) => remember(itemOfProduct(p, profile, now))),
+    ...manualRows.map((m) => remember(itemOfProduct(m, profile, now))),
   ];
 
   // ★「전체」 건수는 **쌍둥이 상품을 접은 뒤**로 센다(코덱스 13차 #5, 2026-09-04) — 접힌 상품 줄은
@@ -672,6 +773,14 @@ export async function buildFundingMap(
   const excludedShown = foldTwinProducts(excludedPool);
   const unclassified = shown.filter((it) => it.unclassified).length;
 
+  // ★「조건을 맞춰 봤는가」와 「무엇을 채우면 좋은가」는 **이번 결과가 들고 있는 항목 전부**로 센다
+  //  (코덱스 2차 #1·#6, 2026-09-04) — 정상 풀만 세면 두 곳에서 거짓말이 된다:
+  //   ⓐ 조건을 다 맞춰 본 끝에 전부 안 맞음으로 걸러진 회사에게 「조건을 맞춰 보지 않은 목록」이라 말한다,
+  //   ⓑ 「안 맞아서 뺀 항목 보기」 스위치 하나에 머리 카드의 단정이 흔들린다(그 스위치는 판정과 무관하다).
+  const judged = [...shown, ...excludedShown];
+  const evaluatedConditions = countEvaluatedConditions(judged);
+  const profileGaps = usedProfileGapsOf(profile, judged, gapLabelsByItem);
+
   const glance = glanceOf(shown);
   if (unclassified > 0) {
     // 미분류는 grant 칸에 얹혀 있을 뿐이다 — 「안 갚아도 되는 돈」 집계에 넣으면 없는 지원금이 부풀려진다.
@@ -694,8 +803,9 @@ export async function buildFundingMap(
       includeExcluded: filters.includeExcluded,
     }),
     glance,
-    profileGaps: profileGapsOf(profile),
+    profileGaps,
     unclassified,
+    evaluatedConditions,
     // 화면이 「상위 N 건만 실렸다」와 「칩으로 몇 건이 빠졌다」를 구분해 말할 수 있게 둘 다 준다.
     // `all` 은 **묶고(dedupKey) 쌍둥이 상품까지 접은 뒤** 건수다(13차 #5) — 접힌 줄까지 세면
     // 화면 발 hint 가 지도에 없는 줄을 말한다.

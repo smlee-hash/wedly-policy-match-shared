@@ -41,7 +41,7 @@ import {
   deadlineWords,
   gapParts,
   groupFooterWords,
-  profileBandParts,
+  profileBandOf,
   repayWords,
   sortItems,
   verdictWords,
@@ -60,7 +60,9 @@ export type FundingView = "map" | "table";
 
 /**
  * 통로가 곁들여 주는 값까지 담은 모양. `totals` 는 **선택**이다 — 없으면 갈래 칸 합계로 센다.
- * `usedProfile` 은 `usedProfileSummary`(profile-summary.ts) 결과 — 위 띠(`profileBandWords`)가 읽는다.
+ * `usedProfile` 은 `usedProfileSummary`(profile-summary.ts) 결과 — 머리 카드의 「판정에 쓴 정보」 띠가 읽는다.
+ * **선택 칸이다**: 응답에 아예 없으면(옛 통로) 띠를 안 그리고, 빈 배열이면 「없음」 갈래로 간다
+ * (`profileBandOf` — 「없는 것」과 「빈 것」은 다르다, 코덱스 2차 #2).
  */
 export type FundingMapPayload = FundingMapData & {
   totals?: { all: number; filtered: number };
@@ -754,13 +756,17 @@ export function FundingMapView({
   const glance = data.glance;
   const totals = data.totals;
   const unclassified = useMemo(() => unclassifiedGroupItems(data.groups), [data]);
-  const band = profileBandParts(data.usedProfile ?? []);
+  // ★「조건을 맞춰 봤는가」는 **`evaluatedConditions`(서버가 센 판정 수)** 하나로만 가린다
+  //  (코덱스 2차 #1·#2, 2026-09-04). `usedProfile`(사람에게 보여 줄 요약)은 그 신호가 못 된다 —
+  //  요약이 `companyScale`·`hasCert`·`hasPatent` 를 안 담아 판정이 돌았는데도 빈 배열일 수 있고,
+  //  반대로 요약이 있어도 공고 조건이 전부 비면 자동 판정은 0건이다. 셈이 응답에 없으면(옛 통로)
+  //  `profileBandOf` 가 아무 말도 하지 않는다.
+  const band = profileBandOf(data.usedProfile, data.evaluatedConditions);
   const gap = gapParts(data.profileGaps);
-  // 머리 카드는 **할 말이 있을 때만** 그린다. 판정에 쓴 값도 빈칸 힌트도 없는 자리(사업장을 못 찾아
-  // `usedProfile` 이 빈 배열인 경우)에 라벨만 남기면 「판정에 쓴 정보: (없음)」이 되어 거짓말이 된다.
-  const 머리카드 = band.value !== "" || gap !== null;
+  // 머리 카드는 **할 말이 있을 때만** 그린다. 판정 근거도 빈칸 힌트도 없으면 카드 자체를 안 그린다.
+  const 머리카드 = band !== null || gap !== null;
   // 카드 위쪽(판정 근거 구역 또는 손잡이 줄)이 그려졌나 — 구분선을 그릴지 정한다.
-  const 위줄 = band.value !== "" || Boolean(headerAction);
+  const 위줄 = band !== null || Boolean(headerAction);
 
   // 한눈에 4칸은 StatCard 기본 한 톤(파랑)이다 — 칸마다 색을 달리하면 뜻 없는 3톤이 된다(리뷰 대장 #17).
   const 한눈에: Array<{ label: string; value: string; icon: React.ComponentType<{ className?: string }> }> = [
@@ -875,7 +881,7 @@ export function FundingMapView({
            한 줄을 통째로 쓰던 빈 줄을 없앤다. */}
       {머리카드 ? (
         <div className="rounded-xl border border-wedly-bd bg-white shadow-[0_1px_2px_rgba(10,34,68,0.05),0_6px_18px_rgba(10,34,68,0.08)]">
-          {band.value !== "" ? (
+          {band ? (
             <div className="flex items-start gap-2.5 p-3">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wedly-accent">
                 <IoBusiness className="h-5 w-5 text-white" aria-hidden="true" />

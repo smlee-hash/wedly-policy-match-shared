@@ -174,6 +174,8 @@ function 자료(items: FundingItem[] = 항목8, over: Partial<FundingMapPayload>
     // bandEntry(funding-map.ts)가 정확히 미리보기 시안 문장으로 바꾸는 원문 5종.
     usedProfile: ["지역 서울", "업종 음식점/카페", "매출 1.3억", "설립일 2023-01-15", "법인 여부 개인"],
     profileGaps: ["신용점수", "기존 대출 유무"],
+    // 「조건을 맞춰 봤는가」의 정본 신호(코덱스 2차 #1) — 이 기본 자료는 **실제로 판정이 돈** 회사다.
+    evaluatedConditions: 4,
     unclassified: 0,
     generatedAt: "2026-09-03T01:00:00.000Z",
     ...over,
@@ -1055,7 +1057,7 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     expect(html, "옛 「대조에 쓴 정보」 문구").not.toContain("대조에 쓴 정보");
 
     // ★코덱스 5차 #1 — 쓸 정보 0개여도 카드는 그린다(값이 「없음 — …」이라 라벨+값이 늘 찬다).
-    const 빈띠 = 그린다({ data: 자료(항목8, { usedProfile: [], profileGaps: [] }) });
+    const 빈띠 = 그린다({ data: 자료(항목8, { usedProfile: [], profileGaps: [], evaluatedConditions: 0 }) });
     expect(빈띠, "쓸 정보 0개인데 머리 카드가 사라졌다").toContain(띠.label);
     expect(빈띠, "빈 칸이 없으니 「입력해 주세요」는 안 나온다").not.toContain("입력해 주세요");
   });
@@ -1072,7 +1074,9 @@ describe("자금 조달 지도 — 그려서 재기", () => {
         다시 추천
       </button>
     );
-    const 카드 = 머리카드(그린다({ data: 자료(항목8, { usedProfile: [] }), headerAction: 손잡이 }));
+    const 카드 = 머리카드(
+      그린다({ data: 자료(항목8, { usedProfile: [], evaluatedConditions: 0 }), headerAction: 손잡이 }),
+    );
 
     expect(카드, "라벨 줄이 없다").toContain(없음.label);
     expect(카드, "값이 비어 구역이 안 그려졌다").toContain(없음.value);
@@ -1090,6 +1094,49 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     // 파랑 아이콘 타일·굵기 600 한 줄은 이 자리에서도 그대로다(「카드 안쪽도 위계」 ㉠㉡)
     expect(카드).toContain("h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wedly-accent");
     expect((카드.match(/font-semibold/g) ?? []).length, "굵기 600 줄이 모자란다").toBeGreaterThanOrEqual(1);
+  });
+
+  /**
+   * ★코덱스 2차 #2(2026-09-04) — `usedProfile` 은 **선택 칸**이다. 「응답에 없는 것(undefined)」과
+   *  「없다고 말한 것(빈 배열)」을 같게 다루면, 그 칸을 안 싣는 옛 통로 화면에 「없음 — 조건을 맞춰
+   *  보지 않은 목록입니다」라는 근거 없는 단정이 뜬다.
+   */
+  it("⑪-e usedProfile 칸이 아예 없으면(옛 통로) 판정 근거 구역을 안 그린다 — 빈 배열과 다르다", () => {
+    const 없는칸 = 자료(항목8, { profileGaps: [] });
+    delete (없는칸 as { usedProfile?: string[] }).usedProfile;
+    expect(없는칸.usedProfile, "이 시험은 칸이 아예 없는 자료를 잰다").toBeUndefined();
+
+    const html = 그린다({ data: 없는칸 });
+    expect(html, "옛 통로에 없는 사실을 단정한다").not.toContain("조건을 맞춰 보지 않은 목록입니다");
+    expect(html, "적을 것이 없는데 라벨만 남았다").not.toContain(profileBandParts([]).label);
+    expect(html.indexOf('class="rounded-xl border border-wedly-bd bg-white'), "머리 카드가 통째로 안 그려져야 한다").toBe(-1);
+    expect(html, "지도 자체는 그대로 그린다").toContain("안 갚아도 되는 돈");
+
+    // 같은 자료라도 **빈 배열**이면(판정 0건) 라벨+「없음」을 그린다 — 둘은 다른 사실이다
+    const 빈배열 = 그린다({ data: 자료(항목8, { usedProfile: [], profileGaps: [], evaluatedConditions: 0 }) });
+    expect(빈배열).toContain("없음 — 조건을 맞춰 보지 않은 목록입니다");
+  });
+
+  /**
+   * ★뿌리 원인(코덱스 2차 #1) — `usedProfileSummary` 는 `companyScale`·`hasCert`·`hasPatent` 를
+   *  요약하지 않는다. 그 셋만 채운 회사는 **판정이 실제로 돌았는데도** 요약이 빈 배열이라, 예전 화면은
+   *  항목을 「맞음」으로 그리면서 동시에 「조건을 맞춰 보지 않은 목록」이라고 말했다(자기모순).
+   */
+  it("⑪-f 요약이 비어도 판정이 돌았으면(evaluatedConditions>0) 「안 맞춰 봤다」고 말하지 않는다", () => {
+    const html = 그린다({ data: 자료(항목8, { usedProfile: [], profileGaps: [], evaluatedConditions: 3 }) });
+    expect(html, "판정을 해 놓고 안 맞춰 봤다고 말한다(자기모순)").not.toContain("조건을 맞춰 보지 않은 목록입니다");
+    expect(html, "적을 것이 없는데 「없음」 라벨만 남았다").not.toContain(profileBandParts([]).label);
+    expect(html, "지도는 그대로 그린다").toContain("안 갚아도 되는 돈");
+  });
+
+  it("⑪-g evaluatedConditions 가 응답에 없으면(옛 통로) 어느 쪽도 단정하지 않는다", () => {
+    const 옛통로 = 자료(항목8, { usedProfile: [], profileGaps: [] });
+    delete (옛통로 as { evaluatedConditions?: number }).evaluatedConditions;
+    expect(옛통로.evaluatedConditions).toBeUndefined();
+
+    const html = 그린다({ data: 옛통로 });
+    expect(html, "모르는데 「안 맞춰 봤다」고 단정한다").not.toContain("조건을 맞춰 보지 않은 목록입니다");
+    expect(html).not.toContain(profileBandParts([]).label);
   });
 
   /**

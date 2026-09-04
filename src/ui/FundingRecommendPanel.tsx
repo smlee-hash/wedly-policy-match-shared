@@ -136,6 +136,56 @@ export function fundingFetchKeys(a: {
 }
 
 /**
+ * 취소 때문에 난 오류인가 — **사용자 오류 문구로 보여 주면 안 된다**(코덱스 2차 #5, 2026-09-04).
+ * 취소는 우리가 시킨 일이지 고장이 아니다. `fetch` 는 `AbortError`(DOMException)로 거절한다.
+ */
+export function isAbortError(e: unknown): boolean {
+  return typeof e === "object" && e !== null && (e as { name?: unknown }).name === "AbortError";
+}
+
+/**
+ * 한 번의 조회를 시작하고, **그 요청을 실제로 끊는** 정리 함수를 돌려준다(코덱스 2차 #5, 2026-09-04).
+ *
+ * ★예전엔 앞 요청을 **응답만 버렸다**(`alive` 깃발). 「다시 추천」을 연타하면 요청이 그만큼 쌓여
+ *  서버·회선을 계속 먹었고, 마지막 것만 화면에 앉았다. 이제 `AbortController` 로 앞 요청을
+ *  그 자리에서 끊는다 — 효과의 정리 함수가 이 함수를 부르므로 ⓐ 연타(요청 열쇠가 바뀜) ⓑ 회사 바뀜
+ *  ⓒ 화면이 사라짐 세 경우 모두 같은 길로 취소된다.
+ *
+ * 깃발(`alive`)은 그대로 남긴다 — 취소가 걸린 뒤에도 이미 풀린 약속의 뒷단계가 한 번 더 돌 수 있다.
+ * 취소로 난 오류는 **삼킨다**(사용자에게 「불러오지 못했습니다」를 띄우지 않는다).
+ *
+ * 조회 자체(`fetch`)는 전역에서 그때그때 찾는다 — 시험이 전역을 갈아 끼워 잴 수 있게.
+ */
+export function startFundingMapFetch(a: {
+  url: string;
+  requestKey: string;
+  companyKey: string;
+  parseError: (json: unknown) => string;
+  onResult: (r: FundingFetchResult) => void;
+}): () => void {
+  const controller = new AbortController();
+  let alive = true;
+  const done = (over: { data?: RecommendFundingData | null; error?: string }) => {
+    if (!alive) return;
+    a.onResult({ requestKey: a.requestKey, companyKey: a.companyKey, data: over.data ?? null, error: over.error ?? "" });
+  };
+  fetch(a.url, { signal: controller.signal })
+    .then((r) => r.json())
+    .then((b) => {
+      if (b?.success && b.data) done({ data: b.data as RecommendFundingData });
+      else done({ error: a.parseError(b) });
+    })
+    .catch((e) => {
+      if (controller.signal.aborted || isAbortError(e)) return;
+      done({ error: LOAD_ERROR });
+    });
+  return () => {
+    alive = false;
+    controller.abort();
+  };
+}
+
+/**
  * 그릴 것을 **그리는 순간에 가려낸다** — 효과 안에서 상태를 지우면 쓸데없는 다시 그리기가 한 번 더 돌고,
  * 그 사이 한 프레임 동안 앞 회사 지도가 이 회사 것처럼 보인다.
  *  · 통로나 회사가 바뀌면 앞 자료·오류는 없는 셈 친다(남의 회사·앞 통로 자금을 지금 것으로 읽지 않게).
@@ -159,8 +209,11 @@ export function viewState(
  *  하나만 맡고, 「무엇을 입력해 달라」는 머리 카드 한 곳에서만 말한다.
  * ★찾은 고객의 「판정에 쓴 정보」도 지도 머리 카드가 그린다 — 여기서 겹쳐 적지 않는다.
  *  (`usedProfile` 은 부르는 쪽 모양을 안 바꾸려고 그대로 받되 읽지 않는다.)
- * ★`matchedCompany` 는 **없는 칸(undefined)도 못 찾음(null)과 같게** 다룬다(코덱스 5차 #1 타입 구멍).
- *  통로가 그 칸을 아예 안 실어 보내면 예전엔 `=== null` 이 거짓이라 안내가 통째로 사라졌다.
+ * ★`matchedCompany` 는 **`null` 일 때만** 「못 찾음」이다(코덱스 2차 #3, 2026-09-04 — 5차 #1 의
+ *  「undefined 도 null 과 같게」를 되돌린다). 이름을 **생략한 것**(undefined)과 **못 찾았다고 말한 것**
+ *  (null)은 다른 사실이다: 이 칸을 아예 안 싣는 통로(옛 판·다른 앱)의 응답에 「이 사업장 정보를 찾지
+ *  못했어요」를 띄우면, 멀쩡히 찾아 판정까지 한 목록을 「조건 판정 없는 목록」이라고 단정하게 된다.
+ *  모르면 아무 말도 하지 않는다.
  */
 export function ProfileNotice({
   matchedCompany,
@@ -168,7 +221,7 @@ export function ProfileNotice({
   matchedCompany: string | null | undefined;
   usedProfile: string[];
 }) {
-  if ((matchedCompany ?? null) !== null) return null;
+  if (matchedCompany !== null) return null;
   return (
     <div className="mb-2 break-keep rounded-lg border border-wedly-bd bg-wedly-bg-yellow px-3 py-2 text-xs">
       <p className="font-semibold text-wedly-t1">이 사업장 정보를 찾지 못했어요</p>
@@ -222,9 +275,10 @@ export function RecommendPanel({
 }: RecommendPanelProps) {
   return (
     <div>
-      {data && (data.matchedCompany ?? null) === null && (
-        <ProfileNotice matchedCompany={data.matchedCompany} usedProfile={data.usedProfile ?? []} />
-      )}
+      {/* 「못 찾음」 판정은 `ProfileNotice` **한 곳에만** 둔다 — 여기서 같은 조건을 한 번 더 적으면
+          두 곳이 갈릴 수 있는데 겉으로는 아무 차이가 안 나 시험으로도 못 잡는다(실측: 이 줄만
+          옛 규칙으로 되돌려도 시험 39건이 전부 통과했다). */}
+      {data && <ProfileNotice matchedCompany={data.matchedCompany} usedProfile={data.usedProfile ?? []} />}
       <FundingMap
         data={data}
         loading={loading}
@@ -249,15 +303,17 @@ export function RecommendPanel({
           </button>
         }
       />
-      {/* 발 안내 — ★「자동 대조 결과입니다」는 **조건을 실제로 맞춰 봤을 때만** 참이다(코덱스 5차 #1).
-          판정에 쓴 정보가 0개면 아무 조건도 안 맞춰 본 목록이라 이 말이 거짓이 된다. 그 자리는
-          머리 카드가 「없음 — 조건을 맞춰 보지 않은 목록입니다」로 이미 말하므로, 여기서는 같은 말을
-          되풀이하지 않고 **늘 참인 뒷부분만** 남긴다. */}
+      {/* 발 안내 — ★「자동 대조 결과입니다」는 **조건을 실제로 맞춰 봤을 때만** 참이다.
+          ★신호를 바꿨다(코덱스 2차 #1, 2026-09-04): 예전엔 `usedProfile`(사람에게 보여 줄 요약)의
+           길이로 갈랐는데, 그 요약은 `companyScale`·`hasCert`·`hasPatent` 를 안 담아 **판정이 돌았는데도
+           빈 배열**일 수 있었다(그 회사에게 이 줄이 사라졌다). 이제 서버가 센 `evaluatedConditions`
+           (판정이 실제로 난 조건 수)만 본다 — **0보다 클 때만** 「자동 대조 결과입니다」를 쓰고,
+           0이거나 **응답에 없으면**(옛 통로) 늘 참인 뒷부분만 남긴다(모르면 단정하지 않는다). */}
       {data && (
         <p className="mt-3 break-keep text-xs text-wedly-muted">
-          {(data.usedProfile ?? []).length === 0
-            ? "최종 자격은 공고 원문에서 확인하세요."
-            : "자동 대조 결과입니다 — 최종 자격은 공고 원문에서 확인하세요."}
+          {(data.evaluatedConditions ?? 0) > 0
+            ? "자동 대조 결과입니다 — 최종 자격은 공고 원문에서 확인하세요."
+            : "최종 자격은 공고 원문에서 확인하세요."}
         </p>
       )}
       <FundingDrawer item={drawerItem} onClose={onCloseDrawer} onOpenDetail={onOpenDetail} />
@@ -343,21 +399,15 @@ export default function FundingRecommendPanel({
   useEffect(() => {
     if (!bizno && !companyName) return;
     // 레일이 다른 업체로 바뀐 뒤 도착한 옛 응답이 새 업체 화면을 덮지 않게 한다(코덱스 리뷰 중간5).
-    let alive = true;
-    const done = (over: { data?: RecommendFundingData | null; error?: string }) => {
-      if (!alive) return;
-      setResult({ requestKey, companyKey, data: over.data ?? null, error: over.error ?? "" });
-    };
-    fetch(`${endpoint}?${query}`)
-      .then((r) => r.json())
-      .then((b) => {
-        if (b?.success && b.data) done({ data: b.data as RecommendFundingData });
-        else done({ error: parseErrorRef.current(b) });
-      })
-      .catch(() => done({ error: LOAD_ERROR }));
-    return () => {
-      alive = false;
-    };
+    // ★앞 요청은 **실제로 끊는다**(코덱스 2차 #5) — 정리 함수가 abort 하므로, 「다시 추천」을 연타하면
+    //  요청 열쇠가 바뀌며 효과가 다시 도는 그 순간 앞 요청이 취소된다(쌓이지 않는다).
+    return startFundingMapFetch({
+      url: `${endpoint}?${query}`,
+      requestKey,
+      companyKey,
+      parseError: (b) => parseErrorRef.current(b),
+      onResult: setResult,
+    });
   }, [endpoint, bizno, companyName, companyKey, query, requestKey]);
 
   if (!bizno && !companyName) {
