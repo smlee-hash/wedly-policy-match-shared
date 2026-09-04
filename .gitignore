@@ -1,0 +1,15 @@
+node_modules/
+.DS_Store
+
+# 빌드·시험 부산물
+dist/
+coverage/
+*.tsbuildinfo
+.vitest/
+
+# 사람 것
+.env
+.env.*
+*.log
+.idea/
+.vscode/

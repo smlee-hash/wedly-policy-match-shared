@@ -1,0 +1,29 @@
+# 패키지 CI — 설계서 §4-3
+#
+# 왜 있나: 앱(ERP)의 배포 전 관문 시험은 `node_modules` 를 제외해서 이 보관함의 시험을
+# 못 돌린다([[erp-gate-cannot-run-shared-package-tests]]). 그래서 **밀 때마다 여기서** 전량 돌린다.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # 잠금 파일이 있으면 `npm ci`, 없으면 `npm install` — 둘 중 되는 쪽으로 창고를 만든다
+      - name: 창고 설치
+        run: npm ci || npm install
+
+      - name: 타입 검사
+        run: npm run typecheck
+
+      - name: 시험
+        run: npm test

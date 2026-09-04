@@ -1,0 +1,19 @@
+/*
+ * @wedly/policy-match-shared — 공용 부품 "모양 안내문"(스타일 진입 파일)
+ *
+ * 이 보관함의 화면 부품들(FundingMap·FundingDrawer·FundingRecommendPanel·Badge·
+ * SidePanel·CustomSelect)이 쓰는 Tailwind 클래스(칸 비율·둥근 모서리·색 토큰 이름 등
+ * "모양 규칙")를, 이 부품을 가져다 쓰는 앱의 빌드가 빠짐없이 만들어내도록
+ * "스캔 대상"으로 등록한다.
+ *
+ * 소비 앱(ERP·일루아)은 자기 globals.css(Tailwind 진입 CSS)에서 단 한 줄만 추가하면 된다:
+ *     @import "@wedly/policy-match-shared/styles.css";
+ *
+ * (일루아처럼 `node_modules/@wedly` 아래를 통째로 훑는 와일드카드 @source 를 이미 걸어 둔
+ *  앱은 자동으로 잡히므로 이 줄이 없어도 된다.)
+ *
+ * Tailwind v4 의 @source 는 "이 CSS 파일의 위치"를 기준으로 경로를 해석하므로,
+ * 아래 한 줄이 이 보관함의 소스 전체를 가리킨다(앱이 경로를 직접 알 필요가 없다).
+ * 색·브랜드 토큰 값은 각 앱이 스스로 정의한 것을 그대로 쓴다(값을 여기 박지 않는다).
+ */
+@source "./**/*.{ts,tsx,js,jsx}";

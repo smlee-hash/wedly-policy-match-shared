@@ -1,0 +1,150 @@
+{
+  "name": "@wedly/policy-match-shared",
+  "version": "0.1.0",
+  "description": "WEDLY 정책매칭·자금 조달 지도 공용 보관함 — 판정 엔진·자금 규칙·지도 조립·화면 부품을 ERP·일루아가 같은 커밋으로 함께 쓴다",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css",
+    "./match-engine": {
+      "types": "./src/engine/match-engine.ts",
+      "default": "./src/engine/match-engine.ts"
+    },
+    "./structure-types": {
+      "types": "./src/engine/structure-types.ts",
+      "default": "./src/engine/structure-types.ts"
+    },
+    "./recommend-score": {
+      "types": "./src/engine/recommend-score.ts",
+      "default": "./src/engine/recommend-score.ts"
+    },
+    "./region-augment": {
+      "types": "./src/engine/region-augment.ts",
+      "default": "./src/engine/region-augment.ts"
+    },
+    "./rule-extract": {
+      "types": "./src/engine/rule-extract.ts",
+      "default": "./src/engine/rule-extract.ts"
+    },
+    "./wedly-category": {
+      "types": "./src/engine/wedly-category.ts",
+      "default": "./src/engine/wedly-category.ts"
+    },
+    "./types": {
+      "types": "./src/engine/types.ts",
+      "default": "./src/engine/types.ts"
+    },
+    "./profile-summary": {
+      "types": "./src/engine/profile-summary.ts",
+      "default": "./src/engine/profile-summary.ts"
+    },
+    "./funding-group": {
+      "types": "./src/funding/funding-group.ts",
+      "default": "./src/funding/funding-group.ts"
+    },
+    "./funding-map": {
+      "types": "./src/funding/funding-map.ts",
+      "default": "./src/funding/funding-map.ts"
+    },
+    "./amount-rate-extract": {
+      "types": "./src/funding/amount-rate-extract.ts",
+      "default": "./src/funding/amount-rate-extract.ts"
+    },
+    "./source-directory": {
+      "types": "./src/funding/source-directory.ts",
+      "default": "./src/funding/source-directory.ts"
+    },
+    "./board/page-cap": {
+      "types": "./src/funding/board/page-cap.ts",
+      "default": "./src/funding/board/page-cap.ts"
+    },
+    "./products/types": {
+      "types": "./src/funding/products/types.ts",
+      "default": "./src/funding/products/types.ts"
+    },
+    "./products/rules-to-conditions": {
+      "types": "./src/funding/products/rules-to-conditions.ts",
+      "default": "./src/funding/products/rules-to-conditions.ts"
+    },
+    "./products/sources/manual": {
+      "types": "./src/funding/products/sources/manual.ts",
+      "default": "./src/funding/products/sources/manual.ts"
+    },
+    "./build": {
+      "types": "./src/build/funding-map-build.ts",
+      "default": "./src/build/funding-map-build.ts"
+    },
+    "./ui": {
+      "types": "./src/ui/index.ts",
+      "default": "./src/ui/index.ts"
+    },
+    "./ui/FundingMap": {
+      "types": "./src/ui/FundingMap.tsx",
+      "default": "./src/ui/FundingMap.tsx"
+    },
+    "./ui/FundingDrawer": {
+      "types": "./src/ui/FundingDrawer.tsx",
+      "default": "./src/ui/FundingDrawer.tsx"
+    },
+    "./ui/FundingRecommendPanel": {
+      "types": "./src/ui/FundingRecommendPanel.tsx",
+      "default": "./src/ui/FundingRecommendPanel.tsx"
+    },
+    "./ui/Badge": {
+      "types": "./src/ui/Badge.tsx",
+      "default": "./src/ui/Badge.tsx"
+    },
+    "./ui/SidePanel": {
+      "types": "./src/ui/SidePanel.tsx",
+      "default": "./src/ui/SidePanel.tsx"
+    },
+    "./ui/CustomSelect": {
+      "types": "./src/ui/CustomSelect.tsx",
+      "default": "./src/ui/CustomSelect.tsx"
+    },
+    "./ui/selectGrouping": {
+      "types": "./src/ui/selectGrouping.ts",
+      "default": "./src/ui/selectGrouping.ts"
+    },
+    "./ui/selectKeyboard": {
+      "types": "./src/ui/selectKeyboard.ts",
+      "default": "./src/ui/selectKeyboard.ts"
+    }
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@wedly/ui-shared": "*",
+    "clsx": ">=2.0.0",
+    "lucide-react": ">=0.400.0",
+    "next": ">=15.0.0",
+    "react": ">=18",
+    "react-dom": ">=18",
+    "react-icons": ">=5.0.0",
+    "tailwind-merge": ">=3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@wedly/ui-shared": "github:smlee-hash/wedly-ui-shared#12591848533bdd420b836b9afe5f41056b14cd87",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.577.0",
+    "next": "16.2.12",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-icons": "^5.7.0",
+    "tailwind-merge": "^3.5.0",
+    "typescript": "^5",
+    "vitest": "^4.1.7"
+  }
+}
