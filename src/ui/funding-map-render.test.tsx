@@ -19,10 +19,13 @@ import {
   deadlineOfAnnouncement,
   deadlineOfProduct,
   deadlineWords,
+  gapParts,
+  profileBandParts,
   type FundingFilters,
   type FundingItem,
   type FundingSort,
 } from "../funding/funding-map";
+import type { ReactNode } from "react";
 
 /**
  * 그려서 재는 시험 — 글자로 파일을 뒤지지 않고 `renderToStaticMarkup` 이 뱉은 HTML 만 본다
@@ -190,6 +193,7 @@ function 그린다(
     compact?: boolean;
     selectedId?: string;
     now?: Date;
+    headerAction?: ReactNode;
     onBrowseAll?: () => void;
   } = {},
 ): string {
@@ -204,6 +208,7 @@ function 그린다(
       selectedId={over.selectedId ?? ""}
       compact={over.compact ?? false}
       now={over.now ?? NOW}
+      headerAction={over.headerAction}
       onOpen={() => {}}
       onView={() => {}}
       onFiltersChange={() => {}}
@@ -256,6 +261,18 @@ function 지도(
 
 const 서랍 = (item: FundingItem | null, onOpenDetail?: (id: string) => void): string =>
   renderToStaticMarkup(<FundingDrawer item={item} onClose={() => {}} onOpenDetail={onOpenDetail} />);
+
+/**
+ * 머리 카드(판정 근거 + 빈칸 힌트)만 잘라 낸다 — 바로 아래 「한눈에 4칸」 격자 앞에서 끊는다.
+ * 카드 밖(갈래 카드·표)의 글자와 섞이면 「카드 안에 있다」를 재는 시험이 껍데기가 된다.
+ */
+function 머리카드(html: string): string {
+  const start = html.indexOf('class="rounded-xl border border-wedly-bd bg-white');
+  expect(start, "머리 카드가 없다").toBeGreaterThan(-1);
+  const end = html.indexOf('class="grid gap-2.5 grid-cols-2', start);
+  expect(end, "머리 카드 다음의 「한눈에 4칸」을 못 찾았다").toBeGreaterThan(start);
+  return html.slice(start, end);
+}
 
 /** 갈래 카드 하나의 HTML 만 잘라 낸다 — `data-group` 표식으로 자른다. */
 function 카드(html: string, group: FundingGroup): string {
@@ -991,17 +1008,97 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     );
   });
 
-  it("⑪ 위 띠 — profileBandWords 한 줄과 gapWords 금색 힌트 한 줄(미리보기 시안 문장과 같다)", () => {
+  /**
+   * ★재설계 A안(2026-09-04 승인 시안) — 회색 띠 한 줄 + 금색 맨 글자 한 줄이 **흰 카드 하나**가 됐다.
+   *  구역마다 아이콘 타일 1개와 굵기 600 한 줄을 두고, 사이를 구분선으로 가른다
+   *  (「카드 안쪽도 위계」 자가 확인 ㉠㉡). 문장은 `profileBandParts`·`gapParts` 가 만들고
+   *  이 화면은 그리기만 한다 — 그래서 시험도 글자를 손으로 베끼지 않고 두 함수를 그대로 부른다.
+   */
+  it("⑪ 머리 카드 — 판정 근거(라벨+값)와 빈칸 힌트(제목+본문)를 흰 카드 하나에 담는다(A안)", () => {
     const html = 그린다();
-    expect(html).toContain("이 사업장 정보로 판정: 서울 · 음식점/카페 · 연매출 1.3억 · 2023년 1월 설립 · 개인사업자");
-    expect(html).toContain("text-wedly-gold-ink");
-    expect(html).toContain("회사 정보에 신용점수·기존 대출 유무가 비어 있어 일부 조건은 「확인 필요」로 남습니다");
+    const 이자료 = 자료();
+    const 띠 = profileBandParts(이자료.usedProfile ?? []);
+    const 힌트 = gapParts(이자료.profileGaps);
+    expect(힌트, "이 시험 자료엔 빈 칸이 2개다").not.toBeNull();
+
+    const 카드 = 머리카드(html);
+    expect(카드, "라벨 줄").toContain(띠.label);
+    expect(카드, "판정에 쓴 값").toContain(띠.value);
+    expect(띠.value, "미리보기 시안과 같은 문장").toBe(
+      "서울 · 음식점/카페 · 연매출 1.3억 · 2023년 1월 설립 · 개인사업자",
+    );
+    expect(카드, "빈칸 힌트 제목(할 일)").toContain(힌트!.title);
+    expect(카드, "빈칸 힌트 본문").toContain(힌트!.body);
+
+    // 카드 골격 — 흰 바탕·테두리·둥근 모서리·층 그림자 + 두 구역을 가르는 선
+    expect(카드).toContain("bg-white");
+    expect(카드).toContain("border border-wedly-bd");
+    expect(카드).toContain("rounded-xl");
+    expect(카드).toContain("shadow-[0_1px_2px_rgba(10,34,68,0.05),0_6px_18px_rgba(10,34,68,0.08)]");
+    expect(카드, "두 구역 사이 구분선").toContain("border-t border-wedly-bd/60");
+
+    // 아이콘 타일 2개(파랑=판정 근거 · 금색=빈칸 힌트) — 아이콘 0개면 「카드 안쪽도 위계」 미달
+    expect(카드).toContain("h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wedly-accent");
+    expect(카드).toContain("h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wedly-gold");
+    expect((카드.match(/<svg/g) ?? []).length, "구역마다 심볼 1개").toBe(2);
+    // 금색 타일 심볼만 남색이다 — 금색 위 흰 글리프는 대비 2.1 미달
+    expect(카드).toContain("text-wedly-navy");
+
+    // 굵기 600 줄 2개(판정 값 · 힌트 제목) — 카드당 1개 이하면 미완
+    expect((카드.match(/font-semibold/g) ?? []).length, "굵기 600 줄이 모자란다").toBe(2);
+
+    // 옛 모양·옛 낱말은 안 남는다
+    expect(카드, "옛 회색 띠 한 줄이 남아 있다").not.toContain("bg-wedly-bg-gray");
+    expect(html, "옛 gapWords 문장").not.toContain("비어 있어 일부 조건은");
+    expect(html, "옛 한 줄 띠 문장").not.toContain("이 사업장 정보로 판정");
     expect(html, "옛 「대조 기준」 문구").not.toContain("대조 기준");
     expect(html, "옛 「대조에 쓴 정보」 문구").not.toContain("대조에 쓴 정보");
 
     const 빈띠 = 그린다({ data: 자료(항목8, { usedProfile: [], profileGaps: [] }) });
-    expect(빈띠, "usedProfile 이 비면 위 띠 문장이 없다").not.toContain("이 사업장 정보로 판정");
-    expect(빈띠, "profileGaps 가 비면 힌트가 없다").not.toContain("비어 있어 일부 조건은");
+    expect(빈띠, "판정에 쓴 값도 빈칸 힌트도 없으면 카드 자체를 안 그린다").not.toContain(띠.label);
+    expect(빈띠).not.toContain("입력해 주세요");
+  });
+
+  /**
+   * ★단추 하나가 한 줄을 통째로 쓰던 빈 줄을 없앤 자리(A안) — 손잡이는 라벨 줄 오른쪽 끝에 앉는다.
+   *  그래서 「라벨 → 손잡이 → 값」 차례여야 하고, 손잡이가 없으면 아무것도 안 그려야 한다.
+   */
+  it("⑪-b headerAction 은 머리 카드 라벨 줄 오른쪽 끝에 앉는다 — 단추만 있는 빈 줄이 아니다(A안)", () => {
+    const 카드 = 머리카드(
+      그린다({
+        headerAction: (
+          <button type="button" data-probe="refresh">
+            다시 추천
+          </button>
+        ),
+      }),
+    );
+    const i라벨 = 카드.indexOf("판정에 쓴 정보");
+    const i손잡이 = 카드.indexOf('data-probe="refresh"');
+    const i값 = 카드.indexOf("서울 · 음식점/카페");
+    expect(i손잡이, "손잡이가 머리 카드 안에 없다").toBeGreaterThan(-1);
+    expect(i손잡이, "손잡이가 라벨보다 앞에 있다").toBeGreaterThan(i라벨);
+    expect(i값, "손잡이가 값 줄 아래로 내려갔다 — 라벨과 같은 줄이어야 한다").toBeGreaterThan(i손잡이);
+    expect(카드, "라벨과 손잡이를 양 끝으로 미는 줄이 없다").toContain("items-center justify-between");
+
+    expect(머리카드(그린다()), "손잡이를 안 넘겼는데 뭔가 그려졌다").not.toContain("data-probe");
+  });
+
+  /**
+   * ★금색은 아이콘 타일까지만 — 흰 바탕 위 금색 글자는 대비 2.0 미달이라 본문에 못 쓴다
+   *  (상태 박스 v3 와 같은 규칙). 예전 빈칸 힌트는 `text-wedly-gold-ink` 맨 글자 한 줄이었다.
+   */
+  it("⑪-c 그려 낸 HTML 에 금색 글자 클래스가 0개다 — 금색은 타일까지만(A안)", () => {
+    for (const html of [
+      그린다(),
+      그린다({ compact: true }),
+      그린다({ data: 자료(항목8, { profileGaps: ["신용점수"] }) }),
+      그린다({ data: 자료(항목8, { usedProfile: [], profileGaps: [] }) }),
+      그린다({ view: "table" }),
+      지도(),
+    ]) {
+      expect(html, "금색 글자 클래스가 남아 있다").not.toContain("text-wedly-gold");
+    }
   });
 
   it("⑫ 한눈에 4칸 — 라벨·값이 계약 그대로(맞는 것·최대 금액 접미사 없음)", () => {

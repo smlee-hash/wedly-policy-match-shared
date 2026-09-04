@@ -14,10 +14,10 @@
  *  상세창 위에 서랍을 또 겹치지 않는다. 상세 화면이 없는 상시 상품만 `FundingDrawer` 가 맡는다.
  */
 import { useEffect, useRef, useState } from "react";
-import { Info, RotateCw } from "lucide-react";
+import { RotateCw } from "lucide-react";
 import FundingDrawer from "./FundingDrawer";
 import FundingMap, { type FundingMapPayload } from "./FundingMap";
-import { profileBandWords, type FundingFilters, type FundingItem, type FundingSort } from "../funding/funding-map";
+import type { FundingFilters, FundingItem, FundingSort } from "../funding/funding-map";
 import type { FundingGroup } from "../funding/funding-group";
 
 /** `GET /api/policy-match/funding-map` 응답 = 지도 자료 + 「누구로 대조했는지」. */
@@ -151,38 +151,27 @@ export function viewState(
 }
 
 /**
- * 「왜 이 결과인지」 한 줄 — 대조에 쓴 회사 정보를 투명하게(사장님 2026-08-30).
- * 고객을 못 찾았거나 대조에 쓸 칸이 하나도 없으면 **조건 대조 없는 목록**이라고 먼저 밝힌다
- * (그 말이 없으면 「이 회사엔 맞는 자금이 없다」로 잘못 읽힌다).
- * ※ 빠진 칸 안내는 지도(`FundingMap`)의 판정 기준 띠가 이미 말한다 — 여기서 겹쳐 적지 않는다.
+ * 「이 사업장을 못 찾았다」 안내 — **못 찾았을 때만** 뜬다(2026-09-04 승인 시안 A안).
+ * 조건 판정 없는 목록이라고 먼저 밝히지 않으면 「이 회사엔 맞는 자금이 없다」로 잘못 읽힌다.
  *
- * ★재설계 계약 §G3(2026-09-04) — 옛 「대조에 쓴 정보: …」 문장을 `profileBandWords`(G1)로
- *  통일했다. 「대조 기준」 낱말은 계약 낱말 규칙이 금지하고, 지도(FundingMap)의 위 띠와 서랍이
- *  같은 도우미로 같은 문장을 쓰므로 이 안내도 같은 말을 써야 「왜 이 결과인지」가 화면마다
- *  안 갈린다.
+ * ★예전엔 「찾았는데 쓸 정보가 0개」일 때도 같은 안내를 그렸는데, 그 말은 지도 머리 카드의
+ *  빈칸 힌트(`gapParts`)가 이미 한다 — 같은 말이 화면에 두 번 나왔다. 이제 이 안내는 「못 찾음」
+ *  하나만 맡고, 「무엇을 입력해 달라」는 머리 카드 한 곳에서만 말한다.
+ * ★찾은 고객의 「판정에 쓴 정보」도 지도 머리 카드가 그린다 — 여기서 겹쳐 적지 않는다.
+ *  (`usedProfile` 은 부르는 쪽 모양을 안 바꾸려고 그대로 받되 읽지 않는다.)
  */
 export function ProfileNotice({
   matchedCompany,
-  usedProfile,
 }: {
   matchedCompany: string | null;
   usedProfile: string[];
 }) {
-  const noAxes = matchedCompany !== null && usedProfile.length === 0;
-  if (matchedCompany === null || noAxes) {
-    return (
-      <p className="mb-2 break-keep rounded-lg border border-wedly-bd bg-wedly-bg-yellow px-3 py-2 text-xs text-wedly-t1">
-        {noAxes
-          ? "대조에 쓸 회사 정보(지역·업종·직원수 등)가 비어 있어, 조건 대조 없이 지금 열려 있는 자금 수단만 보여 드립니다 — 정보를 채우면 맞춤 대조가 시작됩니다."
-          : "통합 고객에서 이 사업장을 찾지 못해, 조건 대조 없이 지금 열려 있는 자금 수단만 보여 드립니다."}
-      </p>
-    );
-  }
+  if (matchedCompany !== null) return null;
   return (
-    <p className="mb-2 break-keep rounded-lg bg-wedly-bg-gray px-3 py-2 text-xs text-wedly-t2">
-      <Info className="mr-1 inline h-3.5 w-3.5 text-wedly-accent" />
-      <span className="text-wedly-t1">{profileBandWords(usedProfile)}</span>
-    </p>
+    <div className="mb-2 break-keep rounded-lg border border-wedly-bd bg-wedly-bg-yellow px-3 py-2 text-xs">
+      <p className="font-semibold text-wedly-t1">이 사업장 정보를 찾지 못했어요</p>
+      <p className="text-wedly-t2">조건 판정 없이 지금 열려 있는 자금만 보여 드립니다</p>
+    </div>
   );
 }
 
@@ -231,15 +220,9 @@ export function RecommendPanel({
 }: RecommendPanelProps) {
   return (
     <div>
-      {/* 「다시 추천」은 **어느 상태에서도** 남는다 — 배포 교체 창의 일시 502 뒤 사용자가 복구할 길이
-          상세창을 닫았다 여는 것뿐이었다(화면 독립 검사 2026-08-30 지적 F). */}
-      <div className="mb-2 flex justify-end">
-        <button type="button" onClick={onRefresh} className={REFRESH_BTN}>
-          <RotateCw className="h-3 w-3" />
-          다시 추천
-        </button>
-      </div>
-      {data && (data.matchedCompany === null || (data.usedProfile ?? []).length === 0) && <ProfileNotice matchedCompany={data.matchedCompany ?? null} usedProfile={data.usedProfile ?? []} />}
+      {data && data.matchedCompany === null && (
+        <ProfileNotice matchedCompany={data.matchedCompany ?? null} usedProfile={data.usedProfile ?? []} />
+      )}
       <FundingMap
         data={data}
         loading={loading}
@@ -254,6 +237,15 @@ export function RecommendPanel({
         compact
         showExcluded={showExcluded}
         onToggleExcluded={onToggleExcluded}
+        headerAction={
+          /* 「다시 추천」은 **어느 상태에서도** 남는다 — 배포 교체 창의 일시 502 뒤 사용자가 복구할 길이
+             상세창을 닫았다 여는 것뿐이었다(화면 독립 검사 2026-08-30 지적 F). 자료가 있으면 머리 카드
+             라벨 줄에, 뼈대·오류에는 지도가 오른쪽 끝 한 줄로 대신 그린다. */
+          <button type="button" onClick={onRefresh} className={REFRESH_BTN}>
+            <RotateCw className="h-3 w-3" />
+            다시 추천
+          </button>
+        }
       />
       {data && (
         <p className="mt-3 break-keep text-xs text-wedly-muted">

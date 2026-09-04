@@ -9,6 +9,7 @@ import {
   deadlineWords,
   fitsOf,
   formatWon,
+  gapParts,
   gapWords,
   glanceOf,
   groupBlocks,
@@ -17,6 +18,7 @@ import {
   isOpen,
   isSoon,
   normalizeAmountUnits,
+  profileBandParts,
   profileBandWords,
   repayWords,
   sortItems,
@@ -1036,5 +1038,116 @@ describe("gapWords — 회사 정보 빈 칸 힌트(재설계 계약 G1④)", ()
     expect(gapWords(["신용점수", "기존 대출 유무", "직원 수"])).toBe(
       "회사 정보에 신용점수·기존 대출 유무·직원 수가 비어 있어 일부 조건은 「확인 필요」로 남습니다 — 채우면 자동 판정됩니다",
     );
+  });
+});
+
+/**
+ * ★재설계 A안(2026-09-04 승인 시안) — 위 띠는 「라벨 + 값」, 빈칸 힌트는 「제목(할 일) + 본문」
+ *  두 조각으로 나뉜다. 옛 한 줄 함수(`profileBandWords`·`gapWords`)는 부르는 화면이 아직 있어
+ *  그대로 남아 있고(위 describe 두 개가 계속 잰다), 여기서는 **새 두 함수만** 잰다.
+ */
+describe("profileBandParts — 판정 근거 띠를 라벨과 값 두 조각으로(A안)", () => {
+  it("라벨은 늘 「판정에 쓴 정보」, 값은 옛 문장에서 앞머리 라벨만 뺀 부분", () => {
+    const parts = profileBandParts([
+      "지역 서울",
+      "업종 음식점/카페",
+      "매출 1.3억",
+      "설립일 2023-01-01",
+      "법인 여부 개인",
+    ]);
+    expect(parts.label).toBe("판정에 쓴 정보");
+    expect(parts.value).toBe("서울 · 음식점/카페 · 연매출 1.3억 · 2023년 1월 설립 · 개인사업자");
+  });
+
+  it("값에는 라벨도 콜론도 섞이지 않는다 — 화면이 두 조각을 따로 그리기 때문", () => {
+    const parts = profileBandParts(["법인 여부 법인"]);
+    expect(parts.value).toBe("법인");
+    expect(parts.value).not.toContain("판정에 쓴 정보");
+    expect(parts.value).not.toContain("이 사업장 정보로 판정");
+    expect(parts.value).not.toContain(":");
+  });
+
+  it("빈 배열이면 값이 빈 문자열 — 옛 profileBandWords 가 빈 문자열이던 것과 같은 뜻(라벨은 그대로)", () => {
+    expect(profileBandParts([])).toEqual({ label: "판정에 쓴 정보", value: "" });
+    expect(profileBandWords([])).toBe("");
+  });
+
+  it("옛 한 줄 함수 = 이 함수의 값에 옛 앞머리만 붙인 것 — 두 벌로 갈라지지 않는다", () => {
+    const 입력들: string[][] = [
+      [],
+      ["지역 서울"],
+      ["법인 여부 법인"],
+      ["지역 전북", "직원수 10명"],
+      ["지역 서울", "업종 음식점/카페", "매출 1.3억", "설립일 2023-01-01", "법인 여부 개인"],
+    ];
+    for (const used of 입력들) {
+      const { value } = profileBandParts(used);
+      expect(profileBandWords(used)).toBe(value === "" ? "" : `이 사업장 정보로 판정: ${value}`);
+    }
+  });
+});
+
+describe("gapParts — 빠진 칸 힌트를 「할 일 제목 + 본문」으로(A안)", () => {
+  /** 본문은 입력과 무관하게 늘 같은 한 줄이다. */
+  const 본문 = "입력하면 「확인 필요」 조건이 자동으로 판정됩니다";
+
+  it("빠진 칸 0개면 null — 화면이 상자 자체를 안 그린다", () => {
+    expect(gapParts([])).toBeNull();
+  });
+
+  it("1개 — 받침 없는 낱말은 「를」", () => {
+    expect(gapParts(["신용점수"])).toEqual({ title: "신용점수를 입력해 주세요", body: 본문 });
+    expect(gapParts(["기존 대출 유무"])?.title).toBe("기존 대출 유무를 입력해 주세요");
+    expect(gapParts(["직원 수"])?.title).toBe("직원 수를 입력해 주세요");
+    expect(gapParts(["소재지"])?.title).toBe("소재지를 입력해 주세요");
+  });
+
+  /**
+   * ★옛 `gapWords` 는 조사 「가」가 글자에 박혀 있어 받침 있는 칸 이름이 오면 「업종가 비어 있어」로
+   *  틀린다(실측). 새 함수는 받침을 보고 「을/를」을 고르므로 그 결함이 없다.
+   */
+  it("1개 — 받침 있는 낱말은 「을」(옛 gapWords 의 「업종가」 결함이 없다)", () => {
+    expect(gapParts(["업종"])?.title).toBe("업종을 입력해 주세요");
+    expect(gapParts(["설립일"])?.title).toBe("설립일을 입력해 주세요");
+    expect(gapParts(["연매출"])?.title).toBe("연매출을 입력해 주세요");
+    expect(gapParts(["업종"])?.title).not.toContain("업종를");
+    expect(gapParts(["업종"])?.title).not.toContain("업종가");
+  });
+
+  it("2개 — 앞 낱말은 받침대로 「와/과」, 마지막만 「을/를」", () => {
+    expect(gapParts(["신용점수", "기존 대출 유무"])?.title).toBe("신용점수와 기존 대출 유무를 입력해 주세요");
+    expect(gapParts(["업종", "연매출"])?.title).toBe("업종과 연매출을 입력해 주세요");
+    expect(gapParts(["업종", "직원 수"])?.title).toBe("업종과 직원 수를 입력해 주세요");
+    expect(gapParts(["소재지", "업종"])?.title).toBe("소재지와 업종을 입력해 주세요");
+  });
+
+  it("3개 이상 — 쉼표로 잇고 마지막에만 「을/를」", () => {
+    expect(gapParts(["신용점수", "기존 대출 유무", "직원 수"])?.title).toBe(
+      "신용점수, 기존 대출 유무, 직원 수를 입력해 주세요",
+    );
+    expect(gapParts(["소재지", "직원 수", "업종"])?.title).toBe("소재지, 직원 수, 업종을 입력해 주세요");
+    // profileGapsOf(funding-map-build.ts) 가 낼 수 있는 최대 — 7칸 전부 빈 회사
+    expect(
+      gapParts(["신용점수", "기존 대출 유무", "소재지", "업종", "설립일", "연매출", "직원 수"])?.title,
+    ).toBe("신용점수, 기존 대출 유무, 소재지, 업종, 설립일, 연매출, 직원 수를 입력해 주세요");
+  });
+
+  it("3개 이상은 가운뎃점(·)이 아니라 쉼표로 잇는다 — 옛 한 줄 힌트와 다른 규칙", () => {
+    const title = gapParts(["신용점수", "기존 대출 유무", "직원 수"])?.title ?? "";
+    expect(title).not.toContain("·");
+    expect(title.split(", ")).toHaveLength(3);
+  });
+
+  it("한글 음절이 아닌 글자로 끝나면 받침 없음으로 본다(영문·숫자)", () => {
+    expect(gapParts(["ROE"])?.title).toBe("ROE를 입력해 주세요");
+    expect(gapParts(["ROE", "매출 2024"])?.title).toBe("ROE와 매출 2024를 입력해 주세요");
+  });
+
+  it("본문은 늘 같은 한 줄이고, 제목엔 사정 설명(「비어 있어」)이 없다 — 할 일만 말한다", () => {
+    expect(gapParts(["신용점수"])?.body).toBe(본문);
+    expect(gapParts(["업종", "연매출"])?.body).toBe(본문);
+    expect(gapParts(["신용점수", "기존 대출 유무", "직원 수"])?.body).toBe(본문);
+    expect(gapParts(["업종", "연매출"])?.title).not.toContain("비어 있어");
+    expect(gapParts(["업종", "연매출"])?.title).toMatch(/입력해 주세요$/);
   });
 });

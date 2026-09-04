@@ -24,7 +24,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Gift, Landmark, LifeBuoy, Percent, ShieldCheck, TrendingUp, type LucideIcon } from "lucide-react";
-import { IoCheckmarkCircle, IoGift, IoTime, IoTrendingDown } from "react-icons/io5";
+import { IoAlertCircle, IoBusiness, IoCheckmarkCircle, IoGift, IoTime, IoTrendingDown } from "react-icons/io5";
 import { Badge } from "./Badge";
 import CustomSelect from "./CustomSelect";
 import { EmptyState } from "@wedly/ui-shared/ui";
@@ -39,9 +39,9 @@ import {
   amountWords,
   conditionVerdictWord,
   deadlineWords,
-  gapWords,
+  gapParts,
   groupFooterWords,
-  profileBandWords,
+  profileBandParts,
   repayWords,
   sortItems,
   verdictWords,
@@ -694,6 +694,8 @@ interface ViewProps {
   compact: boolean;
   /** 마감 계산 기준 시각. 생략 없이 부모가 매 렌더 값을 넘긴다(시험이 고정값을 준다). */
   now: Date;
+  /** 머리 카드 라벨 줄 오른쪽 끝에 앉을 손잡이(예: 「다시 추천」). 없으면 아무것도 안 그린다. */
+  headerAction?: ReactNode;
   onOpen: (item: FundingItem) => void;
   onView: (view: FundingView) => void;
   onFiltersChange: (filters: FundingFilters) => void;
@@ -717,6 +719,7 @@ export function FundingMapView({
   selectedId,
   compact,
   now,
+  headerAction,
   onOpen,
   onView,
   onFiltersChange,
@@ -751,8 +754,13 @@ export function FundingMapView({
   const glance = data.glance;
   const totals = data.totals;
   const unclassified = useMemo(() => unclassifiedGroupItems(data.groups), [data]);
-  const band = profileBandWords(data.usedProfile ?? []);
-  const gap = gapWords(data.profileGaps);
+  const band = profileBandParts(data.usedProfile ?? []);
+  const gap = gapParts(data.profileGaps);
+  // 머리 카드는 **할 말이 있을 때만** 그린다. 판정에 쓴 값도 빈칸 힌트도 없는 자리(사업장을 못 찾아
+  // `usedProfile` 이 빈 배열인 경우)에 라벨만 남기면 「판정에 쓴 정보: (없음)」이 되어 거짓말이 된다.
+  const 머리카드 = band.value !== "" || gap !== null;
+  // 카드 위쪽(판정 근거 구역 또는 손잡이 줄)이 그려졌나 — 구분선을 그릴지 정한다.
+  const 위줄 = band.value !== "" || Boolean(headerAction);
 
   // 한눈에 4칸은 StatCard 기본 한 톤(파랑)이다 — 칸마다 색을 달리하면 뜻 없는 3톤이 된다(리뷰 대장 #17).
   const 한눈에: Array<{ label: string; value: string; icon: React.ComponentType<{ className?: string }> }> = [
@@ -858,11 +866,49 @@ export function FundingMapView({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* ① 판정 근거 띠 — 사업장 정보(profileBandWords) 한 줄 + 빈칸 힌트(gapWords) 한 줄(있을 때만). */}
-      {band && (
-        <p className="break-keep rounded-xl bg-wedly-bg-gray px-3 py-2 text-wedly-hint text-wedly-t2">{band}</p>
+      {/* ① 머리 카드 — 판정 근거(위)와 빈칸 힌트(아래)를 흰 카드 하나로 묶는다(2026-09-04 승인 시안 A안).
+          예전엔 회색 띠 한 줄과 금색 맨 글자 한 줄이 서로 떨어져 떠 있어, 아이콘 0개·굵기 600 줄 0개라
+          눈이 처음 붙잡을 곳이 없었다. 이제 구역마다 아이콘 타일 1개와 굵기 600 한 줄을 둔다.
+          ★금색은 아이콘 타일까지만 쓴다 — 흰 바탕 위 금색 글자는 대비 2.0 미달이라 본문에 못 쓴다
+           (상태 박스 v3 와 같은 규칙. 경고 타일 심볼만 남색인 것도 금색 위 흰 글리프 2.1 미달 때문이다).
+          ★headerAction(「다시 추천」 같은 손잡이)은 라벨 줄 오른쪽 끝에 앉는다 — 단추 하나가
+           한 줄을 통째로 쓰던 빈 줄을 없앤다. */}
+      {머리카드 ? (
+        <div className="rounded-xl border border-wedly-bd bg-white shadow-[0_1px_2px_rgba(10,34,68,0.05),0_6px_18px_rgba(10,34,68,0.08)]">
+          {band.value !== "" ? (
+            <div className="flex items-start gap-2.5 p-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wedly-accent">
+                <IoBusiness className="h-5 w-5 text-white" aria-hidden="true" />
+              </span>
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <div className="flex min-h-[22px] items-center justify-between gap-2.5">
+                  <span className="truncate text-wedly-hint text-wedly-muted">{band.label}</span>
+                  {headerAction}
+                </div>
+                <p className="min-w-0 break-keep text-wedly-sub font-semibold text-wedly-t1">{band.value}</p>
+              </div>
+            </div>
+          ) : (
+            headerAction && <div className="flex justify-end p-3">{headerAction}</div>
+          )}
+          {gap && (
+            <>
+              {위줄 && <div className="border-t border-wedly-bd/60" />}
+              <div className="flex items-start gap-2.5 p-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wedly-gold">
+                  <IoAlertCircle className="h-5 w-5 text-wedly-navy" aria-hidden="true" />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <p className="min-w-0 break-keep text-wedly-sub font-semibold text-wedly-t1">{gap.title}</p>
+                  <p className="min-w-0 break-keep text-wedly-hint text-wedly-t2">{gap.body}</p>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        headerAction && <div className="flex justify-end">{headerAction}</div>
       )}
-      {gap && <p className="break-keep px-1 text-wedly-hint font-semibold text-wedly-gold-ink">{gap}</p>}
 
       {/* ② 한눈에 4칸 — 숫자는 서버가 전체 자료로 센 값(data.glance)이다.
           ★구현 결함 수정(통합 단계 G4, 2026-09-04) — compact(통합 상세창 추천 탭)에서도 이 줄만
@@ -1019,6 +1065,12 @@ export interface FundingMapProps {
   onToggleExcluded: (group: FundingGroup) => void;
   /** 마감 계산 기준 시각 — 생략하면 지금(new Date()). 시험이 고정값을 넣는다. */
   now?: Date;
+  /**
+   * 머리 카드 라벨 줄 오른쪽 끝에 앉을 손잡이(예: 「다시 추천」). 없으면 아무것도 안 그린다.
+   * 뼈대·오류·자료 없음처럼 **머리 카드가 없는 상태**에서는 오른쪽 끝 한 줄로 대신 그린다 —
+   * 이 손잡이는 어느 상태에서도 남아야 한다(화면 독립 검사 2026-08-30 지적 F).
+   */
+  headerAction?: ReactNode;
 }
 
 const ERROR_TITLE = "자금 조달 지도를 불러오지 못했습니다";
@@ -1041,20 +1093,29 @@ export default function FundingMap({
   showExcluded,
   onToggleExcluded,
   now,
+  headerAction,
 }: FundingMapProps) {
   const [view, setView] = useState<FundingView>("map");
   const [expanded, setExpanded] = useState<ReadonlySet<FundingGroup>>(() => new Set<FundingGroup>());
 
   // ★훅은 조기 반환보다 위에 둔다 — 아래로 내려가면 화면이 통째로 죽는다(2026-08 실사고).
 
+  // 「다시 추천」 같은 손잡이는 **어느 상태에서도** 남는다(화면 독립 검사 2026-08-30 지적 F —
+  // 배포 교체 창의 일시 502 뒤 사용자가 복구할 길이 상세창을 닫았다 여는 것뿐이었다).
+  // 뼈대·오류·자료 없음에는 손잡이를 얹을 머리 카드가 없으므로 오른쪽 끝 한 줄로 둔다.
+  const 손잡이줄 = headerAction ? <div className="mb-2 flex justify-end">{headerAction}</div> : null;
+
   // 뼈대는 **첫 로딩만**. 이미 본 자료가 있으면 칩 하나 눌렀다고 화면이 사라지지 않게 흐리게 두고 바꾼다.
   if (loading && !data) {
     return (
-      <div className={cn("grid gap-3 sm:grid-cols-2", !compact && "lg:grid-cols-3")} aria-busy="true">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <Skeleton key={i} variant="block" className="h-40" />
-        ))}
-      </div>
+      <>
+        {손잡이줄}
+        <div className={cn("grid gap-3 sm:grid-cols-2", !compact && "lg:grid-cols-3")} aria-busy="true">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} variant="block" className="h-40" />
+          ))}
+        </div>
+      </>
     );
   }
 
@@ -1062,22 +1123,25 @@ export default function FundingMap({
     // ★ StatusBox 의 `actions` 칸은 쓰지 않는다 — 그 칸은 카드 폭을 못 채워 단추가 어중간한 자리에 선다
     //   (`src/components/ui/__tests__/statusbox-actions-trap.test.ts` 가 빌드에서 막는다). 상자 밖 왼쪽에 둔다.
     return (
-      <div className="flex flex-col gap-2">
-        <StatusBox tone="error" title={ERROR_TITLE}>
-          {error === ERROR_TITLE ? "잠시 뒤 다시 시도해 주세요." : error}
-        </StatusBox>
-        {onRetry && (
-          <div>
-            <button type="button" className={BTN_SM} onClick={onRetry}>
-              다시 시도
-            </button>
-          </div>
-        )}
-      </div>
+      <>
+        {손잡이줄}
+        <div className="flex flex-col gap-2">
+          <StatusBox tone="error" title={ERROR_TITLE}>
+            {error === ERROR_TITLE ? "잠시 뒤 다시 시도해 주세요." : error}
+          </StatusBox>
+          {onRetry && (
+            <div>
+              <button type="button" className={BTN_SM} onClick={onRetry}>
+                다시 시도
+              </button>
+            </div>
+          )}
+        </div>
+      </>
     );
   }
 
-  if (!data) return null;
+  if (!data) return 손잡이줄;
 
   const openItem = (it: FundingItem) => {
     if (onOpenDetail && shouldOpenDetail(it, compact)) onOpenDetail(it.refId);
@@ -1099,6 +1163,7 @@ export default function FundingMap({
         selectedId={selectedId}
         compact={compact}
         now={now ?? new Date()}
+        headerAction={headerAction}
         onOpen={openItem}
         onView={setView}
         onFiltersChange={onFiltersChange}

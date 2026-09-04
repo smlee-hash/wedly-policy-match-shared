@@ -18,7 +18,8 @@ import { FUNDING_GROUPS, type FundingGroup } from "../funding/funding-group";
 import {
   deadlineOfAnnouncement,
   deadlineOfProduct,
-  profileBandWords,
+  gapParts,
+  profileBandParts,
   type FundingFilters,
   type FundingItem,
 } from "../funding/funding-map";
@@ -148,6 +149,9 @@ function 안맞음포함자료(): RecommendFundingData {
 
 const 기본거르개: FundingFilters = { openOnly: false, soonOnly: false, includeExcluded: false };
 
+/** 낱말이 몇 번 나오는지 — 「있다/없다」로는 같은 말이 두 번 나오는 것을 못 잡는다. */
+const 세기 = (html: string, 낱말: string): number => html.split(낱말).length - 1;
+
 function 판(
   over: {
     data?: RecommendFundingData | null;
@@ -200,26 +204,59 @@ describe("추천 정책 탭 — 자금 조달 지도", () => {
     expect(html).not.toContain("전체 공고 탐색"); // 상세창엔 갈 곳이 없다
   });
 
-  it("대조에 쓴 회사 정보를 profileBandWords 문장으로 밝힌다(찾은 고객, 계약 §G3)", () => {
+  it("판정에 쓴 회사 정보를 머리 카드가 라벨·값으로 밝힌다(찾은 고객, A안)", () => {
     const html = 판();
-    expect(html).toContain(profileBandWords(["지역 전북", "직원수 10명"]));
-    expect(html).not.toContain("찾지 못해");
-    expect(html, "옛 「대조에 쓴 정보」 문구는 profileBandWords 로 통일됐다").not.toContain("대조에 쓴 정보");
+    const 띠 = profileBandParts(["지역 전북", "직원수 10명"]);
+    expect(html).toContain(띠.label);
+    expect(html).toContain(띠.value);
+    expect(html).not.toContain("찾지 못했어요");
+    expect(html, "옛 「대조에 쓴 정보」 문구").not.toContain("대조에 쓴 정보");
     expect(html, "「대조 기준」 낱말 금지(계약 낱말 규칙)").not.toContain("대조 기준");
+    expect(html, "라벨과 값을 콜론으로 붙이던 옛 한 줄 문장").not.toContain("이 사업장 정보로 판정");
   });
 
-  it("고객을 못 찾으면 「조건 대조 없이」 안내가 뜬다", () => {
+  /** ★A안 문구 교체 — 「통합 고객에서 …」 같은 내부 이름을 빼고, 무엇이 보이는지를 두 줄로 나눴다. */
+  it("고객을 못 찾으면 「이 사업장 정보를 찾지 못했어요」 안내가 뜬다(새 문구)", () => {
     const html = 판({ data: 자료({ matchedCompany: null, usedProfile: [] }) });
-    expect(html).toContain("찾지 못해");
-    expect(html).toContain("조건 대조 없이");
-    expect(html).not.toContain(profileBandWords(["지역 전북", "직원수 10명"]));
+    expect(html).toContain("이 사업장 정보를 찾지 못했어요");
+    expect(html).toContain("조건 판정 없이 지금 열려 있는 자금만 보여 드립니다");
+    expect(html, "옛 문구가 남아 있다").not.toContain("찾지 못해,");
+    expect(html, "옛 문구가 남아 있다").not.toContain("조건 대조 없이");
+    expect(html, "옛 문구가 남아 있다").not.toContain("통합 고객에서");
+    expect(html).not.toContain(profileBandParts(["지역 전북", "직원수 10명"]).value);
   });
 
-  it("고객은 찾았지만 대조할 정보가 한 칸도 없으면 같은 폴백 안내로 알린다", () => {
+  /**
+   * ★이번 재설계의 핵심 하나 — 예전엔 「쓸 정보 0개」일 때 노란 안내와 지도 빈칸 힌트가 **함께** 떠
+   *  같은 말이 화면에 두 번 나왔다. 이제 「무엇을 입력해 달라」는 머리 카드 한 곳에서만 말한다.
+   */
+  it("「찾았는데 쓸 정보 0개」면 「입력해 주세요」가 한 번만 나온다 — 같은 말이 두 번 안 나온다(A안)", () => {
     const html = 판({ data: 자료({ usedProfile: [] }) });
-    expect(html).toContain("비어 있어");
-    expect(html).toContain("조건 대조 없이");
-    expect(html).not.toContain("찾지 못해");
+    const 힌트 = gapParts(["신용점수"]);
+    expect(힌트, "이 시험 자료엔 빈 칸이 1개다").not.toBeNull();
+    expect(세기(html, "입력해 주세요"), "같은 말이 두 번 나온다").toBe(1);
+    expect(세기(html, 힌트!.title), "빈칸 힌트 제목이 두 번 나온다").toBe(1);
+    expect(html, "옛 폴백 안내가 되살아났다").not.toContain("비어 있어");
+    expect(html, "옛 폴백 안내가 되살아났다").not.toContain("조건 대조 없이");
+    expect(html, "못 찾음 안내는 이 자리에선 안 뜬다").not.toContain("찾지 못했어요");
+    expect(html, "금색 글자 클래스가 남아 있다").not.toContain("text-wedly-gold");
+  });
+
+  /**
+   * ★단추 하나가 한 줄을 통째로 쓰던 빈 줄을 없앤 자리(A안) — 「다시 추천」은 머리 카드 라벨 줄
+   *  오른쪽 끝에 앉는다. 그래서 「카드 → 라벨 → 단추 → 값」 차례여야 한다.
+   */
+  it("「다시 추천」은 머리 카드 라벨 줄 안에 있다 — 단추만 있는 별도 줄이 아니다(A안)", () => {
+    const html = 판();
+    expect(html, "단추만 있는 줄이 남아 있다").not.toContain('class="mb-2 flex justify-end"');
+    const i카드 = html.indexOf("rounded-xl border border-wedly-bd bg-white");
+    const i라벨 = html.indexOf("판정에 쓴 정보");
+    const i단추 = html.indexOf("다시 추천");
+    const i값 = html.indexOf(profileBandParts(["지역 전북", "직원수 10명"]).value);
+    expect(i카드, "머리 카드가 없다").toBeGreaterThan(-1);
+    expect(i라벨, "라벨이 머리 카드 안에 없다").toBeGreaterThan(i카드);
+    expect(i단추, "단추가 라벨보다 앞에 있다").toBeGreaterThan(i라벨);
+    expect(i값, "단추가 값 줄 아래로 내려갔다 — 라벨과 같은 줄이어야 한다").toBeGreaterThan(i단추);
   });
 
   it("오류면 지도 대신 안내가 뜨고 「다시 추천」은 남는다", () => {
@@ -288,12 +325,18 @@ describe("추천 정책 탭 — 자금 조달 지도", () => {
     expect(html).not.toContain("다시 추천");
   });
 
-  it("안내 줄만 따로 그려도 세 갈래가 맞다 — 찾은 고객은 profileBandWords 문장", () => {
-    expect(renderToStaticMarkup(<ProfileNotice matchedCompany="삼영식품" usedProfile={["지역 전북"]} />)).toContain(
-      profileBandWords(["지역 전북"]),
+  it("안내 줄만 따로 그려도 갈래가 맞다 — 「못 찾음」 하나만 그린다(A안)", () => {
+    expect(renderToStaticMarkup(<ProfileNotice matchedCompany={null} usedProfile={[]} />)).toContain(
+      "이 사업장 정보를 찾지 못했어요",
     );
-    expect(renderToStaticMarkup(<ProfileNotice matchedCompany={null} usedProfile={[]} />)).toContain("찾지 못해");
-    expect(renderToStaticMarkup(<ProfileNotice matchedCompany="삼영식품" usedProfile={[]} />)).toContain("비어 있어");
+    expect(
+      renderToStaticMarkup(<ProfileNotice matchedCompany="삼영식품" usedProfile={["지역 전북"]} />),
+      "찾은 고객의 판정 근거는 지도 머리 카드가 그린다 — 여기선 아무것도 안 그린다",
+    ).toBe("");
+    expect(
+      renderToStaticMarkup(<ProfileNotice matchedCompany="삼영식품" usedProfile={[]} />),
+      "「쓸 정보 0개」는 머리 카드 빈칸 힌트가 말한다 — 여기선 아무것도 안 그린다",
+    ).toBe("");
   });
 
   it("칩·정렬을 바꿔 다시 부르는 동안에는 앞 자료를 그대로 둔다(같은 회사)", () => {

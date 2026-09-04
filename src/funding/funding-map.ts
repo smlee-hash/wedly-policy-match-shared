@@ -801,12 +801,83 @@ function bandEntry(entry: string): string {
  * (계약 낱말 규칙 — G3 가 이 함수로 옛 「대조에 쓴 정보: …」 안내를 통일한다).
  */
 export function profileBandWords(usedProfile: string[]): string {
-  if (usedProfile.length === 0) return "";
-  return `이 사업장 정보로 판정: ${usedProfile.map(bandEntry).join(" · ")}`;
+  const { value } = profileBandParts(usedProfile);
+  if (value === "") return "";
+  return `이 사업장 정보로 판정: ${value}`;
+}
+
+/** 「판정에 쓴 정보」 띠의 라벨 — 라벨과 값을 따로 그리는 화면(재설계 A안)이 쓴다. */
+const PROFILE_BAND_LABEL = "판정에 쓴 정보";
+
+/**
+ * 판정 근거 띠를 **라벨과 값 두 조각으로** 돌려준다(재설계 A안 — 라벨은 단추 줄에 올리고 값만 따로 그린다).
+ *
+ * `value` 는 `profileBandWords` 가 만들던 문장에서 **앞머리 라벨(「이 사업장 정보로 판정: 」)만 뺀** 부분과
+ * 글자 하나까지 같다 — 두 함수가 같은 값을 두 번 만들지 않도록 `profileBandWords` 가 이 함수를 쓴다.
+ *
+ * 쓸 정보가 하나도 없으면(`usedProfile` 이 빈 배열) `value` 는 **빈 문자열**이다. `profileBandWords` 가
+ * 빈 문자열을 돌려주던 것과 **같은 뜻**이다 — 화면은 값이 비면 띠 자체를 안 그린다.
+ * (라벨은 값이 있든 없든 늘 같은 글자다. 「이 화면이 무엇을 그릴지」는 값으로만 정한다.)
+ */
+export function profileBandParts(usedProfile: string[]): { label: string; value: string } {
+  return {
+    label: PROFILE_BAND_LABEL,
+    value: usedProfile.length === 0 ? "" : usedProfile.map(bandEntry).join(" · "),
+  };
 }
 
 /** 회사 정보 빈 칸 힌트 — `profileGaps`(funding-map-build.ts 의 `profileGapsOf`)를 사람 말 한 줄로. */
 export function gapWords(profileGaps: string[]): string {
   if (profileGaps.length === 0) return "";
   return `회사 정보에 ${profileGaps.join("·")}가 비어 있어 일부 조건은 「확인 필요」로 남습니다 — 채우면 자동 판정됩니다`;
+}
+
+/**
+ * 한글 받침(종성) 판정 — 마지막 글자가 한글 음절(가~힣)이고 `(코드 − 0xAC00) % 28 !== 0` 이면 받침이 있다.
+ *
+ * 한글 음절이 아닌 글자(영문·숫자·기호)로 끝나거나 빈 낱말이면 **받침 없음**으로 본다 —
+ * 「와/를」쪽이 한국어에서 덜 어색하게 읽히는 기본값이다.
+ */
+function hasJongseong(word: string): boolean {
+  if (word.length === 0) return false;
+  const code = word.charCodeAt(word.length - 1);
+  if (code < 0xac00 || code > 0xd7a3) return false;
+  return (code - 0xac00) % 28 !== 0;
+}
+
+/** 받침 있으면 「과」, 없으면 「와」 — 낱말 두 개를 잇는 자리. */
+function withWaGwa(word: string): string {
+  return `${word}${hasJongseong(word) ? "과" : "와"}`;
+}
+
+/** 받침 있으면 「을」, 없으면 「를」 — 목적어 자리. */
+function withEulReul(word: string): string {
+  return `${word}${hasJongseong(word) ? "을" : "를"}`;
+}
+
+/** `gapParts` 본문 — 「입력하면 무엇이 좋아지는지」 한 줄(재설계 A안 확정 문구). */
+const GAP_BODY = "입력하면 「확인 필요」 조건이 자동으로 판정됩니다";
+
+/**
+ * 회사 정보 빈 칸 힌트를 **제목(할 일) + 본문(하면 좋아지는 것)** 두 조각으로 돌려준다(재설계 A안).
+ * 빠진 칸이 하나도 없으면 `null` 이다 — 화면이 상자 자체를 안 그린다.
+ *
+ * 제목은 「…를 입력해 주세요」로 **할 일을 먼저** 말한다:
+ *  · 1개  → 「신용점수를 입력해 주세요」
+ *  · 2개  → 「신용점수와 기존 대출 유무를 입력해 주세요」(앞 낱말은 와/과로 잇는다)
+ *  · 3개+ → 「신용점수, 기존 대출 유무, 직원 수를 입력해 주세요」(쉼표로 잇고 **마지막에만** 을/를)
+ *
+ * ★조사는 글자로 박지 않고 **받침으로 고른다**(`hasJongseong`). 옛 `gapWords` 는 「가」가 글자에 박혀 있어
+ *  받침 있는 칸 이름이 오면 「업종가 비어 있어」로 틀렸다 — 여기엔 그 결함이 없다.
+ */
+export function gapParts(profileGaps: string[]): { title: string; body: string } | null {
+  if (profileGaps.length === 0) return null;
+  const last = profileGaps[profileGaps.length - 1];
+  const head =
+    profileGaps.length === 1
+      ? ""
+      : profileGaps.length === 2
+        ? `${withWaGwa(profileGaps[0])} `
+        : `${profileGaps.slice(0, -1).join(", ")}, `;
+  return { title: `${head}${withEulReul(last)} 입력해 주세요`, body: GAP_BODY };
 }
