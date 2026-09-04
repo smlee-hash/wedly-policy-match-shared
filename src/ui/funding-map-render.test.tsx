@@ -271,9 +271,23 @@ const 서랍 = (item: FundingItem | null, onOpenDetail?: (id: string) => void): 
 function 머리카드(html: string): string {
   const start = html.indexOf('class="rounded-xl border border-wedly-bd bg-white');
   expect(start, "머리 카드가 없다").toBeGreaterThan(-1);
-  const end = html.indexOf('class="grid gap-2.5 grid-cols-2', start);
+  const end = html.indexOf('class="grid gap-4 grid-cols-2', start);
   expect(end, "머리 카드 다음의 「한눈에 4칸」을 못 찾았다").toBeGreaterThan(start);
   return html.slice(start, end);
+}
+
+/**
+ * 표식(`mark`)이 든 요소의 **여는 태그 한 개**만 잘라 낸다 — 클래스를 잴 때 옆 요소의 클래스가
+ * 섞여 들어오면 높이가 틀려도 시험이 통과한다(2026-09-03 탬퍼 시험의 교훈, `카드머리`와 같은 이유).
+ */
+function 조각(html: string, mark: string, tag: string): string {
+  const i = html.indexOf(mark);
+  expect(i, `${mark} 를 못 찾았다`).toBeGreaterThan(-1);
+  const 열림 = html.lastIndexOf(tag, i);
+  expect(열림, `${mark} 앞의 ${tag} 를 못 찾았다`).toBeGreaterThan(-1);
+  const 닫힘 = html.indexOf(">", 열림);
+  expect(닫힘, `${tag} 가 안 닫힌다`).toBeGreaterThan(열림);
+  return html.slice(열림, 닫힘 + 1);
 }
 
 /** 갈래 카드 하나의 HTML 만 잘라 낸다 — `data-group` 표식으로 자른다. */
@@ -330,7 +344,14 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     expect(본톤.size, "6갈래 타일 색이 서로 달라야 한다").toBe(6);
   });
 
-  it("②-a 칩은 두 개뿐(맞는 것만 삭제) · 알약 라벨은 카드로 보기/표로 보기 · 오른쪽에 안내 문구", () => {
+  /**
+   * ★2026-09-04 승인 시안 — 오른쪽 끝 회색 문장(「이 사업장에 안 맞는 공고는 기본으로 뺐습니다」)을
+   *  **지웠다**. 같은 사실을 갈래 카드마다 있는 「안 맞아서 뺀 N건 보기」 단추가 이미 알리면서
+   *  **누를 수 있게** 한다(`funding-map.ts` 의 `groupFooterWords` → `excluded`,
+   *  `FundingMap.tsx` 가 `BTN_SM` 단추로 그린다). 뺀 것이 없으면 그 단추는 안 뜨는데
+   *  회색 문장만 늘 떠 있었다 — 「빈 상태 문구는 다음 행동을 함께 적는다」에 어긋난다.
+   */
+  it("②-a 칩은 두 개뿐(맞는 것만 삭제) · 알약 라벨은 카드로 보기/표로 보기 · 오른쪽 회색 안내 문장은 없다", () => {
     const html = 그린다();
     expect(html, "「맞는 것만」 칩이 남아 있다").not.toContain("맞는 것만");
     expect(html).toContain('data-chip="openOnly"');
@@ -341,7 +362,10 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     expect(html).toContain("카드로 보기");
     expect(html).toContain("표로 보기");
     expect(html, "구 라벨 잔존").not.toContain(">지도<");
-    expect(html).toContain("이 사업장에 안 맞는 공고는 기본으로 뺐습니다");
+    expect(html, "지운 회색 안내 문장이 되살아났다").not.toContain("이 사업장에 안 맞는 공고는 기본으로 뺐습니다");
+    expect(html, "문장을 줄여서 남기지도 옮기지도 않는다").not.toContain("기본으로 뺐습니다");
+    // 같은 사실을 말하는 **누를 수 있는** 단추는 그대로 있다(뺀 것이 있는 갈래에만)
+    expect(html, "대신 알리는 단추가 사라졌다").toContain("안 맞아서 뺀");
   });
 
   it("②-b 칩이 켜져 있어도 화면은 (안 맞음 재분류 말고는) 자료를 다시 거르지 않는다 — 거르기는 서버 몫", () => {
@@ -1010,6 +1034,102 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     );
   });
 
+
+  /**
+   * ★2026-09-04 승인 시안 ② — 정본 여백 계단은 4·6·8·16·24·32 이고 「카드 사이 16」이 기본이다.
+   *  옛 값 12px(`gap-3`)·10px(`gap-2.5`)는 계단에 **없는 값**이었다. 세 자리만 바꾼다 —
+   *  카드 **안쪽** 여백(`gap-2.5`)은 그대로다.
+   */
+  it("⑫ 세로 간격 — 덩어리·숫자 카드·갈래 카드 세 곳이 16px(gap-4)이다", () => {
+    const html = 그린다();
+    // 바깥 묶음은 **뿌리 요소**다 — 카드 보기 안쪽에도 `flex flex-col gap-3` 이 하나 더 있고
+    // 그건 이번 승인 범위가 아니라, 문서 전체에서 없다고 재면 안 된다.
+    expect(html.startsWith('<div class="flex flex-col gap-4">'), "바깥 묶음(덩어리 사이)").toBe(true);
+    expect(html, "숫자 카드 그리드").toContain('class="grid gap-4 grid-cols-2');
+    expect(html, "갈래 카드 그리드").toContain('class="grid gap-4 sm:grid-cols-2');
+
+    expect(html.startsWith('<div class="flex flex-col gap-3">'), "옛 덩어리 간격 12px 가 남았다").toBe(false);
+    expect(html, "옛 숫자 카드 간격 10px 가 남았다").not.toContain('class="grid gap-2.5 grid-cols-2');
+    expect(html, "옛 갈래 카드 간격 12px 가 남았다").not.toContain('class="grid gap-3 sm:grid-cols-2');
+
+    // 카드 **안쪽** 여백은 손대지 않았다 — 머리 카드 두 구역의 아이콘/글 사이가 그대로 10px
+    expect(머리카드(html), "카드 안쪽 여백까지 건드렸다").toContain("gap-2.5");
+  });
+
+  /**
+   * ★2026-09-04 승인 시안 ③ — 조작줄 네 부품 높이가 알약 30 · 칩 26 · 셀렉트 42 · 단추 26 으로
+   *  제각각이라 한 줄 안에서 서로 떠 보였다. 넷 다 정본 계단 `h-9`(36px)로 맞춘다.
+   *  높이를 못 박았으니 글자는 `items-center` 로 **직접** 세로 가운데에 둔다(브라우저 기본 금지).
+   */
+  it("⑬ 조작줄 네 부품이 전부 h-9(36px)이고 글자가 세로 가운데다", () => {
+    const html = 그린다({ onBrowseAll: () => {} });
+
+    // ⓐ 알약 — 공용 부품 트랙에 className 이 합쳐진다(부품 파일은 안 고쳤다)
+    const 알약 = 조각(html, "카드로 보기", "<div");
+    expect(알약, "알약 트랙이 36px 이 아니다").toContain("h-9");
+    // ★HTML 로 나갈 때 `&`·`>` 가 `&amp;`·`&gt;` 로 새어 적힌다 — 브라우저가 읽는 클래스 값은
+    //  `[&>button]:…` 그대로다. 그려 낸 글자를 재는 시험이라 새어 적힌 모양으로 잰다.
+    expect(알약, "안쪽 단추 글자가 브라우저 기본 정렬에 맡겨졌다").toContain(
+      "[&amp;&gt;button]:inline-flex [&amp;&gt;button]:items-center",
+    );
+    expect(알약, "공용 부품 트랙 모양이 사라졌다").toContain("rounded-full bg-wedly-bg-sidebar");
+
+    // ⓑ 칩 둘
+    for (const key of ["openOnly", "soonOnly"]) {
+      const 칩 = 조각(html, `data-chip="${key}"`, "<button");
+      expect(칩, `${key} 칩이 36px 이 아니다`).toContain("h-9");
+      expect(칩, `${key} 칩 글자가 세로 가운데가 아니다`).toContain("inline-flex h-9 items-center");
+      expect(칩, `${key} 칩에 옛 py-1 이 남았다`).not.toContain("py-1");
+    }
+
+    // ⓒ 셀렉트 — 부품 **기본**은 그대로 두고 이 자리에서만 높이를 준다
+    const 셀렉트 = 조각(html, 'id="funding-map-sort"', "<button");
+    expect(셀렉트, "셀렉트가 36px 이 아니다").toContain("h-9");
+    expect(셀렉트, "셀렉트 글자가 세로 가운데가 아니다").toContain("items-center");
+    expect(셀렉트, "옛 42px 짜리 위아래 여백이 남았다").not.toContain("py-2.5");
+
+    // ⓓ 「전체 공고 탐색」 단추
+    const 단추 = 조각(html, ">전체 공고 탐색<", "<button");
+    expect(단추, "단추가 36px 이 아니다").toContain("inline-flex h-9 items-center");
+    expect(단추, "단추에 옛 py-1 이 남았다").not.toContain("py-1");
+
+    // ⓔ 「정렬」 라벨도 36px 줄 안에서 세로 가운데
+    const 라벨 = 조각(html, ">정렬<", "<label");
+    expect(라벨, "정렬 라벨이 36px 줄에 안 맞는다").toContain("inline-flex min-h-9 items-center");
+  });
+
+  /**
+   * ★2026-09-04 승인 시안 ④ — 머리 카드 아래 구역이 「큰 제목 → 작은 설명」이라 위 구역
+   *  (「작은 라벨 → 큰 값」)과 거꾸로였다. 아래 구역만 위 구역 차례로 맞춘다.
+   *  줄 수는 그대로 **두 줄**이다 — 옛 본문 한 줄이 새 라벨로 접혔다.
+   */
+  it("⑭ 머리 카드 아래 구역이 「작은 라벨 → 큰 제목」 차례다 — 옛 본문 문장은 없다", () => {
+    const 힌트 = gapParts(자료().profileGaps)!;
+    const 카드 = 머리카드(그린다());
+
+    const i라벨 = 카드.indexOf(힌트.label);
+    const i제목 = 카드.indexOf(힌트.title);
+    expect(i라벨, "라벨이 없다").toBeGreaterThan(-1);
+    expect(i제목, "제목이 라벨보다 위에 있다(차례가 거꾸로다)").toBeGreaterThan(i라벨);
+
+    // 라벨은 작고 옅게(hint·muted), 제목은 크고 굵게(sub·600·t1) — 위 구역과 같은 짝
+    expect(카드).toContain(
+      `<p class="min-w-0 break-keep text-wedly-hint text-wedly-muted">${힌트.label}</p>`,
+    );
+    expect(카드).toContain(
+      `<p class="min-w-0 break-keep text-wedly-sub font-semibold text-wedly-t1">${힌트.title}</p>`,
+    );
+
+    // 옛 본문 한 줄은 사라졌다 — 카드가 세 줄로 길어지면 안 된다
+    expect(카드, "옛 본문 문장이 남아 있다").not.toContain("입력하면 조건을 더 정확하게 맞춰 볼 수 있어요");
+    expect(카드, "옛 본문 자리(hint·t2)가 남아 있다").not.toContain(
+      'class="min-w-0 break-keep text-wedly-hint text-wedly-t2"',
+    );
+    // 아래 구역은 여전히 두 줄이다(금색 타일 뒤 <p> 가 정확히 둘)
+    const 아래 = 카드.slice(카드.indexOf("bg-wedly-gold"));
+    expect((아래.match(/<p /g) ?? []).length, "아래 구역 줄 수가 둘이 아니다").toBe(2);
+  });
+
   /**
    * ★재설계 A안(2026-09-04 승인 시안) — 회색 띠 한 줄 + 금색 맨 글자 한 줄이 **흰 카드 하나**가 됐다.
    *  구역마다 아이콘 타일 1개와 굵기 600 한 줄을 두고, 사이를 구분선으로 가른다
@@ -1030,7 +1150,7 @@ describe("자금 조달 지도 — 그려서 재기", () => {
       "서울 · 음식점/카페 · 연매출 1.3억 · 2023년 1월 설립 · 개인사업자",
     );
     expect(카드, "빈칸 힌트 제목(할 일)").toContain(힌트!.title);
-    expect(카드, "빈칸 힌트 본문").toContain(힌트!.body);
+    expect(카드, "빈칸 힌트 라벨").toContain(힌트!.label);
 
     // 카드 골격 — 흰 바탕·테두리·둥근 모서리·층 그림자 + 두 구역을 가르는 선
     expect(카드).toContain("bg-white");

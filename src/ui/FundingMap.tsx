@@ -112,14 +112,19 @@ const CHIPS: Array<{ key: "openOnly" | "soonOnly"; label: string }> = [
 /** 갈래 한 칸에 접힌 채로 보이는 건수 — 미리보기와 같은 3건. */
 const FOLDED = 3;
 
+// ★조작줄 부품 높이 = 36px(정본 계단 `h-9`, 2026-09-04 승인 시안). `py-1`(26px)로는 알약·셀렉트와
+//  높이가 안 맞아 칩만 떠 보였다. 높이를 못 박았으니 글자는 `inline-flex items-center` 로 직접
+//  세로 가운데에 둔다 — 브라우저 기본 정렬에 기대지 않는다.
 const CHIP_BASE =
-  "rounded-full border border-wedly-bd bg-white px-3 py-1 text-wedly-hint text-wedly-t2 " +
+  "inline-flex h-9 items-center rounded-full border border-wedly-bd bg-white px-3 text-wedly-hint text-wedly-t2 " +
   "transition-colors duration-150 ease-out hover:border-wedly-accent " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wedly-accent";
 const CHIP_ON = "border-wedly-accent bg-wedly-bg-blue font-semibold text-wedly-accent-ink";
 
+// ★같은 이유로 36px(`h-9`). 이 이름은 조작줄 「전체 공고 탐색」 말고 갈래 카드 발치의
+//  「안 맞아서 뺀 N건 보기」·「칩 모두 풀기」·「다시 시도」도 함께 쓴다 — 넷이 같은 높이가 된다.
 const BTN_SM =
-  "inline-flex items-center justify-center rounded-lg border border-wedly-bd bg-white px-3 py-1 " +
+  "inline-flex h-9 items-center justify-center rounded-lg border border-wedly-bd bg-white px-3 " +
   "text-wedly-hint font-semibold text-wedly-accent-ink transition-colors duration-150 ease-out " +
   "hover:bg-wedly-bg-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wedly-accent";
 
@@ -871,7 +876,9 @@ export function FundingMapView({
   ];
 
   return (
-    <div className="flex flex-col gap-3">
+    // ★덩어리 사이 16px(`gap-4`) — 정본 여백 계단은 4·6·8·16·24·32 이고 「카드 사이 16」이 기본이다.
+    //  옛 `gap-3`(12px)은 계단에 없는 값이었다(2026-09-04 승인 시안).
+    <div className="flex flex-col gap-4">
       {/* ① 머리 카드 — 판정 근거(위)와 빈칸 힌트(아래)를 흰 카드 하나로 묶는다(2026-09-04 승인 시안 A안).
           예전엔 회색 띠 한 줄과 금색 맨 글자 한 줄이 서로 떨어져 떠 있어, 아이콘 0개·굵기 600 줄 0개라
           눈이 처음 붙잡을 곳이 없었다. 이제 구역마다 아이콘 타일 1개와 굵기 600 한 줄을 둔다.
@@ -904,9 +911,13 @@ export function FundingMapView({
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wedly-gold">
                   <IoAlertCircle className="h-5 w-5 text-wedly-navy" aria-hidden="true" />
                 </span>
+                {/* ★차례가 위 구역과 같다 — 작은 라벨 위, 큰 값 아래(2026-09-04 승인 시안).
+                    예전엔 이 구역만 「큰 제목 → 작은 설명」으로 거꾸로여서, 한 카드 안에서 같은 뜻의
+                    두 줄이 서로 다른 차례로 놓였다. 옛 본문 한 줄은 라벨로 접혀 사라졌고 줄 수는
+                    그대로 둘이라 카드가 길어지지 않는다. */}
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <p className="min-w-0 break-keep text-wedly-hint text-wedly-muted">{gap.label}</p>
                   <p className="min-w-0 break-keep text-wedly-sub font-semibold text-wedly-t1">{gap.title}</p>
-                  <p className="min-w-0 break-keep text-wedly-hint text-wedly-t2">{gap.body}</p>
                 </div>
               </div>
             </>
@@ -921,7 +932,8 @@ export function FundingMapView({
            4열 그대로였다(바로 아래 갈래 카드 줄은 `!compact &&`로 이미 2열까지만 두던 것과 어긋남).
            `lg:` 는 뷰포트 폭 기준이라, 데스크톱 화면에서 열리는 좁은 상세창 안에서도 그대로 켜져
            4칸이 좁은 자리에 눌려 보였다 — 갈래 카드와 같은 패턴으로 맞춘다. */}
-      <div className={cn("grid gap-2.5 grid-cols-2", !compact && "lg:grid-cols-4")}>
+      {/* ★숫자 카드 사이 16px(`gap-4`) — 옛 `gap-2.5`(10px)는 정본 계단에 없는 값이었다. */}
+      <div className={cn("grid gap-4 grid-cols-2", !compact && "lg:grid-cols-4")}>
         {한눈에.map((s) => (
           <StatCard key={s.label} label={s.label} value={s.value} icon={s.icon} />
         ))}
@@ -930,7 +942,12 @@ export function FundingMapView({
       {/* ③ 조작줄 — 칩·정렬을 누르면 부모가 통로를 다시 부른다(여기서 자료를 만지지 않는다) */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
+          {/* ★알약도 36px — `className` 은 공용 부품 안에서 알약 트랙에 그대로 합쳐진다
+              (`@wedly/ui-shared` SegmentedControl, `cn(...)`). 그래서 공용 부품 파일은 안 건드린다.
+              안쪽 단추 글자는 `[&>button]:` 로 직접 세로 가운데에 둔다 — 트랙만 키우고 두면
+              글자 위치가 브라우저 기본에 맡겨진다. */}
           <SegmentedControl
+            className="h-9 [&>button]:inline-flex [&>button]:items-center"
             options={[
               { value: "map", label: "카드로 보기" },
               { value: "table", label: "표로 보기" },
@@ -952,22 +969,26 @@ export function FundingMapView({
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="text-wedly-hint text-wedly-muted" htmlFor="funding-map-sort">
+          <label className="inline-flex min-h-9 items-center text-wedly-hint text-wedly-muted" htmlFor="funding-map-sort">
             정렬
           </label>
+          {/* ★셀렉트만 42px 이라 혼자 컸다. 부품 **기본**은 그대로 두고 `controlClassName` 으로
+              **이 자리에서만** 36px 을 준다 — 이 부품을 ERP 43개·일루아 2개 화면이 쓰는데
+              기본 높이를 내리면 그 화면들이 전부 함께 바뀌기 때문이다(승인 범위 밖).
+              부품 전체를 정본 높이로 수렴시키는 일은 **별도 승인이 필요한 후속**이다. */}
           <CustomSelect
             id="funding-map-sort"
             value={sort}
             onChange={(v) => onSortChange(v as FundingSort)}
             options={SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
             className="min-w-[8.5rem]"
+            controlClassName="flex h-9 items-center py-0"
           />
           {onBrowseAll && (
             <button type="button" className={BTN_SM} onClick={onBrowseAll}>
               전체 공고 탐색
             </button>
           )}
-          <span className="break-keep text-wedly-hint text-wedly-muted">이 사업장에 안 맞는 공고는 기본으로 뺐습니다</span>
         </div>
       </div>
 
@@ -990,7 +1011,8 @@ export function FundingMapView({
         />
       ) : view === "map" ? (
         <div className="flex flex-col gap-3">
-          <div className={cn("grid gap-3 sm:grid-cols-2", !compact && "lg:grid-cols-3")}>
+          {/* ★갈래 카드 사이 16px(`gap-4`) — 옛 `gap-3`(12px)는 정본 계단에 없는 값이었다. */}
+          <div className={cn("grid gap-4 sm:grid-cols-2", !compact && "lg:grid-cols-3")}>
             {data.groups.map((block) => (
               <GroupCard
                 key={block.group}

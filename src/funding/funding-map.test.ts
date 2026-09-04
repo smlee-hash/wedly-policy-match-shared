@@ -1178,22 +1178,24 @@ describe("profileBandOf — 판정 근거 구역을 그릴지, 무엇이라 적�
   });
 });
 
-describe("gapParts — 빠진 칸 힌트를 「할 일 제목 + 본문」으로(A안)", () => {
+describe("gapParts — 빠진 칸 힌트를 「작은 라벨(위) + 큰 제목(아래)」으로", () => {
   /**
-   * 본문은 입력과 무관하게 늘 같은 한 줄이다.
+   * 라벨은 입력과 무관하게 늘 같은 한 줄이고, **큰 제목 위**에 온다(2026-09-04 승인 시안).
    *
-   * ★코덱스 5차 #2(2026-09-04) — 옛 본문(「입력하면 「확인 필요」 조건이 자동으로 판정됩니다」)은
-   *  **지킬 수 없는 약속**이었다. `profileGaps` 는 지금 공고들이 실제로 쓰는 조건과 무관하게 프로필의
-   *  빈 칸을 전부 나열하므로, 채워도 다른 이유로 「확인 필요」가 남을 수 있다.
+   * ★옛 계약은 `{ title, body }` 였다 — 큰 제목이 위, 작은 본문(「입력하면 조건을 더 정확하게 맞춰
+   *  볼 수 있어요」)이 아래. 이 앱의 지배적 짝(작은 라벨 위 → 큰 값 아래)과 거꾸로여서 뒤집었고,
+   *  옛 본문은 그 뜻이 라벨로 접혀 **없앴다**.
+   * ★코덱스 5차 #2(2026-09-04)가 잡았던 「지킬 수 없는 약속」 규칙은 그대로다 — 라벨도 결과를
+   *  단정하지 않는다(`profileGaps` 를 채워도 다른 이유로 「확인 필요」가 남을 수 있다).
    */
-  const 본문 = "입력하면 조건을 더 정확하게 맞춰 볼 수 있어요";
+  const 라벨 = "더 정확하게 맞추려면";
 
   it("빠진 칸 0개면 null — 화면이 상자 자체를 안 그린다", () => {
     expect(gapParts([])).toBeNull();
   });
 
   it("1개 — 받침 없는 낱말은 「를」", () => {
-    expect(gapParts(["신용점수"])).toEqual({ title: "신용점수를 입력해 주세요", body: 본문 });
+    expect(gapParts(["신용점수"])).toEqual({ label: 라벨, title: "신용점수를 입력해 주세요" });
     expect(gapParts(["기존 대출 유무"])?.title).toBe("기존 대출 유무를 입력해 주세요");
     expect(gapParts(["직원 수"])?.title).toBe("직원 수를 입력해 주세요");
     expect(gapParts(["소재지"])?.title).toBe("소재지를 입력해 주세요");
@@ -1264,30 +1266,51 @@ describe("gapParts — 빠진 칸 힌트를 「할 일 제목 + 본문」으로(
     expect(gapParts(["신용점수", "기존 대출 유무", "ROE"])?.title).toBe(
       "다음 정보를 입력해 주세요 — 신용점수, 기존 대출 유무, ROE",
     );
-    expect(gapParts(["URL"])?.body, "본문은 어느 모양에서도 같다").toBe(본문);
+    expect(gapParts(["URL"])?.label, "라벨은 어느 모양에서도 같다").toBe(라벨);
     // 전부 한글이면 지금 모양 그대로다(이 갈래로 새지 않는다)
     expect(gapParts(["업종", "연매출"])?.title).toBe("업종과 연매출을 입력해 주세요");
     expect(gapParts(["업종", "연매출"])?.title).not.toContain("다음 정보를");
   });
 
-  it("본문은 늘 같은 한 줄이고, 제목엔 사정 설명(「비어 있어」)이 없다 — 할 일만 말한다", () => {
-    expect(gapParts(["신용점수"])?.body).toBe(본문);
-    expect(gapParts(["업종", "연매출"])?.body).toBe(본문);
-    expect(gapParts(["신용점수", "기존 대출 유무", "직원 수"])?.body).toBe(본문);
+  it("라벨은 늘 같은 한 줄이고, 제목엔 사정 설명(「비어 있어」)이 없다 — 할 일만 말한다", () => {
+    expect(gapParts(["신용점수"])?.label).toBe(라벨);
+    expect(gapParts(["업종", "연매출"])?.label).toBe(라벨);
+    expect(gapParts(["신용점수", "기존 대출 유무", "직원 수"])?.label).toBe(라벨);
     expect(gapParts(["업종", "연매출"])?.title).not.toContain("비어 있어");
     expect(gapParts(["업종", "연매출"])?.title).toMatch(/입력해 주세요$/);
   });
 
   /**
-   * ★코덱스 5차 #2 — 본문이 「자동으로 판정됩니다」처럼 **결과를 단정**하면 지킬 수 없는 약속이 된다.
-   *  `profileGaps` 는 지금 공고들이 실제로 쓰는 조건을 보지 않기 때문이다.
+   * ★2026-09-04 승인 시안 — 돌려주는 **칸 이름 자체**가 계약이다. 화면이 `label` 을 작고 옅게 위에,
+   *  `title` 을 크고 굵게 아래에 그리므로, 옛 `body` 가 되살아나면 화면이 세 줄이 되거나 옛 차례로
+   *  돌아간다.
    */
-  it("본문은 결과를 약속하지 않는다 — 「자동으로 판정」 같은 단정이 없다", () => {
+  it("돌려주는 칸은 label·title 둘뿐 — 옛 body 칸과 옛 본문 문장이 사라졌다", () => {
     for (const 칸 of [["신용점수"], ["업종", "연매출"], ["URL"], ["신용점수", "기존 대출 유무", "직원 수"]]) {
-      const body = gapParts(칸)?.body ?? "";
-      expect(body, "지킬 수 없는 약속이 되살아났다").not.toContain("자동으로 판정");
-      expect(body, "「확인 필요」가 반드시 풀린다고 단정한다").not.toContain("「확인 필요」");
-      expect(body, "채우면 무엇이 좋아지는지는 여전히 말한다").toContain("입력하면");
+      const 값 = gapParts(칸)!;
+      expect(Object.keys(값).sort(), "칸 이름이 계약과 다르다").toEqual(["label", "title"]);
+      expect(값, "옛 body 칸이 되살아났다").not.toHaveProperty("body");
+      expect(값.label, "라벨이 흔들린다").toBe(라벨);
+      expect(
+        JSON.stringify(값),
+        "옛 본문 문장이 되살아났다",
+      ).not.toContain("입력하면 조건을 더 정확하게 맞춰 볼 수 있어요");
+    }
+  });
+
+  /**
+   * ★코덱스 5차 #2 — 안내가 「자동으로 판정됩니다」처럼 **결과를 단정**하면 지킬 수 없는 약속이 된다.
+   *  `profileGaps` 는 지금 공고들이 실제로 쓰는 조건을 보지 않기 때문이다. 본문이 라벨로 접힌 뒤에도
+   *  같은 규칙을 라벨·제목 둘 다에 건다.
+   */
+  it("라벨·제목 어느 쪽도 결과를 약속하지 않는다 — 「자동으로 판정」 같은 단정이 없다", () => {
+    for (const 칸 of [["신용점수"], ["업종", "연매출"], ["URL"], ["신용점수", "기존 대출 유무", "직원 수"]]) {
+      const 값 = gapParts(칸)!;
+      for (const 글 of [값.label, 값.title]) {
+        expect(글, "지킬 수 없는 약속이 되살아났다").not.toContain("자동으로 판정");
+        expect(글, "「확인 필요」가 반드시 풀린다고 단정한다").not.toContain("「확인 필요」");
+      }
+      expect(값.label, "무엇을 위한 입력인지는 여전히 말한다").toContain("더 정확하게");
     }
   });
 });

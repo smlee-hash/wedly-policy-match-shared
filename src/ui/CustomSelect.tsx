@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useId } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredPosition } from "@wedly/ui-shared/ui/useAnchoredPosition";
+import { cn } from "@wedly/ui-shared/ui/cn";
 import {
   nextIndex,
   typeAheadIndex,
@@ -28,6 +29,18 @@ interface CustomSelectProps {
   options: CustomSelectOption[];
   placeholder?: string;
   className?: string;
+  /**
+   * **안쪽 여는 단추**에 붙일 클래스 — 겉 `div` 로만 가는 `className` 으로는 못 주는 자리다
+   * (2026-09-04 자금 조달 지도 조작줄).
+   *
+   * ★왜 부품 기본 높이를 안 바꾸나: 이 부품을 ERP 43개 화면과 일루아 2개 화면이 쓴다(실측).
+   *  기본을 `py-2.5`(42px)에서 정본 계단 `h-9`(36px)로 내리면 그 화면들이 전부 함께 바뀌는데,
+   *  그건 승인된 범위가 아니다. 그래서 **부르는 쪽에서만** 높이를 준다.
+   *  부품 전체를 정본 높이로 수렴시키는 일은 **별도 승인이 필요한 후속**이다.
+   *
+   * 값을 안 주면 `cn` 을 아예 안 태워 지금까지와 **글자 하나 같은** 클래스가 나간다(기본 불변).
+   */
+  controlClassName?: string;
   disabled?: boolean;
   /**
    * 여는 단추의 id. **바깥 `<label htmlFor>` 이 이 칸을 가리키게 하려면 필요하다**
@@ -45,6 +58,7 @@ export default function CustomSelect({
   options,
   placeholder = "선택해 주세요",
   className = "",
+  controlClassName = "",
   disabled = false,
   id,
   "aria-label": ariaLabel,
@@ -264,6 +278,19 @@ export default function CustomSelect({
     });
   };
 
+  /**
+   * 여는 단추의 클래스. `controlClassName` 이 **빈 값이면 옛 문자열을 그대로** 내보낸다 —
+   * `cn`(tailwind-merge)을 태우면 `bg-white`/`bg-wedly-bg-gray` 처럼 원래 둘 다 나가던 짝에서
+   * 앞엣것이 지워져 다른 화면의 결과 글자가 달라질 수 있다. 값이 올 때만 합쳐서
+   * `py-2.5` 같은 옛 값이 새 `h-9`·`py-0` 에 확실히 지게 만든다(문자열 이어붙이기로는 못 이긴다 —
+   * 어느 쪽이 이길지는 클래스 차례가 아니라 Tailwind 가 만든 CSS 차례가 정한다).
+   */
+  const BASE_CONTROL =
+    `w-full text-left appearance-none px-3 py-2.5 pr-8 text-sm border border-wedly-bd rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-wedly-accent/30 focus:border-wedly-accent transition-colors ${
+      disabled ? "opacity-50 cursor-not-allowed bg-wedly-bg-gray" : "cursor-pointer hover:border-wedly-accent/50"
+    } ${selectedOption ? "text-wedly-t1" : "text-wedly-muted"}`;
+  const controlClass = controlClassName ? cn(BASE_CONTROL, controlClassName) : BASE_CONTROL;
+
   return (
     <div className={`relative ${className}`}>
       <button
@@ -284,9 +311,7 @@ export default function CustomSelect({
         aria-expanded={isOpen}
         aria-controls={isOpen ? menuId : undefined}
         aria-activedescendant={isOpen && highlight >= 0 ? optionId(highlight) : undefined}
-        className={`w-full text-left appearance-none px-3 py-2.5 pr-8 text-sm border border-wedly-bd rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-wedly-accent/30 focus:border-wedly-accent transition-colors ${
-          disabled ? "opacity-50 cursor-not-allowed bg-wedly-bg-gray" : "cursor-pointer hover:border-wedly-accent/50"
-        } ${selectedOption ? "text-wedly-t1" : "text-wedly-muted"}`}
+        className={controlClass}
       >
         <span className="block truncate">{displayLabel}</span>
       </button>

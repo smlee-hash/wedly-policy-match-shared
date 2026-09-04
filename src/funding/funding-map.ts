@@ -942,23 +942,24 @@ function withEulReul(word: string): string {
 }
 
 /**
- * `gapParts` 본문 — 「입력하면 무엇이 좋아지는지」 한 줄.
+ * `gapParts` 의 **작은 라벨** — 큰 제목 「위」에 오는 한 줄(2026-09-04 승인 시안).
  *
- * ★코덱스 5차 #2(2026-09-04) — 예전 문구(「입력하면 「확인 필요」 조건이 자동으로 판정됩니다」)는
- *  **지킬 수 없는 약속**이었다. `profileGaps` 는 지금 공고들이 실제로 쓰는 조건과 무관하게 프로필의
- *  빈 칸을 전부 나열하므로, 신용점수를 채워도 다른 이유(기계가 못 읽는 조건 등)로 「확인 필요」가
- *  그대로 남을 수 있다. 그래서 **약속하지 않는 말**로 바꿨다.
+ * ★이 앱의 지배적 짝은 「작은 라벨 위 → 큰 값 아래」다(카드 앞면 답 네 개·숫자 카드·머리 카드 위
+ *  구역이 전부 그 차례). 아래 구역만 「큰 제목 → 작은 설명」으로 거꾸로였다.
  *
- * ★코덱스 2차 #6(2026-09-04) — 그 「무관하게 전부 나열」 자체를 **서버가 고쳤다**
- *  (`funding-map-build.ts` 의 `usedProfileGapsOf`): 이제 `profileGaps` 에는 이번 결과의 기계 대조
- *  조건이 **실제로 쓰는** 항목만 담긴다. 그래도 문구는 약속하지 않는 말 그대로 둔다 — 조건이 그 항목을
- *  쓴다는 것과 채우면 반드시 판정이 난다는 것은 여전히 다른 말이다(비교 방식이 안 맞는 조건 등).
+ * ★옛 본문(「입력하면 조건을 더 정확하게 맞춰 볼 수 있어요」)은 **없앴다** — 그 뜻이 이 라벨 한 줄로
+ *  접혔다. 줄 수는 그대로 두 줄이라 카드가 길어지지 않는다. 라벨은 결과를 약속하지 않는다
+ *  (「더 정확하게 맞추려면」은 조건일 뿐 판정이 반드시 난다는 말이 아니다) — 옛 본문을 약속하지 않는
+ *  말로 고쳤던 코덱스 5차 #2·2차 #6 의 이유가 그대로 살아 있다.
  */
-const GAP_BODY = "입력하면 조건을 더 정확하게 맞춰 볼 수 있어요";
+const GAP_LABEL = "더 정확하게 맞추려면";
 
 /**
- * 회사 정보 빈 칸 힌트를 **제목(할 일) + 본문(하면 좋아지는 것)** 두 조각으로 돌려준다(재설계 A안).
+ * 회사 정보 빈 칸 힌트를 **작은 라벨(위) + 큰 제목(할 일, 아래)** 두 조각으로 돌려준다.
  * 빠진 칸이 하나도 없으면 `null` 이다 — 화면이 상자 자체를 안 그린다.
+ *
+ * ★2026-09-04 승인 시안 — 옛 `{ title, body }` 를 `{ label, title }` 로 뒤집었다. 화면은 `label` 을
+ *  작고 옅게 위에, `title` 을 크고 굵게 아래에 그린다(머리 카드 위 구역과 같은 차례).
  *
  * 제목은 「…를 입력해 주세요」로 **할 일을 먼저** 말한다:
  *  · 1개  → 「신용점수를 입력해 주세요」
@@ -972,12 +973,12 @@ const GAP_BODY = "입력하면 조건을 더 정확하게 맞춰 볼 수 있어�
  *  붙으므로 어떤 이름이 와도 늘 옳다. 지금 쓰는 칸 이름 7개는 전부 한글이라 이 갈래로 오지 않지만,
  *  타입이 `string[]` 이라 언제든 들어올 수 있다(들어오면 「URL를 입력해 주세요」가 됐다).
  */
-export function gapParts(profileGaps: string[] | null | undefined): { title: string; body: string } | null {
+export function gapParts(profileGaps: string[] | null | undefined): { label: string; title: string } | null {
   // ★배열이 아닌 값(`null`·없는 칸)은 빈 배열과 같게 본다(코덱스 3차 #A2, 2026-09-04) — 통로를
   //  건너온 값이라 타입이 지켜 주지 못하고, `null.length` 는 화면 전체를 죽인다.
   if (!Array.isArray(profileGaps) || profileGaps.length === 0) return null;
   if (!profileGaps.every(endsWithHangulSyllable)) {
-    return { title: `다음 정보를 입력해 주세요 — ${profileGaps.join(", ")}`, body: GAP_BODY };
+    return { label: GAP_LABEL, title: `다음 정보를 입력해 주세요 — ${profileGaps.join(", ")}` };
   }
   const last = profileGaps[profileGaps.length - 1];
   const head =
@@ -986,5 +987,5 @@ export function gapParts(profileGaps: string[] | null | undefined): { title: str
       : profileGaps.length === 2
         ? `${withWaGwa(profileGaps[0])} `
         : `${profileGaps.slice(0, -1).join(", ")}, `;
-  return { title: `${head}${withEulReul(last)} 입력해 주세요`, body: GAP_BODY };
+  return { label: GAP_LABEL, title: `${head}${withEulReul(last)} 입력해 주세요` };
 }
