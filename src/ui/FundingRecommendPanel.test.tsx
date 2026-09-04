@@ -8,6 +8,7 @@ import FundingRecommendPanel, {
   fundingFetchKeys,
   fundingMapQuery,
   isAbortError,
+  nextFundingState,
   openTargetOf,
   resetExcludedForCompany,
   startFundingMapFetch,
@@ -16,6 +17,8 @@ import FundingRecommendPanel, {
   type FundingFetchResult,
   type RecommendFundingData,
 } from "./FundingRecommendPanel";
+// 표 위 「안 맞는 공고도 보기」 손잡이가 실제로 부르는 규칙 — 시험도 같은 함수를 탄다(글자 흉내 금지).
+import { nextFilters } from "./FundingMap";
 import { FUNDING_GROUPS, type FundingGroup } from "../funding/funding-group";
 import {
   deadlineOfAnnouncement,
@@ -529,6 +532,89 @@ describe("추천 정책 탭 — 「안 맞아서 뺀 항목 보기」 배선(재
     // 이미 꺼져 있으면 **같은 객체**를 돌려준다 — 새 객체를 만들면 조회 열쇠가 바뀌어 조회가 한 번 더 돈다
     const 꺼짐 = { ...기본거르개 };
     expect(resetExcludedForCompany(꺼짐)).toBe(꺼짐);
+  });
+});
+
+/**
+ * ★「스위치를 끄면 펼침도 접힌다」(2026-09-04) — 부모가 거르개와 펼침을 따로 쥐고
+ *  `onFiltersChange={setFilters}` 로 거르개만 갈아 끼웠다. 그래서 「카드에서 grant 펼침 → 표 보기로
+ *  이동 → 「안 맞는 공고도 보기」 끄기 → 카드로 복귀」 하면 `showExcluded` 엔 grant 가 남았는데
+ *  `includeExcluded` 는 꺼져 서버가 `excludedItems` 를 안 싣는다 — 그 카드가 펼친 모양인데 아래가 비었다.
+ *
+ *  재는 방법은 이 파일의 다른 배선 시험과 같다(jsdom 이 없다) — 화면이 실제로 부르는 순수 함수
+ *  두 개(`nextFilters` → `nextFundingState`)를 손잡이 순서 그대로 이어 붙여 잰다.
+ */
+describe("추천 정책 탭 — 거르개·펼침 한 자리에서 옮기기(nextFundingState)", () => {
+  const 켠거르개: FundingFilters = { ...기본거르개, includeExcluded: true };
+  const grant펼침 = new Set<FundingGroup>(["grant"]);
+
+  it("스위치를 끄면 펼침이 빈다 — 「뺀 것 접기」인데 아래가 빈 카드가 안 남는다", () => {
+    const 다음 = nextFundingState(켠거르개, grant펼침, nextFilters(켠거르개, "includeExcluded"));
+    expect(다음.filters.includeExcluded, "스위치는 꺼진 채로 넘어가야 한다").toBe(false);
+    expect([...다음.showExcluded], "펼침이 남으면 빈 카드가 그려진다").toEqual([]);
+    // 두 갈래를 펼쳐 뒀어도 전부 접힌다(한 갈래만 접히면 나머지가 또 빈 카드가 된다)
+    const 둘펼침 = nextFundingState(켠거르개, new Set<FundingGroup>(["grant", "bank"]), {
+      ...켠거르개,
+      includeExcluded: false,
+    });
+    expect([...둘펼침.showExcluded]).toEqual([]);
+  });
+
+  it("스위치를 켜는 것만으로는 펼침이 안 채워진다 — 갈래는 눌러서 펼치는 것이 계약이다", () => {
+    const 다음 = nextFundingState(기본거르개, new Set<FundingGroup>(), nextFilters(기본거르개, "includeExcluded"));
+    expect(다음.filters.includeExcluded).toBe(true);
+    expect([...다음.showExcluded], "켰다고 전 갈래를 펼치면 안 된다").toEqual([]);
+    // 켤 때 이미 펼쳐 둔 갈래가 있으면 그대로 둔다(끄는 방향에만 손댄다)
+    const 남김 = nextFundingState(기본거르개, grant펼침, { ...기본거르개, includeExcluded: true });
+    expect(남김.showExcluded, "켜는 방향에서는 받은 집합을 그대로 돌려준다").toBe(grant펼침);
+  });
+
+  it("다른 칩(지금 신청 가능·7일 안에 마감)을 뒤집을 때는 펼침이 안 바뀐다", () => {
+    for (const 칩 of ["openOnly", "soonOnly"] as const) {
+      const 다음 = nextFundingState(켠거르개, grant펼침, nextFilters(켠거르개, 칩));
+      expect(다음.filters[칩], `${칩} 만 뒤집혀야 한다`).toBe(true);
+      expect(다음.filters.includeExcluded, "다른 칩이 스위치를 건드리면 안 된다").toBe(true);
+      expect(다음.showExcluded, "펼침은 같은 집합 그대로여야 한다(헛 그리기 금지)").toBe(grant펼침);
+    }
+    // 「칩 모두 풀기」(openOnly·soonOnly 만 끄는 길)도 펼침을 안 건드린다
+    const 모두풀기 = nextFundingState(
+      { openOnly: true, soonOnly: true, includeExcluded: true },
+      grant펼침,
+      { openOnly: false, soonOnly: false, includeExcluded: true },
+    );
+    expect(모두풀기.showExcluded).toBe(grant펼침);
+  });
+
+  it("「카드에서 펼침 → 표에서 끔 → 카드 복귀」 를 이어 돌리면 빈 펼침이 안 남는다", () => {
+    // ① 카드 보기에서 grant 「안 맞아서 뺀 N건 보기」 — 부모의 onToggleExcluded 와 같은 규칙
+    const 펼친집합 = toggleExcludedGroup(new Set<FundingGroup>(), "grant");
+    const 펼친거르개: FundingFilters = { ...기본거르개, includeExcluded: 펼친집합.size > 0 };
+    expect([...펼친집합]).toEqual(["grant"]);
+    // 이때는 실제로 안 맞음 항목이 보인다(그려서 확인)
+    expect(판({ data: 안맞음포함자료(), filters: 펼친거르개, showExcluded: 펼친집합 })).toContain(
+      "전북 스마트공장 구축지원",
+    );
+
+    // ② 표 보기로 옮겨 「안 맞는 공고도 보기」 손잡이를 끈다(거르개만 바뀌는 길)
+    const 끈뒤 = nextFundingState(펼친거르개, 펼친집합, nextFilters(펼친거르개, "includeExcluded"));
+
+    // ③ 카드 보기로 복귀 — 서버가 안 맞음을 안 싣는 상태이므로 펼침도 비어 있어야 한다
+    expect(끈뒤.filters.includeExcluded).toBe(false);
+    expect([...끈뒤.showExcluded]).toEqual([]);
+    const 복귀 = 판({ data: 자료(), filters: 끈뒤.filters, showExcluded: 끈뒤.showExcluded });
+    expect(복귀, "펼친 카드가 남으면 「뺀 것 접기」가 보인다").not.toContain("뺀 것 접기");
+  });
+
+  it("갈래 단추로 마지막 갈래를 접어 스위치가 꺼지는 길도 결과가 같다(부모 onToggleExcluded 와 대조)", () => {
+    // 부모 onToggleExcluded 의 규칙 그대로: 집합을 먼저 뒤집고, 비면 스위치를 끈다
+    const 접은집합 = toggleExcludedGroup(grant펼침, "grant");
+    const 접은거르개: FundingFilters = { ...켠거르개, includeExcluded: 접은집합.size > 0 };
+    expect([...접은집합]).toEqual([]);
+    expect(접은거르개.includeExcluded).toBe(false);
+    // 같은 자리를 nextFundingState 로 통과시켜도 결과가 같다(두 길이 갈리지 않는다)
+    const 통과 = nextFundingState(켠거르개, 접은집합, 접은거르개);
+    expect(통과.filters).toEqual(접은거르개);
+    expect([...통과.showExcluded]).toEqual([]);
   });
 });
 

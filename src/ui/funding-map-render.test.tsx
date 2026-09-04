@@ -9,6 +9,7 @@ import FundingMap, {
   nextFilters,
   shouldOpenDetail,
   sortRows,
+  tableRowsOf,
   unclassifiedGroupItems,
   GROUP_TONE_TILE,
   type FundingMapPayload,
@@ -530,24 +531,121 @@ describe("자금 조달 지도 — 그려서 재기", () => {
   });
 
   /**
-   * ★코덱스 11차 #5(2026-09-04) — 표가 `showExcluded` 를 아예 안 보고 갈래 카드에서 접어 둔
-   *  안 맞음까지 **전역으로** 늘어놓았다. 「기본으로 뺐습니다」라고 적어 둔 화면에서 표만
-   *  안 맞는 공고를 섞어 보여 주면 두 보기가 서로 다른 자료를 말한다.
+   * ★코덱스 11차 #5(2026-09-04) — 표가 안 맞음을 **전역으로** 늘어놓아, 「기본으로 뺐습니다」라고
+   *  적어 둔 화면에서 표만 안 맞는 공고를 섞어 보여 줬다.
+   * ★코덱스 14차 [높음](2026-09-04) — 그 고침이 표를 **갈래별 펼치기(`showExcluded`)** 에 묶었는데,
+   *  표 위 손잡이는 `filters.includeExcluded` 만 뒤집는다. 그래서 표에서 손잡이를 눌러 서버가
+   *  안 맞음을 실어 보내도 행이 하나도 안 늘었다. 표는 **스위치 하나**만 본다(`tableRowsOf`).
    */
-  it("③-g 표 행 = 모든 갈래 items + 펼친 갈래의 excludedItems(회색·「안 맞음」 딱지) · 안 펼친 갈래의 안 맞음은 표에도 없다(11차 #5)", () => {
+  it("③-g 표 행 = 모든 갈래 items + 스위치가 켜졌을 때 모든 갈래의 excludedItems(회색·「안 맞음」 딱지)(14차 [높음])", () => {
     const 닫힘 = 그린다({ view: "table" });
     const tb닫힘 = 닫힘.slice(닫힘.indexOf("<tbody"), 닫힘.indexOf("</tbody>"));
     expect((tb닫힘.match(/<tr\b/g) ?? []).length, "정상 6건만").toBe(6);
-    expect(tb닫힘, "안 펼친 갈래의 안 맞음이 표에 전역 노출됐다").not.toContain("전북 스마트공장 구축지원");
+    expect(tb닫힘, "스위치가 꺼졌는데 안 맞음이 표에 노출됐다").not.toContain("전북 스마트공장 구축지원");
 
-    const 펼침 = 그린다({ view: "table", showExcluded: new Set<FundingGroup>(["grant"]) });
-    const tb = 펼침.slice(펼침.indexOf("<tbody"), 펼침.indexOf("</tbody>"));
-    expect((tb.match(/<tr\b/g) ?? []).length, "정상 6 + 펼친 갈래의 안 맞음 2").toBe(8);
+    const 켜짐 = 그린다({ view: "table", filters: { ...기본거르개, includeExcluded: true } });
+    const tb = 켜짐.slice(켜짐.indexOf("<tbody"), 켜짐.indexOf("</tbody>"));
+    expect((tb.match(/<tr\b/g) ?? []).length, "정상 6 + 안 맞음 2").toBe(8);
     const 안맞음줄 = tb.split(/<tr\b/).find((r) => r.includes("전북 스마트공장 구축지원")) ?? "";
     expect(안맞음줄, "회색(옅음) 처리").toContain("opacity-70");
     expect(안맞음줄, "판정 딱지는 「안 맞음」").toContain("안 맞음");
     const 정상줄 = tb.split(/<tr\b/).find((r) => r.includes("스마트상점 기술보급사업 3차")) ?? "";
     expect(정상줄, "정상 줄은 옅지 않다").not.toContain("opacity-70");
+
+    // ★그린 화면으로도 잰다 — 갈래별 펼치기만 켜 두면(스위치는 꺼짐) 표는 늘지 않는다.
+    const 펼치기만 = 그린다({ view: "table", showExcluded: new Set<FundingGroup>(["grant"]) });
+    const tb펼치기 = 펼치기만.slice(펼치기만.indexOf("<tbody"), 펼치기만.indexOf("</tbody>"));
+    expect((tb펼치기.match(/<tr\b/g) ?? []).length, "표가 카드 보기의 갈래별 펼치기를 따라갔다").toBe(6);
+  });
+
+  /**
+   * ★코덱스 14차 [높음](2026-09-04) — 이 버그가 시험 21파일을 그대로 통과한 이유는 행 만들기가
+   *  화면 안 `useMemo` 에 묻혀 있어 밖에서 잴 수 없었기 때문이다. 순수 함수로 떼어 직접 잰다.
+   */
+  it("③-g2 tableRowsOf — 표는 스위치 하나만 본다(갈래별 펼치기와 무관 · 정상 0건이어도 안 맞음이 뜬다)(14차 [높음])", () => {
+    const 자 = 자료();
+    const 안맞음이름 = ["전북 스마트공장 구축지원", "충북 상생보험 무료 지원"];
+
+    // ① 꺼짐 → 안 맞음 행 0
+    const 꺼짐 = tableRowsOf(자.groups, { includeExcluded: false, sort: "rec" });
+    expect(꺼짐.filter((r) => r.fitVerdict === "excluded"), "꺼졌는데 안 맞음이 섞였다").toEqual([]);
+    expect(꺼짐.length, "정상 6건").toBe(6);
+
+    // ② 켜짐 → **모든** 갈래의 안 맞음이 들어온다(`showExcluded` 라는 개념 자체가 인자에 없다)
+    const 켜짐 = tableRowsOf(자.groups, { includeExcluded: true, sort: "rec" });
+    expect(켜짐.length, "정상 6 + 안 맞음 2").toBe(8);
+    expect(켜짐.filter((r) => r.fitVerdict === "excluded").map((r) => r.title).sort()).toEqual([...안맞음이름].sort());
+
+    // ③ 정상 0건 · 안 맞음 2건 → 행이 **2개**(빈 표가 아니다) — 손잡이는 눌렸는데 빈 표가 남던 자리
+    const 안맞음만 = 자료([항목8[1], 항목8[2]]);
+    expect(안맞음만.groups.reduce((s, g) => s + g.items.length, 0), "이 자료엔 정상이 0건이다").toBe(0);
+    expect(tableRowsOf(안맞음만.groups, { includeExcluded: false, sort: "rec" }).length, "꺼짐이면 빈 표가 맞다").toBe(0);
+    expect(tableRowsOf(안맞음만.groups, { includeExcluded: true, sort: "rec" }).length, "켰는데 빈 표가 남았다").toBe(2);
+
+    // ④ 여러 갈래에 흩어져 있어도 한 갈래만 나오지 않는다 — 「한 갈래만 펼친 뒤 표로 옮기기」의 자리
+    const 흩어짐 = 자료([항목8[1], { ...항목8[3], fitVerdict: "excluded" as const }, 항목8[5]]);
+    const 흩켜짐 = tableRowsOf(흩어짐.groups, { includeExcluded: true, sort: "rec" });
+    expect(흩켜짐.filter((r) => r.fitVerdict === "excluded").map((r) => r.group).sort(), "한 갈래 것만 실렸다").toEqual([
+      "grant",
+      "policy",
+    ]);
+
+    // ⑤ 서버가 안 실어 준 갈래(`excludedItems` 없음)를 켜도 터지지 않는다 — 개수만 있고 목록이 없다
+    const 목록없음 = 자료();
+    목록없음.groups = 목록없음.groups.map((g) => ({ ...g, excludedItems: undefined }));
+    expect(tableRowsOf(목록없음.groups, { includeExcluded: true, sort: "rec" }).length, "없는 목록을 억지로 만들었다").toBe(6);
+
+    // ⑥ 합친 뒤 다시 세운다(`sortRows` 와 같은 차례) · 원본 배열은 안 건드린다
+    const 앞차례 = 자.groups.flatMap((g) => g.items.map((i) => i.id));
+    expect(tableRowsOf(자.groups, { includeExcluded: true, sort: "amt" }).map((r) => r.id)).toEqual(
+      sortRows(자.groups.flatMap((g) => [...g.items, ...(g.excludedItems ?? [])]), "amt").map((r) => r.id),
+    );
+    expect(자.groups.flatMap((g) => g.items.map((i) => i.id)), "원본 차례가 흔들렸다").toEqual(앞차례);
+  });
+
+  /**
+   * ★코덱스 14차 [높음](2026-09-04) — 손잡이 건수(N)와 실제로 늘어나는 행 수가 뜻이 맞는지.
+   *  N 은 갈래들의 `excluded` 합, 곧 **뺀 것이 몇 건 있는지**다. 서버는 갈래마다 `excludedItems` 를
+   *  topN 까지만 실으므로(`groupBlocks`) 잘린 만큼은 켜도 행이 덜 는다 — 그때 실제로 그려진 줄 수는
+   *  발 hint 의 「표시 N건」이 말한다(정상 목록의 `total`·`items` 와 같은 관계). 스위치가 꺼져 있으면
+   *  `excludedItems` 자체가 안 실려 와 화면은 「실어 줄 수 있는 건수」를 알 길이 없다.
+   */
+  it("③-g3 손잡이 건수 = 뺀 것 전체 · 실제로 그려진 줄 수는 발 hint 가 말한다(14차 [높음])", () => {
+    // 잘리지 않은 보통 자료: 손잡이 2건 = 늘어난 행 2줄 = 발 hint 6→8
+    const 꺼짐 = 그린다({ view: "table" });
+    expect(꺼짐, "꺼졌을 때 표시 건수").toContain("표시 6건");
+    const 켜짐 = 그린다({ view: "table", filters: { ...기본거르개, includeExcluded: true } });
+    expect(켜짐, "손잡이 건수").toContain("안 맞는 공고도 보기 (2건)");
+    expect(켜짐, "켜면 손잡이 건수만큼 늘어 8건").toContain("표시 8건");
+
+    // 서버가 잘라 실은 자료(excluded 5건인데 excludedItems 는 1건) — 손잡이는 전체(5건)를 말하고,
+    // 발 hint 는 실제로 그려진 줄(6+1=7건)을 말한다. 두 수가 서로 다른 것을 세는 것이 **의도**다.
+    const 잘림 = 자료();
+    잘림.groups = 잘림.groups.map((g) =>
+      g.group === "grant" ? { ...g, excluded: 5, excludedItems: (g.excludedItems ?? []).slice(0, 1) } : g,
+    );
+    const 잘림켜짐 = 그린다({ data: 잘림, view: "table", filters: { ...기본거르개, includeExcluded: true } });
+    expect(잘림켜짐, "손잡이는 뺀 것 전체를 말한다").toContain("안 맞는 공고도 보기 (5건)");
+    expect(잘림켜짐, "발 hint 는 실제로 그려진 줄 수를 말한다").toContain("표시 7건");
+    const tb = 잘림켜짐.slice(잘림켜짐.indexOf("<tbody"), 잘림켜짐.indexOf("</tbody>"));
+    expect((tb.match(/<tr\b/g) ?? []).length, "그려진 줄 수와 발 hint 가 어긋난다").toBe(7);
+  });
+
+  /**
+   * ★코덱스 14차 [높음](2026-09-04) 회귀 — 카드 보기의 갈래별 펼치기는 **예전 그대로**다.
+   *  표를 스위치로 옮기면서 카드까지 스위치를 따르게 만들면, 한 갈래만 펼쳤는데 여섯 갈래가
+   *  전부 열린다.
+   */
+  it("③-g4 카드 보기는 갈래별 펼치기 그대로 — 스위치만 켜도 카드는 안 열린다(14차 [높음] 회귀)", () => {
+    const 스위치만 = 그린다({ view: "map", filters: { ...기본거르개, includeExcluded: true } });
+    expect(카드(스위치만, "grant"), "스위치만 켰는데 카드가 열렸다").not.toContain("전북 스마트공장 구축지원");
+    expect(스위치만, "카드 보기인데 표시 건수가 안 맞음까지 셌다").toContain("표시 6건");
+
+    const 펼침 = 그린다({ view: "map", showExcluded: new Set<FundingGroup>(["grant"]) });
+    expect(카드(펼침, "grant"), "펼친 갈래가 안 열렸다").toContain("전북 스마트공장 구축지원");
+    expect(펼침, "펼친 만큼 표시 건수가 는다").toContain("표시 8건");
+    // 다른 갈래는 그대로 닫혀 있다(전역으로 열리지 않는다)
+    expect(카드(펼침, "policy"), "안 펼친 갈래까지 열렸다").not.toContain("안 맞음");
   });
 
   /**
@@ -602,7 +700,7 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     const 작은 = mk({ id: "a:h2", group: "grant", title: "작은 한도 공고", amountMaxWon: 100_000_000, score: 30 });
     const 안맞음 = mk({ id: "a:h3", group: "grant", title: "안 맞는 중간 한도 공고", amountMaxWon: 5_000_000_000, score: 20, fitVerdict: "excluded" });
     const 자 = 자료([큰, 작은, 안맞음]);
-    const html = 그린다({ data: 자, view: "table", sort: "amt", showExcluded: new Set<FundingGroup>(["grant"]) });
+    const html = 그린다({ data: 자, view: "table", sort: "amt", filters: { ...기본거르개, includeExcluded: true } });
     const tbody = html.slice(html.indexOf("<tbody"), html.indexOf("</tbody>"));
     const 이름들 = tbody
       .split(/<tr\b/)
@@ -639,7 +737,7 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     expect(딱지, "뜻 없는 색 점이 붙었다").not.toContain('aria-hidden="true"');
 
     // 표의 안 맞음 행도 같은 말을 한다(「종류」 칸이 이미 그 일을 한다 — 두 보기가 갈리지 않게 함께 잰다)
-    const 표 = 그린다({ data: 겹침, view: "table", showExcluded: new Set<FundingGroup>(["grant"]) });
+    const 표 = 그린다({ data: 겹침, view: "table", filters: { ...기본거르개, includeExcluded: true } });
     const tbody = 표.slice(표.indexOf("<tbody"), 표.indexOf("</tbody>"));
     const 줄 = tbody.split(/<tr\b/).find((r) => r.includes("전북 스마트공장 구축지원")) ?? "";
     expect(줄, "표의 안 맞음 행에 미확인 표시가 없다").toContain("종류 미확인");
@@ -712,6 +810,7 @@ describe("자금 조달 지도 — 그려서 재기", () => {
       그린다({ compact: true }),
       그린다({ data: 표식달린자료 }),
       그린다({ data: 표식달린자료, view: "table" }),
+      그린다({ data: 표식달린자료, view: "table", filters: 켠거르개 }),
       그린다({ filters: { openOnly: false, soonOnly: false, includeExcluded: false }, sort: "rate" }),
       그린다({
         filters: 켠거르개,

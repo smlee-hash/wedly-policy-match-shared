@@ -13,7 +13,7 @@
  * ★공고를 누르면 이 상세창이 **이미 가진** 상세(`onOpenDetail` → `swapDetail`)로 보낸다 —
  *  상세창 위에 서랍을 또 겹치지 않는다. 상세 화면이 없는 상시 상품만 `FundingDrawer` 가 맡는다.
  */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { RotateCw } from "lucide-react";
 import FundingDrawer from "./FundingDrawer";
 import FundingMap, { type FundingMapPayload } from "./FundingMap";
@@ -93,6 +93,39 @@ export function toggleExcludedGroup(set: ReadonlySet<FundingGroup>, group: Fundi
  */
 export function resetExcludedForCompany(f: FundingFilters): FundingFilters {
   return f.includeExcluded ? { ...f, includeExcluded: false } : f;
+}
+
+/**
+ * 거르개가 바뀔 때 **두 상태를 한 자리에서** 다음 값으로 옮긴다 — 거르개(`filters`)와 갈래별
+ * 펼침(`showExcluded`)이 서로 어긋나지 않게.
+ *
+ * ★고친 것(2026-09-04) — 부모가 두 상태를 따로 쥐고 `onFiltersChange={setFilters}` 로 거르개만
+ *  갈아 끼웠다. 그래서 「카드 보기에서 한 갈래 펼침 → 표 보기로 이동 → 「안 맞는 공고도 보기」
+ *  손잡이 끄기 → 카드 보기로 복귀」 하면 `showExcluded` 에는 그 갈래가 남아 있는데
+ *  `includeExcluded` 는 꺼져 서버가 `excludedItems` 를 아예 안 싣는다 — 그 갈래 카드가 「뺀 것
+ *  접기」(펼친 모양)인데 아래가 텅 비고, 잘림 표시까지 켜졌다.
+ *
+ * 규칙은 하나뿐이다: **`includeExcluded` 가 참 → 거짓으로 바뀌는 순간 펼침을 비운다.** 스위치를
+ * 껐다는 건 「안 맞는 건 안 보겠다」는 뜻이라, 갈래마다 펼쳐 둔 것도 함께 접히는 것이 그 말의 뜻이다.
+ *
+ * ★반대 방향(거짓 → 참)에는 손대지 않는다 — 스위치를 켜도 전 갈래를 자동으로 펼치지 않는다.
+ *  표에서는 스위치 하나로 다 보이고(`tableRowsOf`), 카드에서는 갈래마다 눌러 펼치는 것이 계약이다.
+ * ★다른 칩(지금 신청 가능·7일 안 마감)만 뒤집힐 때도 펼침은 그대로다.
+ *
+ * 바꿀 것이 없으면 **받은 집합을 그대로** 돌려준다 — 새 집합을 만들면 다시 그리기가 헛돈다.
+ * (갈래 단추로 마지막 갈래를 접어 스위치가 꺼지는 길은 `onToggleExcluded` 가 이미 빈 집합을
+ *  만들어 넘기므로 이 규칙과 결과가 같다 — 시험이 그 순서를 이어 돌려 확인한다.)
+ */
+export function nextFundingState(
+  prevFilters: FundingFilters,
+  prevShowExcluded: ReadonlySet<FundingGroup>,
+  nextFilters: FundingFilters,
+): { filters: FundingFilters; showExcluded: ReadonlySet<FundingGroup> } {
+  const turnedOff = prevFilters.includeExcluded && !nextFilters.includeExcluded;
+  return {
+    filters: nextFilters,
+    showExcluded: turnedOff && prevShowExcluded.size > 0 ? new Set<FundingGroup>() : prevShowExcluded,
+  };
 }
 
 /**
@@ -332,6 +365,77 @@ export function RecommendPanel({
   );
 }
 
+/**
+ * 거르개(`filters`)와 갈래별 펼침(`showExcluded`) — **두 상태를 한 자리에 묶고, 바깥에는
+ * 손잡이만** 돌려준다.
+ *
+ * ★왜 훅으로 감쌌나(2026-09-04 — 시험이 못 지키는 자리를 구조로 막는다):
+ *  예전엔 부품이 `useState` 두 개를 직접 쥐어서, JSX 자리에서 `onFiltersChange={setFilters}` 처럼
+ *  **날 것 설정 함수를 그대로 넘길 수 있었다.** 그러면 「스위치를 꺼도 펼침이 남는」 그 버그가
+ *  되돌아오는데, 이 보관함엔 브라우저 흉내 도구가 없어 **「부품이 어떤 손잡이를 넘겼나」를 시험으로
+ *  잴 수가 없다** — 순수 함수 시험은 전부 초록인 채 배선만 틀린 상태가 그대로 통과했다(실측).
+ *  그래서 못 재는 것을 **아예 쓸 수 없게** 만들었다:
+ *   · `setFilters`·`setShowExcluded` 는 이 훅 안에만 있다 — 아래 부품 범위에는 그 이름이 없으니
+ *     쓰면 타입 검사가 `TS2304: Cannot find name` 으로 막는다(되돌리기 실험으로 확인).
+ *   · 칩·표 손잡이가 거르개를 바꾸는 길은 `onFiltersChange` **하나뿐**이고, 그 길은 반드시
+ *     `nextFundingState` 를 지난다.
+ *
+ * 규칙은 옮기기 전과 **한 글자도 같다** — 부르는 순수 함수도, 순서도, 「바꿀 것이 없으면 같은 값을
+ * 돌려준다」는 성질도 그대로다(상태를 합치지도 않았다 — 다시 그리기 횟수까지 같게).
+ */
+function useFundingFilterState(): {
+  filters: FundingFilters;
+  showExcluded: ReadonlySet<FundingGroup>;
+  /** 칩·표 손잡이가 거르개를 바꿀 때 — 거르개를 바꾸는 **유일한** 길. */
+  onFiltersChange: (next: FundingFilters) => void;
+  /** 갈래 카드의 「안 맞아서 뺀 N건 보기」. */
+  onToggleExcluded: (group: FundingGroup) => void;
+  /** 회사(또는 통로)가 바뀔 때 펼침을 접고 재조회 스위치를 끈다. 늘 같은 함수다. */
+  resetForCompany: () => void;
+} {
+  const [filters, setFilters] = useState<FundingFilters>(NO_FILTERS);
+  // 갈래별 「안 맞아서 뺀 항목 보기」 — 비어 있지 않으면 filters.includeExcluded 를 함께 켠다
+  // (계약 §G2·§G3, PolicyMatchClient.tsx 의 같은 배선과 같은 규칙). 이 값 자체가 네트워크
+  // 재조회를 부르므로(filters 변화로) FundingMap 안의 `expanded`(순수 UI, 재조회 없음)와 달리
+  // 여기(부모 쪽)가 쥔다.
+  const [showExcluded, setShowExcluded] = useState<ReadonlySet<FundingGroup>>(() => new Set<FundingGroup>());
+
+  /**
+   * 칩·표 손잡이가 거르개를 바꿀 때 — 펼침(`showExcluded`)까지 **한 자리에서** 옮긴다
+   * (`nextFundingState`). 예전엔 `setFilters` 를 그대로 넘겨 스위치를 꺼도 펼침이 남았다.
+   * 지금 렌더의 `filters`·`showExcluded` 를 그대로 읽는다 — 손잡이가 `next` 를 만들 때 본
+   * 거르개가 바로 이 렌더의 것이라 어긋날 자리가 없다(FundingMap 은 `filters` prop 으로 만든다).
+   */
+  const onFiltersChange = (next: FundingFilters) => {
+    const s = nextFundingState(filters, showExcluded, next);
+    setFilters(s.filters);
+    setShowExcluded(s.showExcluded);
+  };
+
+  /**
+   * 갈래 카드의 「안 맞아서 뺀 N건 보기」 — 집합이 비어 있지 않아지면 `filters.includeExcluded`
+   * 도 함께 켠다(계약 §G2·§G3: 하나라도 펼쳐 있으면 서버에 안 맞음까지 달라고 다시 물어야 한다).
+   * 다시 전부 접으면(집합이 다시 비면) 꺼서 원래대로(안 맞음은 다시 서버에서부터 빠진다).
+   */
+  const onToggleExcluded = (group: FundingGroup) => {
+    setShowExcluded((prev) => {
+      const next = toggleExcludedGroup(prev, group);
+      const wantIncludeExcluded = next.size > 0;
+      setFilters((f) => (f.includeExcluded === wantIncludeExcluded ? f : { ...f, includeExcluded: wantIncludeExcluded }));
+      return next;
+    });
+  };
+
+  // 회사(또는 통로)가 바뀔 때 부르는 규칙 — 설정 함수만 쓰므로 늘 같은 함수로 둔다
+  // (부품 쪽 useEffect 의 의존 배열에 넣어도 효과가 헛돌지 않는다).
+  const resetForCompany = useCallback(() => {
+    setShowExcluded((prev) => (prev.size > 0 ? new Set<FundingGroup>() : prev));
+    setFilters(resetExcludedForCompany);
+  }, []);
+
+  return { filters, showExcluded, onFiltersChange, onToggleExcluded, resetForCompany };
+}
+
 export default function FundingRecommendPanel({
   bizno,
   companyName,
@@ -359,19 +463,14 @@ export default function FundingRecommendPanel({
   /** 기업상태표 저장 신호 이름 — 기본은 ERP `COMPANY_STATUS_SAVED_EVENT` 와 같은 값. */
   refreshEventName?: string;
 }) {
-  const [filters, setFilters] = useState<FundingFilters>(NO_FILTERS);
+  // 거르개·펼침은 훅 하나가 쥔다 — 날 것 설정 함수는 그 안에만 있다(위 `useFundingFilterState` 주석).
+  const { filters, showExcluded, onFiltersChange, onToggleExcluded, resetForCompany } = useFundingFilterState();
   const [sort, setSort] = useState<FundingSort>("rec");
   // 다시 대조 회차 — 「다시 추천」 단추와 기업상태표 저장 신호가 올린다(사장님 2026-08-30).
   const [refreshKey, setRefreshKey] = useState(0);
   // 조회 결과·서랍은 **누구 것인지**를 함께 담는다 — 회사가 바뀌면 그리는 순간 가려낸다.
   const [result, setResult] = useState<FundingFetchResult | null>(null);
   const [opened, setOpened] = useState<{ companyKey: string; item: FundingItem } | null>(null);
-  // 갈래별 「안 맞아서 뺀 항목 보기」 — 비어 있지 않으면 filters.includeExcluded 를 함께 켠다
-  // (계약 §G2·§G3, PolicyMatchClient.tsx 의 같은 배선과 같은 규칙). 이 값 자체가 네트워크
-  // 재조회를 부르므로(filters 변화로) FundingMap 안의 `expanded`(순수 UI, 재조회 없음)와 달리
-  // 여기(부모)가 쥔다.
-  const [showExcluded, setShowExcluded] = useState<ReadonlySet<FundingGroup>>(() => new Set<FundingGroup>());
-
   const query = buildQuery({ bizno, companyName, filters, sort });
   // 통로까지 섞은 열쇠 — 통로만 바뀌어도 재조회가 돌고 앞 통로 자료가 안 남는다(코덱스 3차 #3).
   const { companyKey, requestKey } = fundingFetchKeys({ endpoint, bizno, companyName, refreshKey, query });
@@ -403,9 +502,8 @@ export default function FundingRecommendPanel({
   // 회사(또는 통로)가 바뀌면 앞서 펼쳐 둔 「안 맞아서 뺀 항목」을 접고 재조회 스위치도 끈다(11차 #10).
   // 둘 다 바꿀 것이 없으면 **같은 값**을 돌려주므로 다시 그리기·재조회가 헛돌지 않는다.
   useEffect(() => {
-    setShowExcluded((prev) => (prev.size > 0 ? new Set<FundingGroup>() : prev));
-    setFilters(resetExcludedForCompany);
-  }, [companyKey]);
+    resetForCompany();
+  }, [companyKey, resetForCompany]);
 
   useEffect(() => {
     if (!bizno && !companyName) return;
@@ -425,20 +523,6 @@ export default function FundingRecommendPanel({
     return <p className="text-sm text-wedly-t2">사업자번호가 있어야 정책을 대조할 수 있습니다.</p>;
   }
 
-  /**
-   * 갈래 카드의 「안 맞아서 뺀 N건 보기」 — 집합이 비어 있지 않아지면 `filters.includeExcluded`
-   * 도 함께 켠다(계약 §G2·§G3: 하나라도 펼쳐 있으면 서버에 안 맞음까지 달라고 다시 물어야 한다).
-   * 다시 전부 접으면(집합이 다시 비면) 꺼서 원래대로(안 맞음은 다시 서버에서부터 빠진다).
-   */
-  const onToggleExcluded = (group: FundingGroup) => {
-    setShowExcluded((prev) => {
-      const next = toggleExcludedGroup(prev, group);
-      const wantIncludeExcluded = next.size > 0;
-      setFilters((f) => (f.includeExcluded === wantIncludeExcluded ? f : { ...f, includeExcluded: wantIncludeExcluded }));
-      return next;
-    });
-  };
-
   return (
     <RecommendPanel
       data={data}
@@ -448,7 +532,7 @@ export default function FundingRecommendPanel({
       sort={sort}
       drawerItem={drawerItem}
       showExcluded={showExcluded}
-      onFiltersChange={setFilters}
+      onFiltersChange={onFiltersChange}
       onSortChange={setSort}
       onOpen={(it) => {
         if (openTargetOf(it, Boolean(onOpenDetail)) === "detail") onOpenDetail?.(it.refId);

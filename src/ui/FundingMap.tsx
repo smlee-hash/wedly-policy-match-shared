@@ -13,8 +13,9 @@
  *  정상과 안 맞음을 합친 행을 지금 정렬 기준으로 다시 세운다(순수 함수 `sortRows` · 코덱스 12차 #4) —
  *  두 목록을 합치는 일이 이 화면에서만 일어나 서버가 그 차례를 정해 줄 수 없기 때문이다.
  *  갈래 칸의 `items` 는 언제나 정상(맞음+확인 필요)만이고, 안 맞아서 뺀 것은 `excludedItems` 로
- *  따로 실려 온다(`includeExcluded:true` 로 물었을 때만) — 이 파일은 **펼친 갈래의 것만** 덧붙여
- *  그린다(코덱스 11차 #2·#4·#5, 2026-09-04. 예전엔 이 파일이 한 목록을 받아 `normalGroupItems`·
+ *  따로 실려 온다(`includeExcluded:true` 로 물었을 때만) — **카드 보기**는 펼친 갈래의 것만,
+ *  **표 보기**는 스위치 하나로 전부/전무를 그린다(`tableRowsOf` · 코덱스 14차 [높음], 2026-09-04)
+ *  (코덱스 11차 #2·#4·#5, 2026-09-04. 예전엔 이 파일이 한 목록을 받아 `normalGroupItems`·
  *  `excludedGroupItems` 로 다시 갈랐는데, 그러면 정상과 안 맞음이 서버의 한 topN 을 나눠 가져
  *  정상이 잘리거나 안 맞음이 아예 안 실렸다).
  *  화면이 하는 재배치는 이제 「미분류 재분류」 하나뿐이다(`classifiedGroupItems`·
@@ -205,6 +206,37 @@ export function unclassifiedGroupItems(groups: FundingGroupBlock[]): FundingItem
  */
 export function sortRows(rows: FundingItem[], sort: FundingSort): FundingItem[] {
   return sortItems(rows, sort);
+}
+
+/**
+ * 표 보기의 행 목록 — **스위치 하나(`includeExcluded`)만** 본다(코덱스 14차 [높음], 2026-09-04).
+ *
+ * ★고친 것: 예전엔 표도 「갈래별 펼치기(`showExcluded`)」를 봤다. 그런데 표 위 손잡이
+ *  (`data-excluded-toggle="table"`)는 `filters.includeExcluded` 만 뒤집으므로, 표에서 손잡이를 눌러
+ *  **서버가 안 맞음을 실어 보내도 `showExcluded` 는 빈 채라 행이 하나도 안 늘었다**. 정상 0건·
+ *  안 맞음 2건이면 손잡이는 눌린 모양인데 표는 비어 있었다. 반대로 카드 보기에서 한 갈래만 펼친
+ *  뒤 표로 옮기면 손잡이는 전체 건수를 달고 눌린 것처럼 보이는데 그 갈래의 안 맞음 행만 나왔다.
+ *
+ * ★갈래별 펼치기는 **카드 보기의 개념**이다(갈래마다 단추가 따로 있다). 표에는 갈래 카드가 없어
+ *  전부 보이거나 전부 숨는 스위치 하나가 맞다 — 그래서 이 함수는 `showExcluded` 를 아예 안 받는다.
+ *
+ * ★순수 함수로 뗀 이유(같은 회차 지적): 이 규칙이 화면 안 `useMemo` 에 묻혀 있어 시험이 못 쟀고,
+ *  그래서 위 버그가 시험 21파일을 그대로 통과했다. `classifiedGroupItems`·`sortRows` 와 같은 결로
+ *  밖에서 직접 부를 수 있게 둔다.
+ *
+ * @param groups 통로가 준 갈래 칸들. `items` 는 언제나 정상만, `excludedItems` 는
+ *   **`includeExcluded:true` 로 물었을 때만** 실려 온다(없으면 켜도 늘어날 행이 없다).
+ * @param opts.includeExcluded 지금 스위치 상태. 켜져 있으면 **모든 갈래**의 안 맞음을 붙인다.
+ * @param opts.sort 합친 뒤 다시 세울 기준(`sortRows` 주석 — 서버가 두 목록을 각자 세워 보낸다).
+ */
+export function tableRowsOf(
+  groups: FundingGroupBlock[],
+  opts: { includeExcluded: boolean; sort: FundingSort },
+): FundingItem[] {
+  return sortRows(
+    groups.flatMap((g) => [...g.items, ...(opts.includeExcluded ? (g.excludedItems ?? []) : [])]),
+    opts.sort,
+  );
 }
 
 /** 조건 한 줄 글자 — 「label — note」(note 없으면 label만). 기호 없이 뜻으로만. */
@@ -698,7 +730,11 @@ interface ViewProps {
   /** 지금 고른 차례. 마찬가지로 모양만 바꾼다 — 줄 세우기는 서버가 이미 했다. */
   sort: FundingSort;
   expanded: ReadonlySet<FundingGroup>;
-  /** 「안 맞아서 뺀 항목」을 펼친 갈래 집합 — 부모가 쥔다(비어 있지 않으면 부모가 includeExcluded:true 로 재조회). */
+  /**
+   * 「안 맞아서 뺀 항목」을 펼친 갈래 집합 — 부모가 쥔다(비어 있지 않으면 부모가 includeExcluded:true 로 재조회).
+   * ★**카드 보기 전용**이다(코덱스 14차 [높음], 2026-09-04) — 표 보기는 갈래 카드가 없어 스위치
+   *  하나(`filters.includeExcluded`)만 본다. 발 hint 의 「표시 N건」만 두 보기가 나눠 쓴다.
+   */
   showExcluded: ReadonlySet<FundingGroup>;
   selectedId: string;
   compact: boolean;
@@ -738,24 +774,30 @@ export function FundingMapView({
   onToggleExcluded,
   onBrowseAll,
 }: ViewProps) {
-  // ★표 행 = 모든 갈래의 `items`(정상) + **펼친 갈래**의 `excludedItems`(코덱스 11차 #5, 2026-09-04).
-  //  예전엔 표가 `showExcluded` 를 아예 안 봐서, 카드에서 접어 둔 안 맞음을 표만 전역으로 늘어놓았다.
+  // ★표 행 = 모든 갈래의 `items`(정상) + **스위치가 켜져 있으면** 모든 갈래의 `excludedItems`
+  //  (순수 함수 `tableRowsOf` · 코덱스 14차 [높음], 2026-09-04). 표 위 손잡이가 뒤집는 값이
+  //  `filters.includeExcluded` 하나라서, 표가 갈래별 펼치기(`showExcluded`)를 보면 손잡이를 눌러도
+  //  행이 안 늘었다(그 함수 주석에 경위). 갈래별 펼치기는 카드 보기에만 남는다.
   // ★합친 뒤 **지금 정렬 기준으로 다시 세운다**(코덱스 12차 #4, 2026-09-04) — 서버는 두 목록을
   //  각자 세워 보내므로 그냥 이어 붙이면 표 전체에서 고른 기준이 깨진다(`sortRows` 주석).
   //  미분류는 표에서도 갈래 칸 이름만 「종류 미확인」으로 바꿔 보여 준다(재분류는 클라이언트 몫).
   const rows = useMemo(
-    () =>
-      sortRows(
-        data.groups.flatMap((g) => [
-          ...g.items,
-          ...(showExcluded.has(g.group) ? (g.excludedItems ?? []) : []),
-        ]),
-        sort,
-      ),
-    [data, showExcluded, sort],
+    () => tableRowsOf(data.groups, { includeExcluded: filters.includeExcluded, sort }),
+    [data, filters.includeExcluded, sort],
   );
   const filteredTotal = useMemo(() => data.groups.reduce((s, g) => s + g.total, 0), [data]);
-  const delivered = rows.length;
+  // 카드 보기는 갈래마다 **펼친 것만** 그린다 — 두 보기의 「보이는 규칙」이 갈렸으니 발 hint 의
+  // 「표시 N건」도 보기마다 따로 센다. 한 수로 두면 카드 보기에서 접어 둔 안 맞음까지 세어
+  // 화면에 없는 줄을 「표시」라고 적는다.
+  const cardShown = useMemo(
+    () =>
+      data.groups.reduce(
+        (s, g) => s + g.items.length + (showExcluded.has(g.group) ? (g.excludedItems?.length ?? 0) : 0),
+        0,
+      ),
+    [data, showExcluded],
+  );
+  const delivered = view === "table" ? rows.length : cardShown;
   // 안 맞아서 뺀 것이 있으면 정상 0건이어도 빈 상태로 갈아치우지 않는다 — 그러면 갈래 카드와
   // 함께 「안 맞아서 뺀 K건 보기」 단추까지 사라져 열 길이 없어진다(코덱스 11차 #1).
   const excludedTotal = useMemo(() => data.groups.reduce((s, g) => s + g.excluded, 0), [data]);
@@ -976,7 +1018,14 @@ export function FundingMapView({
               ※ 「맞는 것만」 칩을 되살리는 게 아니다 — 그건 기본이 「안 맞음 제외」인 지금 계약과
                 반대다. 이건 **뺀 것을 여는** 한 방향 손잡이다.
               ※ 뺀 것이 **실제로 있을 때만** 그린다(0이면 없는 일을 알리지 않는다).
-              ※ 카드 보기에서는 안 그린다 — 갈래마다 단추가 이미 있어 같은 말이 두 번 된다. */}
+              ※ 카드 보기에서는 안 그린다 — 갈래마다 단추가 이미 있어 같은 말이 두 번 된다.
+              ※ 누르면 표 행이 **모든 갈래**의 안 맞음만큼 늘어난다(`tableRowsOf`) — 갈래별 펼치기와
+                섞이지 않는다(14차 [높음]).
+              ※ 건수 N 은 갈래들의 `excluded` 합, 곧 **뺀 것이 몇 건 있는지**다. 서버가 갈래마다
+                `excludedItems` 를 topN 까지만 실으므로(`groupBlocks`) 잘린 만큼은 켜도 행이 덜
+                는다 — 그때 실제로 그려진 줄 수는 발 hint 의 「표시 N건」이 말한다(정상 목록도
+                `total` 과 `items` 가 같은 관계다). 꺼져 있을 땐 `excludedItems` 가 아예 안 실려 와
+                실어 줄 수 있는 건수를 화면이 알 길이 없어, 이 자리엔 전체 건수만 적을 수 있다. */}
           {view === "table" && excludedTotal > 0 && (
             <button
               type="button"
