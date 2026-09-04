@@ -657,7 +657,9 @@ describe("자금 조달 지도 조립 — 두 표를 한 모양으로", () => {
     expect(byId(data.groups, "p:pd3")).toBeDefined();  // 상품은 살아 있어야 한다
   });
 
-  it("칩(필터)·정렬·상위 N 을 서버에서 적용한다 — 한눈에 4칸도 필터 뒤 기준", async () => {
+  // ★제목을 고쳤다(독립 검사 ①, 2026-09-04) — 4칸은 이제 **칩 앞에서** 센다(칩을 켠 전후가 같은지는
+  //  아래 「칩을 켜도 한눈에 4칸은 안 바뀐다」가 잰다). 이 시험이 재는 것은 「안 맞음이 4칸에서 빠진다」다.
+  it("칩(필터)·정렬·상위 N 을 서버에서 적용한다 — 한눈에 4칸은 안 맞음을 뺀 건수", async () => {
     loadOpenAnnouncements.mockResolvedValue([
       ann({ id: "ok", fundingGroup: "policy", region: "서울", ruleStructure: { ...EMPTY_RULE, conditions: [{ key: "region", op: "in", value: ["서울"], rawText: "서울 소재", machineReadable: true }] } }),
       ann({ id: "no", fundingGroup: "policy", region: "부산", ruleStructure: { ...EMPTY_RULE, conditions: [{ key: "region", op: "in", value: ["부산"], rawText: "부산 소재", machineReadable: true }] } }),
@@ -1167,5 +1169,85 @@ describe("자금 조달 지도 조립 — 두 표를 한 모양으로", () => {
     loadOpenAnnouncements.mockResolvedValue([ann({ id: "solo", dedupKey: KEY })]);
     const 혼자 = byId((await buildFundingMap({}, NOW)).groups, "a:solo")!;
     expect(혼자.groupSources, "안 묶인 줄엔 아예 없다").toBeUndefined();
+  });
+});
+
+/**
+ * 배포본을 실제로 눌러 본 독립 검사(2026-09-04)가 「숫자의 뜻」에서 잡아낸 세 건 — 셋 다 화면에서
+ * 재현된 것이고, 셋 다 **어느 목록을 세는가**가 원인이었다. 화면은 서버가 준 수를 그대로 찍으므로
+ * 이 시험들이 조립(서버)에서 못 박는다.
+ */
+describe("숫자의 뜻 — 독립 검사 ①②③(2026-09-04)", () => {
+  /**
+   * ① 「7일 안에 마감되는 것만」을 켜면 「지금 신청 가능」이 3,392 → 195 로 바뀌어 옆 칸(「7일 안에
+   *   마감」 195)과 **같은 수**가 됐다. 두 칸이 같은 수를 말하면 4칸이 아무 뜻이 없다.
+   *   4칸은 칩을 거치기 전 목록으로 센다 — 화면 부품 주석의 계약(「서버가 전체 자료로 센 값」)이 이것이다.
+   */
+  it("칩을 켜도 한눈에 4칸은 안 바뀐다 — 목록만 좁혀진다(독립 검사 ①)", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({ id: "far", fundingGroup: "policy", applyEnd: kstEnd("2026-12-31"), rateMin: 3.5 }),
+      ann({ id: "soon", fundingGroup: "policy", applyEnd: kstEnd("2026-09-06"), rateMin: 4.5 }),
+    ]);
+    const 기본 = await buildFundingMap({}, NOW);
+    const 임박만 = await buildFundingMap({}, NOW, { filters: { soonOnly: true } });
+    const 열린것만 = await buildFundingMap({}, NOW, { filters: { openOnly: true } });
+
+    expect(기본.glance.open).toBe(2 + MANUAL_N);
+    expect(기본.glance.soon).toBe(1);
+    expect(임박만.glance, "칩을 켜도 4칸은 그대로다").toEqual(기본.glance);
+    expect(열린것만.glance).toEqual(기본.glance);
+    // 「지금 신청 가능」이 옆 칸과 같아지는 것이 그 버그의 모양이었다.
+    expect(임박만.glance.open).not.toBe(임박만.glance.soon);
+    // 목록은 실제로 좁혀졌다 — 칩이 아무 일도 안 하게 된 것이 아니다.
+    expect(임박만.totals.filtered).toBe(1);
+    expect(기본.totals.filtered).toBe(2 + MANUAL_N);
+  });
+
+  /**
+   * ② 숫자 카드 「안 갚아도 되는 돈 0건」 바로 40px 아래 갈래 카드 「안 갚아도 되는 돈 6,287건」.
+   *   타일은 맞음(fit)만, 갈래 카드는 그 갈래 정상 전체를 세고 있었다 — 상담사는 0건을 「이 회사는
+   *   받을 게 없다」로 읽는다. 「가장 낮은 이자」가 「—」인데 대출 갈래엔 479건이 있던 모순도 같은 원인.
+   */
+  it("타일 숫자 = 갈래 카드 딱지 합 · 최저 이자도 같은 모집단(독립 검사 ②)", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      // 조건이 없어 전부 「확인 필요」다 — 예전 기준(맞음만)이라면 타일이 0건·「—」를 말했다.
+      ann({ id: "g1", amountMaxWon: BigInt(30_000_000) }),
+      ann({ id: "g2", amountMaxWon: BigInt(50_000_000) }),
+      ann({ id: "p1", fundingGroup: "policy", rateMin: 2.4 }),
+    ]);
+    const data = await buildFundingMap({}, NOW);
+    const grant = data.groups.find((b) => b.group === "grant")!;
+
+    expect(grant.total, "무상 갈래 카드 딱지").toBe(2);
+    expect(data.glance.grantFit, "타일과 딱지가 같은 수").toBe(grant.total);
+    expect(data.glance.grantMaxWon).toBe(50_000_000);
+    expect(data.glance.minRate, "화면에 「—」로 뜨던 자리").toBe(2.4);
+
+    // 장부가 맞는지 — 갈래 딱지 합 + 「종류 미확인」 = 조립이 내는 「조건에 맞는 N건」.
+    const 딱지합 = data.groups.reduce((s, b) => s + b.total, 0);
+    expect(딱지합 + data.unclassified).toBe(data.totals.filtered);
+  });
+
+  /**
+   * ③ 「7일 안에 마감되는 것만」을 켠 화면에서 어떤 갈래 카드에 딱지 「181건」 + 본문 「지금 조건에
+   *   맞는 항목이 없습니다」 + 발치 「이 갈래 181건 중 0건만 보여 드림」이 **동시에** 떴다. 그 갈래
+   *   줄이 전부 「종류 미확인」이라 화면이 맨 아래 블록으로 옮겼는데 셈은 옮긴 것을 그대로 셌다.
+   */
+  it("미확인만 있는 갈래는 딱지가 0 — 줄은 실려서 「종류 미확인」 블록으로 간다(독립 검사 ③)", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({ id: "u1", title: "2026년 우수기업 현판 수여식 안내", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
+      ann({ id: "u2", title: "2026년 기업인 간담회 개최 알림", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
+    ]);
+    const data = await buildFundingMap({}, NOW);
+    const grant = data.groups.find((b) => b.group === "grant")!;
+
+    expect(data.unclassified, "두 줄 다 종류를 못 갈랐다").toBe(2);
+    expect(grant.total, "카드에 남는 줄이 없으니 딱지도 0").toBe(0);
+    expect(grant.fit + grant.unverified + grant.soon).toBe(0);
+    expect(data.glance.grantFit).toBe(0);
+    // 그래도 줄은 실려 있어야 한다 — 「종류 미확인」 블록은 갈래 칸 items 에서 모아 온다.
+    expect(grant.items.map((x) => x.id)).toEqual(["a:u1", "a:u2"]);
+    // 「조건에 맞는 N건」은 미확인도 센다 — 화면에 그려지는 줄이다.
+    expect(data.totals.filtered).toBe(2 + MANUAL_N);
   });
 });

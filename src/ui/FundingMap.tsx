@@ -113,11 +113,36 @@ const CHIPS: Array<{ key: "openOnly" | "soonOnly"; label: string }> = [
 /** 갈래 한 칸에 접힌 채로 보이는 건수 — 미리보기와 같은 3건. */
 const FOLDED = 3;
 
+/**
+ * 갈래 카드 격자의 열 규칙 — **감싸는 상자의 실제 폭**(컨테이너)으로 정한다(독립 검사 지적 ⑥,
+ * 2026-09-04). 실제 격자와 로딩 뼈대가 **같은 글자**를 써야 자료가 도착할 때 열이 안 움직인다.
+ *
+ * ★왜 뷰포트(`sm:`·`lg:`)를 버렸나: 상세창 레일은 뷰포트 1280 에서도 **480px** 다. 뷰포트 기준
+ *  `sm:grid-cols-2`(640px)는 그 레일 안에서도 켜져 갈래 카드가 2열이 되고, 그 안의 답 한 칸이
+ *  89px 로 잘렸다(실측 32곳). 숫자 카드 줄에서 `!compact && lg:` 로 손으로 막던 것을 이제
+ *  구조로 막는다 — 「어느 앱·어느 자리인지」를 묻지 않고 **자기 폭만** 본다.
+ *
+ * ★문턱 근거(gap 16px, 갈래 카드 안쪽 여백 8px, 항목 카드 좌우 10px+테두리 2px 를 뺀 값):
+ *   ·  ~672px : 1열 — 480px 레일이 여기 든다(항목 카드 폭 438px → 답이 한 칸을 다 쓴다)
+ *   · 672px~ : 2열 — 1040px 본문에서 한 칸 512px(항목 카드 474px → 답 두 칸 230px씩)
+ *   · 1280px~: 3열 — `compact` 는 여기까지 안 간다(레일에서 3열은 무조건 잘린다)
+ *  옛 `lg:grid-cols-3`(뷰포트 1024px)는 1040px 본문을 3열로 만들어 답 한 칸이 142px 였다 —
+ *  문턱을 1280px 로 올리면 같은 본문이 2열이 되어 **답이 62% 넓어지고 카드 높이는 그대로**다.
+ */
+const GROUP_GRID = "grid gap-4 grid-cols-1 @2xl:grid-cols-2";
+/** 3열은 `compact`(좁은 상세창 레일) 아닐 때만 — 「몇 열까지」가 유일한 앱·자리 구분이다. */
+const GROUP_GRID_WIDE = "@7xl:grid-cols-3";
+
 // ★조작줄 부품 높이 = 36px(정본 계단 `h-9`, 2026-09-04 승인 시안). `py-1`(26px)로는 알약·셀렉트와
 //  높이가 안 맞아 칩만 떠 보였다. 높이를 못 박았으니 글자는 `inline-flex items-center` 로 직접
 //  세로 가운데에 둔다 — 브라우저 기본 정렬에 기대지 않는다.
+// ★조작줄 글자는 **한 층**(`text-wedly-sub` 13px)이다(독립 검사 지적 ④, 2026-09-04). 높이는 36px 로
+//  맞췄는데 글자만 알약 13 · 칩 11 · 셀렉트 14 · 라벨 11 로 **세 종류**여서, 한 줄 안에서 어느 것이
+//  더 중요한지 크기가 거짓말을 했다. 알약(공용 부품)이 이미 13px 이라 그 층으로 나머지를 모은다 —
+//  알약의 선택된 칸만 굵기 600 인 것은 그 부품의 **상태 표시**라 그대로 둔다(크기만 맞춘다).
+//  ※ CHIP_BASE 는 조작줄 안(칩 둘 + 표 보기 여는 손잡이)에서만 쓴다 — 밖으로 새지 않는다.
 const CHIP_BASE =
-  "inline-flex h-9 items-center rounded-full border border-wedly-bd bg-white px-3 text-wedly-hint text-wedly-t2 " +
+  "inline-flex h-9 items-center rounded-full border border-wedly-bd bg-white px-3 text-wedly-sub text-wedly-t2 " +
   "transition-colors duration-150 ease-out hover:border-wedly-accent " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wedly-accent";
 const CHIP_ON = "border-wedly-accent bg-wedly-bg-blue font-semibold text-wedly-accent-ink";
@@ -280,6 +305,19 @@ function ItemFlags({ item, className }: { item: FundingItem; className?: string 
   );
 }
 
+/**
+ * 답 네 개를 담는 격자 — **카드 폭(컨테이너) 기준**으로 열 수를 정한다(독립 검사 지적 ⑥, 2026-09-04).
+ *
+ * ★왜 뷰포트(`sm:`)가 아니라 컨테이너인가: 이 카드는 넓은 본문에도 놓이고 480px 짜리 상세창 레일에도
+ *  놓인다. 뷰포트 기준으로 켜면 **레일 안에서도 2열이 켜져** 답 한 칸이 89px 로 잘렸다(실측 32곳).
+ *
+ * ★문턱 `@md`(28rem = 448px)의 근거: 답 한 칸이 **200px 밑으로 내려가지 않게** 잡은 값이다
+ *  ((448 − 14(`gap-x-3.5`)) ÷ 2 = 217px). 448px 미만이면 1열로 내려가 답이 **카드 폭 전부**를 쓴다 —
+ *  좁을 때 2열은 어떤 경우에도 1열보다 답이 좁으므로, 밀도보다 읽히는 것을 택한다.
+ *  값이 그보다 길면(가장 긴 실측값 374px) 여전히 잘리지만 `title` 로 전체를 읽을 수 있다.
+ */
+const FACT_GRID = "mt-2 grid grid-cols-1 gap-x-3.5 gap-y-1.5 @md:grid-cols-2";
+
 /** 답 네 개 중 하나 — 라벨 11px muted · 값 14px 600(계약 §G2). 한 줄 자르기 + title 로 전체를 읽는다. */
 function Fact({ label, value }: { label: string; value: string }) {
   return (
@@ -368,7 +406,9 @@ function ItemCard({
         onClick={() => onOpen(item)}
         onKeyDown={(e) => itemKeyDown(e, item, onOpen)}
         className={cn(
-          "cursor-pointer rounded-[10px] border border-wedly-bd/60 bg-wedly-bg-gray px-2.5 py-2",
+          // ★`@container` — 안쪽 「답 네 개」 격자가 **이 카드의 실제 폭**을 재게 만든다(지적 ⑥).
+          //  컨테이너는 자기 자신을 못 재므로 격자의 **조상**인 이 상자에 선언한다.
+          "@container cursor-pointer rounded-[10px] border border-wedly-bd/60 bg-wedly-bg-gray px-2.5 py-2",
           "transition-colors duration-150 ease-out hover:border-wedly-accent hover:bg-white",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wedly-accent",
           selected && "border-wedly-accent bg-white",
@@ -379,7 +419,7 @@ function ItemCard({
           <DeadChip item={item} now={now} />
         </div>
         <ItemFlags item={item} className="mt-1" />
-        <dl className="mt-2 grid grid-cols-2 gap-x-3.5 gap-y-1.5">
+        <dl className={FACT_GRID}>
           <Fact label="얼마까지" value={amountWords(item)} />
           <Fact label={repay.label} value={repay.value} />
           <Fact label="언제까지" value={deadlineWords(item.deadline, now).long} />
@@ -984,8 +1024,11 @@ export function FundingMapView({
         ))}
       </div>
 
-      {/* ③ 조작줄 — 칩·정렬을 누르면 부모가 통로를 다시 부른다(여기서 자료를 만지지 않는다) */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      {/* ③ 조작줄 — 칩·정렬을 누르면 부모가 통로를 다시 부른다(여기서 자료를 만지지 않는다)
+          ★`data-controls` 는 **시험이 이 줄만 잘라 내는 표식**이다(`data-chip`·`data-group` 과 같은
+           쓰임). 이 줄 안 글자가 한 층인지 재려면 줄 밖 글자와 섞이지 않게 잘라야 한다 —
+           표식이 없으면 문서 전체에서 재게 되어 시험이 껍데기가 된다. */}
+      <div data-controls="funding-map" className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
           {/* ★알약도 36px — `className` 은 공용 부품 안에서 알약 트랙에 그대로 합쳐진다
               (`@wedly/ui-shared` SegmentedControl, `cn(...)`). 그래서 공용 부품 파일은 안 건드린다.
@@ -1021,11 +1064,14 @@ export function FundingMapView({
               ※ 카드 보기에서는 안 그린다 — 갈래마다 단추가 이미 있어 같은 말이 두 번 된다.
               ※ 누르면 표 행이 **모든 갈래**의 안 맞음만큼 늘어난다(`tableRowsOf`) — 갈래별 펼치기와
                 섞이지 않는다(14차 [높음]).
-              ※ 건수 N 은 갈래들의 `excluded` 합, 곧 **뺀 것이 몇 건 있는지**다. 서버가 갈래마다
-                `excludedItems` 를 topN 까지만 실으므로(`groupBlocks`) 잘린 만큼은 켜도 행이 덜
-                는다 — 그때 실제로 그려진 줄 수는 발 hint 의 「표시 N건」이 말한다(정상 목록도
-                `total` 과 `items` 가 같은 관계다). 꺼져 있을 땐 `excludedItems` 가 아예 안 실려 와
-                실어 줄 수 있는 건수를 화면이 알 길이 없어, 이 자리엔 전체 건수만 적을 수 있다. */}
+              ★손잡이 글자에는 **건수를 적지 않는다**(독립 검사 지적 ⑦, 2026-09-04). 예전엔
+                「안 맞는 공고도 보기 (4,962건)」이라 적었는데, 서버는 갈래마다 `excludedItems` 를
+                topN 까지만 실으므로(`groupBlocks`) 눌러도 18줄만 늘었다 — **지킬 수 없는 약속**이다.
+                꺼져 있을 땐 `excludedItems` 가 아예 안 실려 와 「실어 줄 수 있는 건수」를 화면이
+                알 길조차 없다. 실제로 몇 건이 보이는지는 발 안내(「표시 N건」)가 이미 정확히 말한다.
+                ※ `excludedTotal` 은 이제 **손잡이를 그릴지 말지**(0이면 안 그린다)에만 쓴다.
+                ※ 갈래 카드의 「안 맞아서 뺀 N건 보기」는 **그대로 둔다** — 그건 그 갈래의 진짜
+                  전체 수이고, 펼친 뒤 발치가 「N건 중 M건 표시」로 잘림을 정확히 말한다. */}
           {view === "table" && excludedTotal > 0 && (
             <button
               type="button"
@@ -1034,29 +1080,37 @@ export function FundingMapView({
               onClick={() => onFiltersChange(nextFilters(filters, "includeExcluded"))}
               className={cn(CHIP_BASE, filters.includeExcluded && CHIP_ON)}
             >
-              안 맞는 공고도 보기 ({건수(excludedTotal)}건)
+              안 맞는 공고도 보기
             </button>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="inline-flex min-h-9 items-center text-wedly-hint text-wedly-muted" htmlFor="funding-map-sort">
+          {/* ★글자 층도 조작줄 한 층(13px) — 11px 로 두면 같은 줄의 알약·칩보다 작아 라벨만 뒤로 물러난다. */}
+          <label className="inline-flex min-h-9 items-center text-wedly-sub text-wedly-muted" htmlFor="funding-map-sort">
             정렬
           </label>
           {/* ★셀렉트만 42px 이라 혼자 컸다. 부품 **기본**은 그대로 두고 `controlClassName` 으로
               **이 자리에서만** 36px 을 준다 — 이 부품을 ERP 43개·일루아 2개 화면이 쓰는데
               기본 높이를 내리면 그 화면들이 전부 함께 바뀌기 때문이다(승인 범위 밖).
               부품 전체를 정본 높이로 수렴시키는 일은 **별도 승인이 필요한 후속**이다. */}
+          {/* ★글자 크기도 **같은 길**로 준다(독립 검사 지적 ④) — 부품 기본은 `text-sm`(14px)이라
+              조작줄에서 혼자 컸다. `controlClassName` 은 `cn`(tailwind-merge)을 타고, 이 저장소의
+              `cn` 은 WEDLY 글자 여섯 층을 「글자 크기」로 등록해 두었으므로(`@wedly/ui-shared` cn.ts)
+              `text-wedly-sub` 가 부품의 `text-sm` 을 **지우고** 이긴다 — 실제로 지워지는지는
+              `customSelect-render.test.tsx` 가 그려 낸 클래스에서 확인한다.
+              부품 **기본값은 안 건드린다** — 이 부품을 ERP 43개·일루아 2개 화면이 쓴다. */}
           <CustomSelect
             id="funding-map-sort"
             value={sort}
             onChange={(v) => onSortChange(v as FundingSort)}
             options={SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
             className="min-w-[8.5rem]"
-            controlClassName="flex h-9 items-center py-0"
+            controlClassName="flex h-9 items-center py-0 text-wedly-sub"
           />
-          {/* ★조작줄 안이라 여기서만 36px — 상수를 키우면 조작줄 밖 단추까지 커진다(BTN_SM 주석). */}
+          {/* ★조작줄 안이라 여기서만 36px·13px — 상수를 키우면 조작줄 밖 단추까지 커진다(BTN_SM 주석).
+              글자 층도 여기서만 올린다(`cn` 이 상수의 `text-wedly-hint` 11px 을 지운다). */}
           {onBrowseAll && (
-            <button type="button" className={cn(BTN_SM, "h-9 inline-flex items-center")} onClick={onBrowseAll}>
+            <button type="button" className={cn(BTN_SM, "h-9 inline-flex items-center text-wedly-sub")} onClick={onBrowseAll}>
               전체 공고 탐색
             </button>
           )}
@@ -1083,9 +1137,10 @@ export function FundingMapView({
       ) : view === "map" ? (
         // ★갈래 카드 격자와 「종류 미확인」 블록 사이도 16px — 격자만 `gap-4` 로 바꾸고 이 바깥
         //  상자를 `gap-3` 로 두면 화면 마지막 경계에서만 12px 이 된다(코덱스 13차 #3).
-        <div className="flex flex-col gap-4">
+        // ★`@container` — 아래 격자가 **이 상자의 실제 폭**으로 열 수를 정하게 만든다(지적 ⑥).
+        <div className="@container flex flex-col gap-4">
           {/* ★갈래 카드 사이 16px(`gap-4`) — 옛 `gap-3`(12px)는 정본 계단에 없는 값이었다. */}
-          <div className={cn("grid gap-4 sm:grid-cols-2", !compact && "lg:grid-cols-3")}>
+          <div className={cn(GROUP_GRID, !compact && GROUP_GRID_WIDE)}>
             {data.groups.map((block) => (
               <GroupCard
                 key={block.group}
@@ -1217,12 +1272,15 @@ export default function FundingMap({
     return (
       <>
         {손잡이줄}
-        {/* ★뼈대도 실제 갈래 격자와 같은 16px — 12px 로 두면 자료가 도착하는 순간 칸 간격이
-            4px 벌어져 열이 움직인다(코덱스 13차 #4). */}
-        <div className={cn("grid gap-4 sm:grid-cols-2", !compact && "lg:grid-cols-3")} aria-busy="true">
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} variant="block" className="h-40" />
-          ))}
+        {/* ★뼈대도 실제 갈래 격자와 같은 16px·같은 열 규칙 — 12px 로 두거나 컨테이너 선언을 빼면
+            자료가 도착하는 순간 칸 간격이 4px 벌어지거나 열 수가 바뀌어 열이 움직인다
+            (코덱스 13차 #4 · 지적 ⑥). 컨테이너는 자기 자신을 못 재므로 겉 상자에 선언한다. */}
+        <div className="@container">
+          <div className={cn(GROUP_GRID, !compact && GROUP_GRID_WIDE)} aria-busy="true">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} variant="block" className="h-40" />
+            ))}
+          </div>
         </div>
       </>
     );

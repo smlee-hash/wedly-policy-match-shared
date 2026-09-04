@@ -368,7 +368,14 @@ describe("필터 — openOnly·soonOnly·includeExcluded(재설계 계약 G1①,
 });
 
 describe("한눈에 4칸", () => {
-  it("신청 가능·7일 내 마감·맞는 무상 최대 금액·맞는 것(fit) 중 최저 이자(G3① — 2026-09-03 코덱스 지적, 예전엔 확인 필요도 셌다)", () => {
+  /**
+   * ★뜻이 바뀐 시험(브라우저 독립 검사 ②, 2026-09-04) — 4칸은 이제 **갈래 카드와 같은 모집단**
+   *  (정상 = 맞음 + 확인 필요, 종류 미확인 제외)을 센다. 예전 「맞음만」 기준은 배포본에서
+   *  타일 「안 갚아도 되는 돈 0건」과 갈래 카드 「6,287건」이 나란히 뜨게 만들었다.
+   *  아래 두 칸이 그 변경을 그대로 잡는다: 무상은 g1·g3 둘(마감 지난 g3 도 갈래 카드가 세므로 센다),
+   *  최저 이자는 확인 필요(p1·2.5)까지 넣어 고른다(예전엔 p3 의 3.2).
+   */
+  it("신청 가능·7일 내 마감 · 무상 건수·최대 금액 · 최저 이자 — 정상(맞음+확인 필요) 기준(독립 검사 ②)", () => {
     const items = [
       mkItem({ id: "g1", group: "grant", fitVerdict: "fit", amountMaxWon: 50_000_000, rateMin: 4, deadline: deadlineOfAnnouncement(kstEnd("2026-09-08"), "", NOW) }),
       mkItem({ id: "g2", group: "grant", fitVerdict: "excluded", amountMaxWon: 900_000_000, deadline: ALWAYS }),
@@ -383,9 +390,9 @@ describe("한눈에 4칸", () => {
       //  이제 glanceOf 가 스스로 안 맞음을 빼므로 부르는 쪽(조립·화면)이 무엇을 넘겨도 정상만 센다.
       open: 3,
       soon: 1,
-      grantFit: 1,
+      grantFit: 2, // g1(맞음·열림) + g3(맞음·마감 지남) — 갈래 카드 딱지가 세는 것과 같은 모집단
       grantMaxWon: 50_000_000,
-      minRate: 3.2, // p3(맞음)만 — p1(확인 필요·2.5)·p2(안 맞음)는 안 센다
+      minRate: 2.5, // p1(확인 필요)까지 함께 고른다 — p2(안 맞음)만 빠진다
     });
   });
 
@@ -397,6 +404,46 @@ describe("한눈에 4칸", () => {
     ];
     expect(glanceOf(items)).toMatchObject({ open: 1, soon: 1 });
   });
+  /**
+   * ★독립 검사 ② — 「종류 미확인」은 갈래 낱말을 쓰는 칸에서만 빠진다. 화면이 그 줄을 갈래 카드에서
+   *  빼 맨 아래 전용 블록으로 옮기므로(`classifiedGroupItems`), 무상 건수·최대 금액·최저 이자는
+   *  옮긴 뒤 기준이어야 갈래 카드 딱지와 맞는다. 반대로 시간 칸(신청 가능·7일 내 마감)은 그 줄도
+   *  센다 — 미확인 블록에 그려지고, 그 두 낱말은 갈래를 말하지 않는다.
+   */
+  it("「종류 미확인」은 무상·이자 칸에서만 빠지고 신청 가능·마감 칸에는 남는다(독립 검사 ②)", () => {
+    const soonEnd = deadlineOfAnnouncement(kstEnd("2026-09-05"), "", NOW);
+    const items = [
+      mkItem({ id: "u1", group: "grant", fitVerdict: "unverified", unclassified: true, amountMaxWon: 900_000_000, rateMin: 0.5, deadline: soonEnd }),
+      mkItem({ id: "g1", group: "grant", fitVerdict: "unverified", amountMaxWon: 20_000_000, deadline: ALWAYS }),
+      mkItem({ id: "p1", group: "policy", fitVerdict: "unverified", rateMin: 2.9, deadline: ALWAYS }),
+    ];
+    expect(glanceOf(items)).toEqual({
+      open: 3, // 미확인 줄도 사람이 넣을 수 있다 — 빼면 누락이다
+      soon: 1, // u1
+      grantFit: 1, // g1 만 — u1 은 무상 갈래 카드에 남지 않는다
+      grantMaxWon: 20_000_000, // 미확인의 9억은 없는 지원금을 부풀린다
+      minRate: 2.9, // 미확인의 0.5% 는 안 고른다
+    });
+  });
+
+  /**
+   * ★독립 검사 ② 의 항등식 — 「같은 낱말이면 같은 수」. 타일 「안 갚아도 되는 돈」과 무상 갈래 카드
+   *  딱지는 **한 모집단**에서 나와야 한다. 두 함수를 나란히 불러 못 박는다(칩이 없는 기본 화면 기준).
+   */
+  it("타일 「안 갚아도 되는 돈」 = 무상 갈래 딱지 — 두 함수가 같은 수를 낸다(독립 검사 ②)", () => {
+    const pool = [
+      mkItem({ id: "g-fit", group: "grant", fitVerdict: "fit" }),
+      mkItem({ id: "g-unv", group: "grant", fitVerdict: "unverified" }),
+      mkItem({ id: "g-closed", group: "grant", fitVerdict: "unverified", deadline: deadlineOfAnnouncement(kstEnd("2026-08-20"), "", NOW) }),
+      mkItem({ id: "g-unc", group: "grant", fitVerdict: "unverified", unclassified: true }),
+      mkItem({ id: "g-no", group: "grant", fitVerdict: "excluded" }),
+      mkItem({ id: "p-fit", group: "policy", fitVerdict: "fit", rateMin: 4 }),
+    ];
+    const grant = groupBlocks(pool).find((b) => b.group === "grant")!;
+    expect(glanceOf(pool).grantFit).toBe(grant.total);
+    expect(grant.total).toBe(3); // 맞음 1 + 확인 필요 2(마감 지난 것 포함) — 미확인·안 맞음은 빠진다
+  });
+
   it("맞는 무상도 이자 아는 것도 없으면 null — 0 으로 지어내지 않는다", () => {
     expect(glanceOf([])).toEqual({ open: 0, soon: 0, grantFit: 0, grantMaxWon: null, minRate: null });
     const onlyExcluded = [mkItem({ group: "grant", fitVerdict: "excluded", amountMaxWon: 10_000_000, rateMin: 1.5 })];
@@ -671,6 +718,38 @@ describe("갈래별 묶음", () => {
     const block = groupBlocks([], { topN: 2, excludedPool, includeExcluded: true }).find((b) => b.group === "grant")!;
     expect(block.excluded).toBe(5);
     expect(block.excludedItems?.map((x) => x.score)).toEqual([4, 3]); // 추천순 — 점수 높은 것이 앞
+  });
+
+  /**
+   * ★독립 검사 ③(2026-09-04) — 배포본에서 한 갈래 카드에 딱지 「181건」 + 본문 「지금 조건에 맞는
+   *  항목이 없습니다」 + 발치 「이 갈래 181건 중 0건만 보여 드림」이 **동시에** 떴다. 그 갈래 줄이
+   *  전부 「종류 미확인」이라 화면이 맨 아래 블록으로 옮겼는데 셈은 옮긴 것을 그대로 세고 있었다.
+   *  이제 세는 칸은 **카드에 남는 줄**만 보고, 옮겨 갈 줄은 `items` 에만 실린다(빼면 화면이 못 그린다).
+   */
+  it("미확인만 있는 갈래는 딱지·발치가 0을 말한다 — 줄은 items 에 그대로 실린다(독립 검사 ③)", () => {
+    const soonDeadline = deadlineOfAnnouncement(kstEnd("2026-09-04"), "", NOW);
+    const items = [
+      mkItem({ id: "u1", group: "grant", fitVerdict: "unverified", unclassified: true, deadline: soonDeadline }),
+      mkItem({ id: "u2", group: "grant", fitVerdict: "fit", unclassified: true }),
+      mkItem({ id: "u3", group: "grant", fitVerdict: "unverified", unclassified: true }),
+    ];
+    const grant = groupBlocks(items).find((b) => b.group === "grant")!;
+    expect(grant).toMatchObject({ total: 0, fit: 0, unverified: 0, soon: 0, truncated: false });
+    // 발치 글자도 「없음」이라 말해야 한다 — 화면은 이 도우미로 그 줄을 짓는다.
+    expect(groupFooterWords(grant, 0, 0).shown).toBe("이 갈래에 지금 맞는 항목 없음");
+    // 그러나 줄 자체는 실려 있어야 한다 — 「종류 미확인」 블록이 갈래 칸 items 에서 모아 온다.
+    expect(grant.items.map((x) => x.id)).toEqual(["u2", "u1", "u3"]);
+  });
+
+  it("미확인은 정상 topN 을 나눠 갖지 않는다 — 각자 topN 까지 실린다(독립 검사 ③)", () => {
+    const items = [
+      ...Array.from({ length: 3 }, (_, i) => mkItem({ id: `n${i}`, group: "policy", fitVerdict: "fit", score: 10 - i })),
+      ...Array.from({ length: 3 }, (_, i) => mkItem({ id: `u${i}`, group: "policy", fitVerdict: "unverified", unclassified: true, score: 5 - i })),
+    ];
+    const policy = groupBlocks(items, { topN: 2 }).find((b) => b.group === "policy")!;
+    expect(policy.total).toBe(3); // 정상만
+    expect(policy.truncated).toBe(true); // 정상 3건 중 2건만 실렸다
+    expect(policy.items.map((x) => x.id)).toEqual(["n0", "n1", "u0", "u1"]); // 정상 2 + 미확인 2
   });
 
   it("excludedPool 을 안 주면 items 자체에서 excluded 를 센다(예전 호출과 같은 동작)", () => {
@@ -1012,6 +1091,43 @@ describe("groupFooterWords — 갈래 아래 줄(보여준 개수·안 맞아서
     expect(groupFooterWords(block, 8, 0).shown).toBe("이 갈래 12건 중 8건만 보여 드림");
     expect(groupFooterWords(block, 12, 0).shown).toBe("이 갈래 12건 전부");
     expect(groupFooterWords(block, 8).shown).toBe("이 갈래 12건 중 8건만 보여 드림");
+  });
+  /**
+   * ★브라우저 독립 검사 [낮음](2026-09-04) — 한 카드 안에서 같은 수가 머리 딱지는 「2,482건」,
+   *  두 줄 아래 이 문구는 「2482건」으로 갈렸다. 이 함수가 만드는 **모든 분기**(일부만·전부·안 맞음
+   *  펼친 상태·0건)의 숫자에 천 단위 쉼표가 들어가야 한다.
+   *
+   *  마지막 고리는 글자 대조가 아니라 **모양**을 잰다 — 쉼표를 넣으면 숫자 덩어리가 최대 세 자리라
+   *  `\d{4}` 가 하나도 안 남는다. 어느 자리든 날값으로 되돌아가면 여기서 걸린다.
+   */
+  it("네 자리 이상 — 모든 분기에 천 단위 쉼표(브라우저 독립 검사 [낮음])", () => {
+    const 큰갈래: FundingGroupBlock = { ...block, total: 2482, excluded: 3810 };
+    expect(groupFooterWords(큰갈래, 3)).toEqual({
+      shown: "이 갈래 2,482건 중 3건만 보여 드림",
+      excluded: "안 맞아서 뺀 3,810건 보기",
+    });
+    expect(groupFooterWords(큰갈래, 2482).shown).toBe("이 갈래 2,482건 전부");
+    expect(groupFooterWords(큰갈래, 1234, 3810).shown).toBe("정상 1,234건 + 안 맞아서 뺀 3,810건 표시 중");
+    expect(groupFooterWords({ ...큰갈래, total: 0 }, 0)).toEqual({
+      shown: "이 갈래에 지금 맞는 항목 없음",
+      excluded: "안 맞아서 뺀 3,810건 보기",
+    });
+    for (const out of [
+      groupFooterWords(큰갈래, 3),
+      groupFooterWords(큰갈래, 2482),
+      groupFooterWords(큰갈래, 1234, 3810),
+      groupFooterWords({ ...큰갈래, total: 0 }, 0),
+    ]) {
+      expect(out.shown).not.toMatch(/\d{4}/);
+      expect(out.excluded ?? "").not.toMatch(/\d{4}/);
+    }
+  });
+  it("세 자리 이하에는 쉼표가 안 붙는다(toLocaleString 기본 동작)", () => {
+    const 작은갈래: FundingGroupBlock = { ...block, total: 999, excluded: 999 };
+    expect(groupFooterWords(작은갈래, 100).shown).toBe("이 갈래 999건 중 100건만 보여 드림");
+    expect(groupFooterWords(작은갈래, 999).shown).toBe("이 갈래 999건 전부");
+    expect(groupFooterWords(작은갈래, 100, 999).shown).toBe("정상 100건 + 안 맞아서 뺀 999건 표시 중");
+    expect(groupFooterWords(작은갈래, 100).excluded).toBe("안 맞아서 뺀 999건 보기");
   });
 });
 

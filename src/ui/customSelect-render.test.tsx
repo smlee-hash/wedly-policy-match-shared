@@ -66,6 +66,35 @@ describe("CustomSelect — 안쪽 단추에 클래스를 주는 길(controlClass
     }
   });
 
+  /**
+   * ★독립 검사 지적 ④(2026-09-04) — 조작줄 글자 크기가 3종이었다(알약 13 · 칩 11 · **셀렉트 14** ·
+   *  라벨 11). 셀렉트만 부품 기본 `text-sm`(14px)이라 혼자 컸다.
+   *
+   *  높이와 **같은 길**(`controlClassName`)로 크기도 줄 수 있는지가 관건이었다. 이 저장소의
+   *  `cn`(`@wedly/ui-shared/src/ui/cn.ts`)은 WEDLY 글자 여섯 층을 「글자 크기」 무리로 등록해 두어서,
+   *  `text-wedly-sub` 가 들어오면 합치기 도구가 `text-sm` 을 **지운다**. 등록이 없으면 도구가
+   *  `text-...` 를 전부 「글자 색」으로 보고 **둘 다 내보내** 어느 쪽이 이길지는 Tailwind 가 만든
+   *  CSS 차례가 정한다(= 조용히 안 먹는다). 그래서 「지워졌는지」를 직접 잰다.
+   */
+  it("controlClassName 으로 글자 크기도 먹는다 — 부품 기본 text-sm 이 실제로 지워진다", () => {
+    const cls = 단추클래스(그린다({ controlClassName: "flex h-9 items-center py-0 text-wedly-sub" }));
+    expect(cls, "13px 층이 안 붙었다").toContain("text-wedly-sub");
+    expect(cls, "부품 기본 14px(text-sm)이 안 지워졌다 — 두 크기가 함께 나가 조용히 안 먹는다").not.toContain("text-sm");
+    // 높이·정렬은 함께 먹고, 겉모습 나머지는 그대로다
+    expect(cls, "높이가 안 붙었다").toContain("h-9");
+    for (const 그대로 of ["border-wedly-bd", "rounded-xl", "pr-8", "px-3", "text-wedly-t1"]) {
+      expect(cls, `${그대로} 가 사라졌다`).toContain(그대로);
+    }
+  });
+
+  it("★기본값 불변 — 값을 안 주면 글자 크기가 여전히 14px 이다(다른 45개 화면)", () => {
+    const 기본 = 단추클래스(그린다());
+    expect(기본, "부품 기본 글자 크기가 13px 로 내려갔다 — ERP 43·일루아 2 화면이 함께 바뀐다").toContain("text-sm");
+    expect(기본, "부품 기본에 13px 층이 새어 들어갔다").not.toContain("text-wedly-sub");
+    // 어떤 이름으로 불러도 기본은 같다 — `className` 은 겉 div 로만 가므로 안쪽 크기를 못 바꾼다
+    expect(단추클래스(그린다({ className: "text-wedly-sub" })), "className 이 안쪽 글자 크기를 바꿨다").toBe(기본);
+  });
+
   it("className 은 겉 div 로만 간다 — 두 길이 서로 섞이지 않는다", () => {
     const html = 그린다({ className: "min-w-[8.5rem]", controlClassName: "h-9" });
     const 겉 = html.slice(0, html.indexOf("<button"));

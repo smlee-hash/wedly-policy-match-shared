@@ -84,13 +84,23 @@ export interface FundingItem {
 
 export interface FundingGroupBlock {
   group: FundingGroup;
-  /** 이 갈래의 **정상**(맞음+확인 필요) 건수 — 안 맞음은 아래 `excluded` 가 따로 센다(11차 #2). */
+  /**
+   * 이 갈래 **카드에 남는** 정상(맞음+확인 필요) 건수 = 화면 딱지에 찍히는 수.
+   * 안 맞음은 아래 `excluded` 가 따로 세고(11차 #2), 「종류 미확인」은 **빠진다**(독립 검사 ③) —
+   * 그 줄은 화면이 맨 아래 「종류 미확인」 블록으로 옮기므로 이 카드에 남지 않는다.
+   * 그래서 갈래 `total` 의 합 + 「종류 미확인」 건수 = 조립이 내는 `totals.filtered` 다.
+   */
   total: number;
   fit: number;
   unverified: number;
   excluded: number;
   soon: number;
-  /** 정상 항목만, 정렬 뒤 topN. 안 맞음은 절대 섞이지 않는다(11차 #2). */
+  /**
+   * 정상 항목만, 정렬 뒤 topN. 안 맞음은 절대 섞이지 않는다(11차 #2).
+   * ★뒤에 이 갈래의 「종류 미확인」 줄이 **따로 잘려**(같은 정렬·같은 topN) 붙는다 — 화면이 맨 아래
+   *  블록으로 옮겨 그리는 줄들이라, 세는 칸(`total`·`fit`·`unverified`·`soon`)에는 안 들어간다.
+   *  그러므로 `items.length` 는 `total` 과 다를 수 있다(미확인이 있으면 더 크다).
+   */
   items: FundingItem[];
   truncated: boolean;
   /**
@@ -101,11 +111,28 @@ export interface FundingGroupBlock {
   excludedItems?: FundingItem[];
 }
 
+/**
+ * 숫자 카드 4칸. **모집단은 두 가지뿐**이고 둘 다 「지금 화면에 보여 주는 목록」이다(`glanceOf` 주석):
+ * 시간 칸(open·soon)은 정상 전체, 갈래 낱말을 쓰는 칸(grantFit·grantMaxWon·minRate)은 정상에서
+ * 「종류 미확인」을 뺀 것 = 갈래 카드 딱지와 같은 모집단.
+ *
+ * ★**칩(openOnly·soonOnly)에 따라 움직이지 않는다**(독립 검사 ①) — 조립이 칩을 거치기 전 목록으로
+ *  센다. 화면 부품 주석의 계약(「숫자는 서버가 전체 자료로 센 값」)이 이것이다.
+ */
 export interface FundingGlance {
+  /** 지금 넣을 수 있는 건수(마감 안 지남·접수 시작함). 「종류 미확인」 줄도 센다. */
   open: number;
+  /** 7일 안에 마감되는 건수. 「종류 미확인」 줄도 센다. */
   soon: number;
+  /**
+   * 무상(grant) 갈래 건수 = **무상 갈래 카드 딱지와 같은 수**.
+   * ★이름은 「맞음만(fit)」이던 옛 뜻이 남은 것이다 — 값은 정상(맞음 + 확인 필요)에서 종류 미확인을
+   *  뺀 수다(독립 검사 ②). 이름 고치기는 화면과 한 커밋이어야 해 통합 단계 몫이다.
+   */
   grantFit: number;
+  /** 위 모집단에서 가장 큰 무상 한도(원). 아는 금액이 없으면 null — 0 으로 지어내지 않는다. */
   grantMaxWon: number | null;
+  /** 위와 같은 모집단(종류 확인된 정상)에서 가장 낮은 이자(%). 아는 이자가 없으면 null. */
   minRate: number | null;
 }
 
@@ -540,32 +567,41 @@ export function sortItems(items: FundingItem[], sort: FundingSort): FundingItem[
 }
 
 /**
- * 「맞는 것」 = fitVerdict 가 fit 인 것만(G3① — 2026-09-03 코덱스 지적). 예전엔 안 맞음(excluded)만
- * 뺐는데, 그러면 사람이 아직 안 본 확인 필요(unverified)가 한눈에 4칸에 「이미 맞다고 확인됨」인 것처럼
- * 섞여 금액·이자 숫자가 부풀려진다 — glance 숫자는 언제나 fit 만 센다(재설계 계약 G1② — glance 는
- * includeExcluded 필터와 무관하게 필터 뒤 fit 기준을 그대로 유지, 예전 fitOnly 좁히기와 같은 뜻).
- */
-function isFit(it: FundingItem): boolean {
-  return it.fitVerdict === "fit";
-}
-
-/**
- * ★한눈에 4칸은 **정상(맞음+확인 필요)만** 센다(코덱스 11차 #16, 2026-09-04). 예전엔 부르는 쪽이
- * 넘긴 목록을 그대로 셌는데, `includeExcluded` 를 켜면 안 맞음까지 섞여 「지금 신청 가능 412건」이
- * 사람이 넣을 수도 없는 건수를 말했다. 이제 이 함수가 스스로 안 맞음을 뺀다 — 부르는 쪽이 무엇을
- * 넘겨도 이 숫자는 「넣을 수 있는 건수」다(grantFit·minRate 는 원래도 fit 만 봤다).
+ * ★한눈에 4칸은 **「지금 화면에 보여 주는 목록」 하나를** 센다(브라우저 독립 검사 ②, 2026-09-04).
+ *
+ * 배포본에서 숫자 카드 「안 갚아도 되는 돈 **0건**」이 40px 아래 갈래 카드 「안 갚아도 되는 돈
+ * **6,287건**」과 나란히 떴다 — 글자는 같은데 타일은 맞음(fit)만, 갈래 카드는 그 갈래 **정상 전체**
+ * (맞음 + 확인 필요)를 세고 있었다. 상담사는 그 0건을 「이 회사는 받을 게 없다」로 읽는다.
+ * 「가장 낮은 이자」가 「—」인데 대출 갈래에 479건이 앉아 있던 모순도 원인이 같았다(맞음 0건 →
+ * 고를 이자가 없다). 그래서 옛 「맞음만 센다」(G3①·2026-09-03)를 버리고 **갈래 카드와 같은 모집단**
+ * 으로 맞췄다 — 같은 낱말이면 같은 수여야 뜻이 생긴다.
+ *
+ * 모집단 규칙(`groupBlocks` 의 `total` 과 **한 글자도 다르지 않게** 유지한다):
+ *  ⓐ 안 맞음(excluded)은 뺀다 — 목록에도 없다(코덱스 11차 #16). 부르는 쪽이 섞어 넘겨도 이 함수가 뺀다.
+ *  ⓑ 확인 필요(unverified)는 **센다** — 갈래 카드가 세고, 카드로 실제로 그려진다.
+ *  ⓒ 「종류 미확인」(`unclassified`)은 **갈래 낱말을 쓰는 칸**(무상 건수·무상 최대 금액·최저 이자)에서
+ *    뺀다. 화면이 그 줄을 갈래 카드에서 빼 맨 아래 전용 블록으로 옮기기 때문이다
+ *    (`ui/FundingMap.tsx` 의 `classifiedGroupItems`) — 옮긴 뒤 기준으로 세야 타일이 딱지와 맞는다.
+ *    반대로 「지금 신청 가능」·「7일 안에 마감」은 그 줄도 **센다** — 미확인 블록에 그려져 사람이 넣을 수
+ *    있는 건수이고, 그 두 낱말은 갈래를 말하지 않는다.
+ *  ⓓ 열림(isOpen)으로 **더 좁히지 않는다** — 갈래 카드 딱지는 마감이 지난 줄·접수 예정 줄도 세므로,
+ *    여기서만 빼면 두 수가 다시 갈린다. 시간은 위 두 칸이 맡는다.
+ *
+ * ★칸 이름 `grantFit` 은 「맞음만」이던 옛 뜻이 남은 이름이다 — 값은 위 기준(정상·종류 확인됨)이다.
+ *  이름을 고치면 화면(`ui/FundingMap.tsx`)과 한 커밋이어야 해서 통합 단계로 미뤘다.
+ *
+ * ★**칩(openOnly·soonOnly)을 거치기 전 목록**을 받는 것은 부르는 쪽 책임이다(독립 검사 ①) —
+ *  `build/funding-map-build.ts` 의 `glancePool` 주석에 어느 배열인지와 근거가 있다.
  */
 export function glanceOf(items: FundingItem[]): FundingGlance {
   const normal = items.filter((it) => it.fitVerdict !== "excluded");
-  const open = normal.filter(isOpen);
-  const grant = open.filter((it) => it.group === "grant" && isFit(it));
+  // 갈래 카드에 **남는** 줄 — 미확인은 화면이 맨 아래 블록으로 옮기므로 갈래 낱말을 쓰는 칸에서 뺀다(ⓒ).
+  const carded = normal.filter((it) => !it.unclassified);
+  const grant = carded.filter((it) => it.group === "grant");
   const amounts = grant.map((it) => it.amountMaxWon).filter((v): v is number => typeof v === "number");
-  const rates = open
-    .filter(isFit)
-    .map((it) => it.rateMin)
-    .filter((v): v is number => typeof v === "number");
+  const rates = carded.map((it) => it.rateMin).filter((v): v is number => typeof v === "number");
   return {
-    open: open.length,
+    open: normal.filter(isOpen).length,
     soon: normal.filter(isSoon).length,
     grantFit: grant.length,
     grantMaxWon: amounts.length ? Math.max(...amounts) : null,
@@ -609,16 +645,28 @@ export function groupBlocks(items: FundingItem[], opts: GroupBlockOptions = {}):
   const pool = (opts.excludedPool ?? items).filter((it) => it.fitVerdict === "excluded");
   return FUNDING_GROUPS.map((group) => {
     const mine = items.filter((it) => it.group === group && it.fitVerdict !== "excluded");
+    // ★셈은 **이 카드에 실제로 남는 줄**로 한다(브라우저 독립 검사 ③, 2026-09-04). 배포본에서 딱지
+    //  「181건」 + 본문 「지금 조건에 맞는 항목이 없습니다」 + 발치 「이 갈래 181건 중 0건만 보여 드림」
+    //  이 한 카드에 **동시에** 떴다 — 그 갈래 줄이 전부 「종류 미확인」이라 화면이 맨 아래 전용 블록으로
+    //  옮겼는데(`ui/FundingMap.tsx` 의 `classifiedGroupItems`) 딱지·발치는 옮긴 것을 그대로 셌다.
+    //  옮기는 규칙을 아는 것은 서버도 마찬가지(`it.unclassified`)이니 셈을 서버에서 맞춘다.
+    const carded = mine.filter((it) => !it.unclassified);
+    // 화면이 「종류 미확인」 블록으로 옮길 줄 — 셈에선 빠지지만 `items` 에는 **반드시 실어 보낸다**.
+    // 빼면 화면이 그 줄을 어디서도 못 그린다(그 블록은 갈래 칸의 `items` 에서 모아 온다).
+    const parked = mine.filter((it) => it.unclassified);
     const excludedMine = pool.filter((it) => it.group === group);
     const block: FundingGroupBlock = {
       group,
-      total: mine.length,
-      fit: mine.filter((it) => it.fitVerdict === "fit").length,
-      unverified: mine.filter((it) => it.fitVerdict === "unverified").length,
+      total: carded.length,
+      fit: carded.filter((it) => it.fitVerdict === "fit").length,
+      unverified: carded.filter((it) => it.fitVerdict === "unverified").length,
       excluded: excludedMine.length,
-      soon: mine.filter(isSoon).length,
-      items: sortItems(mine, sort).slice(0, topN),
-      truncated: mine.length > topN,
+      soon: carded.filter(isSoon).length,
+      // 미확인 줄은 **뒤에 따로** 잘려 붙는다 — 카드와 「종류 미확인」 블록은 서로 다른 상자라 한 상한을
+      // 나눠 갖지 않는다(`excludedItems` 와 같은 규칙). 한 상한을 나누면 갈래가 꽉 찬 순간 미확인 블록이
+      // 조용히 비고, 섞어 세우면 미확인이 카드 앞자리를 차지한다.
+      items: [...sortItems(carded, sort).slice(0, topN), ...sortItems(parked, sort).slice(0, topN)],
+      truncated: carded.length > topN,
     };
     if (opts.includeExcluded) block.excludedItems = sortItems(excludedMine, sort).slice(0, topN);
     return block;
@@ -775,6 +823,15 @@ export function repayWords(it: FundingItem): { label: string; value: string } {
 }
 
 /**
+ * 화면에 나가는 **건수** 표기 — 천 단위 쉼표(`2,482`). 머리 딱지·조작줄과 같은 도우미
+ * (`ui/FundingMap.tsx` 의 같은 이름)를 쓰던 자리들과 아래 줄이 같은 수를 다른 모양으로 찍던 것을
+ * 막는다(브라우저 독립 검사 [낮음], 2026-09-04).
+ *
+ * ★**일·월·연도에는 쓰지 않는다** — `2024년` 이 `2,024년` 이 된다(설립연도·마감일 자리는 날값 그대로).
+ */
+const 건수 = (n: number): string => n.toLocaleString("ko-KR");
+
+/**
  * 갈래 카드 아래 줄 — 왼쪽(shown)은 몇 건을 보여 주고 있는지, 오른쪽(excluded)은 안 맞아서 뺀
  * 건수를 여는 단추 글자(없으면 null — 화면이 단추 자체를 안 그린다).
  *
@@ -793,11 +850,11 @@ export function groupFooterWords(
 ): { shown: string; excluded: string | null } {
   const shown =
     excludedShown > 0
-      ? `정상 ${shownCount}건 + 안 맞아서 뺀 ${excludedShown}건 표시 중`
+      ? `정상 ${건수(shownCount)}건 + 안 맞아서 뺀 ${건수(excludedShown)}건 표시 중`
       : block.total === 0 ? "이 갈래에 지금 맞는 항목 없음" : shownCount === block.total
-        ? `이 갈래 ${block.total}건 전부`
-        : `이 갈래 ${block.total}건 중 ${shownCount}건만 보여 드림`;
-  const excluded = block.excluded > 0 ? `안 맞아서 뺀 ${block.excluded}건 보기` : null;
+        ? `이 갈래 ${건수(block.total)}건 전부`
+        : `이 갈래 ${건수(block.total)}건 중 ${건수(shownCount)}건만 보여 드림`;
+  const excluded = block.excluded > 0 ? `안 맞아서 뺀 ${건수(block.excluded)}건 보기` : null;
   return { shown, excluded };
 }
 

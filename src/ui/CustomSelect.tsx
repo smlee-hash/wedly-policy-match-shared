@@ -38,6 +38,12 @@ interface CustomSelectProps {
    *  그건 승인된 범위가 아니다. 그래서 **부르는 쪽에서만** 높이를 준다.
    *  부품 전체를 정본 높이로 수렴시키는 일은 **별도 승인이 필요한 후속**이다.
    *
+   * ★높이뿐 아니라 **글자 크기**도 이 길로 간다(2026-09-04 확인, 독립 검사 지적 ④).
+   *  `cn`(`@wedly/ui-shared/src/ui/cn.ts`)이 WEDLY 글자 여섯 층을 「글자 크기」 무리로 등록해 두어
+   *  `text-wedly-sub` 가 들어오면 아래 `BASE_CONTROL` 의 `text-sm` 을 **지운다** — 조작줄에서
+   *  이 부품만 14px 이라 혼자 컸던 것을 부품 기본을 건드리지 않고 고칠 수 있었다.
+   *  실제로 지워지는지는 `customSelect-render.test.tsx` 가 그려 낸 클래스에서 잰다.
+   *
    * 값을 안 주면 `cn` 을 아예 안 태워 지금까지와 **글자 하나 같은** 클래스가 나간다(기본 불변).
    */
   controlClassName?: string;

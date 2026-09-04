@@ -734,8 +734,12 @@ export interface FundingMapResult extends FundingMapData {
      */
     all: number;
     /**
-     * 칩으로 거르고 겹친 상품을 접은 뒤 남은 **정상** 건수 = 갈래 칸 `total` 의 합.
+     * 칩으로 거르고 겹친 상품을 접은 뒤 남은 **정상** 건수 = 갈래 칸 `total` 의 합
+     * **+ 「종류 미확인」 건수**(`unclassified`).
      *
+     * ★미확인을 더해야 맞는다(독립 검사 ③, 2026-09-04) — 갈래 칸 `total` 은 이제 그 카드에 **남는**
+     *  줄만 센다(미확인 줄은 화면이 맨 아래 전용 블록으로 옮긴다). 이 수는 그 옮김과 무관하게
+     *  「화면에 그려질 수 있는 정상 줄 전부」다.
      * ★안 맞음은 이 수에 안 들어간다(코덱스 11차 #2, 2026-09-04) — `includeExcluded` 를 켜도
      *  그대로다. 안 맞음 건수는 갈래 칸 `excluded` 를 더해 센다(그 수는 갈래별로 따로 필요하다).
      */
@@ -786,6 +790,26 @@ export async function buildFundingMap(
   //  안 맞음 풀의 접기보다 **먼저** 돌아야 한다(뒤로 미루면 표식이 이미 붙어 개수가 틀린다).
   const allCount = foldTwinProducts(items, false).length;
 
+  // ★한눈에 4칸(`glance`)이 셀 목록 — **칩을 거치기 전**이다(브라우저 독립 검사 ①, 2026-09-04).
+  //  배포본에서 「7일 안에 마감되는 것만」을 켜면 「지금 신청 가능」이 3,392 → 195 로 바뀌어 **옆 칸**
+  //  (「7일 안에 마감」 195)과 **같은 수**가 됐다. 두 칸이 같은 수를 말하면 4칸이 아무 뜻이 없고,
+  //  화면 부품 주석의 계약(「숫자는 서버가 전체 자료로 센 값」)과도 어긋났다.
+  //
+  //  **어느 배열인가**: 「칩 없이 안 맞음만 뺀 뒤 겹친 상품을 접은 것」. 후보 셋 중 이것을 골랐다.
+  //   ⓐ `items`(칩·접기 전) — 같은 사업이 공고와 상시 상품 두 줄로 있으면(소공인특화자금 등) **두 번**
+  //     세어, 지도·표에 없는 건수를 타일이 말하고 발 hint 의 「전체 K건」(접은 뒤)과도 어긋난다.
+  //   ⓑ `judged`(= filtered + excludedPool) — 이름은 「판정 끝난 전체」지만 `splitByFit` 이 **칩을 먼저**
+  //     걸어 만든 두 풀이라 이미 칩을 거쳤다. ①을 아예 못 고친다.
+  //   ⓒ 이것 — 판정은 항목을 만들 때 전부 끝났으므로(`itemOfAnnouncement`·`itemOfProduct` 가 `fitVerdict`
+  //     를 박아 준다) 「칩 없이 안 맞음만 뺀 것」이 곧 **그 회사에 대해 판정을 끝낸 전체**다.
+  //     접기를 **정상 풀 안에서만** 하는 것도 화면과 같다 — `items` 를 통째로 접으면 안 맞음 공고가
+  //     맞는 쌍둥이 상품을 삼켜(그 상품은 화면 정상 목록에 그려지는데도) 타일이 모자라게 센다.
+  //  칩이 하나도 안 켜졌을 때 이 배열은 아래 `shown` 과 **정확히 같다** — 그래서 기본 화면에서
+  //  타일 숫자 = 갈래 카드 딱지 합이 성립한다(독립 검사 ②의 시험이 이것을 못 박는다).
+  //  ★`mark:false` 로 접는다 — 표식(relatedProductId)을 남기는 접기보다 **먼저** 돌아야 한다
+  //   (`foldTwinProducts` 주석: 표식이 이미 붙어 있으면 접지 않아 개수가 틀린다).
+  const glancePool = foldTwinProducts(splitByFit(items, NO_FILTERS).normal, false);
+
   const filters: FundingFilters = { ...NO_FILTERS, ...(opts.filters ?? {}) };
   // ★차례가 뜻이다(코덱스 11차 #2·#3·#4, 2026-09-04): ① 다른 칩(열린 것만·7일 내 마감)을 **먼저**
   //  걸고 ② 통과한 것만 정상(맞음+확인 필요)/안 맞음 두 풀로 나눈다. 아래 겹친 상품 접기·집계·
@@ -811,13 +835,11 @@ export async function buildFundingMap(
   const judged = [...filtered, ...excludedPool];
   const profileGaps = usedProfileGapsOf(profile, judged, gapLabelsByItem);
 
-  const glance = glanceOf(shown);
-  if (unclassified > 0) {
-    // 미분류는 grant 칸에 얹혀 있을 뿐이다 — 「안 갚아도 되는 돈」 집계에 넣으면 없는 지원금이 부풀려진다.
-    const real = glanceOf(shown.filter((it) => !it.unclassified));
-    glance.grantFit = real.grantFit;
-    glance.grantMaxWon = real.grantMaxWon;
-  }
+  // 칩을 거치기 전 목록으로 센다(위 `glancePool` 주석 = 독립 검사 ①).
+  // ★「종류 미확인」을 무상 집계에서 빼는 손질은 **`glanceOf` 안으로 옮겼다**(독립 검사 ②) — 여기서
+  //  칸 두 개(grantFit·grantMaxWon)만 덧쓰던 예전 방식은 최저 이자(minRate)를 빠뜨렸고, 부르는 쪽이
+  //  기억해야 하는 규칙이라 잊으면 조용히 어긋났다. 이제 모집단 규칙이 그 함수 하나에만 있다.
+  const glance = glanceOf(glancePool);
 
   return {
     // ★안 맞음은 **별도 풀**로 넘긴다(코덱스 11차 #2·#3, 2026-09-04). 예전 `allItems`(필터 전 전체)는
