@@ -1054,9 +1054,42 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     expect(html, "옛 「대조 기준」 문구").not.toContain("대조 기준");
     expect(html, "옛 「대조에 쓴 정보」 문구").not.toContain("대조에 쓴 정보");
 
+    // ★코덱스 5차 #1 — 쓸 정보 0개여도 카드는 그린다(값이 「없음 — …」이라 라벨+값이 늘 찬다).
     const 빈띠 = 그린다({ data: 자료(항목8, { usedProfile: [], profileGaps: [] }) });
-    expect(빈띠, "판정에 쓴 값도 빈칸 힌트도 없으면 카드 자체를 안 그린다").not.toContain(띠.label);
-    expect(빈띠).not.toContain("입력해 주세요");
+    expect(빈띠, "쓸 정보 0개인데 머리 카드가 사라졌다").toContain(띠.label);
+    expect(빈띠, "빈 칸이 없으니 「입력해 주세요」는 안 나온다").not.toContain("입력해 주세요");
+  });
+
+  /**
+   * ★코덱스 5차 #1·#4(2026-09-04) — 「조건을 안 맞춰 봤다」는 사실을 **머리 카드 위 구역이** 말한다.
+   *  예전엔 `usedProfile` 이 빈 배열이면 값이 빈 문자열이라 이 구역을 통째로 안 그렸고, 그래서
+   *  ⓐ 조건을 하나도 안 맞춘 목록이 맞춤 추천처럼 보였고 ⓑ 손잡이만 덩그러니 남은 빈 구역이 생겼다.
+   */
+  it("⑪-d 판정에 쓴 정보가 0개면 위 구역이 「조건을 맞춰 보지 않은 목록」이라고 말한다 — 빈 구역이 아니다", () => {
+    const 없음 = profileBandParts([]);
+    const 손잡이 = (
+      <button type="button" data-probe="refresh">
+        다시 추천
+      </button>
+    );
+    const 카드 = 머리카드(그린다({ data: 자료(항목8, { usedProfile: [] }), headerAction: 손잡이 }));
+
+    expect(카드, "라벨 줄이 없다").toContain(없음.label);
+    expect(카드, "값이 비어 구역이 안 그려졌다").toContain(없음.value);
+    expect(없음.value).toBe("없음 — 조건을 맞춰 보지 않은 목록입니다");
+
+    // ④ 단추만 있는 빈 구역이 아니다 — 라벨·값·손잡이가 한 구역에 함께 있고 차례도 그대로다
+    const i라벨 = 카드.indexOf(없음.label);
+    const i손잡이 = 카드.indexOf('data-probe="refresh"');
+    const i값 = 카드.indexOf(없음.value);
+    expect(i라벨, "라벨이 없다").toBeGreaterThan(-1);
+    expect(i손잡이, "손잡이가 라벨보다 앞에 있다").toBeGreaterThan(i라벨);
+    expect(i값, "값이 손잡이 위로 올라갔다").toBeGreaterThan(i손잡이);
+    expect(카드, "손잡이만 오른쪽 끝에 둔 빈 구역이 남아 있다").not.toContain('class="flex justify-end p-3"');
+
+    // 파랑 아이콘 타일·굵기 600 한 줄은 이 자리에서도 그대로다(「카드 안쪽도 위계」 ㉠㉡)
+    expect(카드).toContain("h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wedly-accent");
+    expect((카드.match(/font-semibold/g) ?? []).length, "굵기 600 줄이 모자란다").toBeGreaterThanOrEqual(1);
   });
 
   /**

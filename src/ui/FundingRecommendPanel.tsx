@@ -159,14 +159,16 @@ export function viewState(
  *  하나만 맡고, 「무엇을 입력해 달라」는 머리 카드 한 곳에서만 말한다.
  * ★찾은 고객의 「판정에 쓴 정보」도 지도 머리 카드가 그린다 — 여기서 겹쳐 적지 않는다.
  *  (`usedProfile` 은 부르는 쪽 모양을 안 바꾸려고 그대로 받되 읽지 않는다.)
+ * ★`matchedCompany` 는 **없는 칸(undefined)도 못 찾음(null)과 같게** 다룬다(코덱스 5차 #1 타입 구멍).
+ *  통로가 그 칸을 아예 안 실어 보내면 예전엔 `=== null` 이 거짓이라 안내가 통째로 사라졌다.
  */
 export function ProfileNotice({
   matchedCompany,
 }: {
-  matchedCompany: string | null;
+  matchedCompany: string | null | undefined;
   usedProfile: string[];
 }) {
-  if (matchedCompany !== null) return null;
+  if ((matchedCompany ?? null) !== null) return null;
   return (
     <div className="mb-2 break-keep rounded-lg border border-wedly-bd bg-wedly-bg-yellow px-3 py-2 text-xs">
       <p className="font-semibold text-wedly-t1">이 사업장 정보를 찾지 못했어요</p>
@@ -220,8 +222,8 @@ export function RecommendPanel({
 }: RecommendPanelProps) {
   return (
     <div>
-      {data && data.matchedCompany === null && (
-        <ProfileNotice matchedCompany={data.matchedCompany ?? null} usedProfile={data.usedProfile ?? []} />
+      {data && (data.matchedCompany ?? null) === null && (
+        <ProfileNotice matchedCompany={data.matchedCompany} usedProfile={data.usedProfile ?? []} />
       )}
       <FundingMap
         data={data}
@@ -247,9 +249,15 @@ export function RecommendPanel({
           </button>
         }
       />
+      {/* 발 안내 — ★「자동 대조 결과입니다」는 **조건을 실제로 맞춰 봤을 때만** 참이다(코덱스 5차 #1).
+          판정에 쓴 정보가 0개면 아무 조건도 안 맞춰 본 목록이라 이 말이 거짓이 된다. 그 자리는
+          머리 카드가 「없음 — 조건을 맞춰 보지 않은 목록입니다」로 이미 말하므로, 여기서는 같은 말을
+          되풀이하지 않고 **늘 참인 뒷부분만** 남긴다. */}
       {data && (
         <p className="mt-3 break-keep text-xs text-wedly-muted">
-          자동 대조 결과입니다 — 최종 자격은 공고 원문에서 확인하세요.
+          {(data.usedProfile ?? []).length === 0
+            ? "최종 자격은 공고 원문에서 확인하세요."
+            : "자동 대조 결과입니다 — 최종 자격은 공고 원문에서 확인하세요."}
         </p>
       )}
       <FundingDrawer item={drawerItem} onClose={onCloseDrawer} onOpenDetail={onOpenDetail} />

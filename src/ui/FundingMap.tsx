@@ -1103,7 +1103,13 @@ export default function FundingMap({
   // 「다시 추천」 같은 손잡이는 **어느 상태에서도** 남는다(화면 독립 검사 2026-08-30 지적 F —
   // 배포 교체 창의 일시 502 뒤 사용자가 복구할 길이 상세창을 닫았다 여는 것뿐이었다).
   // 뼈대·오류·자료 없음에는 손잡이를 얹을 머리 카드가 없으므로 오른쪽 끝 한 줄로 둔다.
-  const 손잡이줄 = headerAction ? <div className="mb-2 flex justify-end">{headerAction}</div> : null;
+  //
+  // ★재조회 중에도 **누를 수 있게** 감싼다(코덱스 5차 #3, 2026-09-04). 자료를 쥔 채 다시 부르는
+  //  동안 맨 아래 감싸개가 지도 전체를 `pointer-events-none` 으로 잠그는데, 그 안에 든 이 손잡이까지
+  //  같이 죽으면 멈췄을 때 복구할 길이 사라진다 — 지적 F 가 그대로 되살아난다. `pointer-events` 는
+  //  상속되므로 자손에서 `auto` 로 되돌리면 이 손잡이만 살아난다(흐림·나머지 잠금은 그대로).
+  const 손잡이 = headerAction ? <span className="pointer-events-auto inline-flex">{headerAction}</span> : undefined;
+  const 손잡이줄 = 손잡이 ? <div className="mb-2 flex justify-end">{손잡이}</div> : null;
 
   // 뼈대는 **첫 로딩만**. 이미 본 자료가 있으면 칩 하나 눌렀다고 화면이 사라지지 않게 흐리게 두고 바꾼다.
   if (loading && !data) {
@@ -1163,7 +1169,7 @@ export default function FundingMap({
         selectedId={selectedId}
         compact={compact}
         now={now ?? new Date()}
-        headerAction={headerAction}
+        headerAction={손잡이}
         onOpen={openItem}
         onView={setView}
         onFiltersChange={onFiltersChange}

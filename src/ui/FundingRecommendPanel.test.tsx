@@ -243,6 +243,70 @@ describe("추천 정책 탭 — 자금 조달 지도", () => {
   });
 
   /**
+   * ★코덱스 5차 #1(2026-09-04) — 「조건을 안 맞춰 봤다」는 사실이 화면에서 사라졌던 자리.
+   *  ⓐ 머리 카드 위 구역이 그 사실을 말하고 ⓑ 발 안내의 「자동 대조 결과입니다」는 **참일 때만** 쓴다.
+   *  판정에 쓴 정보가 0개면 아무 조건도 안 맞춰 본 목록이라 그 말이 거짓이 된다.
+   */
+  it("판정에 쓴 정보가 0개면 「조건을 맞춰 보지 않은 목록」이라 밝히고 「자동 대조 결과」라고 하지 않는다", () => {
+    const 없음값 = profileBandParts([]).value;
+    const html = 판({ data: 자료({ usedProfile: [] }) });
+    expect(html, "위 구역이 그 사실을 말해야 한다").toContain(없음값);
+    expect(없음값).toBe("없음 — 조건을 맞춰 보지 않은 목록입니다");
+    expect(html, "조건을 안 맞춰 본 목록을 「자동 대조 결과」라고 한다").not.toContain("자동 대조 결과입니다");
+    expect(html, "늘 참인 뒷부분은 남는다").toContain("최종 자격은 공고 원문에서 확인하세요.");
+    expect(세기(html, "최종 자격은 공고 원문에서 확인"), "같은 말이 두 번 나온다").toBe(1);
+
+    // 실제로 맞춰 본 자료에서는 예전 문구 그대로다 — 조건을 좁혀 놓고 늘 빼 버리지 않는다
+    const 맞춤 = 판();
+    expect(맞춤).toContain("자동 대조 결과입니다 — 최종 자격은 공고 원문에서 확인하세요.");
+    expect(맞춤).not.toContain(없음값);
+  });
+
+  /**
+   * ★타입 구멍(코덱스 5차 #1) — `matchedCompany` 는 선택 칸이라 통로가 아예 안 실어 보낼 수 있다.
+   *  예전 `=== null` 비교는 그 경우를 「찾았다」로 읽어 안내가 통째로 사라졌다.
+   */
+  it("matchedCompany 가 없는 칸(undefined)이어도 null 과 같게 「찾지 못했어요」가 뜬다", () => {
+    const 없는칸 = 자료({ usedProfile: [] });
+    delete (없는칸 as { matchedCompany?: string | null }).matchedCompany;
+    expect(없는칸.matchedCompany, "이 시험은 칸이 아예 없는 자료를 잰다").toBeUndefined();
+
+    const html = 판({ data: 없는칸 });
+    expect(html, "칸이 없다고 안내가 사라졌다").toContain("이 사업장 정보를 찾지 못했어요");
+    expect(html).toContain("조건 판정 없이 지금 열려 있는 자금만 보여 드립니다");
+    // 부품을 직접 불러도 같다
+    expect(renderToStaticMarkup(<ProfileNotice matchedCompany={undefined} usedProfile={[]} />)).toContain(
+      "이 사업장 정보를 찾지 못했어요",
+    );
+    expect(renderToStaticMarkup(<ProfileNotice matchedCompany={null} usedProfile={[]} />)).toContain(
+      "이 사업장 정보를 찾지 못했어요",
+    );
+    expect(renderToStaticMarkup(<ProfileNotice matchedCompany="삼영식품" usedProfile={[]} />)).toBe("");
+  });
+
+  /**
+   * ★코덱스 5차 #3(2026-09-04) — 자료를 쥔 채 다시 부르는 동안 지도 전체가 `pointer-events-none` 이
+   *  되는데, 「다시 추천」이 그 안으로 들어오면서 **멈췄을 때 복구할 길이 사라졌다**. 원래 계약은
+   *  「다시 추천은 어느 상태에서도 남는다」(화면 독립 검사 2026-08-30 지적 F)이고, 「남는다」는
+   *  보이기만 하는 것이 아니라 **눌린다**는 뜻이다.
+   */
+  it("재조회 중에도 「다시 추천」은 눌린다 — 흐림·잠금은 그대로", () => {
+    const html = 판({ loading: true });
+    expect(html, "재조회 중 흐려진다").toContain("opacity-60");
+    const i잠금 = html.indexOf("pointer-events-none");
+    const i풀림 = html.indexOf("pointer-events-auto");
+    expect(i잠금, "재조회 중 지도를 잠그는 자리가 없어졌다").toBeGreaterThan(-1);
+    expect(i풀림, "손잡이를 되살리는 자리가 없다 — 멈추면 복구할 길이 없다").toBeGreaterThan(i잠금);
+    // 「다시 추천」이 그 되살린 자리 **안**에 있어야 한다(감싸개가 닫히기 전에 나온다)
+    const 감싸개 = html.slice(i풀림);
+    expect(감싸개.slice(0, 감싸개.indexOf("</span>")), "「다시 추천」이 되살린 자리 밖에 있다").toContain(
+      "다시 추천",
+    );
+    // 나머지는 그대로 잠긴다 — 손잡이 하나만 살린 것이지 잠금을 걷어낸 것이 아니다
+    expect(html.indexOf("스마트상점 기술보급사업 3차"), "지도 본문이 사라졌다").toBeGreaterThan(i잠금);
+  });
+
+  /**
    * ★단추 하나가 한 줄을 통째로 쓰던 빈 줄을 없앤 자리(A안) — 「다시 추천」은 머리 카드 라벨 줄
    *  오른쪽 끝에 앉는다. 그래서 「카드 → 라벨 → 단추 → 값」 차례여야 한다.
    */

@@ -1067,12 +1067,23 @@ describe("profileBandParts — 판정 근거 띠를 라벨과 값 두 조각으�
     expect(parts.value).not.toContain(":");
   });
 
-  it("빈 배열이면 값이 빈 문자열 — 옛 profileBandWords 가 빈 문자열이던 것과 같은 뜻(라벨은 그대로)", () => {
-    expect(profileBandParts([])).toEqual({ label: "판정에 쓴 정보", value: "" });
+  /**
+   * ★코덱스 5차 #1(2026-09-04) — 예전엔 값이 **빈 문자열**이라 화면이 이 구역을 통째로 안 그렸고,
+   *  그래서 「조건을 하나도 안 맞춰 본 목록」이 아무 표식 없이 맞춤 추천처럼 보였다. 이제 이 자리가
+   *  결과의 성격을 직접 말한다 — 「입력해 주세요」(할 일)로는 대신할 수 없는 다른 정보다.
+   */
+  it("빈 배열이면 「없음 — 조건을 맞춰 보지 않은 목록입니다」 — 화면이 구역을 안 그리고 넘어가지 못한다", () => {
+    expect(profileBandParts([])).toEqual({
+      label: "판정에 쓴 정보",
+      value: "없음 — 조건을 맞춰 보지 않은 목록입니다",
+    });
+    expect(profileBandParts([]).value, "빈 문자열로 되돌아갔다 — 구역이 통째로 사라진다").not.toBe("");
+    expect(profileBandParts([]).value, "「입력해 주세요」(할 일)와 섞지 않는다").not.toContain("입력해");
+    // 옛 한 줄 함수는 그대로 빈 문자열 — 이 한 자리에서만 두 함수의 뜻이 갈린다
     expect(profileBandWords([])).toBe("");
   });
 
-  it("옛 한 줄 함수 = 이 함수의 값에 옛 앞머리만 붙인 것 — 두 벌로 갈라지지 않는다", () => {
+  it("옛 한 줄 함수 = 이 함수의 값에 옛 앞머리만 붙인 것(0개일 때만 예외) — 두 벌로 갈라지지 않는다", () => {
     const 입력들: string[][] = [
       [],
       ["지역 서울"],
@@ -1082,14 +1093,20 @@ describe("profileBandParts — 판정 근거 띠를 라벨과 값 두 조각으�
     ];
     for (const used of 입력들) {
       const { value } = profileBandParts(used);
-      expect(profileBandWords(used)).toBe(value === "" ? "" : `이 사업장 정보로 판정: ${value}`);
+      expect(profileBandWords(used)).toBe(used.length === 0 ? "" : `이 사업장 정보로 판정: ${value}`);
     }
   });
 });
 
 describe("gapParts — 빠진 칸 힌트를 「할 일 제목 + 본문」으로(A안)", () => {
-  /** 본문은 입력과 무관하게 늘 같은 한 줄이다. */
-  const 본문 = "입력하면 「확인 필요」 조건이 자동으로 판정됩니다";
+  /**
+   * 본문은 입력과 무관하게 늘 같은 한 줄이다.
+   *
+   * ★코덱스 5차 #2(2026-09-04) — 옛 본문(「입력하면 「확인 필요」 조건이 자동으로 판정됩니다」)은
+   *  **지킬 수 없는 약속**이었다. `profileGaps` 는 지금 공고들이 실제로 쓰는 조건과 무관하게 프로필의
+   *  빈 칸을 전부 나열하므로, 채워도 다른 이유로 「확인 필요」가 남을 수 있다.
+   */
+  const 본문 = "입력하면 조건을 더 정확하게 맞춰 볼 수 있어요";
 
   it("빠진 칸 0개면 null — 화면이 상자 자체를 안 그린다", () => {
     expect(gapParts([])).toBeNull();
@@ -1138,9 +1155,26 @@ describe("gapParts — 빠진 칸 힌트를 「할 일 제목 + 본문」으로(
     expect(title.split(", ")).toHaveLength(3);
   });
 
-  it("한글 음절이 아닌 글자로 끝나면 받침 없음으로 본다(영문·숫자)", () => {
-    expect(gapParts(["ROE"])?.title).toBe("ROE를 입력해 주세요");
-    expect(gapParts(["ROE", "매출 2024"])?.title).toBe("ROE와 매출 2024를 입력해 주세요");
+  /**
+   * ★코덱스 5차 #5(2026-09-04) — 예전엔 한글이 아닌 끝글자를 전부 「받침 없음」으로 봐서
+   *  「URL를 입력해 주세요」가 됐다(「URL을」이 맞다). 발음으로 받침을 맞히는 대신 **조사가 안 붙는
+   *  문장 모양**으로 바꿔 어떤 이름이 와도 늘 옳게 만든다 — 조사는 「정보」에 붙는다.
+   */
+  it("한글 음절이 아닌 이름이 섞이면 조사를 피해 「다음 정보를 입력해 주세요 — …」로 쓴다", () => {
+    expect(gapParts(["URL"])?.title).toBe("다음 정보를 입력해 주세요 — URL");
+    expect(gapParts(["URL"])?.title, "옛 결함(「URL를」)이 되살아났다").not.toContain("URL를");
+    expect(gapParts(["ROE"])?.title).toBe("다음 정보를 입력해 주세요 — ROE");
+    expect(gapParts(["ROE", "매출 2024"])?.title).toBe("다음 정보를 입력해 주세요 — ROE, 매출 2024");
+    // 하나라도 섞이면 전체가 이 모양이다 — 한글 이름에만 조사를 붙이고 나머지를 섞지 않는다
+    expect(gapParts(["업종", "ROE"])?.title).toBe("다음 정보를 입력해 주세요 — 업종, ROE");
+    expect(gapParts(["업종", "ROE"])?.title, "받침 조사가 섞였다").not.toContain("업종과");
+    expect(gapParts(["신용점수", "기존 대출 유무", "ROE"])?.title).toBe(
+      "다음 정보를 입력해 주세요 — 신용점수, 기존 대출 유무, ROE",
+    );
+    expect(gapParts(["URL"])?.body, "본문은 어느 모양에서도 같다").toBe(본문);
+    // 전부 한글이면 지금 모양 그대로다(이 갈래로 새지 않는다)
+    expect(gapParts(["업종", "연매출"])?.title).toBe("업종과 연매출을 입력해 주세요");
+    expect(gapParts(["업종", "연매출"])?.title).not.toContain("다음 정보를");
   });
 
   it("본문은 늘 같은 한 줄이고, 제목엔 사정 설명(「비어 있어」)이 없다 — 할 일만 말한다", () => {
@@ -1149,5 +1183,18 @@ describe("gapParts — 빠진 칸 힌트를 「할 일 제목 + 본문」으로(
     expect(gapParts(["신용점수", "기존 대출 유무", "직원 수"])?.body).toBe(본문);
     expect(gapParts(["업종", "연매출"])?.title).not.toContain("비어 있어");
     expect(gapParts(["업종", "연매출"])?.title).toMatch(/입력해 주세요$/);
+  });
+
+  /**
+   * ★코덱스 5차 #2 — 본문이 「자동으로 판정됩니다」처럼 **결과를 단정**하면 지킬 수 없는 약속이 된다.
+   *  `profileGaps` 는 지금 공고들이 실제로 쓰는 조건을 보지 않기 때문이다.
+   */
+  it("본문은 결과를 약속하지 않는다 — 「자동으로 판정」 같은 단정이 없다", () => {
+    for (const 칸 of [["신용점수"], ["업종", "연매출"], ["URL"], ["신용점수", "기존 대출 유무", "직원 수"]]) {
+      const body = gapParts(칸)?.body ?? "";
+      expect(body, "지킬 수 없는 약속이 되살아났다").not.toContain("자동으로 판정");
+      expect(body, "「확인 필요」가 반드시 풀린다고 단정한다").not.toContain("「확인 필요」");
+      expect(body, "채우면 무엇이 좋아지는지는 여전히 말한다").toContain("입력하면");
+    }
   });
 });
