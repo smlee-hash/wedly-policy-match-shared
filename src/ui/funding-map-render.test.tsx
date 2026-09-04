@@ -1057,6 +1057,26 @@ describe("자금 조달 지도 — 그려서 재기", () => {
   });
 
   /**
+   * ★코덱스 13차 #3·#4 — 16px 규칙이 **두 자리에서만** 깨져 있었다.
+   *  ⓐ 갈래 카드 격자와 「종류 미확인」 블록을 묶는 **바깥 상자**가 `gap-3` 로 남아, 화면 마지막
+   *     경계에서만 12px 이었다. ⓑ 로딩 **뼈대** 격자도 `gap-3` 라, 자료가 도착하는 순간 칸 간격이
+   *     4px 벌어져 열이 움직였다.
+   */
+  it("⑫-b 마지막 경계와 로딩 뼈대도 16px(gap-4)이다", () => {
+    const html = 그린다();
+    // ⓐ 카드 보기 안쪽 묶음 — 갈래 격자 바로 앞의 여는 태그를 잘라 본다
+    const 안쪽 = 조각(html, 'class="grid gap-4 sm:grid-cols-2', "<div");
+    const 바깥 = 조각(html.slice(0, html.indexOf(안쪽)), "flex flex-col gap", "<div");
+    expect(바깥, "갈래 격자·「종류 미확인」을 묶는 바깥 상자가 16px 이 아니다").toContain("flex flex-col gap-4");
+    expect(html, "마지막 경계 12px 가 남았다").not.toContain('<div class="flex flex-col gap-3"><div class="grid gap-4 sm:grid-cols-2');
+
+    // ⓑ 로딩 뼈대 격자
+    const 뼈대 = 지도({ data: null, loading: true });
+    expect(뼈대, "뼈대가 실제 격자와 같은 16px 이 아니다").toContain('class="grid gap-4 sm:grid-cols-2');
+    expect(뼈대, "뼈대에 옛 12px 가 남았다").not.toContain('class="grid gap-3 sm:grid-cols-2');
+  });
+
+  /**
    * ★2026-09-04 승인 시안 ③ — 조작줄 네 부품 높이가 알약 30 · 칩 26 · 셀렉트 42 · 단추 26 으로
    *  제각각이라 한 줄 안에서 서로 떠 보였다. 넷 다 정본 계단 `h-9`(36px)로 맞춘다.
    *  높이를 못 박았으니 글자는 `items-center` 로 **직접** 세로 가운데에 둔다(브라우저 기본 금지).
@@ -1088,14 +1108,82 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     expect(셀렉트, "셀렉트 글자가 세로 가운데가 아니다").toContain("items-center");
     expect(셀렉트, "옛 42px 짜리 위아래 여백이 남았다").not.toContain("py-2.5");
 
-    // ⓓ 「전체 공고 탐색」 단추
+    // ⓓ 「전체 공고 탐색」 단추 — 36px 은 **이 자리에서만** 준다(공유 상수 BTN_SM 은 26px 그대로).
     const 단추 = 조각(html, ">전체 공고 탐색<", "<button");
-    expect(단추, "단추가 36px 이 아니다").toContain("inline-flex h-9 items-center");
-    expect(단추, "단추에 옛 py-1 이 남았다").not.toContain("py-1");
+    expect(단추, "단추가 36px 이 아니다").toContain("h-9");
+    expect(단추, "단추 글자가 세로 가운데가 아니다").toContain("items-center");
 
     // ⓔ 「정렬」 라벨도 36px 줄 안에서 세로 가운데
     const 라벨 = 조각(html, ">정렬<", "<label");
     expect(라벨, "정렬 라벨이 36px 줄에 안 맞는다").toContain("inline-flex min-h-9 items-center");
+  });
+
+  /**
+   * ★코덱스 13차 #2 — 조작줄 단추 높이를 맞추려고 **공유 상수 `BTN_SM` 자체**를 26→36px 로
+   *  키웠더니, 조작줄과 상관없는 갈래 카드 발치의 「안 맞아서 뺀 N건 보기」까지 커져
+   *  **뺀 것이 있는 갈래 카드만** 발치가 10px 높아졌다(옆 카드와 아래 정렬이 어긋난다).
+   *  상수는 26px(`py-1`)로 되돌리고 36px 은 조작줄 그 자리에서만 준다.
+   */
+  it("⑬-b 공유 상수 BTN_SM 은 26px 그대로 — 조작줄 밖 단추는 안 커진다", () => {
+    const html = 그린다({ onBrowseAll: () => {} });
+
+    // ⓐ 갈래 카드 발치의 「안 맞아서 뺀 N건 보기」 — 26px(py-1), h-9 아님
+    const 뺀것단추 = 조각(html, "안 맞아서 뺀", "<button");
+    expect(뺀것단추, "갈래 카드 단추가 26px(py-1)이 아니다").toContain("py-1");
+    expect(뺀것단추, "공유 상수가 다시 36px 로 커졌다 — 옆 카드와 아래 정렬이 어긋난다").not.toContain("h-9");
+
+    // ⓑ 빈 상태의 「칩 모두 풀기」도 같은 상수 — 함께 26px 이어야 한다
+    const 빈상태 = 그린다({ data: 자료([]), filters: { ...기본거르개, openOnly: true } });
+    const 풀기 = 조각(빈상태, ">칩 모두 풀기<", "<button");
+    expect(풀기, "「칩 모두 풀기」가 26px 이 아니다").toContain("py-1");
+    expect(풀기, "공유 상수가 다시 36px 로 커졌다").not.toContain("h-9");
+
+    // ⓒ 오류의 「다시 시도」도 마찬가지
+    const 다시 = 조각(지도({ data: null, error: "통로가 응답하지 않습니다", onRetry: () => {} }), ">다시 시도<", "<button");
+    expect(다시, "「다시 시도」가 26px 이 아니다").toContain("py-1");
+    expect(다시, "공유 상수가 다시 36px 로 커졌다").not.toContain("h-9");
+  });
+
+  /**
+   * ★코덱스 13차 #1 — 오른쪽 회색 안내 문장을 지우면서 「뺀 공고가 있다」는 사실을 갈래 카드의
+   *  단추에만 맡겼는데, **표 보기에는 갈래 카드가 안 그려진다.** 그래서 표에서는 뺀 공고가 있어도
+   *  그 존재도, 여는 법도 알 수 없었다. 표 보기 전용 여는 손잡이를 조작줄에 둔다.
+   *  ※ 「맞는 것만」 칩을 되살리는 게 아니다 — 이건 **여는** 한 방향 손잡이다.
+   */
+  it("⑭ 표 보기 — 뺀 것이 있을 때만 「안 맞는 공고도 보기」 손잡이가 뜬다", () => {
+    // ⓐ 표 보기 + 뺀 것 있음(기본 자료의 grant 에 안 맞음 2건) → 칩 두 개 **오른쪽**에 뜬다
+    const 표 = 그린다({ view: "table" });
+    expect(표, "표 보기인데 여는 손잡이가 없다").toContain('data-excluded-toggle="table"');
+    expect(표, "건수를 문구에 적지 않았다").toContain("안 맞는 공고도 보기 (2건)");
+    expect(표.indexOf('data-excluded-toggle'), "손잡이가 칩 두 개 오른쪽이 아니다").toBeGreaterThan(
+      표.indexOf('data-chip="soonOnly"'),
+    );
+
+    // ⓑ 모양은 칩과 같은 꼴 — 꺼짐은 CHIP_BASE, 켜짐은 CHIP_ON
+    const 꺼짐 = 조각(표, 'data-excluded-toggle', "<button");
+    expect(꺼짐, "칩과 같은 꼴이 아니다").toContain("inline-flex h-9 items-center rounded-full");
+    expect(꺼짐, "꺼졌는데 켜진 모양이다").not.toContain("bg-wedly-bg-blue");
+    expect(꺼짐).toContain('aria-pressed="false"');
+    const 켜짐 = 조각(그린다({ view: "table", filters: { ...기본거르개, includeExcluded: true } }), 'data-excluded-toggle', "<button");
+    expect(켜짐, "켜졌는데 CHIP_ON 이 안 붙었다").toContain("border-wedly-accent bg-wedly-bg-blue");
+    expect(켜짐).toContain('aria-pressed="true"');
+
+    // ⓒ 표 보기 + 뺀 것 0 → 아무것도 안 그린다(없는 일을 알리지 않는다)
+    const 뺀것없음 = 자료(항목8.filter((it) => it.fitVerdict !== "excluded"));
+    expect(그린다({ view: "table", data: 뺀것없음 }), "뺀 것이 0인데 손잡이가 떴다").not.toContain("data-excluded-toggle");
+    expect(그린다({ view: "table", data: 뺀것없음 }), "뺀 것이 0인데 문구가 떴다").not.toContain("안 맞는 공고도 보기");
+
+    // ⓓ 카드 보기에는 안 그린다 — 갈래마다 단추가 있어 같은 말이 두 번 된다
+    expect(그린다({ view: "map" }), "카드 보기에도 손잡이가 그려졌다").not.toContain("data-excluded-toggle");
+    expect(그린다({ view: "map" }), "카드 보기에도 문구가 그려졌다").not.toContain("안 맞는 공고도 보기");
+
+    // ⓔ 누르면 includeExcluded 만 뒤집힌다(클릭은 못 재므로 손잡이가 부르는 순수 함수를 직접 본다)
+    expect(nextFilters({ ...기본거르개, openOnly: true }, "includeExcluded")).toEqual({
+      openOnly: true,
+      soonOnly: false,
+      includeExcluded: true,
+    });
+    expect(nextFilters({ ...기본거르개, includeExcluded: true }, "includeExcluded").includeExcluded).toBe(false);
   });
 
   /**

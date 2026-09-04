@@ -121,10 +121,13 @@ const CHIP_BASE =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wedly-accent";
 const CHIP_ON = "border-wedly-accent bg-wedly-bg-blue font-semibold text-wedly-accent-ink";
 
-// ★같은 이유로 36px(`h-9`). 이 이름은 조작줄 「전체 공고 탐색」 말고 갈래 카드 발치의
-//  「안 맞아서 뺀 N건 보기」·「칩 모두 풀기」·「다시 시도」도 함께 쓴다 — 넷이 같은 높이가 된다.
+// ★이 이름은 **조작줄 밖**에서도 쓴다 — 갈래 카드 발치의 「안 맞아서 뺀 N건 보기」·빈 상태의
+//  「칩 모두 풀기」·오류의 「다시 시도」. 그래서 상수 자체를 36px(`h-9`)로 키웠더니 조작줄과
+//  상관없는 그 단추들까지 10px 커져, **뺀 것이 있는 갈래 카드만** 발치가 높아져 옆 카드와
+//  아래 정렬이 어긋났다(코덱스 13차 #2, 2026-09-04). 상수는 26px(`py-1`) 그대로 두고,
+//  36px 이 필요한 조작줄 「전체 공고 탐색」 **그 자리에서만** `h-9` 를 덧붙인다.
 const BTN_SM =
-  "inline-flex h-9 items-center justify-center rounded-lg border border-wedly-bd bg-white px-3 " +
+  "inline-flex items-center justify-center rounded-lg border border-wedly-bd bg-white px-3 py-1 " +
   "text-wedly-hint font-semibold text-wedly-accent-ink transition-colors duration-150 ease-out " +
   "hover:bg-wedly-bg-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wedly-accent";
 
@@ -967,6 +970,24 @@ export function FundingMapView({
               {c.label}
             </button>
           ))}
+          {/* ★표 보기 전용 「여는 손잡이」(코덱스 13차 #1, 2026-09-04) — 카드 보기에는 갈래마다
+              「안 맞아서 뺀 N건 보기」 단추가 있지만 **표 보기에는 갈래 카드가 없어서**, 뺀 공고가
+              있어도 그 존재도 여는 법도 알 길이 없었다(회색 안내 문장을 지우면서 생긴 구멍).
+              ※ 「맞는 것만」 칩을 되살리는 게 아니다 — 그건 기본이 「안 맞음 제외」인 지금 계약과
+                반대다. 이건 **뺀 것을 여는** 한 방향 손잡이다.
+              ※ 뺀 것이 **실제로 있을 때만** 그린다(0이면 없는 일을 알리지 않는다).
+              ※ 카드 보기에서는 안 그린다 — 갈래마다 단추가 이미 있어 같은 말이 두 번 된다. */}
+          {view === "table" && excludedTotal > 0 && (
+            <button
+              type="button"
+              data-excluded-toggle="table"
+              aria-pressed={filters.includeExcluded}
+              onClick={() => onFiltersChange(nextFilters(filters, "includeExcluded"))}
+              className={cn(CHIP_BASE, filters.includeExcluded && CHIP_ON)}
+            >
+              안 맞는 공고도 보기 ({건수(excludedTotal)}건)
+            </button>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <label className="inline-flex min-h-9 items-center text-wedly-hint text-wedly-muted" htmlFor="funding-map-sort">
@@ -984,8 +1005,9 @@ export function FundingMapView({
             className="min-w-[8.5rem]"
             controlClassName="flex h-9 items-center py-0"
           />
+          {/* ★조작줄 안이라 여기서만 36px — 상수를 키우면 조작줄 밖 단추까지 커진다(BTN_SM 주석). */}
           {onBrowseAll && (
-            <button type="button" className={BTN_SM} onClick={onBrowseAll}>
+            <button type="button" className={cn(BTN_SM, "h-9 inline-flex items-center")} onClick={onBrowseAll}>
               전체 공고 탐색
             </button>
           )}
@@ -1010,7 +1032,9 @@ export function FundingMapView({
           }
         />
       ) : view === "map" ? (
-        <div className="flex flex-col gap-3">
+        // ★갈래 카드 격자와 「종류 미확인」 블록 사이도 16px — 격자만 `gap-4` 로 바꾸고 이 바깥
+        //  상자를 `gap-3` 로 두면 화면 마지막 경계에서만 12px 이 된다(코덱스 13차 #3).
+        <div className="flex flex-col gap-4">
           {/* ★갈래 카드 사이 16px(`gap-4`) — 옛 `gap-3`(12px)는 정본 계단에 없는 값이었다. */}
           <div className={cn("grid gap-4 sm:grid-cols-2", !compact && "lg:grid-cols-3")}>
             {data.groups.map((block) => (
@@ -1144,7 +1168,9 @@ export default function FundingMap({
     return (
       <>
         {손잡이줄}
-        <div className={cn("grid gap-3 sm:grid-cols-2", !compact && "lg:grid-cols-3")} aria-busy="true">
+        {/* ★뼈대도 실제 갈래 격자와 같은 16px — 12px 로 두면 자료가 도착하는 순간 칸 간격이
+            4px 벌어져 열이 움직인다(코덱스 13차 #4). */}
+        <div className={cn("grid gap-4 sm:grid-cols-2", !compact && "lg:grid-cols-3")} aria-busy="true">
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <Skeleton key={i} variant="block" className="h-40" />
           ))}
