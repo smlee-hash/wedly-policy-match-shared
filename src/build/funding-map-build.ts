@@ -388,8 +388,10 @@ const ZERO_LOW_RATE_TEXT_RE = /^\s*연\s*0(?:\.0+)?\s*%\s*(?:[~∼-]\s*([\d.]+)\
  *  · 상한이 있으면 「연 최대 N%」 + 원문 꼬리 그대로(「연 0.00%~17.90% (신용등급별)」 → 「연 최대 17.90% (신용등급별)」)
  *  · 상한이 없으면 빈 글자 — 「연 0.00%」는 아는 것이 하나도 없다는 뜻이라 화면은 「공고 확인」을 그린다.
  *  · 그 밖의 문장은 손대지 않는다.
- * ※ 상한이 없고 꼬리만 있는 글(「연 0% 이내」)도 빈 글자가 된다 — 꼬리만 남기면 뜻이 끊긴 조각이 되고,
- *   실측 12건은 전부 「연 0.00%」·「연 0.00%~N%」 두 꼴뿐이었다.
+ *
+ * ★한계(2026-09-05 코덱스 2차 #4·#5) — 손질은 **실측된 두 꼴**(「연 0.00%」 / 「연 0.00%~N%」[접미사])만
+ *  다룬다. 「연 0% 이내」·「대출금리 0%~17.9%」 같은 다른 꼴은 숫자만 미상으로 두고 글자는 원문
+ *  그대로 둔다 — 못 본 꼴을 손대면 뜻이 끊긴 조각을 만든다.
  */
 function cleanZeroLowRateText(text: string): string {
   const m = text.match(ZERO_LOW_RATE_TEXT_RE);
@@ -403,8 +405,11 @@ function cleanZeroLowRateText(text: string): string {
  *  · 하한이 무이자(0)인데 글자가 비면 「무이자」라고 적는다 — 안 적으면 카드가 「공고 확인」이 된다.
  */
 function rateTextOf(text: string, rateMin: number | null): string {
-  if (rateMin !== 0) return cleanZeroLowRateText(text);
-  return text || "무이자";
+  // ★빈 판정은 **공백을 턴 뒤**에(코덱스 2차 [9]) — 수집기가 넣은 공백 한 칸이 「글자가 있다」로 세어져
+  //  무이자인데도 「무이자」가 안 채워지고 화면이 「공고 확인」을 그렸다.
+  const 글자 = text.trim();
+  if (rateMin !== 0) return cleanZeroLowRateText(글자);
+  return 글자 || "무이자";
 }
 
 /**
@@ -419,11 +424,14 @@ function rateTextOf(text: string, rateMin: number | null): string {
  *  저장값이 null 이면 낱말 규칙(「무이자」)만 본다.
  */
 function productRate(p: ProductRow): { rateText: string; rateMin: number | null } {
-  const text = p.rateText ?? "";
-  const 미기재0 = typeof p.rateMin === "number" && Number.isFinite(p.rateMin) && p.rateMin <= 0;
-  const stored = normalizeRateMin(p.rateMin, text);
+  const text = (p.rateText ?? "").trim();
+  // ★낱말 근거에 **상품 이름**도 넣는다(코덱스 2차 [6]) — 「청년창업 무이자 대출」처럼 이자 칸이 비고
+  //  이름만 무이자를 말하는 상품이 공고와 달리 타일에서 샜다. 공고가 제목을 넣는 것과 같은 자리다.
+  const 근거 = `${p.rateText ?? ""} ${p.name ?? ""}`;
+  const stored = normalizeRateMin(p.rateMin, 근거);
   // 「(보증금)연1.3%」처럼 숫자 칸만 0 이고 글자엔 진짜 이자가 적힌 줄 — 「이자 낮은 순」 1등 오류의 자리.
-  const rateMin = stored === null && 미기재0 && text ? normalizeRateMin(extractRate(text).rateMin, text) : stored;
+  // ★재추출은 저장값이 **정확히 0** 일 때만(코덱스 2차 [7]) — 음수는 자료가 깨졌다는 신호라 미상으로 둔다.
+  const rateMin = stored === null && p.rateMin === 0 && text ? normalizeRateMin(extractRate(text).rateMin, 근거) : stored;
   return { rateText: rateTextOf(text, rateMin), rateMin };
 }
 

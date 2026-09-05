@@ -1356,6 +1356,43 @@ describe("이자 하한 — 미기재 0 을 미상으로(2026-09-05 재검사)",
     productFindMany.mockResolvedValue([prod({ id: "range", rateText: "대출금리 0%~17.9%", rateMin: 0 })]);
     const data = await buildFundingMap({}, NOW);
     expect(byId(data.groups, "p:range")!.rateMin, "「금리 0%」를 무이자로 세던 옛 규칙이면 0 이 된다").toBeNull();
+    expect(byId(data.groups, "p:range")!.rateText, "실측 두 꼴이 아닌 문장은 원문 그대로 둔다(2차 #4·#5)").toBe("대출금리 0%~17.9%");
     expect(data.glance.minRate).toBeNull();
+  });
+
+  /** ★코덱스 2차 [6] — 상품도 **이름**을 무이자 근거로 본다(공고가 제목을 보는 것과 같은 자리). */
+  it("[6] 이름이 무이자·이자 칸이 빈 상품 → 0 · 「무이자」", async () => {
+    productFindMany.mockResolvedValue([
+      prod({ id: "yfree", name: "청년창업 무이자 대출", rateText: "", rateMin: null }),
+    ]);
+    const data = await buildFundingMap({}, NOW);
+    expect(byId(data.groups, "p:yfree")).toMatchObject({ rateMin: 0, rateText: "무이자" });
+    expect(data.glance.minRate).toBe(0);
+  });
+
+  /** ★코덱스 2차 [7] — 재추출은 저장값이 **정확히 0** 일 때만. 음수는 자료가 깨졌다는 신호라 미상으로 둔다. */
+  it("[7] 저장값이 음수면 글자에서 다시 뽑지 않는다 — 「(보증금)연1.3%」·-1 → 미상", async () => {
+    productFindMany.mockResolvedValue([prod({ id: "neg", rateText: "(보증금)연1.3%", rateMin: -1 })]);
+    const data = await buildFundingMap({}, NOW);
+    expect(byId(data.groups, "p:neg")).toMatchObject({ rateMin: null, rateText: "(보증금)연1.3%" });
+  });
+
+  /** ★코덱스 2차 [9] — 공백만 든 이자 칸은 「글자가 있다」가 아니다. 턴 뒤에 빈 것을 판정한다. */
+  it("[9] 이자 칸이 공백뿐이고 제목이 무이자면 「무이자」로 채운다", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({ id: "sp", fundingGroup: "policy", title: "청년창업 무이자 대출", rateText: "   ", rateMin: null }),
+    ]);
+    const data = await buildFundingMap({}, NOW);
+    expect(byId(data.groups, "a:sp")).toMatchObject({ rateMin: 0, rateText: "무이자" });
+  });
+
+  /** ★코덱스 2차 [2] 를 조립에서 — 제목에 무이자가 들어도 저장된 실제 금리가 이긴다. */
+  it("[2] 제목이 무이자여도 저장된 금리(2.5)가 이긴다 — 타일이 0 으로 안 떨어진다", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({ id: "chg", fundingGroup: "policy", title: "청년 무이자 대출 변경 공고", rateText: "연 2.5%", rateMin: 2.5 }),
+    ]);
+    const data = await buildFundingMap({}, NOW);
+    expect(byId(data.groups, "a:chg")).toMatchObject({ rateMin: 2.5, rateText: "연 2.5%" });
+    expect(data.glance.minRate).toBe(2.5);
   });
 });

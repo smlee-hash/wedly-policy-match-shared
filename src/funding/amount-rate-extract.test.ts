@@ -298,10 +298,17 @@ describe("normalizeRateMin — 하한 미기재 0 을 미상으로", () => {
     const 글 = "우대금리 0%p 적용, 대출금리 연 4.5%";
     expect(hasZeroRateWording(글)).toBe(false);
     expect(normalizeRateMin(0, 글)).toBeNull();
-    // ★실측(2026-09-05) — 이 글은 글자에서 다시 뽑아도 4.5 가 **안 나온다**. RATE_RE 가 「우대금리 0%」를
-    //  먼저 잡고 「최솟값을 낳은 표현」 규칙이 0 을 고르기 때문이다. 그래서 정규화 뒤에도 미상이다.
-    expect(extractRate(글)).toEqual({ rateText: "연 0%", rateMin: 0 });
-    expect(normalizeRateMin(extractRate(글).rateMin, 글)).toBeNull();
+  });
+  /**
+   * ★코덱스 2차 [3](2026-09-05) — `%p`(퍼센트**포인트**)는 금리가 아니다. 전방탐색을 넣기 전에는
+   *  RATE_RE 가 「우대금리 0%」를 먼저 잡고 「최솟값을 낳은 표현」 규칙이 0 을 골라, 실제 금리 4.5 가
+   *  **깎아 주는 폭**에 밀렸다(그래서 재추출로도 4.5 가 안 나왔다).
+   */
+  it("[3] 「%p」는 금리로 안 잡는다 — 우대 폭 뒤의 진짜 대출금리를 고른다", () => {
+    expect(extractRate("우대금리 1.0%p 적용, 대출금리 연 4.5%")).toEqual({ rateText: "연 4.5%", rateMin: 4.5 });
+    expect(extractRate("우대금리 0%p 적용, 대출금리 연 4.5%")).toEqual({ rateText: "연 4.5%", rateMin: 4.5 });
+    // 이차보전(SUBSIDY_RE)은 원래 %p 를 제 뜻으로 읽는다 — 그 규칙은 안 건드렸다.
+    expect(extractRate("이자 2%p 지원")).toEqual({ rateText: "이자 2%p 지원", rateMin: null });
   });
   it("[a] 부정문은 무이자가 아니다 — 「무이자 지원 제외 대상 안내」", () => {
     expect(hasZeroRateWording("무이자 지원 제외 대상 안내")).toBe(false);
@@ -310,11 +317,30 @@ describe("normalizeRateMin — 하한 미기재 0 을 미상으로", () => {
       expect(hasZeroRateWording(글), 글).toBe(false);
     }
   });
-  /** ★코덱스 반려 [b] — 낱말이 먼저다. 예전엔 유한수 검사가 앞서 「무이자」인데 저장값이 비면 미상이 됐다. */
-  it("[b] 저장값이 비어도(null·undefined·NaN) 글이 무이자면 0", () => {
+  /**
+   * ★코덱스 2차 [1](2026-09-05) — 「무이자」와 부정어 사이에 조사·수식어가 끼면 옛 가드가 못 걸렀다.
+   *  12자까지 허용하되 문장 부호는 못 넘는다.
+   */
+  it("[1] 조사·수식어가 껴도 부정문은 잡는다 · 멀쩡한 무이자는 그대로", () => {
+    for (const 글 of ["무이자 대출 지원 대상에서 제외", "무이자는 적용 불가", "무이자가 아님"]) {
+      expect(hasZeroRateWording(글), 글).toBe(false);
+    }
+    for (const 글 of ["무이자 대출", "청년 무이자 융자 공고"]) {
+      expect(hasZeroRateWording(글), 글).toBe(true);
+    }
+  });
+  /**
+   * ★코덱스 2차 [2](2026-09-05) — **저장된 숫자가 낱말보다 세다**. 낱말을 먼저 보면 「청년 무이자 대출
+   *  변경 공고」처럼 제목에 무이자가 든 공고가 본문에 적어 둔 실제 금리(연 2.5%)까지 0 으로 뭉갠다.
+   *  낱말은 저장값이 **없거나 0·음수일 때만** 산다.
+   */
+  it("[2] 저장된 양수가 낱말을 이긴다 — 저장값이 비었거나 0 일 때만 낱말이 산다", () => {
+    expect(normalizeRateMin(2.5, "청년 무이자 대출 변경 공고 연 2.5%"), "저장된 2.5 가 이긴다").toBe(2.5);
     expect(normalizeRateMin(null, "무이자")).toBe(0);
     expect(normalizeRateMin(undefined, "무이자")).toBe(0);
     expect(normalizeRateMin(Number.NaN, "무이자")).toBe(0);
+    expect(normalizeRateMin(0, "무이자")).toBe(0);
+    expect(normalizeRateMin(0, "연 0.00%"), "무이자라는 말이 없는 0 은 미상").toBeNull();
   });
   /** 「이자 낮은 순」 1등이 「청년전용 보증부월세 대출」(rateText 「(보증금)연1.3%」·rateMin 0)이던 뿌리. */
   it("글자에서 다시 뽑으면 진짜 이자가 나온다 — 「(보증금)연1.3%」", () => {
