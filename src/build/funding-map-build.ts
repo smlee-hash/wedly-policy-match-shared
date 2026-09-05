@@ -7,7 +7,7 @@
  *
  * AI 0콜: 저장 때 규칙으로 채워 둔 갈래·한도·금리와 판정 엔진(checkCondition)만 쓴다.
  */
-import { extractAmount, extractRate, hasZeroRateWording, normalizeRateMin } from "../funding/amount-rate-extract";
+import { extractAmount, extractRate, normalizeRateMin } from "../funding/amount-rate-extract";
 import { classifyFundingGroup, isFundingGroup, type FundingGroup } from "../funding/funding-group";
 import {
   deadlineOfAnnouncement,
@@ -314,15 +314,10 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
   const why = whyOf(fit, humanCheck);
 
   // ★이자 하한 손질(2026-09-05 브라우저 재검사) — 저장된 0 이 「무이자」인지 「하한 미기재」인지는
-  //  글자·제목이 가른다. `normalizeRateMin` 이 그 잣대다 — 뜻 없는 0 은 미상으로 되돌린다.
-  let rateMin = normalizeRateMin(r.rateMin, `${r.rateText ?? ""} ${r.title ?? ""}`);
-  let rateText = r.rateText || (group === "grant" && !unclassified ? "무상" : "");
-  // 이자 칸이 통째로 비고 **제목만** 무이자를 말하는 공고(「[강원] 청년창업자금 무이자 대출지원」)는
-  // 진짜 무이자인데도 타일 「가장 낮은 이자」에 안 잡혔다 — 제목을 근거로 0 을 싣는다.
-  if (!(r.rateText ?? "") && r.rateMin == null && hasZeroRateWording(r.title ?? "")) {
-    rateText = "무이자";
-    rateMin = 0;
-  }
+  //  글자·제목이 가른다. `normalizeRateMin` 이 그 잣대이고, 제목도 함께 넘겨 **제목만** 무이자를
+  //  말하는 공고(「[강원] 청년창업자금 무이자 대출지원」)가 타일에서 안 새게 한다.
+  const rateMin = normalizeRateMin(r.rateMin, `${r.rateText ?? ""} ${r.title ?? ""}`);
+  const rateText = rateTextOf(r.rateText || (group === "grant" && !unclassified ? "무상" : ""), rateMin);
 
   const item: FundingItem = {
     id: `a:${r.id}`,
@@ -383,32 +378,53 @@ interface ProductRow {
 }
 
 /**
- * 하한을 안 적어 0 으로 저장한 상품 글자 — 「연 0%」 하나뿐이거나 「연 0%~N%」 꼴일 때만 걸린다.
- * 앞뒤를 못 박아(^…$) 다른 문장은 절대 건드리지 않는다.
+ * 하한을 안 적어 0 으로 저장한 이자 글자 — 「연 0%」로 시작할 때만 걸린다. 앞을 못 박고(^연 0%)
+ * 뒤 꼬리는 그대로 옮겨(「(신용등급별)」 같은 단서) 다른 문장은 절대 건드리지 않는다.
  */
-const ZERO_LOW_RATE_TEXT_RE = /^\s*연\s*0(?:\.0+)?\s*%\s*(?:[~∼-]\s*([\d.]+)\s*%)?\s*$/;
+const ZERO_LOW_RATE_TEXT_RE = /^\s*연\s*0(?:\.0+)?\s*%\s*(?:[~∼-]\s*([\d.]+)\s*%)?(.*)$/;
+
+/**
+ * 「연 0%…」 꼴 글자 손질(코덱스 반려 [d] — **공고·상품 공용**).
+ *  · 상한이 있으면 「연 최대 N%」 + 원문 꼬리 그대로(「연 0.00%~17.90% (신용등급별)」 → 「연 최대 17.90% (신용등급별)」)
+ *  · 상한이 없으면 빈 글자 — 「연 0.00%」는 아는 것이 하나도 없다는 뜻이라 화면은 「공고 확인」을 그린다.
+ *  · 그 밖의 문장은 손대지 않는다.
+ * ※ 상한이 없고 꼬리만 있는 글(「연 0% 이내」)도 빈 글자가 된다 — 꼬리만 남기면 뜻이 끊긴 조각이 되고,
+ *   실측 12건은 전부 「연 0.00%」·「연 0.00%~N%」 두 꼴뿐이었다.
+ */
+function cleanZeroLowRateText(text: string): string {
+  const m = text.match(ZERO_LOW_RATE_TEXT_RE);
+  if (!m) return text;
+  return m[1] ? `연 최대 ${m[1]}%${m[2]}` : "";
+}
+
+/**
+ * 이자 글자 마무리 — 조립이 낸 **최종 하한**과 짝을 맞춘다(코덱스 반려 [d][e], 공고·상품 공용).
+ *  · 하한이 무이자(0)가 아니면 「연 0%…」 꼴을 손질한다 — 그대로 두면 화면이 무이자로 읽는다.
+ *  · 하한이 무이자(0)인데 글자가 비면 「무이자」라고 적는다 — 안 적으면 카드가 「공고 확인」이 된다.
+ */
+function rateTextOf(text: string, rateMin: number | null): string {
+  if (rateMin !== 0) return cleanZeroLowRateText(text);
+  return text || "무이자";
+}
 
 /**
  * 상품 한 줄의 이자 하한·글자 — 하한 미기재를 0 으로 저장한 줄을 걸러 낸다(2026-09-05 브라우저 재검사).
  *
  * 지도 타일 「가장 낮은 이자」가 「연 0%」로 뜬 원인이다. `rateMin === 0` 인 12건은 전부 은행·보증
  * 갈래였고(「중고차할부」 rateText 「연 0.00%~17.90%」·「재고금융」 「연 0.00%」), 실제로는 하한이
- * 없다는 뜻이었다. 세 걸음으로 본다:
- *  ① 저장된 하한을 `normalizeRateMin` 으로 본다 — 글이 무이자라고 말할 때만 0 이 남는다.
- *  ② 그래도 미상이고 글자가 있으면 **글자에서 다시 뽑아** 같은 잣대를 댄다(「(보증금)연1.3%」처럼
- *     숫자 칸만 0 이고 글자엔 진짜 이자가 적힌 줄 — 「이자 낮은 순」 1등 오류의 자리).
- *  ③ 글자가 「연 0%~N%」이면 「연 최대 N%」로, 「연 0%」뿐이면 빈 글자로 바꾼다 — 그대로 두면
- *     화면이 무이자 상품으로 읽는다. 그 밖의 문장은 손대지 않는다.
+ * 없다는 뜻이었다.
+ *
+ * ★글자에서 다시 뽑는 것은 **저장값이 유한한 0 이하일 때만**이다(코덱스 반려 [c]) — 수집기가
+ *  일부러 비운(null) 상품까지 훑으면, 뽑아 낸 적 없는 값을 조립이 지어내는 것이 된다.
+ *  저장값이 null 이면 낱말 규칙(「무이자」)만 본다.
  */
 function productRate(p: ProductRow): { rateText: string; rateMin: number | null } {
   const text = p.rateText ?? "";
+  const 미기재0 = typeof p.rateMin === "number" && Number.isFinite(p.rateMin) && p.rateMin <= 0;
   const stored = normalizeRateMin(p.rateMin, text);
-  const rateMin = stored === null && text ? normalizeRateMin(extractRate(text).rateMin, text) : stored;
-  // 정규화 전 하한이 0 이하였고(=미기재 의심) 무이자도 아니면 글자도 함께 손질한다.
-  const 미기재0 = typeof p.rateMin === "number" && Number.isFinite(p.rateMin) && p.rateMin <= 0 && stored !== 0;
-  const m = 미기재0 ? text.match(ZERO_LOW_RATE_TEXT_RE) : null;
-  if (m) return { rateText: m[1] ? `연 최대 ${m[1]}%` : "", rateMin };
-  return { rateText: text, rateMin };
+  // 「(보증금)연1.3%」처럼 숫자 칸만 0 이고 글자엔 진짜 이자가 적힌 줄 — 「이자 낮은 순」 1등 오류의 자리.
+  const rateMin = stored === null && 미기재0 && text ? normalizeRateMin(extractRate(text).rateMin, text) : stored;
+  return { rateText: rateTextOf(text, rateMin), rateMin };
 }
 
 function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): BuiltItem {

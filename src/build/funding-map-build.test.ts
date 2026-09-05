@@ -1312,6 +1312,50 @@ describe("이자 하한 — 미기재 0 을 미상으로(2026-09-05 재검사)",
     ]);
     const data = await buildFundingMap({}, NOW);
     expect(byId(data.groups, "a:z")!.rateMin).toBeNull();
+    // ★코덱스 반려 [d] — 글자 손질은 공고에도 적용된다(예전엔 상품에서만 했다).
+    expect(byId(data.groups, "a:z")!.rateText, "「연 0.00%~4.5%」를 그대로 두면 화면이 무이자로 읽는다").toBe("연 최대 4.5%");
     expect(data.glance.minRate, "예전엔 0 이 이겨 「연 0%」로 떴다").toBe(2.4);
+  });
+
+  /** ★코덱스 반려 [c] — 수집기가 **일부러 비운**(null) 상품은 글자에서 다시 뽑지 않는다. */
+  it("[c] 저장값이 null 인 상품은 글자에 이자가 있어도 미상 그대로 — 「보증금 이자 연 1.3%」", async () => {
+    productFindMany.mockResolvedValue([prod({ id: "keep", rateText: "보증금 이자 연 1.3%", rateMin: null })]);
+    const data = await buildFundingMap({}, NOW);
+    expect(byId(data.groups, "p:keep")).toMatchObject({ rateMin: null, rateText: "보증금 이자 연 1.3%" });
+  });
+
+  /** ★코덱스 반려 [d] — 꼬리(「(신용등급별)」)는 원문 공백째로 남긴다. 자르면 단서가 사라진다. */
+  it("[d] 「연 0.00%~17.90% (신용등급별)」 → 「연 최대 17.90% (신용등급별)」", async () => {
+    productFindMany.mockResolvedValue([prod({ id: "grade", rateText: "연 0.00%~17.90% (신용등급별)", rateMin: 0 })]);
+    const data = await buildFundingMap({}, NOW);
+    expect(byId(data.groups, "p:grade")).toMatchObject({ rateMin: null, rateText: "연 최대 17.90% (신용등급별)" });
+  });
+
+  /**
+   * ★코덱스 반려 [e] — 예전엔 **저장값이 null 일 때만** 「무이자」를 채웠다. 제목만 무이자를 말하고
+   *  저장값이 0 이면 하한은 0 인데 글자가 비어 카드가 「공고 확인」이 됐다.
+   */
+  it("[e] 제목이 무이자·저장값 0·글자 빈 공고 → 0 · 「무이자」", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({ id: "y", fundingGroup: "policy", title: "청년창업 무이자 대출", rateText: "", rateMin: 0 }),
+    ]);
+    const data = await buildFundingMap({}, NOW);
+    expect(byId(data.groups, "a:y")).toMatchObject({ rateMin: 0, rateText: "무이자" });
+    expect(data.glance.minRate).toBe(0);
+  });
+
+  /** ★코덱스 반려 [b] 를 상품 갈래에서 — 저장값이 비어도 글자가 무이자면 0 이고, 글자는 그대로 남는다. */
+  it("[b] 상품 저장값 null · 글자 「무이자」 → 0 · 「무이자」", async () => {
+    productFindMany.mockResolvedValue([prod({ id: "nofee", rateText: "무이자", rateMin: null })]);
+    const data = await buildFundingMap({}, NOW);
+    expect(byId(data.groups, "p:nofee")).toMatchObject({ rateMin: 0, rateText: "무이자" });
+  });
+
+  /** ★코덱스 반려 [a] 를 조립에서 — 「대출금리 0%~17.9%」는 무이자가 아니라 하한 미기재다. */
+  it("[a] 상품 「대출금리 0%~17.9%」·0 → 미상(무이자로 안 센다)", async () => {
+    productFindMany.mockResolvedValue([prod({ id: "range", rateText: "대출금리 0%~17.9%", rateMin: 0 })]);
+    const data = await buildFundingMap({}, NOW);
+    expect(byId(data.groups, "p:range")!.rateMin, "「금리 0%」를 무이자로 세던 옛 규칙이면 0 이 된다").toBeNull();
+    expect(data.glance.minRate).toBeNull();
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractAmount, extractRate, normalizeRateMin, wonOf } from "./amount-rate-extract";
+import { extractAmount, extractRate, hasZeroRateWording, normalizeRateMin, wonOf } from "./amount-rate-extract";
 
 describe("wonOf — 한글 단위 금액 → 원", () => {
   it("억·천만·백만·만 단위와 쉼표를 읽는다", () => {
@@ -275,7 +275,6 @@ describe("normalizeRateMin — 하한 미기재 0 을 미상으로", () => {
   it("글이 무이자라고 말하면 0 은 그대로 0", () => {
     expect(normalizeRateMin(0, "무이자 대출")).toBe(0);
     expect(normalizeRateMin(0, "이자 없음")).toBe(0);
-    expect(normalizeRateMin(0, "금리 0%")).toBe(0);
   });
   it("음수·NaN·없음은 전부 미상", () => {
     expect(normalizeRateMin(-1, "")).toBeNull();
@@ -285,6 +284,37 @@ describe("normalizeRateMin — 하한 미기재 0 을 미상으로", () => {
   });
   it("양수는 글과 상관없이 그대로", () => {
     expect(normalizeRateMin(2.5, "")).toBe(2.5);
+  });
+
+  /**
+   * ★코덱스 반려 [a](2026-09-05) — 낱말 사전에 있던 `금리\s*0\s*%` 가 **구간 표기의 하한**과
+   *  **우대 폭**을 무이자로 둔갑시켰다. 「이자가 없다」고 사람이 말한 글만 남긴다.
+   */
+  it("[a] 「대출금리 0%~17.9%」는 무이자가 아니다 — 구간의 하한 미기재다", () => {
+    expect(hasZeroRateWording("대출금리 0%~17.9%")).toBe(false);
+    expect(normalizeRateMin(0, "대출금리 0%~17.9%")).toBeNull();
+  });
+  it("[a] 「우대금리 0%p」는 깎아 주는 폭이 0 일 뿐 무이자가 아니다", () => {
+    const 글 = "우대금리 0%p 적용, 대출금리 연 4.5%";
+    expect(hasZeroRateWording(글)).toBe(false);
+    expect(normalizeRateMin(0, 글)).toBeNull();
+    // ★실측(2026-09-05) — 이 글은 글자에서 다시 뽑아도 4.5 가 **안 나온다**. RATE_RE 가 「우대금리 0%」를
+    //  먼저 잡고 「최솟값을 낳은 표현」 규칙이 0 을 고르기 때문이다. 그래서 정규화 뒤에도 미상이다.
+    expect(extractRate(글)).toEqual({ rateText: "연 0%", rateMin: 0 });
+    expect(normalizeRateMin(extractRate(글).rateMin, 글)).toBeNull();
+  });
+  it("[a] 부정문은 무이자가 아니다 — 「무이자 지원 제외 대상 안내」", () => {
+    expect(hasZeroRateWording("무이자 지원 제외 대상 안내")).toBe(false);
+    expect(normalizeRateMin(0, "무이자 지원 제외 대상 안내")).toBeNull();
+    for (const 글 of ["무이자 불가", "무이자 아님", "무이자 안 됨", "무이자 해당 없음"]) {
+      expect(hasZeroRateWording(글), 글).toBe(false);
+    }
+  });
+  /** ★코덱스 반려 [b] — 낱말이 먼저다. 예전엔 유한수 검사가 앞서 「무이자」인데 저장값이 비면 미상이 됐다. */
+  it("[b] 저장값이 비어도(null·undefined·NaN) 글이 무이자면 0", () => {
+    expect(normalizeRateMin(null, "무이자")).toBe(0);
+    expect(normalizeRateMin(undefined, "무이자")).toBe(0);
+    expect(normalizeRateMin(Number.NaN, "무이자")).toBe(0);
   });
   /** 「이자 낮은 순」 1등이 「청년전용 보증부월세 대출」(rateText 「(보증금)연1.3%」·rateMin 0)이던 뿌리. */
   it("글자에서 다시 뽑으면 진짜 이자가 나온다 — 「(보증금)연1.3%」", () => {

@@ -354,8 +354,16 @@ export function extractRate(text: string): { rateText: string; rateMin: number |
   return { rateText: "", rateMin: null };
 }
 
-/** 「무이자」라고 말하는 글의 사전 — **오직 `hasZeroRateWording` 하나만** 이 상수를 본다. */
-const ZERO_RATE_RE = /무이자|이자\s*없|금리\s*0\s*%/;
+/**
+ * 「무이자」라고 말하는 글의 사전 — **오직 `hasZeroRateWording` 하나만** 이 상수를 본다.
+ *
+ * ★코덱스 반려 [a](2026-09-05) — 예전엔 `금리\s*0\s*%` 도 무이자로 셌다. 그 조각이 **구간 표기의
+ *  하한**과 **우대 폭**을 무이자로 둔갑시킨다: 「대출금리 0%~17.9%」(하한 미기재 그 자체)와
+ *  「우대금리 0%p 적용」(깎아 주는 폭이 0)이 둘 다 걸렸다. 사람이 「이자가 없다」고 **말한** 글만 남긴다.
+ */
+const ZERO_RATE_RE = /무이자|이자\s*없/;
+/** 부정문 가드 — 「무이자 지원 제외 대상」처럼 **무이자가 아니라고** 말하는 글(코덱스 반려 [a]). */
+const ZERO_RATE_NEGATION_RE = /무이자\s*(?:지원\s*)?(?:제외|불가|아님|안\s*됨|해당\s*없)/;
 
 /**
  * 이 글이 「이자가 없다」고 말하는가 — 이자 하한 0 을 **뜻이 있는 0** 으로 인정하는 유일한 근거.
@@ -365,6 +373,7 @@ const ZERO_RATE_RE = /무이자|이자\s*없|금리\s*0\s*%/;
  * 제목 판정이 조용히 함께 바뀐다. 물음을 이름으로 드러내 두 자리를 갈라 둔다.
  */
 export function hasZeroRateWording(text: string): boolean {
+  if (ZERO_RATE_NEGATION_RE.test(text)) return false;
   return ZERO_RATE_RE.test(text);
 }
 
@@ -375,11 +384,19 @@ export function hasZeroRateWording(text: string): boolean {
  *  (FinanceProduct)이 하한을 안 적은 자리에 0 을 저장한 탓이다(「중고차할부」 rateText
  *  「연 0.00%~17.90%」 rateMin 0). 0 은 글이 무이자라고 말할 때만 0 으로 남기고, 그 밖은 미상이다.
  *
- * @param rateMin 저장된 하한(%). 유한한 수가 아니면 미상.
+ * 보는 순서가 뜻이다(코덱스 반려 [b], 2026-09-05):
+ *  ① 글이 무이자라고 말하면 **저장값이 무엇이든**(비었어도·NaN 이어도) 0 이다 — 예전엔 유한수
+ *     검사가 먼저라 `{rateMin:null, rateText:"무이자"}` 가 미상으로 떨어져 무이자가 안 살았다.
+ *  ② 유한한 양수면 그대로. ③ 나머지는 전부 미상.
+ *
+ * ★한계 — 저장값 0 + 글자 「연 0.00%」인 **진짜 무이자**는 미기재와 구분할 수 없어 미상으로 본다
+ *  (2026-09-05 실측: 0% 상품 12건 전부 은행·보증 갈래의 미기재였고 진짜 무이자는 0건).
+ *
+ * @param rateMin 저장된 하한(%).
  * @param text 그 하한이 나온 글(rateText·제목 등) — 0 의 뜻을 가리는 유일한 자료.
  */
 export function normalizeRateMin(rateMin: number | null | undefined, text: string): number | null {
-  if (typeof rateMin !== "number" || !Number.isFinite(rateMin)) return null;
-  if (rateMin > 0) return rateMin;
-  return hasZeroRateWording(text) ? 0 : null;
+  if (hasZeroRateWording(text)) return 0;
+  if (typeof rateMin === "number" && Number.isFinite(rateMin) && rateMin > 0) return rateMin;
+  return null;
 }
