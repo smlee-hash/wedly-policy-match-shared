@@ -41,15 +41,47 @@ describe("수집원 명부 — 상태 5종(2026-09-05 P0)", () => {
     expect(byId.get("kodma")).toBe("중소벤처기업유통원");
   });
 
-  it("국내 IP 전용 5곳은 연결 목록에 없으면 waiting 이고 비고에 「국내 경유」가 있다", () => {
+  it("국내 IP 전용 4곳은 연결 목록에 없으면 waiting 이고 비고에 「국내 경유」가 있다", () => {
     const rows = resolveDirectory([]);
-    for (const id of ["tp-jeonbuk", "djsinbo", "seoulsinbo", "sjtp"]) {
+    // ★서울신보는 2026-09-05 부터 여기 없다 — 국내 데이터센터 IP 까지 막혀 blocked 로 옮겼다(아래 시험).
+    for (const id of ["tp-jeonbuk", "djsinbo", "sjtp", "aca"]) {
       const r = rows.find((x) => x.id === id);
       expect(r?.status, id).toBe("waiting");
       expect(r?.note, id).toContain("국내 경유");
     }
     const anyang = rows.find((x) => x.label === "안양산업진흥원");
+    expect(anyang?.id).toBe("aca");
     expect(anyang?.status).toBe("waiting");
+  });
+
+  // ── 2026-09-05: 정적 blocked/excluded 가 실행 결과보다 우선한다 ──
+  it("blocked 줄은 연결 목록에 있고 저장 0 + 오류여도 blocked 다(error 로 안 덮인다)", () => {
+    const rows = resolveDirectory(["seoulsinbo"], new Map(), {
+      runs: new Map([["seoulsinbo", { saved: 0, error: "게시판 추출 전 단계 실패: selector: fetch failed" }]]),
+    });
+    expect(rows.find((r) => r.id === "seoulsinbo")?.status).toBe("blocked");
+  });
+
+  it("같은 blocked 줄도 실제로 저장이 생기면(saved 3) connected 로 올라온다", () => {
+    const rows = resolveDirectory(["seoulsinbo"], new Map(), {
+      runs: new Map([["seoulsinbo", { saved: 3, error: null }]]),
+    });
+    expect(rows.find((r) => r.id === "seoulsinbo")?.status).toBe("connected");
+  });
+
+  it("기존 error 판정은 status 가 waiting 인 줄에서 그대로다", () => {
+    const rows = resolveDirectory(["djsinbo"], new Map(), {
+      runs: new Map([["djsinbo", { saved: 0, error: "fetch failed" }]]),
+    });
+    expect(SOURCE_DIRECTORY.find((s) => s.id === "djsinbo")?.status).toBe("waiting");
+    expect(rows.find((r) => r.id === "djsinbo")?.status).toBe("error");
+  });
+
+  it("서울신보는 blocked 이고 비고에 실측 근거(주거용 회선·서울 VM)가 있다", () => {
+    const s = SOURCE_DIRECTORY.find((x) => x.id === "seoulsinbo");
+    expect(s?.status).toBe("blocked");
+    expect(s?.note).toContain("주거용 회선");
+    expect(s?.note).toContain("Vultr");
   });
 
   it("id 중복이 없고, 미연결 줄은 전부 비고가 있다", () => {

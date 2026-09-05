@@ -104,8 +104,8 @@ export const SOURCE_DIRECTORY: SourceDirectoryEntry[] = [
   // ★2026-09-01 주소 정정. 아래 세 곳은 적혀 있던 주소가 틀려 그동안 조사 자체가 헛돌았다.
   // 적혀 있던 anyang.go.kr 은 안양시청 대표홈페이지였다(제목으로 확인). 후보 aca.or.kr 은 이름은
   // 풀리는데(27.101.104.171) 443·80 둘 다 연결 자체가 안 된다 — 전북TP 와 같은 국내 IP 전용으로 보인다.
-  { label: "안양산업진흥원", url: "https://aca.or.kr", status: "waiting",
-    note: "국내 경유 필요 — 전북TP 와 같은 사정(aca.or.kr 은 우리 쪽에서 연결 불가). 프록시 뒤 구조 조사·수집기 작성" },
+  { id: "aca", label: "안양산업진흥원", url: "https://aca.or.kr", status: "waiting",
+    note: "국내 경유 전용(aca.or.kr 은 국내 IP 만 허용) — 2026-09-05 프록시 뒤 구조 확인·수집기 작성" },
   // 2026-09-01 연결. 겹침 0/6. 목록은 스크립트가 아니라 ul.table li.tr 이다(주소 www.pipabiz.or.kr).
   { id: "pipa", label: "평택산업진흥원", url: "https://www.pipabiz.or.kr", status: "candidate", note: "" },
   { id: "bizbc", label: "부천산업진흥원", url: "https://www.bizbc.or.kr", status: "candidate", note: "" },
@@ -130,8 +130,8 @@ export const SOURCE_DIRECTORY: SourceDirectoryEntry[] = [
   { id: "cnsinbo", label: "충남신용보증재단", url: "https://www.cnsinbo.co.kr", status: "candidate", note: "" },
   { id: "cbsinbo", label: "충북신용보증재단", url: "https://www.cbsinbo.or.kr", status: "candidate", note: "" },
   { id: "jcgf", label: "제주신용보증재단", url: "https://jcgf.or.kr", status: "candidate", note: "" },
-  { id: "seoulsinbo", label: "서울신용보증재단", url: "https://www.seoulshinbo.co.kr", status: "waiting",
-    note: "국내 경유 필요 — 운영 서버(미국 IP)에서 연결 시간초과/빈 응답(2026-09-03 컨테이너 실측). 서울 프록시가 등록되면 다음 회차에 자동 연결" },
+  { id: "seoulsinbo", label: "서울신용보증재단", url: "https://www.seoulshinbo.co.kr", status: "blocked",
+    note: "국내 데이터센터 IP 도 차단 — 2026-09-05 실측: 주거용 회선(LG U+)에선 0.2초 만에 200, 서울 VM(Vultr) 경유는 4가지 주소 모두 20초 무응답. 수집기는 등록된 채 두어 풀리면 자동 복귀" },
   { id: "kibo", label: "기술보증기금 공지", url: "https://www.kibo.or.kr", status: "candidate", note: "" },
   { id: "jnsinbo", label: "전남신용보증재단", url: "https://www.jnsinbo.or.kr", status: "candidate", note: "" },
   { id: "kosmes", label: "중소벤처기업진흥공단 공지", url: "https://www.kosmes.or.kr", status: "candidate", note: "" },
@@ -247,6 +247,32 @@ function visibleHitCap(
   return true;
 }
 
+/**
+ * 연결 목록에 이름이 있는 줄의 최종 상태.
+ *
+ * ★정적 `blocked`·`excluded` 는 **실행 결과보다 우선한다**(2026-09-05). 서울신보처럼
+ *  「수집기는 등록해 두되 바깥이 막혀 한 건도 못 받는」 곳은 연결 목록에 있어도
+ *  `error`·`connected` 로 보이면 안 된다 —
+ *   · `error` 는 「고치면 되는 우리 탓」으로 읽혀 매 회차 조사 대상에 다시 오른다.
+ *     실제로는 우리가 고칠 것이 없다(국내 데이터센터 IP 까지 막혀 있다).
+ *   · `connected` 는 그냥 거짓말이다(저장 0건).
+ *  막힘이 풀려 **실제로 저장된 건수가 생기면**(saved > 0) 그때 저절로 `connected` 가 된다 —
+ *  수집기를 명부에서 빼지 않고 등록된 채로 두는 이유가 이것이다.
+ *
+ * `waiting`·`candidate` 줄은 예전 그대로 — 저장 0 + 오류면 `error`, 아니면 `connected`.
+ */
+function connectedStatusOf(
+  staticStatus: SourceDirectoryEntry["status"],
+  run: DirectoryRunInfo | undefined,
+): DirectoryStatus {
+  // `saved` 는 null 일 수 있다(장부에 칸만 있고 값이 없는 회차) — 0 으로 본다.
+  const saved = run?.saved ?? 0;
+  if ((staticStatus === "blocked" || staticStatus === "excluded") && saved <= 0) return staticStatus;
+  // ★「연결됨」 딱지는 최근 회차 저장 > 0 일 때만 정직하다. 오류로 0건이면 error.
+  if (run && run.error && saved === 0) return "error";
+  return "connected";
+}
+
 /** SOURCES(실제 수집 목록)의 이름들과 대조해 연결 여부를 덮어쓴 명부를 준다. */
 export function resolveDirectory(
   connectedIds: string[],
@@ -258,10 +284,7 @@ export function resolveDirectory(
     const cap = s.id ? caps.get(s.id) : undefined;
     const run = s.id ? opts.runs?.get(s.id) : undefined;
     const isConnected = !!s.id && connected.has(s.id);
-    // ★「연결됨」 딱지는 최근 회차 저장 > 0 일 때만 정직하다. 오류로 0건이면 error.
-    const status: DirectoryStatus = isConnected
-      ? run && run.error && (run.saved ?? 0) === 0 ? "error" : "connected"
-      : s.status;
+    const status: DirectoryStatus = isConnected ? connectedStatusOf(s.status, run) : s.status;
     return {
       ...s,
       status,
