@@ -1021,12 +1021,34 @@ describe("repayWords — 갚기/이자", () => {
       label: "갚아야 하나",
       value: "종류 확인 필요",
     });
-    // 갈래·이자 글자가 무엇이든 미확인이 **맨 먼저**다 — 뒤 규칙이 끼어들면 단정이 되살아난다
-    expect(repayWords(mkItem({ group: "invest", unclassified: true, rateText: "무상" })).value).toBe("종류 확인 필요");
-    expect(repayWords(mkItem({ group: "policy", unclassified: true, rateText: "연 2.5%" })).value).toBe("종류 확인 필요");
+    // 갈래가 무엇이든 미확인이 **먼저**다 — 갈래 기본값이 끼어들면 단정이 되살아난다
     expect(repayWords(mkItem({ group: "bank", unclassified: true, rateText: "" })).value).toBe("종류 확인 필요");
     // 미확인이 아닌 줄은 그대로다(미확인 규칙이 정상 줄까지 삼키면 안 된다)
     expect(repayWords(mkItem({ group: "grant" })).value).toBe("안 갚아도 됨");
+  });
+  /**
+   * ★코덱스 반려 2(2026-09-05) — 갈래를 못 가른 것과 「연 2.5%」라고 **공고에 적혀 있는 것**은
+   *  다른 문제다. 아는 이자를 「확인 필요」로 덮으면 화면이 가진 사실을 스스로 버린다.
+   *  「무상」은 이자 문구가 아니라 상환 면제 표시라 이 길로 안 보낸다 — 종류를 모르는 줄에
+   *  「안 갚아도 됨」을 붙이는 것이 애초에 지적 2 였다.
+   */
+  it("미확인이어도 이자 문구가 있으면 그것이 먼저다 — 없을 때만 「종류 확인 필요」(반려 2)", () => {
+    expect(repayWords(mkItem({ group: "grant", unclassified: true, rateText: "연 2.5%" }))).toEqual({
+      label: "이자",
+      value: "연 2.5%",
+    });
+    expect(repayWords(mkItem({ group: "invest", unclassified: true, rateText: "변동금리" }))).toEqual({
+      label: "이자",
+      value: "변동금리",
+    });
+    // 빈 문구·공백뿐인 문구는 「모른다」다
+    expect(repayWords(mkItem({ group: "grant", unclassified: true, rateText: "" })).value).toBe("종류 확인 필요");
+    expect(repayWords(mkItem({ group: "grant", unclassified: true, rateText: "   " })).value).toBe("종류 확인 필요");
+    // 「무상」은 이자 문구가 아니다 — 종류를 모르는 줄에 「안 갚아도 됨」을 붙이지 않는다
+    expect(repayWords(mkItem({ group: "invest", unclassified: true, rateText: "무상" }))).toEqual({
+      label: "갚아야 하나",
+      value: "종류 확인 필요",
+    });
   });
   it("invest → 「갚아야 하나」/「지분으로 받음 (상환 없음)」", () => {
     expect(repayWords(mkItem({ group: "invest" }))).toEqual({

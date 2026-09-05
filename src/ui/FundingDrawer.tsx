@@ -471,7 +471,13 @@ interface Props {
 export default function FundingDrawer({ item, onClose, onOpenDetail, now }: Props) {
   if (!item) return null;
   const effectiveNow = now ?? new Date();
+  // ★종류를 못 가른 줄은 **갈래 이름을 쓰지 않는다**(코덱스 반려 1, 2026-09-05). 미확인 줄은 갈래
+  //  칸에 grant 가 임시로 앉아 있어, 그대로 그리면 서랍 머리가 「안 갚아도 되는 돈」이라고
+  //  단정한다 — 카드·표는 이미 `KindChip` 으로 「종류 미확인」이라 적고 있었는데 서랍만 어긋났다.
+  //  색 점도 뺀다(`tone` 없음 = 중립 흰 칩) — 없는 갈래에 색을 주면 색이 거짓말한다.
   const meta = FUNDING_GROUP_META[item.group];
+  const 갈래이름 = item.unclassified ? "종류 미확인" : meta.name;
+  const 갈래색 = item.unclassified ? undefined : meta.tone;
   const dead = deadlineWords(item.deadline, effectiveNow);
   const repay = repayWords(item);
   const kindLabel = item.kind === "announcement" ? "공고" : "상시 상품";
@@ -487,7 +493,7 @@ export default function FundingDrawer({ item, onClose, onOpenDetail, now }: Prop
       <div className="flex flex-col gap-3">
         {/* 서랍 머리 — 갈래 딱지(흰 칩+색 점) · 종류(공고/상시 상품) · 마감 딱지(계약 §G3). */}
         <div className="flex flex-wrap items-center gap-2">
-          <DotChip tone={meta.tone}>{meta.name}</DotChip>
+          <DotChip tone={갈래색}>{갈래이름}</DotChip>
           <Badge variant="default">{kindLabel}</Badge>
           <span className={cn(DEAD_CHIP_BASE, DEAD_CHIP_TONE[dead.tone])}>{dead.chip}</span>
         </div>

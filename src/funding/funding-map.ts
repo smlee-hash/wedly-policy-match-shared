@@ -808,10 +808,21 @@ const NUMERIC_RATE_RE = /\d\s*%/;
  *  돈이 아닌 줄까지 갈래 기본값 `grant` 를 타고 「안 갚아도 됨」이라 **단정**해, 상담사가 그대로
  *  고객에게 옮길 수 있었다. 못 가른 줄은 단정하지 않고 「종류 확인 필요」라고 적는다.
  *
- * 차례: 종류 미확인 → grant → rateText 「무상」 → invest(숫자 금리 → 제목 낱말) → 그 밖은 이자.
+ * ★단 **이자 문구가 있으면 그것이 먼저다**(코덱스 반려 2, 2026-09-05). 갈래를 못 가른 것과
+ *  「연 2.5%」라고 **공고에 적혀 있는 것**은 다른 문제다 — 아는 값을 「확인 필요」로 덮으면
+ *  화면이 가진 사실을 스스로 버린다. 「무상」은 이자 문구가 아니라 상환 면제 표시라 이 길로
+ *  안 보낸다 — 종류를 모르는 줄에 「안 갚아도 됨」을 붙이는 것이 애초에 지적 2 였으므로
+ *  그대로 「종류 확인 필요」로 남긴다.
+ *
+ * 차례: 종류 미확인(이자 문구 있으면 이자) → grant → rateText 「무상」 → invest(숫자 금리 →
+ *      제목 낱말) → 그 밖은 이자.
  */
 export function repayWords(it: FundingItem): { label: string; value: string } {
-  if (it.unclassified) return { label: "갚아야 하나", value: "종류 확인 필요" };
+  if (it.unclassified) {
+    const 이자 = it.rateText?.trim() ?? "";
+    if (이자 !== "" && 이자 !== "무상") return { label: "이자", value: 이자 };
+    return { label: "갚아야 하나", value: "종류 확인 필요" };
+  }
   if (it.group === "grant") return { label: "갚아야 하나", value: "안 갚아도 됨" };
   const rate = it.rateText?.trim() ?? "";
   if (rate === "무상") return { label: "갚아야 하나", value: "안 갚아도 됨" };

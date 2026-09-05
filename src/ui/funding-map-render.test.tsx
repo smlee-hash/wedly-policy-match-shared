@@ -398,6 +398,36 @@ function 카드(html: string, group: FundingGroup): string {
  * 「종류 미확인」 블록 **하나만** 잘라 낸다 — 딱지·발치 글자를 잴 때 갈래 카드나 발 hint 의 건수가
  * 섞여 들어오면 「이 상자가 몇 건이라 적었나」를 재는 시험이 껍데기가 된다(`카드` 와 같은 이유).
  */
+/**
+ * 어떤 요소의 **부모 여는 태그 위치**를 돌려준다 — 브라우저 `el.parentElement` 와 같은 뜻이다.
+ *
+ * ★왜 진짜 DOM 을 안 쓰나(2026-09-05 실측): 이 저장소엔 jsdom·happy-dom·linkedom 이 **하나도**
+ *  없고, 그것은 실수가 아니라 결정이다 — `vitest.config.ts` 가 「ERP 와 같은 `node` 환경을 쓴다,
+ *  환경을 바꾸면 옮겨온 시험이 ERP 에서 다르게 돈다」고 적어 두었고 ERP `node_modules` 에도
+ *  없다. 그래서 부품을 새로 들이는 대신, `renderToStaticMarkup` 이 뱉는 **닫힘이 맞는 마크업**
+ *  위를 여는/닫는 태그로 걸어가며 여는 태그 자리를 쌓아 부모를 찾는다.
+ *
+ * ★글자 차례(`indexOf` 비교)로 재던 옛 방식과 다른 점: 차례는 「캡션이 격자 **앞**에 있다」까지만
+ *  말한다. 캡션을 격자 바깥 형제로 빼내도 차례는 그대로라 통과한다 — 그런데 그렇게 되면 뿌리의
+ *  `gap-4`(16px)가 `mb-2`(8px)에 더해져 간격이 24px 이 된다. 부모가 같은지 재야 그걸 잡는다.
+ */
+function 부모위치(html: string, 자식위치: number): number {
+  const 빈태그 = new Set(["br", "hr", "img", "input", "meta", "link", "source", "area", "base", "col", "embed", "track", "wbr"]);
+  const 스택: number[] = [];
+  const re = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)\b[^>]*?(\/?)>/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    if (m.index === 자식위치) return 스택.length === 0 ? -1 : 스택[스택.length - 1];
+    if (m.index > 자식위치) break;
+    const 닫힘 = m[1] === "/";
+    const 이름 = m[2].toLowerCase();
+    const 스스로닫음 = m[3] === "/";
+    if (닫힘) 스택.pop();
+    else if (!스스로닫음 && !빈태그.has(이름)) 스택.push(m.index);
+  }
+  expect.fail(`위치 ${자식위치} 에서 여는 태그를 못 찾았다`);
+}
+
 function 미확인블록(html: string): string {
   const i = html.indexOf("종류 미확인 — 제목만으로는 못 가름");
   expect(i, "「종류 미확인」 블록이 없다").toBeGreaterThan(-1);
@@ -1279,6 +1309,94 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     // 표 보기도 같은 도우미(repayWords)를 쓴다 — 한쪽만 고치면 표에서 단정이 살아남는다
     const 표 = 그린다({ data: 못가름, view: "table" });
     expect(표, "표가 「종류 확인 필요」로 적지 않는다").toContain("종류 확인 필요");
+
+    // ★단 **공고에 이자가 적혀 있으면 그것이 먼저다**(코덱스 반려 2) — 아는 값을 확인 필요로
+    //  덮으면 화면이 가진 사실을 버린다.
+    const 이자있음 = 자료(
+      [{ ...항목8[0], unclassified: true, title: "종류 미상 대출", rateText: "연 2.5%" }, ...항목8.slice(1)],
+      { unclassified: 1 },
+    );
+    const 이자블록 = 미확인블록(그린다({ data: 이자있음 }));
+    expect(이자블록, "아는 이자를 「확인 필요」로 덮었다").toContain("연 2.5%");
+    expect(이자블록, "이자를 알면서 「종류 확인 필요」라 적었다").not.toContain("종류 확인 필요");
+  });
+
+  /**
+   * ★코덱스 반려 3(2026-09-05) — 발 hint 의 「표시 N건」이 갈래 칸 `items` 를 통째로 셌다.
+   *  미확인 줄은 그 배열에 실려 오지만 **갈래 카드가 안 그리고** 맨 아래 블록이 접어서 3줄만
+   *  그린다 — 그래서 5건이 실려 온 화면이 3줄만 보이는데 「표시 5건」이라 적었다. 갈래 카드
+   *  발치가 `shown.length`(그려진 수)로 세는 규칙과 어긋난 자리다.
+   */
+  it("⑩-d5 발치 「표시 N건」은 실제로 그려진 줄만 센다 — 미확인 접힘 3 / 펼침 5(반려 3)", () => {
+    const 다섯 = 자료(
+      [
+        { ...항목8[0], id: "a:90", unclassified: true, title: "미확인 항목 A" },
+        { ...항목8[0], id: "a:91", unclassified: true, title: "미확인 항목 B" },
+        { ...항목8[0], id: "a:92", unclassified: true, title: "미확인 항목 C" },
+        { ...항목8[0], id: "a:93", unclassified: true, title: "미확인 항목 D" },
+        { ...항목8[0], id: "a:94", unclassified: true, title: "미확인 항목 E" },
+        ...항목8.slice(1),
+      ],
+      { unclassified: 5 },
+    );
+    const 표시수 = (html: string): number => {
+      const m = /표시 ([\d,]+)건/.exec(html);
+      expect(m, "발치 「표시 N건」을 못 찾았다").not.toBeNull();
+      return Number(m![1].replace(/,/g, ""));
+    };
+    // 갈래 카드에 남는 정상 줄(미확인 5건은 빠진다) — 기준선
+    const 갈래몫 = 표시수(그린다({ data: 자료(항목8.slice(1)) }));
+
+    const 접힘 = 표시수(그린다({ data: 다섯 }));
+    const 펼침 = 표시수(그린다({ data: 다섯, unclassifiedExpanded: true }));
+    expect(접힘, "접혀서 3줄만 그렸는데 5를 셌다").toBe(갈래몫 + 3);
+    expect(펼침, "펼쳐서 5줄을 그렸는데 안 늘었다").toBe(갈래몫 + 5);
+    // compact 도 3줄 고정이라 접힘과 같다
+    expect(표시수(그린다({ data: 다섯, compact: true })), "compact 가 그려진 수를 안 센다").toBe(갈래몫 + 3);
+  });
+
+  /**
+   * ★코덱스 반려 4(2026-09-05) — 새 props 두 개를 **필수**로 두면 이 부품을 직접 그리는 옛
+   *  부르는 쪽이 그대로 깨진다. 선택값으로 두되, 손잡이가 없으면 「나머지 보기」 링크 자체를
+   *  안 그린다 — 눌러도 아무 일 없는 죽은 링크를 그리는 것이 더 나쁘다.
+   */
+  it("⑩-d6 펼침 손잡이가 없으면 「나머지 보기」를 안 그린다 — props 는 선택값(반려 4)", () => {
+    const 다섯 = 자료(
+      [
+        { ...항목8[0], id: "a:90", unclassified: true, title: "미확인 항목 A" },
+        { ...항목8[0], id: "a:91", unclassified: true, title: "미확인 항목 B" },
+        { ...항목8[0], id: "a:92", unclassified: true, title: "미확인 항목 C" },
+        { ...항목8[0], id: "a:93", unclassified: true, title: "미확인 항목 D" },
+        ...항목8.slice(1),
+      ],
+      { unclassified: 4 },
+    );
+    // 두 props 를 **아예 안 넘기고** 그린다(옛 부르는 쪽과 같은 모양)
+    const 손잡이없음 = renderToStaticMarkup(
+      <FundingMapView
+        data={다섯}
+        view="map"
+        filters={기본거르개}
+        sort="rec"
+        expanded={new Set<FundingGroup>()}
+        showExcluded={new Set<FundingGroup>()}
+        selectedId=""
+        compact={false}
+        now={NOW}
+        onOpen={() => {}}
+        onView={() => {}}
+        onFiltersChange={() => {}}
+        onSortChange={() => {}}
+        onToggleExpand={() => {}}
+        onToggleExcluded={() => {}}
+      />,
+    );
+    const 블록 = 미확인블록(손잡이없음);
+    expect(블록, "손잡이가 없는데 죽은 링크를 그렸다").not.toContain("나머지 보기");
+    // 그래도 발치 문장은 남는다 — 「몇 건 중 몇 건인지」는 손잡이와 무관한 사실이다
+    expect(블록).toContain("종류 미확인 4건 중 3건만 보여 드림");
+    // 손잡이를 주면 링크가 돌아온다(같은 자료·같은 상태)
+    expect(미확인블록(그린다({ data: 다섯 })), "손잡이를 줬는데 링크가 없다").toContain("나머지 보기");
   });
 
   it("⑩-e 답 네 개(2열) — 라벨은 얼마까지/repayWords.label/언제까지/어디에 신청, 값은 도우미 함수 그대로", () => {
@@ -1832,6 +1950,11 @@ describe("자금 조달 지도 — 그려서 재기", () => {
    *
    * ★이 시험은 **FACT_GRID 를 같이 본다** — 답 격자 문턱을 448 아닌 값으로 바꾸면 필요한 상자 폭이
    *  달라지므로 이 시험이 **함께 깨져야** 한다. 한쪽만 고치고 지나가면 지적 1 이 그대로 되살아난다.
+   *
+   * ★이 시험의 한계(정직하게): **실제 CSS 문턱은 조판 결과가 아니라 클래스 글자로 잰다** — 호스트가
+   *  `@md` 계단 값이나 루트 글자 크기(rem)를 바꾸면 클래스 글자는 그대로라 이 시험이 못 잡는다.
+   *  실제 조판은 2026-09-05 에 `tailwindcss` 4.2.1 `compile()` 로 따로 확인했다:
+   *  `@md` = 28rem = 448px · `@min-[992px]` → `@container (width >= 992px)`.
    */
   it("⑮-c 갈래 열 문턱은 답 네 개(448px)가 2열을 지키는 최소 폭이다 — 992·1496(재검사 지적 1)", () => {
     const html = 그린다();
@@ -1870,7 +1993,7 @@ describe("자금 조달 지도 — 그려서 재기", () => {
    *  갈래 카드는 「90건」이 된다. 네 칸이 칩을 안 따르는 것은 **고의**이므로(앞선 지적으로 그렇게
    *  고쳤다) 숫자는 그대로 두고 **「그렇다」는 말만** 화면에 적는다(승인 시안 §3 A안).
    */
-  it("⑯ 네 칸 위 캡션 「전체 자료 기준」 — 첫 타일보다 앞에 그려진다(재검사 지적 3)", () => {
+  it("⑰ 네 칸 위 캡션 「전체 자료 기준」 — 첫 타일보다 앞·같은 부모 안(재검사 지적 3)", () => {
     const html = 그린다();
     const 캡션 = '<p class="mb-2 break-keep text-wedly-hint text-wedly-muted">전체 자료 기준 — 아래 칩·정렬과 무관합니다</p>';
     expect(html, "네 칸 캡션이 없다").toContain(캡션);
@@ -1883,11 +2006,19 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     expect(i캡션, "캡션이 네 칸 격자보다 뒤에 있다").toBeLessThan(i격자);
     expect(i캡션, "캡션이 첫 타일보다 뒤에 있다").toBeLessThan(i첫타일);
 
-    // ⓑ 간격 — 뿌리가 `flex flex-col gap-4`(16px)라, 캡션을 낱개 칸으로 두면 `mb-2` 가 그 위에
-    //   더해져 24px 이 된다. 캡션과 네 칸이 **한 상자 안**에 있어야 8px 이 지켜진다.
-    const 감싼상자 = html.slice(0, i캡션).lastIndexOf("<div>");
-    expect(감싼상자, "캡션과 네 칸을 묶는 상자가 없다 — 8px 이 24px 이 된다").toBeGreaterThan(-1);
-    expect(html.slice(감싼상자, i격자), "캡션과 네 칸 사이에 다른 덩어리가 끼었다").toContain(캡션);
+    // ⓑ ★간격 — 뿌리가 `flex flex-col gap-4`(16px)라, 캡션을 낱개 칸으로 두면 `mb-2`(8px)가 그
+    //   16px 위에 **더해져** 24px 이 된다(승인 시안은 8px). 그래서 「앞에 있다」로는 부족하고
+    //   **같은 부모 안에** 있어야 한다 — 브라우저의 `캡션.parentElement === 격자.parentElement`
+    //   와 같은 것을 마크업 위에서 잰다(위 `부모위치` 주석에 진짜 DOM 을 못 쓰는 이유).
+    const i격자태그 = html.lastIndexOf("<div", i격자);
+    const 캡션부모 = 부모위치(html, i캡션);
+    const 격자부모 = 부모위치(html, i격자태그);
+    expect(캡션부모, "캡션에 부모가 없다").toBeGreaterThan(-1);
+    expect(캡션부모, "캡션과 네 칸의 부모가 다르다 — 8px 이 24px 이 된다").toBe(격자부모);
+    // 그 공통 부모는 뿌리(`flex flex-col gap-4`)가 **아니어야** 한다 — 뿌리면 간격이 다시 더해진다
+    expect(부모위치(html, 캡션부모), "캡션·네 칸을 묶는 상자가 없이 뿌리에 바로 붙었다").toBeGreaterThan(-1);
+    const 묶는상자 = html.slice(캡션부모, html.indexOf(">", 캡션부모) + 1);
+    expect(묶는상자, "묶는 상자가 스스로 간격을 만든다 — 8px 이 또 벌어진다").not.toContain("gap-");
 
     // ⓒ compact(좁은 상세창 레일)도 같은 줄 — 같은 부품이라 자동으로 따라온다
     expect(그린다({ compact: true }), "compact 레일에 캡션이 없다").toContain(캡션);

@@ -622,12 +622,13 @@ function UnclassifiedBlock({
   selectedId: string;
   now: Date;
   onOpen: (item: FundingItem) => void;
-  onToggleExpand: () => void;
+  /** 없으면 「나머지 보기」를 **안 그린다** — 눌러도 아무 일 없는 죽은 링크를 만들지 않는다. */
+  onToggleExpand?: () => void;
 }) {
   if (items.length === 0) return null;
   // 갈래 카드(GroupCard)와 같은 규칙 — compact 는 3건 고정이라 펼치기 손잡이를 두지 않는다.
   const shown = compact || !expanded ? items.slice(0, FOLDED) : items;
-  const canExpand = !compact && items.length > FOLDED;
+  const canExpand = !compact && items.length > FOLDED && Boolean(onToggleExpand);
   // 발치 개수도 갈래 카드와 같이 **지금 그려진 줄**로 센다.
   const footer = unclassifiedFooterWords(total, shown.length);
   return (
@@ -815,7 +816,7 @@ interface ViewProps {
    * (2026-09-05 재검사 지적 2). 그 블록은 갈래가 아니라 갈래를 못 가른 줄이 모인 곳이라,
    * `expanded` 집합에 가짜 열쇠를 넣으면 갈래 목록을 도는 코드가 그 열쇠를 갈래로 착각한다.
    */
-  unclassifiedExpanded: boolean;
+  unclassifiedExpanded?: boolean;
   /**
    * 「안 맞아서 뺀 항목」을 펼친 갈래 집합 — 부모가 쥔다(비어 있지 않으면 부모가 includeExcluded:true 로 재조회).
    * ★**카드 보기 전용**이다(코덱스 14차 [높음], 2026-09-04) — 표 보기는 갈래 카드가 없어 스위치
@@ -833,8 +834,13 @@ interface ViewProps {
   onFiltersChange: (filters: FundingFilters) => void;
   onSortChange: (sort: FundingSort) => void;
   onToggleExpand: (group: FundingGroup) => void;
-  /** 「종류 미확인」 블록의 「나머지 보기 / 접기」 — 갈래 펼침과 **같은 자리**에서 부모가 쥔다. */
-  onToggleUnclassified: () => void;
+  /**
+   * 「종류 미확인」 블록의 「나머지 보기 / 접기」 — 갈래 펼침과 **같은 자리**에서 부모가 쥔다.
+   * **선택값이다**(코덱스 반려 4, 2026-09-05) — 이 부품은 앱이 직접 그릴 수도 있어, 필수로 두면
+   * 옛 부르는 쪽이 그대로 깨진다. 손잡이를 안 주면 「나머지 보기」 링크 자체를 안 그린다
+   * (누르면 아무 일도 안 일어나는 죽은 링크를 그리는 것이 더 나쁘다).
+   */
+  onToggleUnclassified?: () => void;
   onToggleExcluded: (group: FundingGroup) => void;
   onBrowseAll?: () => void;
 }
@@ -849,7 +855,7 @@ export function FundingMapView({
   filters,
   sort,
   expanded,
-  unclassifiedExpanded,
+  unclassifiedExpanded = false,
   showExcluded,
   selectedId,
   compact,
@@ -876,17 +882,28 @@ export function FundingMapView({
     [data, filters.includeExcluded, sort],
   );
   const filteredTotal = useMemo(() => data.groups.reduce((s, g) => s + g.total, 0), [data]);
+  const unclassified = useMemo(() => unclassifiedGroupItems(data.groups), [data]);
   // 카드 보기는 갈래마다 **펼친 것만** 그린다 — 두 보기의 「보이는 규칙」이 갈렸으니 발 hint 의
   // 「표시 N건」도 보기마다 따로 센다. 한 수로 두면 카드 보기에서 접어 둔 안 맞음까지 세어
   // 화면에 없는 줄을 「표시」라고 적는다.
+  //
+  // ★미확인 줄은 **갈래 칸 `items` 에 실려 오지만 갈래 카드가 안 그린다** — 화면이 맨 아래 전용
+  //  블록으로 옮긴다. 그래서 갈래 몫은 `classifiedGroupItems` 로 옮겨 간 줄을 빼고 세고, 미확인
+  //  몫은 그 블록이 **실제로 그린 수**로 따로 더한다(코덱스 반려 3, 2026-09-05). 예전엔 `g.items`
+  //  를 통째로 세, 미확인 5건이 접혀 3줄만 그려진 화면이 「표시 …건」에 5를 넣어 **화면에 없는
+  //  줄까지** 표시라고 적었다 — 갈래 카드 발치가 `shown.length`(그려진 수)로 세는 규칙과 어긋났다.
+  const 미확인그려진 = compact || !unclassifiedExpanded ? Math.min(unclassified.length, FOLDED) : unclassified.length;
   const cardShown = useMemo(
     () =>
       data.groups.reduce(
-        (s, g) => s + g.items.length + (showExcluded.has(g.group) ? (g.excludedItems?.length ?? 0) : 0),
+        (s, g) =>
+          s +
+          classifiedGroupItems(g.items).length +
+          (showExcluded.has(g.group) ? (g.excludedItems?.length ?? 0) : 0),
         0,
       ),
     [data, showExcluded],
-  );
+  ) + 미확인그려진;
   const delivered = view === "table" ? rows.length : cardShown;
   // 안 맞아서 뺀 것이 있으면 정상 0건이어도 빈 상태로 갈아치우지 않는다 — 그러면 갈래 카드와
   // 함께 「안 맞아서 뺀 K건 보기」 단추까지 사라져 열 길이 없어진다(코덱스 11차 #1).
@@ -895,7 +912,6 @@ export function FundingMapView({
   const anyFilter = filters.openOnly || filters.soonOnly;
   const glance = data.glance;
   const totals = data.totals;
-  const unclassified = useMemo(() => unclassifiedGroupItems(data.groups), [data]);
   // ★머리 띠는 **요약에 적을 것이 있을 때만** 그린다. 요약이 비었을 때 「없음 — 조건을 맞춰 보지
   //  않은 목록입니다」라고 단정하는 것은 **`profileEmpty`(회사 정보 자체가 비었다)** 하나뿐이다
   //  (코덱스 3차 #C, 2026-09-04 — 옛 신호 `evaluatedConditions` 는 근사치라 폐기했다).

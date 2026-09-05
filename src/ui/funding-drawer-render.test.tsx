@@ -157,6 +157,37 @@ describe("자금 조달 지도 서랍(재설계 §G3) — 서랍 머리", () => 
     expect(html).toContain("bg-wedly-navy");
   });
 
+  /**
+   * ★코덱스 반려 1(2026-09-05) — 종류를 못 가른 줄은 갈래 칸에 `grant` 가 **임시로** 앉아 있다.
+   *  서랍 머리는 그 값을 그대로 `FUNDING_GROUP_META[item.group]` 로 그려, 「사업설명회」 같은 줄이
+   *  「안 갚아도 되는 돈」이라는 갈래 이름을 달고 떴다 — 카드·표는 이미 「종류 미확인」이라 적고
+   *  있었는데 서랍만 어긋나, 상담사가 서랍을 열어 그 이름을 그대로 옮길 수 있었다.
+   */
+  it("종류 미확인 줄은 서랍 머리도 「종류 미확인」 — 갈래 이름·색이 새지 않는다(반려 1)", () => {
+    const 미확인 = mk({
+      id: "a:9",
+      group: "grant", // 못 가른 줄이 임시로 앉는 자리
+      unclassified: true,
+      title: "2026년 소부장분야 사업설명회 개최 안내",
+      rateText: "",
+    });
+    const html = 서랍(미확인);
+    // 카드·표의 KindChip 과 **같은 낱말**
+    expect(html, "서랍 머리가 「종류 미확인」이라 적지 않는다").toContain("종류 미확인");
+    // 갈래 이름(「안 갚아도 되는 돈」)이 새지 않는다
+    expect(html, "임시로 앉은 갈래 이름이 그대로 떴다").not.toContain(FUNDING_GROUP_META.grant.name);
+    // 색 점도 중립 — 없는 갈래에 색을 주면 색이 거짓말한다
+    expect(html, "미확인인데 갈래 색 점이 남았다").not.toContain(GROUP_TONE_TILE.green.dot);
+    // 답 네 개도 단정하지 않는다(repayWords 와 같은 규칙)
+    expect(html).toContain("종류 확인 필요");
+    expect(html, "못 가른 줄을 「안 갚아도 됨」이라 단정한다").not.toContain("안 갚아도 됨");
+
+    // 미확인이 아닌 같은 갈래 줄은 그대로다 — 미확인 규칙이 정상 줄까지 삼키면 안 된다
+    const 정상 = 서랍(mk({ id: "a:10", group: "grant", rateText: "무상" }));
+    expect(정상).toContain(FUNDING_GROUP_META.grant.name);
+    expect(정상).toContain(GROUP_TONE_TILE.green.dot);
+  });
+
   it("상시 접수(deadline kind:always)는 마감 딱지가 초록(tone:green)", () => {
     const html = 서랍(상품_은행); // 기본 deadline = 상시
     const dead = deadlineWords(상품_은행.deadline, NOW);
