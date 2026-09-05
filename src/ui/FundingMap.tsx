@@ -627,10 +627,18 @@ function UnclassifiedBlock({
 }) {
   if (items.length === 0) return null;
   // 갈래 카드(GroupCard)와 같은 규칙 — compact 는 3건 고정이라 펼치기 손잡이를 두지 않는다.
-  const shown = compact || !expanded ? items.slice(0, FOLDED) : items;
+  //
+  // ★**손잡이가 없으면 접지 않는다**(코덱스 2차 반려 1, 2026-09-05). 펼칠 길을 안 주면서 접기만
+  //  하면 실려 온 줄을 **영영 못 보게** 만든다 — 접기는 「나머지 보기」와 한 쌍일 때만 뜻이 있다.
+  //  `compact` 만은 예외로 계속 3줄이다(좁은 레일은 애초에 다 보여 줄 자리가 없고, 옛 동작도 그랬다).
+  const folded = compact || (Boolean(onToggleExpand) && !expanded);
+  const shown = folded ? items.slice(0, FOLDED) : items;
   const canExpand = !compact && items.length > FOLDED && Boolean(onToggleExpand);
+  // ★전체 건수는 **한 곳에서** 센다(코덱스 2차 반려 2) — 딱지와 발치가 같은 수를 써야 한다.
+  //  `total` 이 그린 줄보다 작은 역전(옛 통로·배포 교체 창)에서는 본 것만큼을 전체로 본다.
+  const 전체 = Math.max(total, shown.length);
   // 발치 개수도 갈래 카드와 같이 **지금 그려진 줄**로 센다.
-  const footer = unclassifiedFooterWords(total, shown.length);
+  const footer = unclassifiedFooterWords(전체, shown.length);
   return (
     <section className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-wedly-bd bg-wedly-bg-gray">
       <div className="flex items-center gap-2.5 border-b border-wedly-bd px-3 py-2.5">
@@ -638,7 +646,7 @@ function UnclassifiedBlock({
           <span className="block text-wedly-sub font-semibold break-keep text-wedly-t1">종류 미확인 — 제목만으로는 못 가름</span>
         </span>
         <span className="ml-auto shrink-0">
-          <Badge variant="default">{건수(total)}건</Badge>
+          <Badge variant="default">{건수(전체)}건</Badge>
         </span>
       </div>
       <ul className="flex list-none flex-col gap-1.5 p-2">
@@ -898,9 +906,10 @@ export function FundingMapView({
   //  무엇을 뜻하는지 아무도 못 말한다. 이제 **갈래 카드 발치 `shown.length` 와 같은 규칙**이고
   //  **「종류 미확인」 블록과도 같은 규칙**이다 — 세 자리가 한 규칙을 쓴다.
   //  안 맞음 몫은 그대로다: 접는 규칙이 없어 펼친 갈래의 실려 온 줄이 곧 그려진 줄이다.
-  const 그려진수 = (items: FundingItem[], 펼침: boolean): number =>
-    compact || !펼침 ? Math.min(items.length, FOLDED) : items.length;
-  const 미확인그려진 = 그려진수(unclassified, unclassifiedExpanded);
+  //  ※미확인 몫의 접힘 규칙은 `UnclassifiedBlock` 과 **글자 그대로 같다** — 손잡이가 없으면
+  //   그 블록이 접지 않으므로(2차 반려 1) 여기서도 접힌 셈을 하면 안 된다.
+  const 미확인접힘 = compact || (Boolean(onToggleUnclassified) && !unclassifiedExpanded);
+  const 미확인그려진 = 미확인접힘 ? Math.min(unclassified.length, FOLDED) : unclassified.length;
   const cardShown = useMemo(
     () =>
       data.groups.reduce((s, g) => {

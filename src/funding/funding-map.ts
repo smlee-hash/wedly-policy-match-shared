@@ -808,19 +808,22 @@ const NUMERIC_RATE_RE = /\d\s*%/;
  *  돈이 아닌 줄까지 갈래 기본값 `grant` 를 타고 「안 갚아도 됨」이라 **단정**해, 상담사가 그대로
  *  고객에게 옮길 수 있었다. 못 가른 줄은 단정하지 않고 「종류 확인 필요」라고 적는다.
  *
- * ★단 **이자 문구가 있으면 그것이 먼저다**(코덱스 반려 2, 2026-09-05). 갈래를 못 가른 것과
- *  「연 2.5%」라고 **공고에 적혀 있는 것**은 다른 문제다 — 아는 값을 「확인 필요」로 덮으면
- *  화면이 가진 사실을 스스로 버린다. 「무상」은 이자 문구가 아니라 상환 면제 표시라 이 길로
- *  안 보낸다 — 종류를 모르는 줄에 「안 갚아도 됨」을 붙이는 것이 애초에 지적 2 였으므로
- *  그대로 「종류 확인 필요」로 남긴다.
+ * ★단 **원문에 적힌 것이 갈래 추측보다 먼저다**(코덱스 반려 2·2차 반려 3, 2026-09-05).
+ *  ⓐ 이자 칸에 「무상」이 **들어 있으면** 「안 갚아도 됨」이다 — 그것은 갈래를 보고 넘겨짚은 값이
+ *    아니라 **자료에 적힌 사실**이다(「무상 지원」처럼 뒤에 말이 붙어도 같다). 지적 2 가 막으려던
+ *    것은 갈래 기본값 `grant` 를 타고 붙던 **근거 없는** 「안 갚아도 됨」이지, 원문의 무상이 아니다.
+ *  ⓑ 그 밖에 이자 문구가 있으면(「연 2.5%」·「변동금리」) 그대로 이자다 — 아는 값을 「확인 필요」로
+ *    덮으면 화면이 가진 사실을 스스로 버린다.
+ *  ⓒ 적힌 것이 아무것도 없을 때만 「종류 확인 필요」다.
  *
- * 차례: 종류 미확인(이자 문구 있으면 이자) → grant → rateText 「무상」 → invest(숫자 금리 →
+ * 차례: 종류 미확인(무상 → 이자 문구 → 확인 필요) → grant → rateText 「무상」 → invest(숫자 금리 →
  *      제목 낱말) → 그 밖은 이자.
  */
 export function repayWords(it: FundingItem): { label: string; value: string } {
   if (it.unclassified) {
     const 이자 = it.rateText?.trim() ?? "";
-    if (이자 !== "" && 이자 !== "무상") return { label: "이자", value: 이자 };
+    if (이자.includes("무상")) return { label: "갚아야 하나", value: "안 갚아도 됨" };
+    if (이자 !== "") return { label: "이자", value: 이자 };
     return { label: "갚아야 하나", value: "종류 확인 필요" };
   }
   if (it.group === "grant") return { label: "갚아야 하나", value: "안 갚아도 됨" };
@@ -885,13 +888,20 @@ export function groupFooterWords(
  *  그려진 줄 수다. 예전 블록은 딱지에 실려 온 배열 길이(`items.length`)를 찍어, 잘려서 80건만 온
  *  834건짜리 화면이 「80건」이라고 **거짓말**했다.
  *
- * @returns 발치에 적을 글. `total` 이 0 이면 `null` — 부르는 쪽이 발치 자체를 안 그린다.
+ * ★`total` 이 `shownCount` 보다 **작으면 그린 수를 전체로 본다**(코덱스 2차 반려 2, 2026-09-05).
+ *  그 역전은 실제로 일어난다 — 이 칸을 안 싣는 **옛 통로**(그러면 0)나 배포 교체 창에서 앞뒤
+ *  버전이 섞일 때다. 방어가 없으면 3줄을 그려 놓고 「0건」 딱지 + 「0건 중 3건만 보여 드림」처럼
+ *  **눈에 보이는 것보다 적은 수**를 적는다. 모자란 수를 지어내느니 **본 것만큼은 확실하다**로
+ *  내려앉는다(위로 부풀리지 않는다 — `Math.max` 는 실려 온 줄 수를 넘지 않는다).
+ *
+ * @returns 발치에 적을 글. 셀 것이 하나도 없으면 `null` — 부르는 쪽이 발치 자체를 안 그린다.
  */
 export function unclassifiedFooterWords(total: number, shownCount: number): string | null {
-  if (total === 0) return null;
-  return shownCount === total
-    ? `종류 미확인 ${건수(total)}건 전부`
-    : `종류 미확인 ${건수(total)}건 중 ${건수(shownCount)}건만 보여 드림`;
+  const 전체 = Math.max(total, shownCount);
+  if (전체 === 0) return null;
+  return shownCount === 전체
+    ? `종류 미확인 ${건수(전체)}건 전부`
+    : `종류 미확인 ${건수(전체)}건 중 ${건수(shownCount)}건만 보여 드림`;
 }
 
 /** profileBandWords 가 usedProfileSummary(profile-summary.ts)의 고정 접두어를 사람 말 띠로 바꾸는 표. */

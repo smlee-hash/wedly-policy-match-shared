@@ -1249,6 +1249,27 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     expect(블록).toContain("종류 미확인 834건 중 3건만 보여 드림");
     // 실려 온 것이 3건뿐이면 더 펼칠 것이 없어 손잡이를 안 그린다(갈래 카드와 같은 규칙)
     expect(블록, "펼칠 줄이 없는데 손잡이가 있다").not.toContain("나머지 보기");
+
+    // ★`total` 이 그린 줄보다 **작은 역전**(옛 통로는 이 칸을 안 실어 0 이 된다·배포 교체 창)에서
+    //  딱지와 발치가 **같은 수**를 쓰고, 눈에 보이는 것보다 적게 적지 않는다(코덱스 2차 반려 2).
+    for (const 역전 of [0, 2]) {
+      const 뒤집힌 = 미확인블록(
+        그린다({
+          data: 자료(
+            [
+              { ...항목8[0], id: "a:90", unclassified: true, title: "미확인 항목 A" },
+              { ...항목8[0], id: "a:91", unclassified: true, title: "미확인 항목 B" },
+              { ...항목8[0], id: "a:92", unclassified: true, title: "미확인 항목 C" },
+              ...항목8.slice(1),
+            ],
+            { unclassified: 역전 },
+          ),
+        }),
+      );
+      expect(뒤집힌, `total=${역전} 인데 딱지가 3건이 아니다`).toContain(">3건<");
+      expect(뒤집힌, `total=${역전} 인데 발치가 본 것보다 적게 적었다`).toContain("종류 미확인 3건 전부");
+      expect(뒤집힌, "역전인데 옛 수가 그대로 새어 나왔다").not.toContain(`>${역전}건<`);
+    }
   });
 
   it("⑩-d3 「종류 미확인」 나머지 보기 — 접힘 3줄 ↔ 펼침 전부, compact 는 손잡이 없음(재검사 지적 2)", () => {
@@ -1299,9 +1320,11 @@ describe("자금 조달 지도 — 그려서 재기", () => {
 
   it("⑩-d4 못 가른 줄의 「갚아야 하나」는 단정하지 않는다 — 카드·표 둘 다 「종류 확인 필요」(재검사 지적 2)", () => {
     // grant 갈래(=「안 갚아도 됨」이 기본값)로 붙었지만 종류를 못 가른 줄
-    const 못가름 = 자료([{ ...항목8[0], unclassified: true, title: "2026년 사업설명회 개최 안내" }, ...항목8.slice(1)], {
-      unclassified: 1,
-    });
+    // 이자 칸이 **비어 있는** 줄 — 적힌 것이 없을 때만 「종류 확인 필요」다(2차 반려 3).
+    const 못가름 = 자료(
+      [{ ...항목8[0], unclassified: true, title: "2026년 사업설명회 개최 안내", rateText: "", rateMin: null }, ...항목8.slice(1)],
+      { unclassified: 1 },
+    );
     const 블록 = 미확인블록(그린다({ data: 못가름 }));
     expect(블록, "카드가 「종류 확인 필요」로 적지 않는다").toContain("종류 확인 필요");
     expect(블록, "못 가른 줄을 「안 갚아도 됨」이라고 단정한다").not.toContain("안 갚아도 됨");
@@ -1319,6 +1342,15 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     const 이자블록 = 미확인블록(그린다({ data: 이자있음 }));
     expect(이자블록, "아는 이자를 「확인 필요」로 덮었다").toContain("연 2.5%");
     expect(이자블록, "이자를 알면서 「종류 확인 필요」라 적었다").not.toContain("종류 확인 필요");
+
+    // ★원문이 「무상」이라 적었으면 그것도 사실이다(2차 반려 3) — 갈래 추측이 아니라 자료다.
+    const 무상 = 자료(
+      [{ ...항목8[0], unclassified: true, title: "종류 미상 지원사업", rateText: "무상 지원" }, ...항목8.slice(1)],
+      { unclassified: 1 },
+    );
+    const 무상블록 = 미확인블록(그린다({ data: 무상 }));
+    expect(무상블록, "원문의 무상을 「확인 필요」로 덮었다").toContain("안 갚아도 됨");
+    expect(무상블록).not.toContain("종류 확인 필요");
   });
 
   /**
@@ -1429,10 +1461,38 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     );
     const 블록 = 미확인블록(손잡이없음);
     expect(블록, "손잡이가 없는데 죽은 링크를 그렸다").not.toContain("나머지 보기");
-    // 그래도 발치 문장은 남는다 — 「몇 건 중 몇 건인지」는 손잡이와 무관한 사실이다
-    expect(블록).toContain("종류 미확인 4건 중 3건만 보여 드림");
-    // 손잡이를 주면 링크가 돌아온다(같은 자료·같은 상태)
-    expect(미확인블록(그린다({ data: 다섯 })), "손잡이를 줬는데 링크가 없다").toContain("나머지 보기");
+    // ★손잡이가 없으면 **접지도 않는다**(2차 반려 1) — 펼칠 길을 안 주면서 접으면 실려 온 줄을
+    //  영영 못 보게 만든다. 옛 동작(다 그리기) 그대로다.
+    const 줄수 = (블록: string) => (블록.match(/미확인 항목 [A-E] 자세히 보기/g) ?? []).length;
+    expect(줄수(블록), "손잡이가 없는데 접어서 줄을 감췄다").toBe(4);
+    expect(블록, "다 그렸는데 「중 …건만」이라 적었다").toContain("종류 미확인 4건 전부");
+
+    // compact 만은 예외 — 좁은 레일은 손잡이가 없어도 3줄이다(자리가 없다)
+    const 좁게 = renderToStaticMarkup(
+      <FundingMapView
+        data={다섯}
+        view="map"
+        filters={기본거르개}
+        sort="rec"
+        expanded={new Set<FundingGroup>()}
+        showExcluded={new Set<FundingGroup>()}
+        selectedId=""
+        compact
+        now={NOW}
+        onOpen={() => {}}
+        onView={() => {}}
+        onFiltersChange={() => {}}
+        onSortChange={() => {}}
+        onToggleExpand={() => {}}
+        onToggleExcluded={() => {}}
+      />,
+    );
+    expect(줄수(미확인블록(좁게)), "compact 가 3줄 고정이 아니다").toBe(3);
+
+    // 손잡이를 주면 접히고 링크가 돌아온다(같은 자료·같은 상태)
+    const 손잡이있음 = 미확인블록(그린다({ data: 다섯 }));
+    expect(손잡이있음, "손잡이를 줬는데 링크가 없다").toContain("나머지 보기");
+    expect(줄수(손잡이있음), "손잡이를 줬는데 안 접혔다").toBe(3);
   });
 
   it("⑩-e 답 네 개(2열) — 라벨은 얼마까지/repayWords.label/언제까지/어디에 신청, 값은 도우미 함수 그대로", () => {

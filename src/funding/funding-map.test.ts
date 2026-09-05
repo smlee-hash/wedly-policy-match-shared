@@ -789,8 +789,19 @@ describe("갈래별 묶음", () => {
  *  세고 80건만 실어 보낸 화면이 「80건」이라고 적었다.
  */
 describe("unclassifiedFooterWords — 「종류 미확인」 발치 한 줄", () => {
-  it("0건이면 null — 부르는 쪽이 발치 자체를 안 그린다", () => {
+  it("셀 것이 없으면 null — 부르는 쪽이 발치 자체를 안 그린다", () => {
     expect(unclassifiedFooterWords(0, 0)).toBeNull();
+  });
+  /**
+   * ★코덱스 2차 반려 2(2026-09-05) — `total` 이 그린 줄보다 **작은 역전**은 실제로 일어난다:
+   *  이 칸을 안 싣는 옛 통로(그러면 0)나 배포 교체 창에서 앞뒤 버전이 섞일 때다. 방어가 없으면
+   *  3줄을 그려 놓고 「0건 중 3건만 보여 드림」처럼 **눈에 보이는 것보다 적은 수**를 적는다.
+   */
+  it("total 이 그린 줄보다 작으면 그린 수를 전체로 본다 — 눈에 보이는 것보다 적게 안 적는다(2차 반려 2)", () => {
+    expect(unclassifiedFooterWords(2, 3)).toBe("종류 미확인 3건 전부");
+    expect(unclassifiedFooterWords(0, 3)).toBe("종류 미확인 3건 전부");
+    // 위로는 부풀리지 않는다 — 실려 온 줄보다 많은 total 은 그대로 존중한다
+    expect(unclassifiedFooterWords(834, 3)).toBe("종류 미확인 834건 중 3건만 보여 드림");
   });
   it("다 보여 주면 「전부」", () => {
     expect(unclassifiedFooterWords(3, 3)).toBe("종류 미확인 3건 전부");
@@ -1027,12 +1038,24 @@ describe("repayWords — 갚기/이자", () => {
     expect(repayWords(mkItem({ group: "grant" })).value).toBe("안 갚아도 됨");
   });
   /**
-   * ★코덱스 반려 2(2026-09-05) — 갈래를 못 가른 것과 「연 2.5%」라고 **공고에 적혀 있는 것**은
-   *  다른 문제다. 아는 이자를 「확인 필요」로 덮으면 화면이 가진 사실을 스스로 버린다.
-   *  「무상」은 이자 문구가 아니라 상환 면제 표시라 이 길로 안 보낸다 — 종류를 모르는 줄에
-   *  「안 갚아도 됨」을 붙이는 것이 애초에 지적 2 였다.
+   * ★코덱스 반려 2 · 2차 반려 3(2026-09-05) — **원문에 적힌 것이 갈래 추측보다 먼저다.**
+   *  지적 2 가 막으려던 것은 갈래 기본값 `grant` 를 타고 붙던 **근거 없는** 「안 갚아도 됨」이지,
+   *  이자 칸에 실제로 적혀 온 값이 아니다. 아는 값을 「확인 필요」로 덮으면 화면이 가진 사실을
+   *  스스로 버린다 — 그래서 무상(사실) → 이자 문구(사실) → 아무것도 없을 때만 확인 필요 차례다.
    */
-  it("미확인이어도 이자 문구가 있으면 그것이 먼저다 — 없을 때만 「종류 확인 필요」(반려 2)", () => {
+  it("미확인이어도 원문에 적힌 것이 먼저다 — 무상 → 이자 → 없을 때만 「종류 확인 필요」(2차 반려 3)", () => {
+    // ⓐ 「무상」이 **들어 있으면** 안 갚아도 됨 — 뒤에 말이 붙어도 같다(정확히 일치가 아니다)
+    expect(repayWords(mkItem({ group: "grant", unclassified: true, rateText: "무상" }))).toEqual({
+      label: "갚아야 하나",
+      value: "안 갚아도 됨",
+    });
+    expect(repayWords(mkItem({ group: "invest", unclassified: true, rateText: "무상 지원" }))).toEqual({
+      label: "갚아야 하나",
+      value: "안 갚아도 됨",
+    });
+    expect(repayWords(mkItem({ group: "policy", unclassified: true, rateText: "전액 무상" })).value).toBe("안 갚아도 됨");
+
+    // ⓑ 그 밖에 적힌 문구는 그대로 이자다
     expect(repayWords(mkItem({ group: "grant", unclassified: true, rateText: "연 2.5%" }))).toEqual({
       label: "이자",
       value: "연 2.5%",
@@ -1041,14 +1064,10 @@ describe("repayWords — 갚기/이자", () => {
       label: "이자",
       value: "변동금리",
     });
-    // 빈 문구·공백뿐인 문구는 「모른다」다
+
+    // ⓒ 적힌 것이 없을 때만 「종류 확인 필요」 — 공백뿐인 문구도 없는 것이다
     expect(repayWords(mkItem({ group: "grant", unclassified: true, rateText: "" })).value).toBe("종류 확인 필요");
     expect(repayWords(mkItem({ group: "grant", unclassified: true, rateText: "   " })).value).toBe("종류 확인 필요");
-    // 「무상」은 이자 문구가 아니다 — 종류를 모르는 줄에 「안 갚아도 됨」을 붙이지 않는다
-    expect(repayWords(mkItem({ group: "invest", unclassified: true, rateText: "무상" }))).toEqual({
-      label: "갚아야 하나",
-      value: "종류 확인 필요",
-    });
   });
   it("invest → 「갚아야 하나」/「지분으로 받음 (상환 없음)」", () => {
     expect(repayWords(mkItem({ group: "invest" }))).toEqual({
