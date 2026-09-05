@@ -1356,6 +1356,42 @@ describe("자금 조달 지도 — 그려서 재기", () => {
   });
 
   /**
+   * ★코덱스 반려 3 후속(2026-09-05) — 갈래 카드도 접히면 상위 3건만 그리는데 발치 「표시 N건」의
+   *  **갈래 몫만** 실려 온 줄을 통째로 셌다. 한 줄 안에 규칙이 둘이면(갈래는 실려 온 수, 미확인은
+   *  그려진 수) 그 수가 무엇을 뜻하는지 아무도 못 말한다. 이제 갈래 카드 발치 `shown.length` ·
+   *  「종류 미확인」 블록 · 이 발치 **세 자리가 한 규칙**을 쓴다.
+   */
+  it("⑩-d5b 발치 「표시 N건」의 갈래 몫도 그려진 수 — 정상 5건 접힘 3 / 펼침 5(반려 3 후속)", () => {
+    // grant 갈래 하나에만 정상 5건 — 다른 갈래는 0건이라 이 수가 곧 갈래 몫이다
+    const 다섯 = 자료([
+      mk({ id: "a:80", group: "grant", title: "무상 항목 1", fitVerdict: "fit" }),
+      mk({ id: "a:81", group: "grant", title: "무상 항목 2", fitVerdict: "fit" }),
+      mk({ id: "a:82", group: "grant", title: "무상 항목 3", fitVerdict: "unverified" }),
+      mk({ id: "a:83", group: "grant", title: "무상 항목 4", fitVerdict: "unverified" }),
+      mk({ id: "a:84", group: "grant", title: "무상 항목 5", fitVerdict: "unverified" }),
+    ]);
+    const 표시수 = (html: string): number => {
+      const m = /표시 ([\d,]+)건/.exec(html);
+      expect(m, "발치 「표시 N건」을 못 찾았다").not.toBeNull();
+      return Number(m![1].replace(/,/g, ""));
+    };
+
+    const 접힘html = 그린다({ data: 다섯 });
+    expect(표시수(접힘html), "접혀서 3줄만 그렸는데 5를 셌다").toBe(3);
+    // 화면과 대조 — 발치가 말하는 수와 실제로 그려진 카드 줄 수가 같아야 한다
+    expect((접힘html.match(/무상 항목 \d 자세히 보기/g) ?? []).length, "발치 수와 그려진 줄 수가 다르다").toBe(3);
+
+    const 펼침html = 그린다({ data: 다섯, expanded: new Set<FundingGroup>(["grant"]) });
+    expect(표시수(펼침html), "펼쳐서 5줄을 그렸는데 안 늘었다").toBe(5);
+    expect((펼침html.match(/무상 항목 \d 자세히 보기/g) ?? []).length).toBe(5);
+
+    // compact 는 3건 고정이라 접힘과 같다
+    expect(표시수(그린다({ data: 다섯, compact: true })), "compact 가 그려진 수를 안 센다").toBe(3);
+    // 펼친 갈래만 늘어난다 — 다른 갈래를 펼쳐도 grant 는 접힌 채다
+    expect(표시수(그린다({ data: 다섯, expanded: new Set<FundingGroup>(["policy"]) })), "안 펼친 갈래가 늘었다").toBe(3);
+  });
+
+  /**
    * ★코덱스 반려 4(2026-09-05) — 새 props 두 개를 **필수**로 두면 이 부품을 직접 그리는 옛
    *  부르는 쪽이 그대로 깨진다. 선택값으로 두되, 손잡이가 없으면 「나머지 보기」 링크 자체를
    *  안 그린다 — 눌러도 아무 일 없는 죽은 링크를 그리는 것이 더 나쁘다.

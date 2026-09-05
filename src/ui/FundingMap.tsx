@@ -891,18 +891,24 @@ export function FundingMapView({
   //  블록으로 옮긴다. 그래서 갈래 몫은 `classifiedGroupItems` 로 옮겨 간 줄을 빼고 세고, 미확인
   //  몫은 그 블록이 **실제로 그린 수**로 따로 더한다(코덱스 반려 3, 2026-09-05). 예전엔 `g.items`
   //  를 통째로 세, 미확인 5건이 접혀 3줄만 그려진 화면이 「표시 …건」에 5를 넣어 **화면에 없는
-  //  줄까지** 표시라고 적었다 — 갈래 카드 발치가 `shown.length`(그려진 수)로 세는 규칙과 어긋났다.
-  const 미확인그려진 = compact || !unclassifiedExpanded ? Math.min(unclassified.length, FOLDED) : unclassified.length;
+  //  줄까지** 표시라고 적었다.
+  //
+  // ★**갈래 몫도 그려진 수다**(코덱스 반려 3 후속, 2026-09-05) — 갈래 카드도 접히면 상위 3건만
+  //  그리는데 여기서만 실려 온 줄을 통째로 셌다. 한 줄(「표시 N건」) 안에 규칙이 둘이면 그 수가
+  //  무엇을 뜻하는지 아무도 못 말한다. 이제 **갈래 카드 발치 `shown.length` 와 같은 규칙**이고
+  //  **「종류 미확인」 블록과도 같은 규칙**이다 — 세 자리가 한 규칙을 쓴다.
+  //  안 맞음 몫은 그대로다: 접는 규칙이 없어 펼친 갈래의 실려 온 줄이 곧 그려진 줄이다.
+  const 그려진수 = (items: FundingItem[], 펼침: boolean): number =>
+    compact || !펼침 ? Math.min(items.length, FOLDED) : items.length;
+  const 미확인그려진 = 그려진수(unclassified, unclassifiedExpanded);
   const cardShown = useMemo(
     () =>
-      data.groups.reduce(
-        (s, g) =>
-          s +
-          classifiedGroupItems(g.items).length +
-          (showExcluded.has(g.group) ? (g.excludedItems?.length ?? 0) : 0),
-        0,
-      ),
-    [data, showExcluded],
+      data.groups.reduce((s, g) => {
+        const 정상 = classifiedGroupItems(g.items);
+        const 그려진 = compact || !expanded.has(g.group) ? Math.min(정상.length, FOLDED) : 정상.length;
+        return s + 그려진 + (showExcluded.has(g.group) ? (g.excludedItems?.length ?? 0) : 0);
+      }, 0),
+    [data, showExcluded, compact, expanded],
   ) + 미확인그려진;
   const delivered = view === "table" ? rows.length : cardShown;
   // 안 맞아서 뺀 것이 있으면 정상 0건이어도 빈 상태로 갈아치우지 않는다 — 그러면 갈래 카드와
