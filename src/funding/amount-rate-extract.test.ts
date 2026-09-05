@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractAmount, extractRate, wonOf } from "./amount-rate-extract";
+import { extractAmount, extractRate, normalizeRateMin, wonOf } from "./amount-rate-extract";
 
 describe("wonOf — 한글 단위 금액 → 원", () => {
   it("억·천만·백만·만 단위와 쉼표를 읽는다", () => {
@@ -260,5 +260,35 @@ describe("isPerCompanyLimit — 「기업당」류 표지를 찾는 창(2026-09-
   });
   it("표지가 이미 낱말 자리에 잡힌 글은 예전 그대로 — 표지를 두 번 적지 않는다", () => {
     expect(extractAmount("기업당 최대 150억원").amountText).toBe("기업당 최대 150억원");
+  });
+});
+
+/**
+ * ★2026-09-05 브라우저 재검사 — 지도 타일 「가장 낮은 이자」가 「연 0%」로 떴다. 은행 상품이 하한
+ *  미기재 자리에 0 을 저장한 것이 원인(「중고차할부」 rateText 「연 0.00%~17.90%」 rateMin 0).
+ *  0 은 글이 무이자라고 말할 때만 뜻이 있고, 그 밖은 미상이다.
+ */
+describe("normalizeRateMin — 하한 미기재 0 을 미상으로", () => {
+  it("무이자가 아닌 글의 0 은 미상(null) — 「연 0.00%~17.90%」", () => {
+    expect(normalizeRateMin(0, "연 0.00%~17.90%")).toBeNull();
+  });
+  it("글이 무이자라고 말하면 0 은 그대로 0", () => {
+    expect(normalizeRateMin(0, "무이자 대출")).toBe(0);
+    expect(normalizeRateMin(0, "이자 없음")).toBe(0);
+    expect(normalizeRateMin(0, "금리 0%")).toBe(0);
+  });
+  it("음수·NaN·없음은 전부 미상", () => {
+    expect(normalizeRateMin(-1, "")).toBeNull();
+    expect(normalizeRateMin(Number.NaN, "")).toBeNull();
+    expect(normalizeRateMin(undefined, "")).toBeNull();
+    expect(normalizeRateMin(null, "")).toBeNull();
+  });
+  it("양수는 글과 상관없이 그대로", () => {
+    expect(normalizeRateMin(2.5, "")).toBe(2.5);
+  });
+  /** 「이자 낮은 순」 1등이 「청년전용 보증부월세 대출」(rateText 「(보증금)연1.3%」·rateMin 0)이던 뿌리. */
+  it("글자에서 다시 뽑으면 진짜 이자가 나온다 — 「(보증금)연1.3%」", () => {
+    expect(extractRate("(보증금)연1.3%").rateMin).toBe(1.3);
+    expect(normalizeRateMin(extractRate("(보증금)연1.3%").rateMin, "(보증금)연1.3%")).toBe(1.3);
   });
 });

@@ -1251,3 +1251,67 @@ describe("숫자의 뜻 — 독립 검사 ①②③(2026-09-04)", () => {
     expect(data.totals.filtered).toBe(2 + MANUAL_N);
   });
 });
+
+/**
+ * ★2026-09-05 브라우저 재검사 — 지도 타일 「가장 낮은 이자」가 「연 0%」로 떴다. 은행 상품이 하한
+ *  미기재 자리에 0 을 저장한 것이 원인이고(「중고차할부」 rateText 「연 0.00%~17.90%」 rateMin 0,
+ *  「재고금융」 「연 0.00%」 rateMin 0 — `rateMin === 0` 인 12건 전부 bank·guarantee 갈래),
+ *  정작 진짜 무이자 공고(「청년창업자금 무이자 대출지원」)는 rateMin 이 비어 타일에 안 잡혔다.
+ */
+describe("이자 하한 — 미기재 0 을 미상으로(2026-09-05 재검사)", () => {
+  it("상품 rateMin 0 · 「연 0.00%~17.90%」 → 하한은 미상, 글자는 「연 최대 17.90%」", async () => {
+    productFindMany.mockResolvedValue([prod({ id: "car", name: "중고차할부", rateText: "연 0.00%~17.90%", rateMin: 0 })]);
+    const data = await buildFundingMap({}, NOW);
+    const it0 = byId(data.groups, "p:car")!;
+    expect(it0.rateMin, "0 은 「이자가 없다」가 아니라 「안 적혔다」였다").toBeNull();
+    expect(it0.rateText).toBe("연 최대 17.90%");
+  });
+
+  it("상품 rateMin 0 · 「연 0.00%」뿐이면 글자도 비운다 — 무이자 상품으로 읽히지 않게", async () => {
+    productFindMany.mockResolvedValue([prod({ id: "stock", name: "재고금융", rateText: "연 0.00%", rateMin: 0 })]);
+    const data = await buildFundingMap({}, NOW);
+    const it0 = byId(data.groups, "p:stock")!;
+    expect(it0.rateMin).toBeNull();
+    expect(it0.rateText).toBe("");
+  });
+
+  /** 「이자 낮은 순」 1등이 「청년전용 보증부월세 대출」이던 뿌리 — 숫자 칸만 0 이고 글자엔 1.3% 가 적혀 있었다. */
+  it("숫자 칸이 0 이어도 글자에 이자가 적혀 있으면 그 값을 쓴다 — 「(보증금)연1.3%」", async () => {
+    productFindMany.mockResolvedValue([prod({ id: "rent", name: "청년전용 보증부월세 대출", rateText: "(보증금)연1.3%", rateMin: 0 })]);
+    const data = await buildFundingMap({}, NOW);
+    const it0 = byId(data.groups, "p:rent")!;
+    expect(it0.rateMin).toBe(1.3);
+    expect(it0.rateText, "「연 0…」 꼴이 아닌 문장은 손대지 않는다").toBe("(보증금)연1.3%");
+  });
+
+  it("글이 무이자라고 말하면 0 은 그대로 0 — 상품 글자도 안 건드린다", async () => {
+    productFindMany.mockResolvedValue([prod({ id: "free", name: "무이자 할부", rateText: "무이자", rateMin: 0 })]);
+    const data = await buildFundingMap({}, NOW);
+    expect(byId(data.groups, "p:free")).toMatchObject({ rateMin: 0, rateText: "무이자" });
+  });
+
+  it("멀쩡한 상품(연 3.97%~5.90% · 3.97)은 글자도 숫자도 그대로", async () => {
+    productFindMany.mockResolvedValue([prod()]);
+    const data = await buildFundingMap({}, NOW);
+    expect(byId(data.groups, "p:p1")).toMatchObject({ rateMin: 3.97, rateText: "연 3.97%~5.90%" });
+  });
+
+  it("공고 제목이 무이자를 말하는데 이자 칸이 비면 「무이자」·0 으로 싣는다", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({ id: "gw", fundingGroup: "policy", title: "[강원] 2026년 청년창업자금 무이자 대출지원 사업시행 변경 공고", rateText: "", rateMin: null }),
+    ]);
+    const data = await buildFundingMap({}, NOW);
+    expect(byId(data.groups, "a:gw")).toMatchObject({ rateMin: 0, rateText: "무이자" });
+    expect(data.glance.minRate, "타일이 진짜 무이자를 집는다").toBe(0);
+  });
+
+  it("공고 rateMin 0 인데 무이자라는 말이 없으면 미상 — 타일이 「연 0%」로 뜨지 않는다", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({ id: "z", fundingGroup: "policy", title: "2026년 중소기업 운전자금 융자 공고", rateText: "연 0.00%~4.5%", rateMin: 0 }),
+      ann({ id: "ok", fundingGroup: "policy", title: "2026년 시설자금 융자 공고", rateText: "연 2.4%", rateMin: 2.4 }),
+    ]);
+    const data = await buildFundingMap({}, NOW);
+    expect(byId(data.groups, "a:z")!.rateMin).toBeNull();
+    expect(data.glance.minRate, "예전엔 0 이 이겨 「연 0%」로 떴다").toBe(2.4);
+  });
+});

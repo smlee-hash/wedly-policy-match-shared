@@ -7,7 +7,7 @@
  *
  * AI 0콜: 저장 때 규칙으로 채워 둔 갈래·한도·금리와 판정 엔진(checkCondition)만 쓴다.
  */
-import { extractAmount } from "../funding/amount-rate-extract";
+import { extractAmount, extractRate, normalizeRateMin } from "../funding/amount-rate-extract";
 import { classifyFundingGroup, isFundingGroup, type FundingGroup } from "../funding/funding-group";
 import {
   deadlineOfAnnouncement,
@@ -313,7 +313,17 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
   const humanCheck = m.humanCheck.length;
   const why = whyOf(fit, humanCheck);
 
-  const rateText = r.rateText || (group === "grant" && !unclassified ? "무상" : "");
+  // ★이자 하한 손질(2026-09-05 브라우저 재검사) — 저장된 0 이 「무이자」인지 「하한 미기재」인지는
+  //  글자·제목이 가른다. `normalizeRateMin` 이 그 잣대다 — 뜻 없는 0 은 미상으로 되돌린다.
+  let rateMin = normalizeRateMin(r.rateMin, `${r.rateText ?? ""} ${r.title ?? ""}`);
+  let rateText = r.rateText || (group === "grant" && !unclassified ? "무상" : "");
+  // 이자 칸이 통째로 비고 **제목만** 무이자를 말하는 공고(「[강원] 청년창업자금 무이자 대출지원」)는
+  // 진짜 무이자인데도 타일 「가장 낮은 이자」에 안 잡혔다 — 제목을 근거로 0 을 싣는다.
+  if (!(r.rateText ?? "") && r.rateMin == null && normalizeRateMin(0, r.title ?? "") === 0) {
+    rateText = "무이자";
+    rateMin = 0;
+  }
+
   const item: FundingItem = {
     id: `a:${r.id}`,
     kind: "announcement",
@@ -329,7 +339,7 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
     amountText: frontAmountText(r.amountText || "", structure.supportAmountText || "", wonNumber(r.amountMaxWon)),
     amountMaxWon: wonNumber(r.amountMaxWon),
     rateText,
-    rateMin: r.rateMin ?? null,
+    rateMin,
     // 접수 시작 전이면 마감이 넉넉해도 「지금 신청 가능」이 아니다 — applyStart 를 넘겨
     // 「N일 뒤 접수」(upcoming)로 갈라 준다(R1 이 만든 갈래, 리뷰 대장 #15·코덱스 #12).
     deadline: deadlineOfAnnouncement(r.applyEnd, r.applyPeriodText ?? "", now, r.applyStart),
@@ -372,6 +382,35 @@ interface ProductRow {
   firstSeenAt: Date | null;
 }
 
+/**
+ * 하한을 안 적어 0 으로 저장한 상품 글자 — 「연 0%」 하나뿐이거나 「연 0%~N%」 꼴일 때만 걸린다.
+ * 앞뒤를 못 박아(^…$) 다른 문장은 절대 건드리지 않는다.
+ */
+const ZERO_LOW_RATE_TEXT_RE = /^\s*연\s*0(?:\.0+)?\s*%\s*(?:[~∼-]\s*([\d.]+)\s*%)?\s*$/;
+
+/**
+ * 상품 한 줄의 이자 하한·글자 — 하한 미기재를 0 으로 저장한 줄을 걸러 낸다(2026-09-05 브라우저 재검사).
+ *
+ * 지도 타일 「가장 낮은 이자」가 「연 0%」로 뜬 원인이다. `rateMin === 0` 인 12건은 전부 은행·보증
+ * 갈래였고(「중고차할부」 rateText 「연 0.00%~17.90%」·「재고금융」 「연 0.00%」), 실제로는 하한이
+ * 없다는 뜻이었다. 세 걸음으로 본다:
+ *  ① 저장된 하한을 `normalizeRateMin` 으로 본다 — 글이 무이자라고 말할 때만 0 이 남는다.
+ *  ② 그래도 미상이고 글자가 있으면 **글자에서 다시 뽑아** 같은 잣대를 댄다(「(보증금)연1.3%」처럼
+ *     숫자 칸만 0 이고 글자엔 진짜 이자가 적힌 줄 — 「이자 낮은 순」 1등 오류의 자리).
+ *  ③ 글자가 「연 0%~N%」이면 「연 최대 N%」로, 「연 0%」뿐이면 빈 글자로 바꾼다 — 그대로 두면
+ *     화면이 무이자 상품으로 읽는다. 그 밖의 문장은 손대지 않는다.
+ */
+function productRate(p: ProductRow): { rateText: string; rateMin: number | null } {
+  const text = p.rateText ?? "";
+  const stored = normalizeRateMin(p.rateMin, text);
+  const rateMin = stored === null && text ? normalizeRateMin(extractRate(text).rateMin, text) : stored;
+  // 정규화 전 하한이 0 이하였고(=미기재 의심) 무이자도 아니면 글자도 함께 손질한다.
+  const 미기재0 = typeof p.rateMin === "number" && Number.isFinite(p.rateMin) && p.rateMin <= 0 && stored !== 0;
+  const m = 미기재0 ? text.match(ZERO_LOW_RATE_TEXT_RE) : null;
+  if (m) return { rateText: m[1] ? `연 최대 ${m[1]}%` : "", rateMin };
+  return { rateText: text, rateMin };
+}
+
 function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): BuiltItem {
   const stored = isFundingGroup(p.fundingGroup) ? p.fundingGroup : null;
   // 갈래 칸이 비거나 이상하면 기관 성격으로 다시 붙인다 — 은행 상품 876건이 미분류로 새면 지도가 무너진다.
@@ -387,6 +426,7 @@ function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): Buil
   // 상품에는 AI 의 「사람 확인」 목록이 없다 — 기계로 못 재는 조건(대표 나이 등)이 그 자리다.
   const humanCheck = conditions.filter((c) => !c.machineReadable).length;
   const why = whyOf(fit, humanCheck);
+  const rate = productRate(p);
 
   const item: FundingItem = {
     id: `p:${p.id}`,
@@ -405,8 +445,8 @@ function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): Buil
     //  ★단, 글 안의 단위 토큰만은 통일한다(독립 검사 D) — 자르는 것과 달리 문장은 그대로 남는다.
     amountText: normalizeAmountUnits(p.limitText ?? ""),
     amountMaxWon: productAmountMaxWon(p.limitMaxWon, p.limitText ?? ""),
-    rateText: p.rateText ?? "",
-    rateMin: p.rateMin ?? null,
+    rateText: rate.rateText,
+    rateMin: rate.rateMin,
     deadline: deadlineOfProduct(p.deadlineText ?? "", now),
     where: p.channel || p.institution || "",
     fit,

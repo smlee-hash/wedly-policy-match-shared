@@ -450,6 +450,26 @@ describe("한눈에 4칸", () => {
     expect(glanceOf(onlyExcluded).grantMaxWon).toBeNull();
     expect(glanceOf(onlyExcluded).minRate).toBeNull();
   });
+
+  /**
+   * ★2026-09-05 브라우저 재검사 — 타일 「가장 낮은 이자」가 「연 0%」로 떴다. 하한 미기재를 0 으로
+   *  저장한 은행 상품 12건이 최솟값을 이겼기 때문이다. 조립이 그 0 을 미상(null)으로 되돌리므로
+   *  이 함수는 **미상은 안 세고, 뜻 있는 0(무이자)은 그대로 고른다**.
+   */
+  it("미상(null)으로 돌린 0 은 최저 이자에서 빠진다 — 남은 0.8 이 이긴다", () => {
+    const items = [
+      mkItem({ id: "zero-unknown", group: "bank", fitVerdict: "fit", rateMin: null }),
+      mkItem({ id: "real", group: "bank", fitVerdict: "fit", rateMin: 0.8 }),
+    ];
+    expect(glanceOf(items).minRate).toBe(0.8);
+  });
+  it("뜻 있는 0(무이자)은 그대로 최저 이자가 된다", () => {
+    const items = [
+      mkItem({ id: "free", group: "policy", fitVerdict: "fit", rateMin: 0, rateText: "무이자" }),
+      mkItem({ id: "real", group: "bank", fitVerdict: "fit", rateMin: 0.8 }),
+    ];
+    expect(glanceOf(items).minRate).toBe(0);
+  });
 });
 
 describe("formatWon — 원 단위를 사람이 읽는 금액으로", () => {

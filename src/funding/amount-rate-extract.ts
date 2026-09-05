@@ -353,3 +353,22 @@ export function extractRate(text: string): { rateText: string; rateMin: number |
   }
   return { rateText: "", rateMin: null };
 }
+
+/** 「무이자」라고 말하는 글 — 이자 하한 0 을 **뜻이 있는 0** 으로 인정하는 유일한 근거. */
+const ZERO_RATE_RE = /무이자|이자\s*없|금리\s*0\s*%/;
+
+/**
+ * 저장된 이자 하한(rateMin)을 손질한다 — **하한 미기재를 0 으로 적은 줄**을 미상(null)으로 되돌린다.
+ *
+ * ★2026-09-05 브라우저 재검사 — 지도 타일 「가장 낮은 이자」가 「연 0%」로 떴다. 은행 상품
+ *  (FinanceProduct)이 하한을 안 적은 자리에 0 을 저장한 탓이다(「중고차할부」 rateText
+ *  「연 0.00%~17.90%」 rateMin 0). 0 은 글이 무이자라고 말할 때만 0 으로 남기고, 그 밖은 미상이다.
+ *
+ * @param rateMin 저장된 하한(%). 유한한 수가 아니면 미상.
+ * @param text 그 하한이 나온 글(rateText·제목 등) — 0 의 뜻을 가리는 유일한 자료.
+ */
+export function normalizeRateMin(rateMin: number | null | undefined, text: string): number | null {
+  if (typeof rateMin !== "number" || !Number.isFinite(rateMin)) return null;
+  if (rateMin > 0) return rateMin;
+  return ZERO_RATE_RE.test(text) ? 0 : null;
+}

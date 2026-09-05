@@ -863,7 +863,8 @@ export function FundingMapView({
     { label: "지금 신청 가능", value: `${건수(glance.open)}건`, icon: IoCheckmarkCircle },
     { label: "7일 안에 마감", value: `${건수(glance.soon)}건`, icon: IoTime },
     { label: "안 갚아도 되는 돈", value: `${건수(glance.grantFit)}건`, icon: IoGift },
-    { label: "가장 낮은 이자", value: glance.minRate === null ? "—" : `연 ${glance.minRate}%`, icon: IoTrendingDown },
+    // 0 은 「모른다」가 아니라 **무이자**다 — 하한 미기재 0 은 조립이 이미 미상(null)으로 되돌린다(2026-09-05).
+    { label: "가장 낮은 이자", value: glance.minRate === null ? "—" : glance.minRate === 0 ? "무이자" : `연 ${glance.minRate}%`, icon: IoTrendingDown },
   ];
 
   /**
