@@ -7,7 +7,7 @@
  *
  * AI 0콜: 저장 때 규칙으로 채워 둔 갈래·한도·금리와 판정 엔진(checkCondition)만 쓴다.
  */
-import { extractAmount, extractRate, normalizeRateMin } from "../funding/amount-rate-extract";
+import { extractAmount, extractRate, hasZeroRateWording, normalizeRateMin } from "../funding/amount-rate-extract";
 import { classifyFundingGroup, isFundingGroup, type FundingGroup } from "../funding/funding-group";
 import {
   deadlineOfAnnouncement,
@@ -319,7 +319,7 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
   let rateText = r.rateText || (group === "grant" && !unclassified ? "무상" : "");
   // 이자 칸이 통째로 비고 **제목만** 무이자를 말하는 공고(「[강원] 청년창업자금 무이자 대출지원」)는
   // 진짜 무이자인데도 타일 「가장 낮은 이자」에 안 잡혔다 — 제목을 근거로 0 을 싣는다.
-  if (!(r.rateText ?? "") && r.rateMin == null && normalizeRateMin(0, r.title ?? "") === 0) {
+  if (!(r.rateText ?? "") && r.rateMin == null && hasZeroRateWording(r.title ?? "")) {
     rateText = "무이자";
     rateMin = 0;
   }

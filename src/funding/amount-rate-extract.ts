@@ -354,8 +354,19 @@ export function extractRate(text: string): { rateText: string; rateMin: number |
   return { rateText: "", rateMin: null };
 }
 
-/** 「무이자」라고 말하는 글 — 이자 하한 0 을 **뜻이 있는 0** 으로 인정하는 유일한 근거. */
+/** 「무이자」라고 말하는 글의 사전 — **오직 `hasZeroRateWording` 하나만** 이 상수를 본다. */
 const ZERO_RATE_RE = /무이자|이자\s*없|금리\s*0\s*%/;
+
+/**
+ * 이 글이 「이자가 없다」고 말하는가 — 이자 하한 0 을 **뜻이 있는 0** 으로 인정하는 유일한 근거.
+ *
+ * 따로 내보내는 이유: 「제목이 무이자를 말하는가」를 묻는 자리(지도 조립의 공고 갈래)가
+ * `normalizeRateMin(0, title) === 0` 같은 **뜻이 숨는 식**을 쓰고 있었다 — 정규화 규칙이 바뀌면
+ * 제목 판정이 조용히 함께 바뀐다. 물음을 이름으로 드러내 두 자리를 갈라 둔다.
+ */
+export function hasZeroRateWording(text: string): boolean {
+  return ZERO_RATE_RE.test(text);
+}
 
 /**
  * 저장된 이자 하한(rateMin)을 손질한다 — **하한 미기재를 0 으로 적은 줄**을 미상(null)으로 되돌린다.
@@ -370,5 +381,5 @@ const ZERO_RATE_RE = /무이자|이자\s*없|금리\s*0\s*%/;
 export function normalizeRateMin(rateMin: number | null | undefined, text: string): number | null {
   if (typeof rateMin !== "number" || !Number.isFinite(rateMin)) return null;
   if (rateMin > 0) return rateMin;
-  return ZERO_RATE_RE.test(text) ? 0 : null;
+  return hasZeroRateWording(text) ? 0 : null;
 }
