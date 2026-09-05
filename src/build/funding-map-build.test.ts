@@ -1386,6 +1386,34 @@ describe("이자 하한 — 미기재 0 을 미상으로(2026-09-05 재검사)",
     expect(byId(data.groups, "a:sp")).toMatchObject({ rateMin: 0, rateText: "무이자" });
   });
 
+  /** ★코덱스 3차 [3] — 이름에 「없음」이 있어도 이자 칸의 「무이자」는 살아 있다(칸별 판정). */
+  it("[3·3차] 상품 이자 칸 「무이자」 · 이름 「한도 없는 청년대출」 → 0 · 「무이자」", async () => {
+    productFindMany.mockResolvedValue([
+      prod({ id: "both", rateText: "무이자", name: "한도 없는 청년대출", rateMin: 0 }),
+    ]);
+    const data = await buildFundingMap({}, NOW);
+    expect(byId(data.groups, "p:both")).toMatchObject({ rateMin: 0, rateText: "무이자" });
+  });
+
+  it("[3·3차] 상품 이름 「무이자 대출, 한도 없음」 · 이자 칸 빈칸 → 0 · 「무이자」", async () => {
+    productFindMany.mockResolvedValue([
+      prod({ id: "nolimit", rateText: "", name: "무이자 대출, 한도 없음", rateMin: null }),
+    ]);
+    const data = await buildFundingMap({}, NOW);
+    expect(byId(data.groups, "p:nolimit")).toMatchObject({ rateMin: 0, rateText: "무이자" });
+  });
+
+  /** ★코덱스 3차 [4] — 100 을 넘는 저장값은 단위가 뒤섞인 오류다. 타일·정렬을 흔들기 전에 버린다. */
+  it("[4] 저장값 150 인 상품은 미상 — 타일이 엉뚱한 수를 안 집는다", async () => {
+    productFindMany.mockResolvedValue([
+      prod({ id: "bad", rateText: "연 1.5%", rateMin: 150 }),
+      prod({ id: "ok", rateText: "연 3.2%", rateMin: 3.2 }),
+    ]);
+    const data = await buildFundingMap({}, NOW);
+    expect(byId(data.groups, "p:bad")!.rateMin).toBeNull();
+    expect(data.glance.minRate).toBe(3.2);
+  });
+
   /** ★코덱스 2차 [2] 를 조립에서 — 제목에 무이자가 들어도 저장된 실제 금리가 이긴다. */
   it("[2] 제목이 무이자여도 저장된 금리(2.5)가 이긴다 — 타일이 0 으로 안 떨어진다", async () => {
     loadOpenAnnouncements.mockResolvedValue([

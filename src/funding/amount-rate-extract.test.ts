@@ -310,6 +310,29 @@ describe("normalizeRateMin — 하한 미기재 0 을 미상으로", () => {
     // 이차보전(SUBSIDY_RE)은 원래 %p 를 제 뜻으로 읽는다 — 그 규칙은 안 건드렸다.
     expect(extractRate("이자 2%p 지원")).toEqual({ rateText: "이자 2%p 지원", rateMin: null });
   });
+  /** ★코덱스 3차 [2](2026-09-05) — 「1.0% p」처럼 띄어 쓴 퍼센트포인트도 같은 표기다. */
+  it("[2·3차] 띄어 쓴 「% p」도 금리로 안 잡는다", () => {
+    expect(extractRate("우대금리 1.0% p 적용, 대출금리 연 4.5%")).toEqual({ rateText: "연 4.5%", rateMin: 4.5 });
+  });
+  /**
+   * ★코덱스 3차 [3](2026-09-05) — 부정문은 **같은 칸 안에서만** 뜻이 있다. 칸을 합쳐 넘기면
+   *  이름의 「한도 없음」이 이자 칸의 「무이자」를 지웠다(그래서 `없` 단독도 사전에서 뺐다).
+   */
+  it("[3·3차] 칸을 배열로 넘기면 칸마다 따로 본다 — 옆 칸 부정어에 안 지워진다", () => {
+    expect(normalizeRateMin(0, ["무이자", "한도 없는 청년대출"])).toBe(0);
+    expect(normalizeRateMin(null, ["", "무이자 대출, 한도 없음"]), "「없음」은 더 이상 부정문이 아니다").toBe(0);
+    expect(hasZeroRateWording("무이자 대출, 한도 없음"), "쉼표 뒤 「없음」은 부정문이 아니다").toBe(true);
+    expect(hasZeroRateWording("무이자 해당 없음"), "「해당 없」은 그대로 부정문").toBe(false);
+    // 배열의 어느 칸에라도 부정문이 있으면 그 칸만 죽는다 — 다른 칸이 무이자면 무이자다.
+    expect(normalizeRateMin(0, ["무이자 지원 제외 대상", "무이자 대출"])).toBe(0);
+    expect(normalizeRateMin(0, ["무이자 지원 제외 대상", "연 5% 대출"])).toBeNull();
+  });
+  /** ★코덱스 3차 [4](2026-09-05) — 연 이자율이 100% 를 넘는 상품은 없다. 단위가 뒤섞인 저장값이다. */
+  it("[4] 100 초과 저장값은 저장 오류로 보고 미상", () => {
+    expect(normalizeRateMin(150, "연 1.5%")).toBeNull();
+    expect(normalizeRateMin(17.9, "")).toBe(17.9);
+    expect(normalizeRateMin(100, ""), "100 자체는 남긴다 — 경계는 넘는 값만 버린다").toBe(100);
+  });
   it("[a] 부정문은 무이자가 아니다 — 「무이자 지원 제외 대상 안내」", () => {
     expect(hasZeroRateWording("무이자 지원 제외 대상 안내")).toBe(false);
     expect(normalizeRateMin(0, "무이자 지원 제외 대상 안내")).toBeNull();

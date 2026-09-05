@@ -316,7 +316,8 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
   // ★이자 하한 손질(2026-09-05 브라우저 재검사) — 저장된 0 이 「무이자」인지 「하한 미기재」인지는
   //  글자·제목이 가른다. `normalizeRateMin` 이 그 잣대이고, 제목도 함께 넘겨 **제목만** 무이자를
   //  말하는 공고(「[강원] 청년창업자금 무이자 대출지원」)가 타일에서 안 새게 한다.
-  const rateMin = normalizeRateMin(r.rateMin, `${r.rateText ?? ""} ${r.title ?? ""}`);
+  // 칸을 **배열로** 넘긴다(코덱스 3차 [3]) — 합쳐 넘기면 제목의 부정어가 이자 칸의 「무이자」를 지운다.
+  const rateMin = normalizeRateMin(r.rateMin, [r.rateText ?? "", r.title ?? ""]);
   const rateText = rateTextOf(r.rateText || (group === "grant" && !unclassified ? "무상" : ""), rateMin);
 
   const item: FundingItem = {
@@ -427,7 +428,9 @@ function productRate(p: ProductRow): { rateText: string; rateMin: number | null 
   const text = (p.rateText ?? "").trim();
   // ★낱말 근거에 **상품 이름**도 넣는다(코덱스 2차 [6]) — 「청년창업 무이자 대출」처럼 이자 칸이 비고
   //  이름만 무이자를 말하는 상품이 공고와 달리 타일에서 샜다. 공고가 제목을 넣는 것과 같은 자리다.
-  const 근거 = `${p.rateText ?? ""} ${p.name ?? ""}`;
+  // 칸을 **배열로** 넘긴다(코덱스 3차 [3]) — 「무이자 대출, 한도 없음」처럼 한 칸의 낱말이 다른 칸
+  // 때문에 지워지지 않게, 부정문은 같은 칸 안에서만 본다.
+  const 근거: string[] = [p.rateText ?? "", p.name ?? ""];
   const stored = normalizeRateMin(p.rateMin, 근거);
   // 「(보증금)연1.3%」처럼 숫자 칸만 0 이고 글자엔 진짜 이자가 적힌 줄 — 「이자 낮은 순」 1등 오류의 자리.
   // ★재추출은 저장값이 **정확히 0** 일 때만(코덱스 2차 [7]) — 음수는 자료가 깨졌다는 신호라 미상으로 둔다.

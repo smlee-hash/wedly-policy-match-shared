@@ -310,10 +310,11 @@ const FEE_RE = /보증료\s*(?:연\s*)?([\d.]+)\s*%/;
  *  대출금리 연 4.5%」에서 1.0 을 금리로 집으면 **깎아 주는 폭**이 대출 금리로 둔갑하고, 「최솟값을 낳은
  *  표현」 규칙 탓에 실제 금리 4.5 를 이겼다. 이차보전(`SUBSIDY_RE`)은 원래 `%p` 를 제 뜻으로 읽으므로
  *  그 규칙은 그대로 둔다 — 이 부정 전방탐색은 **금리를 읽는 두 규칙**에만 붙인다.
+ *  ★띄어 쓴 「1.0% p」도 같은 표기다(코덱스 3차 [2]) — `\s*` 를 넣어 함께 뺀다.
  */
-const RATE_RE = /(?:연|금리)\s*([\d.]+)\s*%(?![pP])(?:\s*[~∼-]\s*([\d.]+)\s*%(?![pP]))?/g;
+const RATE_RE = /(?:연|금리)\s*([\d.]+)\s*%(?!\s*[pP])(?:\s*[~∼-]\s*([\d.]+)\s*%(?!\s*[pP]))?/g;
 /** 「보증료 연 0.6%, 대출금리 연 3.5% 이내」처럼 보증료와 대출금리가 함께 있을 때만 보는 좁은 규칙. */
-const LOAN_RATE_WITH_FEE_RE = /대출\s*금리\s*(?:연\s*)?([\d.]+)\s*%(?![pP])(?:\s*[~∼-]\s*([\d.]+)\s*%(?![pP]))?/;
+const LOAN_RATE_WITH_FEE_RE = /대출\s*금리\s*(?:연\s*)?([\d.]+)\s*%(?!\s*[pP])(?:\s*[~∼-]\s*([\d.]+)\s*%(?!\s*[pP]))?/;
 
 /**
  * 보는 순서가 뜻이다 — 좁은 뜻을 먼저 본다.
@@ -361,6 +362,9 @@ export function extractRate(text: string): { rateText: string; rateMin: number |
   return { rateText: "", rateMin: null };
 }
 
+/** 연 이자율의 상한 — 이 값을 넘는 저장값은 단위가 뒤섞인 오류로 보고 버린다(코덱스 3차 [4]). */
+const RATE_MAX_PERCENT = 100;
+
 /**
  * 「무이자」라고 말하는 글의 사전 — **오직 `hasZeroRateWording` 하나만** 이 상수를 본다.
  *
@@ -378,8 +382,12 @@ const ZERO_RATE_RE = /무이자|이자\s*없/;
  *
  * ★한계 — 이중 부정(「무이자 지원 제외 대상이 **아닌** 기업」)은 못 가른다. 부정어를 만난 자리에서
  *  멈추므로 그 글은 「무이자가 아님」으로 읽힌다(그쪽이 안전한 오판이다 — 없는 무이자를 만들지 않는다).
+ *
+ * ★본질적 한계(코덱스 1~3차 연속 지적, 2026-09-05) — 아닌·아니다·해당하지 않음·「이자 없음」의 부정 등
+ *  표현 목록은 끝이 없어 여기서 멈춘다. 넓힐수록 무관한 글을 부정문으로 오판하는 반대 구멍이 커진다
+ *  (실제로 3차에서 `없` 단독을 넣었다가 「무이자 대출, 한도 없음」을 부정문으로 읽어 도로 뺐다).
  */
-const ZERO_RATE_NEGATION_RE = /무이자[^.,\n]{0,12}?(?:제외|불가|아님|안\s*됨|해당\s*없|없)/;
+const ZERO_RATE_NEGATION_RE = /무이자[^.,\n]{0,12}?(?:제외|불가|아님|안\s*됨|해당\s*없)/;
 
 /**
  * 이 글이 「이자가 없다」고 말하는가 — 이자 하한 0 을 **뜻이 있는 0** 으로 인정하는 유일한 근거.
@@ -409,11 +417,17 @@ export function hasZeroRateWording(text: string): boolean {
  * ★한계 — 저장값 0 + 글자 「연 0.00%」인 **진짜 무이자**는 미기재와 구분할 수 없어 미상으로 본다
  *  (2026-09-05 실측: 0% 상품 12건 전부 은행·보증 갈래의 미기재였고 진짜 무이자는 0건).
  *
- * @param rateMin 저장된 하한(%).
- * @param text 그 하한이 나온 글(rateText·제목 등) — 0 의 뜻을 가리는 유일한 자료.
+ * @param rateMin 저장된 하한(%). 100 을 넘으면 저장 오류로 보고 버린다(코덱스 3차 [4] — 연 이자율이
+ *  100% 를 넘는 상품은 없다. 단위가 뒤섞여 들어온 값이 타일·정렬을 통째로 흔든다).
+ * @param text 그 하한이 나온 글 — **칸을 배열로** 넘기면(`[rateText, 제목]`) 칸마다 따로 본다.
+ *  합쳐서 넘기면 한 칸의 부정어가 옆 칸의 「무이자」를 지운다(코덱스 3차 [3]).
  */
-export function normalizeRateMin(rateMin: number | null | undefined, text: string): number | null {
-  if (typeof rateMin === "number" && Number.isFinite(rateMin) && rateMin > 0) return rateMin;
-  if (hasZeroRateWording(text)) return 0;
+export function normalizeRateMin(rateMin: number | null | undefined, text: string | string[]): number | null {
+  if (typeof rateMin === "number" && Number.isFinite(rateMin) && rateMin > 0 && rateMin <= RATE_MAX_PERCENT) {
+    return rateMin;
+  }
+  // 칸마다 따로 본다 — 부정문은 **같은 칸 안에서만** 뜻이 있다(코덱스 3차 [3]).
+  const 칸들 = Array.isArray(text) ? text : [text];
+  if (칸들.some((t) => hasZeroRateWording(t))) return 0;
   return null;
 }
