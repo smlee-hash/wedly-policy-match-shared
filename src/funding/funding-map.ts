@@ -804,9 +804,14 @@ const NUMERIC_RATE_RE = /\d\s*%/;
  *  읽힌다). 제목 낱말이 고치려던 것은 애초에 「invest 로 잘못 붙은 보조금」 하나뿐이라, 대출·보증
  *  갈래는 이자 칸의 「무상」만 상환 면제의 증거로 삼는다.
  *
- * 차례: grant → rateText 「무상」 → invest(숫자 금리 → 제목 낱말) → 그 밖은 이자.
+ * ★**종류를 못 가른 줄이 맨 먼저다**(2026-09-05 재검사 지적 2) — 「사업설명회」·「선정결과 공고」처럼
+ *  돈이 아닌 줄까지 갈래 기본값 `grant` 를 타고 「안 갚아도 됨」이라 **단정**해, 상담사가 그대로
+ *  고객에게 옮길 수 있었다. 못 가른 줄은 단정하지 않고 「종류 확인 필요」라고 적는다.
+ *
+ * 차례: 종류 미확인 → grant → rateText 「무상」 → invest(숫자 금리 → 제목 낱말) → 그 밖은 이자.
  */
 export function repayWords(it: FundingItem): { label: string; value: string } {
+  if (it.unclassified) return { label: "갚아야 하나", value: "종류 확인 필요" };
   if (it.group === "grant") return { label: "갚아야 하나", value: "안 갚아도 됨" };
   const rate = it.rateText?.trim() ?? "";
   if (rate === "무상") return { label: "갚아야 하나", value: "안 갚아도 됨" };
@@ -856,6 +861,26 @@ export function groupFooterWords(
         : `이 갈래 ${건수(block.total)}건 중 ${건수(shownCount)}건만 보여 드림`;
   const excluded = block.excluded > 0 ? `안 맞아서 뺀 ${건수(block.excluded)}건 보기` : null;
   return { shown, excluded };
+}
+
+/**
+ * 「종류 미확인」 블록 발치 한 줄 — 갈래 카드 발치(`groupFooterWords`)와 **같은 말투**다.
+ *
+ * ★왜 따로 만드나(2026-09-05 재검사 지적 2): 그 블록은 갈래가 아니라 **갈래를 못 가른 줄이 모인 곳**
+ *  이라 「이 갈래 …」라고 부를 수 없다. 대신 세는 방식·문장 뼈대는 갈래 카드와 똑같이 맞춘다 —
+ *  같은 자리에서 다른 말투를 쓰면 사용자가 두 수를 다른 뜻으로 읽는다.
+ *
+ * ★`total` 은 **서버가 센 전체 미확인 건수**(`FundingMapData.unclassified`)이고 `shownCount` 는 지금
+ *  그려진 줄 수다. 예전 블록은 딱지에 실려 온 배열 길이(`items.length`)를 찍어, 잘려서 80건만 온
+ *  834건짜리 화면이 「80건」이라고 **거짓말**했다.
+ *
+ * @returns 발치에 적을 글. `total` 이 0 이면 `null` — 부르는 쪽이 발치 자체를 안 그린다.
+ */
+export function unclassifiedFooterWords(total: number, shownCount: number): string | null {
+  if (total === 0) return null;
+  return shownCount === total
+    ? `종류 미확인 ${건수(total)}건 전부`
+    : `종류 미확인 ${건수(total)}건 중 ${건수(shownCount)}건만 보여 드림`;
 }
 
 /** profileBandWords 가 usedProfileSummary(profile-summary.ts)의 고정 접두어를 사람 말 띠로 바꾸는 표. */

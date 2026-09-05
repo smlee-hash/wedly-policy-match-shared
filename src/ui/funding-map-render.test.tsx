@@ -207,6 +207,7 @@ function 그린다(
     filters?: FundingFilters;
     sort?: FundingSort;
     expanded?: Set<FundingGroup>;
+    unclassifiedExpanded?: boolean;
     showExcluded?: Set<FundingGroup>;
     compact?: boolean;
     selectedId?: string;
@@ -222,6 +223,7 @@ function 그린다(
       filters={over.filters ?? 기본거르개}
       sort={over.sort ?? "rec"}
       expanded={over.expanded ?? new Set<FundingGroup>()}
+      unclassifiedExpanded={over.unclassifiedExpanded ?? false}
       showExcluded={over.showExcluded ?? new Set<FundingGroup>()}
       selectedId={over.selectedId ?? ""}
       compact={over.compact ?? false}
@@ -232,6 +234,7 @@ function 그린다(
       onFiltersChange={() => {}}
       onSortChange={() => {}}
       onToggleExpand={() => {}}
+      onToggleUnclassified={() => {}}
       onToggleExcluded={() => {}}
       onBrowseAll={over.onBrowseAll}
     />,
@@ -287,8 +290,17 @@ const 서랍 = (item: FundingItem | null, onOpenDetail?: (id: string) => void): 
 function 머리카드(html: string): string {
   const start = html.indexOf('class="rounded-xl border border-wedly-bd bg-white');
   expect(start, "머리 카드가 없다").toBeGreaterThan(-1);
-  const end = html.indexOf('class="grid gap-4 grid-cols-2', start);
-  expect(end, "머리 카드 다음의 「한눈에 4칸」을 못 찾았다").toBeGreaterThan(start);
+  // ★끝은 「한눈에 4칸」 **또는 그 위 캡션** 중 먼저 오는 것이다(2026-09-05 재검사 지적 3) — 캡션이
+  //  머리 카드와 4칸 사이에 생겨, 격자만 보고 자르면 캡션 한 줄이 머리 카드 안으로 딸려 들어온다
+  //  (⑭ 「아래 구역이 두 줄」 시험이 3 을 세며 실제로 걸렸다).
+  const 격자 = html.indexOf('class="grid gap-4 grid-cols-2', start);
+  const 캡션글 = html.indexOf("전체 자료 기준 — 아래 칩·정렬과 무관합니다", start);
+  expect(격자, "머리 카드 다음의 「한눈에 4칸」을 못 찾았다").toBeGreaterThan(start);
+  expect(캡션글, "「한눈에 4칸」 위 캡션을 못 찾았다").toBeGreaterThan(start);
+  // 캡션은 **여는 태그부터** 잘라야 한다 — 글자에서만 자르면 `<p class=…>` 만 카드 안에 남는다.
+  const 캡션 = html.lastIndexOf("<p ", 캡션글);
+  expect(캡션, "캡션의 여는 태그를 못 찾았다").toBeGreaterThan(start);
+  const end = Math.min(격자, 캡션);
   return html.slice(start, end);
 }
 
@@ -380,6 +392,20 @@ function 카드(html: string, group: FundingGroup): string {
   const rest = html.slice(start);
   const next = rest.slice(1).indexOf("data-group=");
   return next === -1 ? rest : rest.slice(0, next + 1);
+}
+
+/**
+ * 「종류 미확인」 블록 **하나만** 잘라 낸다 — 딱지·발치 글자를 잴 때 갈래 카드나 발 hint 의 건수가
+ * 섞여 들어오면 「이 상자가 몇 건이라 적었나」를 재는 시험이 껍데기가 된다(`카드` 와 같은 이유).
+ */
+function 미확인블록(html: string): string {
+  const i = html.indexOf("종류 미확인 — 제목만으로는 못 가름");
+  expect(i, "「종류 미확인」 블록이 없다").toBeGreaterThan(-1);
+  const 시작 = html.lastIndexOf("<section", i);
+  const 끝 = html.indexOf("</section>", i);
+  expect(시작, "블록의 <section> 이 없다").toBeGreaterThan(-1);
+  expect(끝, "블록의 </section> 이 없다").toBeGreaterThan(시작);
+  return html.slice(시작, 끝 + 10);
 }
 
 /**
@@ -997,9 +1023,10 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     const 좁게 = 카드(그린다({ data: 넷, compact: true }), "grant");
     expect(좁게, "compact 는 3건 고정이라 더 보기 단추가 없다").not.toContain("나머지 보기");
 
+    // ★캡션 시험은 아래 「⑯ 네 칸 캡션」에 따로 있다.
     // ★열 규칙은 이제 컨테이너 기준이다(지적 ⑥) — 자세한 것은 아래 「⑮ 좁은 레일」 시험이 잰다.
-    expect(그린다()).toContain("@7xl:grid-cols-3");
-    expect(그린다({ compact: true }), "compact 는 2열까지만").not.toContain("@7xl:grid-cols-3");
+    expect(그린다()).toContain("@min-[1496px]:grid-cols-3");
+    expect(그린다({ compact: true }), "compact 는 2열까지만").not.toContain("@min-[1496px]:grid-cols-3");
   });
 
   it("⑩-b 「안 맞아서 뺀 K건 보기」— 안 눌린 갈래는 안 보이고, showExcluded 에 있는 갈래만 회색으로 펼쳐지며 이유가 있다", () => {
@@ -1165,6 +1192,95 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     expect(좁게).toContain("미확인 항목 C");
   });
 
+  /**
+   * ★2026-09-05 재검사 지적 2 — 「종류 미확인」 상자가 **같은 화면에서 다른 잣대로** 세고 있었다.
+   *  ⓐ 딱지가 실려 온 배열 길이(`items.length`)라, 서버가 834건을 세고 80건만 실어 보낸 화면이
+   *     「80건」이라고 적었다(갈래 카드 딱지는 `block.total` = 서버가 센 전체 건수다).
+   *  ⓑ 실려 온 80줄이 그대로 다 그려져 **접는 길도, 나머지를 세는 길도** 없었다.
+   *  ⓒ 못 가른 줄의 「갚아야 하나」가 갈래 기본값을 타고 「안 갚아도 됨」이라 **단정**했다 —
+   *     「사업설명회」·「선정결과 공고」처럼 돈이 아닌 줄까지 공짜 돈처럼 읽혔다.
+   */
+  it("⑩-d2 「종류 미확인」 딱지는 서버가 센 전체 건수 · 발치·「나머지 보기」는 갈래 카드와 같은 말(재검사 지적 2)", () => {
+    // 실려 온 줄은 3건인데 서버가 센 전체는 834건인 화면 — 옛 코드는 여기서 「3건」이라 적었다.
+    const 잘린자료 = 자료(
+      [
+        { ...항목8[0], id: "a:90", unclassified: true, title: "미확인 항목 A" },
+        { ...항목8[0], id: "a:91", unclassified: true, title: "미확인 항목 B" },
+        { ...항목8[0], id: "a:92", unclassified: true, title: "미확인 항목 C" },
+        ...항목8.slice(1),
+      ],
+      { unclassified: 834 },
+    );
+    const 블록 = 미확인블록(그린다({ data: 잘린자료 }));
+    // ⓐ 딱지 = total(834). items.length(3)이 아니다.
+    expect(블록, "딱지가 서버가 센 전체 건수가 아니다").toContain("834건");
+    expect(블록, "딱지가 실려 온 배열 길이(3건)로 되돌아갔다").not.toContain(">3건<");
+    // ⓑ 발치 — 실려 온 3건 < 전체 834건이라 「중 N건만」 갈래
+    expect(블록).toContain("종류 미확인 834건 중 3건만 보여 드림");
+    // 실려 온 것이 3건뿐이면 더 펼칠 것이 없어 손잡이를 안 그린다(갈래 카드와 같은 규칙)
+    expect(블록, "펼칠 줄이 없는데 손잡이가 있다").not.toContain("나머지 보기");
+  });
+
+  it("⑩-d3 「종류 미확인」 나머지 보기 — 접힘 3줄 ↔ 펼침 전부, compact 는 손잡이 없음(재검사 지적 2)", () => {
+    const 다섯 = 자료(
+      [
+        { ...항목8[0], id: "a:90", unclassified: true, title: "미확인 항목 A" },
+        { ...항목8[0], id: "a:91", unclassified: true, title: "미확인 항목 B" },
+        { ...항목8[0], id: "a:92", unclassified: true, title: "미확인 항목 C" },
+        { ...항목8[0], id: "a:93", unclassified: true, title: "미확인 항목 D" },
+        { ...항목8[0], id: "a:94", unclassified: true, title: "미확인 항목 E" },
+        ...항목8.slice(1),
+      ],
+      { unclassified: 5 },
+    );
+    // 항목 하나가 제목을 **두 번** 낸다(카드 글자 + `aria-label`) — 손잡이 이름 쪽만 센다.
+    const 줄수 = (블록: string) => (블록.match(/미확인 항목 [A-E] 자세히 보기/g) ?? []).length;
+
+    // 접힘 — 상위 3건만 + 「나머지 보기」
+    const 접힘 = 미확인블록(그린다({ data: 다섯 }));
+    expect(줄수(접힘), "접힘이 3줄이 아니다").toBe(3);
+    expect(접힘).toContain("종류 미확인 5건 중 3건만 보여 드림");
+    expect(접힘).toContain("나머지 보기");
+    expect(접힘, "접힘인데 「접기」가 있다").not.toContain(">접기<");
+
+    // 펼침 — 전부 + 「접기」
+    const 펼침 = 미확인블록(그린다({ data: 다섯, unclassifiedExpanded: true }));
+    expect(줄수(펼침), "펼쳤는데 줄이 안 늘었다").toBe(5);
+    expect(펼침).toContain("미확인 항목 E");
+    expect(펼침).toContain("종류 미확인 5건 전부");
+    expect(펼침).toContain("접기");
+    expect(펼침, "펼쳤는데 「나머지 보기」가 남았다").not.toContain("나머지 보기");
+
+    // 다시 접으면 원복 — 같은 자료·같은 글자
+    expect(미확인블록(그린다({ data: 다섯, unclassifiedExpanded: false }))).toBe(접힘);
+
+    // compact(좁은 상세창 레일) — 3건 고정이라 손잡이가 없다(갈래 카드와 같은 규칙)
+    const 좁게 = 미확인블록(그린다({ data: 다섯, compact: true }));
+    expect(줄수(좁게), "compact 가 3줄 고정이 아니다").toBe(3);
+    expect(좁게, "compact 에 손잡이가 있다").not.toContain("나머지 보기");
+    expect(좁게, "compact 에 손잡이가 있다").not.toContain(">접기<");
+    // compact 도 발치 문장 자체는 그린다 — 「몇 건 중 몇 건인지」는 좁아도 알아야 한다
+    expect(좁게).toContain("종류 미확인 5건 중 3건만 보여 드림");
+
+    // ★펼침 상태는 **갈래 펼침과 별개**다 — 갈래를 펼쳐도 미확인 블록은 접힌 채다
+    const 갈래만펼침 = 미확인블록(그린다({ data: 다섯, expanded: new Set<FundingGroup>(FUNDING_GROUPS) }));
+    expect(줄수(갈래만펼침), "갈래 펼침이 미확인 블록까지 펼쳤다 — 두 상태가 섞였다").toBe(3);
+  });
+
+  it("⑩-d4 못 가른 줄의 「갚아야 하나」는 단정하지 않는다 — 카드·표 둘 다 「종류 확인 필요」(재검사 지적 2)", () => {
+    // grant 갈래(=「안 갚아도 됨」이 기본값)로 붙었지만 종류를 못 가른 줄
+    const 못가름 = 자료([{ ...항목8[0], unclassified: true, title: "2026년 사업설명회 개최 안내" }, ...항목8.slice(1)], {
+      unclassified: 1,
+    });
+    const 블록 = 미확인블록(그린다({ data: 못가름 }));
+    expect(블록, "카드가 「종류 확인 필요」로 적지 않는다").toContain("종류 확인 필요");
+    expect(블록, "못 가른 줄을 「안 갚아도 됨」이라고 단정한다").not.toContain("안 갚아도 됨");
+
+    // 표 보기도 같은 도우미(repayWords)를 쓴다 — 한쪽만 고치면 표에서 단정이 살아남는다
+    const 표 = 그린다({ data: 못가름, view: "table" });
+    expect(표, "표가 「종류 확인 필요」로 적지 않는다").toContain("종류 확인 필요");
+  });
+
   it("⑩-e 답 네 개(2열) — 라벨은 얼마까지/repayWords.label/언제까지/어디에 신청, 값은 도우미 함수 그대로", () => {
     const 조각 = 카드(그린다(), "grant"); // a:1 grant → repayWords.label === "갚아야 하나"
     expect(조각).toContain("얼마까지");
@@ -1231,11 +1347,11 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     // 그건 이번 승인 범위가 아니라, 문서 전체에서 없다고 재면 안 된다.
     expect(html.startsWith('<div class="flex flex-col gap-4">'), "바깥 묶음(덩어리 사이)").toBe(true);
     expect(html, "숫자 카드 그리드").toContain('class="grid gap-4 grid-cols-2');
-    expect(html, "갈래 카드 그리드").toContain('class="grid gap-4 grid-cols-1 @2xl:grid-cols-2');
+    expect(html, "갈래 카드 그리드").toContain('class="grid gap-4 grid-cols-1 @min-[992px]:grid-cols-2');
 
     expect(html.startsWith('<div class="flex flex-col gap-3">'), "옛 덩어리 간격 12px 가 남았다").toBe(false);
     expect(html, "옛 숫자 카드 간격 10px 가 남았다").not.toContain('class="grid gap-2.5 grid-cols-2');
-    expect(html, "옛 갈래 카드 간격 12px 가 남았다").not.toContain('class="grid gap-3 grid-cols-1 @2xl:grid-cols-2');
+    expect(html, "옛 갈래 카드 간격 12px 가 남았다").not.toContain('class="grid gap-3 grid-cols-1 @min-[992px]:grid-cols-2');
 
     // 카드 **안쪽** 여백은 손대지 않았다 — 머리 카드 두 구역의 아이콘/글 사이가 그대로 10px
     expect(머리카드(html), "카드 안쪽 여백까지 건드렸다").toContain("gap-2.5");
@@ -1250,15 +1366,15 @@ describe("자금 조달 지도 — 그려서 재기", () => {
   it("⑫-b 마지막 경계와 로딩 뼈대도 16px(gap-4)이다", () => {
     const html = 그린다();
     // ⓐ 카드 보기 안쪽 묶음 — 갈래 격자 바로 앞의 여는 태그를 잘라 본다
-    const 안쪽 = 조각(html, 'class="grid gap-4 grid-cols-1 @2xl:grid-cols-2', "<div");
+    const 안쪽 = 조각(html, 'class="grid gap-4 grid-cols-1 @min-[992px]:grid-cols-2', "<div");
     const 바깥 = 조각(html.slice(0, html.indexOf(안쪽)), "flex flex-col gap", "<div");
     expect(바깥, "갈래 격자·「종류 미확인」을 묶는 바깥 상자가 16px 이 아니다").toContain("flex flex-col gap-4");
     expect(html, "마지막 경계 12px 가 남았다").not.toContain('flex flex-col gap-3"><div class="grid gap-4 grid-cols-1');
 
     // ⓑ 로딩 뼈대 격자
     const 뼈대 = 지도({ data: null, loading: true });
-    expect(뼈대, "뼈대가 실제 격자와 같은 16px 이 아니다").toContain('class="grid gap-4 grid-cols-1 @2xl:grid-cols-2');
-    expect(뼈대, "뼈대에 옛 12px 가 남았다").not.toContain('class="grid gap-3 grid-cols-1 @2xl:grid-cols-2');
+    expect(뼈대, "뼈대가 실제 격자와 같은 16px 이 아니다").toContain('class="grid gap-4 grid-cols-1 @min-[992px]:grid-cols-2');
+    expect(뼈대, "뼈대에 옛 12px 가 남았다").not.toContain('class="grid gap-3 grid-cols-1 @min-[992px]:grid-cols-2');
   });
 
   /**
@@ -1647,9 +1763,10 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     // ⓐ 가장 좁을 때는 1열 — 480px 레일이 여기 든다
     expect(격자, "가장 좁을 때가 1열이 아니다").toContain("grid-cols-1");
 
-    // ⓑ 2·3열은 컨테이너 문턱(`@`)에만 걸려 있다 — 문턱 이름이 곧 폭이다(@2xl=42rem·@7xl=80rem)
-    expect(격자, "2열 컨테이너 문턱이 없다").toContain("@2xl:grid-cols-2");
-    expect(격자, "3열 컨테이너 문턱이 없다").toContain("@7xl:grid-cols-3");
+    // ⓑ 2·3열은 컨테이너 문턱(`@`)에만 걸려 있다 — 임의 값이라 문턱 숫자가 곧 폭이다(992·1496).
+    //   그 두 숫자가 왜 992·1496 인지는 아래 「⑮-c 열 문턱 산수」 시험이 따로 잰다.
+    expect(격자, "2열 컨테이너 문턱이 없다").toContain("@min-[992px]:grid-cols-2");
+    expect(격자, "3열 컨테이너 문턱이 없다").toContain("@min-[1496px]:grid-cols-3");
 
     // ⓒ ★핵심 회귀 방어 — 뷰포트 문턱이 열 수를 정하는 자리에 **하나도** 없어야 한다.
     //   `sm:grid-cols-2` 가 되살아나면 480px 레일이 다시 2열이 되고 답이 89px 로 잘린다.
@@ -1663,8 +1780,8 @@ describe("자금 조달 지도 — 그려서 재기", () => {
 
     // ⓔ compact(좁은 상세창 레일)는 2열까지 — 레일에서 3열은 무조건 잘린다
     const 좁게 = 조각(그린다({ compact: true }), 'class="grid gap-4 grid-cols-1', "<div");
-    expect(좁게, "compact 에 3열이 남았다").not.toContain("@7xl:grid-cols-3");
-    expect(좁게, "compact 도 2열까지는 쓴다").toContain("@2xl:grid-cols-2");
+    expect(좁게, "compact 에 3열이 남았다").not.toContain("@min-[1496px]:grid-cols-3");
+    expect(좁게, "compact 도 2열까지는 쓴다").toContain("@min-[992px]:grid-cols-2");
 
     // ⓕ 로딩 뼈대도 **같은 글자·같은 조상** — 안 그러면 자료가 도착하는 순간 열 수가 바뀐다
     const 뼈대 = 지도({ data: null, loading: true });
@@ -1699,6 +1816,81 @@ describe("자금 조달 지도 — 그려서 재기", () => {
 
     // ⓓ 좁은 레일(compact)에서도 같은 규칙이다 — 「어느 앱·어느 자리」를 묻지 않는다
     expect(조각(그린다({ compact: true }), 'class="mt-2 grid grid-cols-1', "<dl")).toBe(답격자);
+  });
+
+  /**
+   * ★2026-09-05 재검사 지적 1 — 열 문턱이 **답 네 개와 따로 놀았다**. 옛 값 `@2xl`(672)·`@7xl`(1280)은
+   *  「갈래 카드가 이 정도면 두세 칸 놓을 만하다」는 눈대중이라, 창 1280~1347·1636~1851 에서
+   *  갈래는 열이 늘고 그 안 답은 448px 을 못 채워 **세로로 쌓였다**. 열을 늘린 대가로 답이
+   *  무너지는 폭 구간이 생긴 것이다.
+   *
+   *  그래서 문턱을 눈대중이 아니라 **산수**로 못 박는다:
+   *    갈래 카드 폭 = (상자 − 열 사이 16px×(열−1)) / 열
+   *    항목 안쪽    = 갈래 카드 − 40 (갈래 `p-2` 8×2 + 항목 `px-3` 12×2)
+   *    답이 2열이려면 항목 안쪽 ≥ 448(FACT_GRID `@md`) → 상자 ≥ 열×(448+40) + 16×(열−1)
+   *    2열: 2×488+16 = 992 · 3열: 3×488+32 = 1496
+   *
+   * ★이 시험은 **FACT_GRID 를 같이 본다** — 답 격자 문턱을 448 아닌 값으로 바꾸면 필요한 상자 폭이
+   *  달라지므로 이 시험이 **함께 깨져야** 한다. 한쪽만 고치고 지나가면 지적 1 이 그대로 되살아난다.
+   */
+  it("⑮-c 갈래 열 문턱은 답 네 개(448px)가 2열을 지키는 최소 폭이다 — 992·1496(재검사 지적 1)", () => {
+    const html = 그린다();
+
+    // ⓐ 답 격자 문턱을 **화면에서** 읽는다 — 여기가 바뀌면 아래 산수의 입력이 바뀐다.
+    const 답격자 = 클래스(조각(html, 'class="mt-2 grid grid-cols-1', "<dl"));
+    expect(답격자, "답 격자 2열 문턱이 @md(28rem=448px)가 아니다 — 갈래 열 문턱 산수의 전제가 무너졌다")
+      .toContain("@md:grid-cols-2");
+    const 답2열문턱 = 448; // @md = 28rem = 448px (Tailwind v4 컨테이너 계단)
+
+    // ⓑ 갈래 격자 문턱을 **화면에서** 읽는다 — 상수를 직접 부르지 않고 그려진 글자에서 뽑는다.
+    const 갈래격자 = 클래스(조각(html, 'class="grid gap-4 grid-cols-1', "<div"));
+    const 문턱: Record<number, number> = {};
+    for (const m of 갈래격자.matchAll(/@min-\[(\d+)px\]:grid-cols-(\d)/g)) {
+      문턱[Number(m[2])] = Number(m[1]);
+    }
+    expect(Object.keys(문턱).sort(), "2·3열 임의 값 문턱을 못 찾았다").toEqual(["2", "3"]);
+
+    // ⓒ 산수 — 열 n 이 켜지려면 상자 ≥ n×(답2열문턱 + 40) + 16×(n−1)
+    const 최소폭 = (열: number) => 열 * (답2열문턱 + 40) + 16 * (열 - 1);
+    expect(최소폭(2), "2열 최소 폭 산수가 992 가 아니다").toBe(992);
+    expect(최소폭(3), "3열 최소 폭 산수가 1496 이 아니다").toBe(1496);
+    expect(문턱[2], "2열 문턱이 답을 2열로 지킬 만큼 넓지 않다 — 그 폭에서 답이 세로로 쌓인다")
+      .toBeGreaterThanOrEqual(최소폭(2));
+    expect(문턱[3], "3열 문턱이 답을 2열로 지킬 만큼 넓지 않다 — 그 폭에서 답이 세로로 쌓인다")
+      .toBeGreaterThanOrEqual(최소폭(3));
+
+    // ⓓ ★회귀 방어 — 옛 눈대중 값(672·1280)이 되살아나면 지적 1 의 폭 구간이 그대로 돌아온다.
+    expect(갈래격자, "옛 2열 문턱 @2xl(672px)이 되살아났다").not.toContain("@2xl:grid-cols-2");
+    expect(갈래격자, "옛 3열 문턱 @7xl(1280px)이 되살아났다").not.toContain("@7xl:grid-cols-3");
+  });
+
+  /**
+   * ★2026-09-05 재검사 지적 3 — 「한눈에 네 칸」과 칩이 **서로 다른 말**을 했다. 칩
+   *  「7일 안에 마감되는 것만」을 켜면 네 칸의 「안 갚아도 되는 돈 1,619건」은 그대로인데 100px 아래
+   *  갈래 카드는 「90건」이 된다. 네 칸이 칩을 안 따르는 것은 **고의**이므로(앞선 지적으로 그렇게
+   *  고쳤다) 숫자는 그대로 두고 **「그렇다」는 말만** 화면에 적는다(승인 시안 §3 A안).
+   */
+  it("⑯ 네 칸 위 캡션 「전체 자료 기준」 — 첫 타일보다 앞에 그려진다(재검사 지적 3)", () => {
+    const html = 그린다();
+    const 캡션 = '<p class="mb-2 break-keep text-wedly-hint text-wedly-muted">전체 자료 기준 — 아래 칩·정렬과 무관합니다</p>';
+    expect(html, "네 칸 캡션이 없다").toContain(캡션);
+
+    // ⓐ 차례 — 캡션이 네 칸 격자(그리고 첫 타일)보다 **앞**이다. 아래에 붙으면 각주로 읽힌다.
+    const i캡션 = html.indexOf(캡션);
+    const i격자 = html.indexOf('class="grid gap-4 grid-cols-2');
+    const i첫타일 = html.indexOf("지금 신청 가능");
+    expect(i격자, "네 칸 격자를 못 찾았다").toBeGreaterThan(-1);
+    expect(i캡션, "캡션이 네 칸 격자보다 뒤에 있다").toBeLessThan(i격자);
+    expect(i캡션, "캡션이 첫 타일보다 뒤에 있다").toBeLessThan(i첫타일);
+
+    // ⓑ 간격 — 뿌리가 `flex flex-col gap-4`(16px)라, 캡션을 낱개 칸으로 두면 `mb-2` 가 그 위에
+    //   더해져 24px 이 된다. 캡션과 네 칸이 **한 상자 안**에 있어야 8px 이 지켜진다.
+    const 감싼상자 = html.slice(0, i캡션).lastIndexOf("<div>");
+    expect(감싼상자, "캡션과 네 칸을 묶는 상자가 없다 — 8px 이 24px 이 된다").toBeGreaterThan(-1);
+    expect(html.slice(감싼상자, i격자), "캡션과 네 칸 사이에 다른 덩어리가 끼었다").toContain(캡션);
+
+    // ⓒ compact(좁은 상세창 레일)도 같은 줄 — 같은 부품이라 자동으로 따라온다
+    expect(그린다({ compact: true }), "compact 레일에 캡션이 없다").toContain(캡션);
   });
 
   /**

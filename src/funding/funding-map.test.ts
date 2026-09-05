@@ -24,6 +24,7 @@ import {
   repayWords,
   sortItems,
   splitByFit,
+  unclassifiedFooterWords,
   verdictWords,
   whereWords,
   whyOf,
@@ -782,6 +783,39 @@ describe("갈래별 묶음", () => {
 });
 
 /**
+ * ★2026-09-05 재검사 지적 2 — 「종류 미확인」 상자 발치. 갈래 카드(`groupFooterWords`)와 **같은
+ *  말투·같은 셈**이되, 그 상자는 갈래가 아니라 갈래를 못 가른 줄이 모인 곳이라 「이 갈래 …」로
+ *  부르지 않는다. 옛 화면은 발치가 아예 없었고 딱지도 실려 온 배열 길이를 세, 서버가 834건을
+ *  세고 80건만 실어 보낸 화면이 「80건」이라고 적었다.
+ */
+describe("unclassifiedFooterWords — 「종류 미확인」 발치 한 줄", () => {
+  it("0건이면 null — 부르는 쪽이 발치 자체를 안 그린다", () => {
+    expect(unclassifiedFooterWords(0, 0)).toBeNull();
+  });
+  it("다 보여 주면 「전부」", () => {
+    expect(unclassifiedFooterWords(3, 3)).toBe("종류 미확인 3건 전부");
+    expect(unclassifiedFooterWords(1, 1)).toBe("종류 미확인 1건 전부");
+  });
+  it("잘렸으면 「N건 중 M건만 보여 드림」 — 천 단위 쉼표", () => {
+    expect(unclassifiedFooterWords(834, 3)).toBe("종류 미확인 834건 중 3건만 보여 드림");
+    expect(unclassifiedFooterWords(2267, 3)).toBe("종류 미확인 2,267건 중 3건만 보여 드림");
+    expect(unclassifiedFooterWords(5, 3)).toBe("종류 미확인 5건 중 3건만 보여 드림");
+  });
+  /**
+   * ★건수 표기는 갈래 카드와 **같은 도우미**를 쓴다 — 한쪽만 쉼표를 찍으면 같은 화면 위아래에서
+   *  같은 크기의 수가 다른 모양으로 보인다(2026-09-04 브라우저 독립 검사 [낮음]과 같은 결).
+   */
+  it("건수 모양이 갈래 카드 발치와 같다 — 쉼표 규칙 한 벌", () => {
+    const 갈래 = groupFooterWords(
+      { group: "grant", total: 2267, fit: 0, unverified: 0, excluded: 0, soon: 0, items: [], truncated: true },
+      3,
+    ).shown;
+    expect(갈래).toBe("이 갈래 2,267건 중 3건만 보여 드림");
+    expect(unclassifiedFooterWords(2267, 3)).toBe("종류 미확인 2,267건 중 3건만 보여 드림");
+  });
+});
+
+/**
  * ★재설계 계약 G1④(2026-09-04) — 카드·표·서랍이 전부 이 도우미만 쓴다. now 를 받아 dDay 를
  * `d.date` 로부터 **다시 계산**한다(예전 deadlineLabel 은 now 가 없었다) — 자료가 캐시돼 시간이
  * 흘러도(예: 어제 만든 자료를 오늘 다시 그릴 때) 「오늘/내일」이 실제 지금 기준으로 맞게 나오도록.
@@ -976,6 +1010,23 @@ describe("amountWords — 얼마까지", () => {
 describe("repayWords — 갚기/이자", () => {
   it("grant → 「갚아야 하나」/「안 갚아도 됨」", () => {
     expect(repayWords(mkItem({ group: "grant" }))).toEqual({ label: "갚아야 하나", value: "안 갚아도 됨" });
+  });
+  /**
+   * ★2026-09-05 재검사 지적 2 — 「사업설명회」·「선정결과 공고」처럼 **돈이 아닌 줄**까지 갈래
+   *  기본값 `grant` 를 타고 「안 갚아도 됨」이라 단정해, 상담사가 그대로 고객에게 옮길 수 있었다.
+   *  종류를 못 가른 줄은 **어떤 갈래·어떤 이자 글자가 붙어 있든** 단정하지 않는다.
+   */
+  it("종류를 못 가른 줄은 단정하지 않는다 — 「종류 확인 필요」(재검사 지적 2)", () => {
+    expect(repayWords(mkItem({ group: "grant", unclassified: true }))).toEqual({
+      label: "갚아야 하나",
+      value: "종류 확인 필요",
+    });
+    // 갈래·이자 글자가 무엇이든 미확인이 **맨 먼저**다 — 뒤 규칙이 끼어들면 단정이 되살아난다
+    expect(repayWords(mkItem({ group: "invest", unclassified: true, rateText: "무상" })).value).toBe("종류 확인 필요");
+    expect(repayWords(mkItem({ group: "policy", unclassified: true, rateText: "연 2.5%" })).value).toBe("종류 확인 필요");
+    expect(repayWords(mkItem({ group: "bank", unclassified: true, rateText: "" })).value).toBe("종류 확인 필요");
+    // 미확인이 아닌 줄은 그대로다(미확인 규칙이 정상 줄까지 삼키면 안 된다)
+    expect(repayWords(mkItem({ group: "grant" })).value).toBe("안 갚아도 됨");
   });
   it("invest → 「갚아야 하나」/「지분으로 받음 (상환 없음)」", () => {
     expect(repayWords(mkItem({ group: "invest" }))).toEqual({

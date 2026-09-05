@@ -45,6 +45,7 @@ import {
   profileBandOf,
   repayWords,
   sortItems,
+  unclassifiedFooterWords,
   verdictWords,
   whereWords,
   type FundingFilters,
@@ -122,16 +123,20 @@ const FOLDED = 3;
  *  89px 로 잘렸다(실측 32곳). 숫자 카드 줄에서 `!compact && lg:` 로 손으로 막던 것을 이제
  *  구조로 막는다 — 「어느 앱·어느 자리인지」를 묻지 않고 **자기 폭만** 본다.
  *
- * ★문턱 근거(gap 16px, 갈래 카드 안쪽 여백 8px, 항목 카드 좌우 10px+테두리 2px 를 뺀 값):
- *   ·  ~672px : 1열 — 480px 레일이 여기 든다(항목 카드 폭 438px → 답이 한 칸을 다 쓴다)
- *   · 672px~ : 2열 — 1040px 본문에서 한 칸 512px(항목 카드 474px → 답 두 칸 230px씩)
- *   · 1280px~: 3열 — `compact` 는 여기까지 안 간다(레일에서 3열은 무조건 잘린다)
- *  옛 `lg:grid-cols-3`(뷰포트 1024px)는 1040px 본문을 3열로 만들어 답 한 칸이 142px 였다 —
- *  문턱을 1280px 로 올리면 같은 본문이 2열이 되어 **답이 62% 넓어지고 카드 높이는 그대로**다.
+ * ★열 수는 **답 4개 격자(`FACT_GRID`, 항목 안쪽 448px 에서 2열)가 2열을 지킬 수 있을 때만** 늘린다.
+ *  갈래 카드 폭 = (상자 − 열 사이 16px×(열−1))/열, 항목 안쪽 = 갈래 카드 − 40(갈래 `p-2` 16 +
+ *  항목 `px-3` 24). 2열: 2×(448+40)+16 = 992, 3열: 3×(448+40)+32 = 1496.
+ *  옛 `@2xl`(672)·`@7xl`(1280)은 창 1280~1347·1636~1851 에서 답이 세로로 쌓였다
+ *  (2026-09-05 재검사 지적 1).
+ *
+ * ★`@min-[N px]`(임의 값 컨테이너 문턱)가 실제로 CSS 로 나오는지 실측했다(2026-09-05) — 훑개
+ *  `@tailwindcss/oxide` 가 이 파일 같은 `.tsx` 문자열에서 `@min-[992px]:grid-cols-2` 를 뽑아냈고,
+ *  `tailwindcss` 4.2.1 이 그것을 `@container (width >= 992px)` 로 찍었다(`@min-[1496px]` 도 같음).
+ *  문서만 보고 적은 값이 아니다.
  */
-const GROUP_GRID = "grid gap-4 grid-cols-1 @2xl:grid-cols-2";
+const GROUP_GRID = "grid gap-4 grid-cols-1 @min-[992px]:grid-cols-2";
 /** 3열은 `compact`(좁은 상세창 레일) 아닐 때만 — 「몇 열까지」가 유일한 앱·자리 구분이다. */
-const GROUP_GRID_WIDE = "@7xl:grid-cols-3";
+const GROUP_GRID_WIDE = "@min-[1496px]:grid-cols-3";
 
 // ★조작줄 부품 높이 = 36px(정본 계단 `h-9`, 2026-09-04 승인 시안). `py-1`(26px)로는 알약·셀렉트와
 //  높이가 안 맞아 칩만 떠 보였다. 높이를 못 박았으니 글자는 `inline-flex items-center` 로 직접
@@ -589,22 +594,42 @@ function GroupCard({
   );
 }
 
-/** 「종류 미확인」 블록 — 낱말 규칙이 「미분류」를 막아, 못 가른 항목은 갈래에서 빼서 여기 맨 아래에 모은다. */
+/**
+ * 「종류 미확인」 블록 — 낱말 규칙이 「미분류」를 막아, 못 가른 항목은 갈래에서 빼서 여기 맨 아래에 모은다.
+ *
+ * ★딱지·접기·발치를 **갈래 카드와 같은 규칙**으로 맞췄다(2026-09-05 재검사 지적 2):
+ *   ⓐ 딱지는 실려 온 배열 길이가 아니라 **서버가 센 전체 건수**(`total`)다 — 갈래 카드 딱지와
+ *     같은 잣대여야 한눈에 두 수를 견줄 수 있다(옛 화면은 834건을 「80건」이라 적었다).
+ *   ⓑ 접힘 3줄 + 「나머지 보기」도 갈래 카드와 같다 — 예전엔 실려 온 80줄이 그대로 다 그려져
+ *     접는 길도, 나머지를 세는 길도 없었다.
+ *   ⓒ 펼침 상태는 갈래 열쇠(`FundingGroup`)에 못 끼우므로 **따로 boolean 하나**로 받는다.
+ */
 function UnclassifiedBlock({
   items,
+  total,
   compact,
+  expanded,
   selectedId,
   now,
   onOpen,
+  onToggleExpand,
 }: {
   items: FundingItem[];
+  /** 서버가 센 미확인 **전체** 건수(`FundingMapData.unclassified`). `items` 는 그중 실려 온 몫이다. */
+  total: number;
   compact: boolean;
+  expanded: boolean;
   selectedId: string;
   now: Date;
   onOpen: (item: FundingItem) => void;
+  onToggleExpand: () => void;
 }) {
   if (items.length === 0) return null;
-  const shown = compact ? items.slice(0, FOLDED) : items;
+  // 갈래 카드(GroupCard)와 같은 규칙 — compact 는 3건 고정이라 펼치기 손잡이를 두지 않는다.
+  const shown = compact || !expanded ? items.slice(0, FOLDED) : items;
+  const canExpand = !compact && items.length > FOLDED;
+  // 발치 개수도 갈래 카드와 같이 **지금 그려진 줄**로 센다.
+  const footer = unclassifiedFooterWords(total, shown.length);
   return (
     <section className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-wedly-bd bg-wedly-bg-gray">
       <div className="flex items-center gap-2.5 border-b border-wedly-bd px-3 py-2.5">
@@ -612,7 +637,7 @@ function UnclassifiedBlock({
           <span className="block text-wedly-sub font-semibold break-keep text-wedly-t1">종류 미확인 — 제목만으로는 못 가름</span>
         </span>
         <span className="ml-auto shrink-0">
-          <Badge variant="default">{건수(items.length)}건</Badge>
+          <Badge variant="default">{건수(total)}건</Badge>
         </span>
       </div>
       <ul className="flex list-none flex-col gap-1.5 p-2">
@@ -620,6 +645,21 @@ function UnclassifiedBlock({
           <ItemCard key={it.id} item={it} selected={it.id === selectedId} onOpen={onOpen} now={now} />
         ))}
       </ul>
+      {footer !== null && (
+        <div className="border-t border-wedly-bd px-3 py-2">
+          <span className="break-keep text-wedly-hint text-wedly-muted">
+            {footer}
+            {canExpand && (
+              <>
+                {" — "}
+                <button type="button" className={LINK_BTN} onClick={onToggleExpand}>
+                  {expanded ? "접기" : "나머지 보기"}
+                </button>
+              </>
+            )}
+          </span>
+        </div>
+      )}
     </section>
   );
 }
@@ -771,6 +811,12 @@ interface ViewProps {
   sort: FundingSort;
   expanded: ReadonlySet<FundingGroup>;
   /**
+   * 「종류 미확인」 블록을 펼쳤나 — 갈래 열쇠(`FundingGroup`)에 못 끼우므로 **따로 boolean 하나**다
+   * (2026-09-05 재검사 지적 2). 그 블록은 갈래가 아니라 갈래를 못 가른 줄이 모인 곳이라,
+   * `expanded` 집합에 가짜 열쇠를 넣으면 갈래 목록을 도는 코드가 그 열쇠를 갈래로 착각한다.
+   */
+  unclassifiedExpanded: boolean;
+  /**
    * 「안 맞아서 뺀 항목」을 펼친 갈래 집합 — 부모가 쥔다(비어 있지 않으면 부모가 includeExcluded:true 로 재조회).
    * ★**카드 보기 전용**이다(코덱스 14차 [높음], 2026-09-04) — 표 보기는 갈래 카드가 없어 스위치
    *  하나(`filters.includeExcluded`)만 본다. 발 hint 의 「표시 N건」만 두 보기가 나눠 쓴다.
@@ -787,6 +833,8 @@ interface ViewProps {
   onFiltersChange: (filters: FundingFilters) => void;
   onSortChange: (sort: FundingSort) => void;
   onToggleExpand: (group: FundingGroup) => void;
+  /** 「종류 미확인」 블록의 「나머지 보기 / 접기」 — 갈래 펼침과 **같은 자리**에서 부모가 쥔다. */
+  onToggleUnclassified: () => void;
   onToggleExcluded: (group: FundingGroup) => void;
   onBrowseAll?: () => void;
 }
@@ -801,6 +849,7 @@ export function FundingMapView({
   filters,
   sort,
   expanded,
+  unclassifiedExpanded,
   showExcluded,
   selectedId,
   compact,
@@ -811,6 +860,7 @@ export function FundingMapView({
   onFiltersChange,
   onSortChange,
   onToggleExpand,
+  onToggleUnclassified,
   onToggleExcluded,
   onBrowseAll,
 }: ViewProps) {
@@ -1018,11 +1068,21 @@ export function FundingMapView({
            4열 그대로였다(바로 아래 갈래 카드 줄은 `!compact &&`로 이미 2열까지만 두던 것과 어긋남).
            `lg:` 는 뷰포트 폭 기준이라, 데스크톱 화면에서 열리는 좁은 상세창 안에서도 그대로 켜져
            4칸이 좁은 자리에 눌려 보였다 — 갈래 카드와 같은 패턴으로 맞춘다. */}
-      {/* ★숫자 카드 사이 16px(`gap-4`) — 옛 `gap-2.5`(10px)는 정본 계단에 없는 값이었다. */}
-      <div className={cn("grid gap-4 grid-cols-2", !compact && "lg:grid-cols-4")}>
-        {한눈에.map((s) => (
-          <StatCard key={s.label} label={s.label} value={s.value} icon={s.icon} />
-        ))}
+      {/* ★네 칸이 칩·정렬을 **안 따른다는 사실**을 화면에 적는다(2026-09-05 재검사 지적 3 · 승인 시안 A안).
+          칩 「7일 안에 마감되는 것만」을 켜면 이 줄의 「안 갚아도 되는 돈 1,619건」은 그대로인데 100px
+          아래 갈래 카드는 「90건」이 된다 — 같은 이름의 두 수가 다른 말을 하는데 화면이 왜 다른지
+          한마디도 안 했다. 숫자를 칩에 따르게 바꾸지 않는 것은 **고의**이므로(앞선 지적으로 그렇게
+          고쳤다) 결정은 그대로 두고 기준만 적는다. compact 레일도 같은 부품이라 자동으로 따라온다. */}
+      {/* ★캡션과 네 칸을 **한 덩어리로** 감싼다 — 이 화면 뿌리는 `flex flex-col gap-4`(16px)라
+          캡션을 낱개 칸으로 두면 `mb-2`(8px)가 그 16px 에 **더해져** 24px 이 된다(승인 시안은 8px). */}
+      <div>
+        <p className="mb-2 break-keep text-wedly-hint text-wedly-muted">전체 자료 기준 — 아래 칩·정렬과 무관합니다</p>
+        {/* ★숫자 카드 사이 16px(`gap-4`) — 옛 `gap-2.5`(10px)는 정본 계단에 없는 값이었다. */}
+        <div className={cn("grid gap-4 grid-cols-2", !compact && "lg:grid-cols-4")}>
+          {한눈에.map((s) => (
+            <StatCard key={s.label} label={s.label} value={s.value} icon={s.icon} />
+          ))}
+        </div>
       </div>
 
       {/* ③ 조작줄 — 칩·정렬을 누르면 부모가 통로를 다시 부른다(여기서 자료를 만지지 않는다)
@@ -1157,7 +1217,18 @@ export function FundingMapView({
               />
             ))}
           </div>
-          <UnclassifiedBlock items={unclassified} compact={compact} selectedId={selectedId} now={now} onOpen={onOpen} />
+          {/* ★딱지·발치의 건수는 **서버가 센 전체 미확인 수**(`data.unclassified`)다 — 실려 온
+              배열 길이(`unclassified.length`)로 되돌리면 834건짜리 화면이 다시 「80건」이라 적는다. */}
+          <UnclassifiedBlock
+            items={unclassified}
+            total={data.unclassified}
+            compact={compact}
+            expanded={unclassifiedExpanded}
+            selectedId={selectedId}
+            now={now}
+            onOpen={onOpen}
+            onToggleExpand={onToggleUnclassified}
+          />
         </div>
       ) : (
         <div className="flex flex-col gap-1.5">
@@ -1254,6 +1325,8 @@ export default function FundingMap({
 }: FundingMapProps) {
   const [view, setView] = useState<FundingView>("map");
   const [expanded, setExpanded] = useState<ReadonlySet<FundingGroup>>(() => new Set<FundingGroup>());
+  // 「종류 미확인」 블록 펼침 — 갈래 열쇠가 아니라서 갈래 집합에 못 넣는다(2026-09-05 재검사 지적 2).
+  const [unclassifiedExpanded, setUnclassifiedExpanded] = useState(false);
 
   // ★훅은 조기 반환보다 위에 둔다 — 아래로 내려가면 화면이 통째로 죽는다(2026-08 실사고).
 
@@ -1327,6 +1400,7 @@ export default function FundingMap({
         filters={filters}
         sort={sort}
         expanded={expanded}
+        unclassifiedExpanded={unclassifiedExpanded}
         showExcluded={showExcluded}
         selectedId={selectedId}
         compact={compact}
@@ -1344,6 +1418,7 @@ export default function FundingMap({
             return next;
           })
         }
+        onToggleUnclassified={() => setUnclassifiedExpanded((prev) => !prev)}
         onToggleExcluded={onToggleExcluded}
         onBrowseAll={onBrowseAll}
       />
