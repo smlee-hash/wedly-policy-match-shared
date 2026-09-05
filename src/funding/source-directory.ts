@@ -10,17 +10,30 @@ import type { BoardCapRecord } from "./board/page-cap";
  *   출처를 편입하면 화면이 저절로 「연결됨」이 되고, 명부에 그 id 를 안 적으면 시험이 막는다.
  * 근거 정본: docs/superpowers/specs/2026-08-25-policy-source-registry.md
  */
-export type DirectoryStatus = "connected" | "waiting" | "candidate" | "blocked";
+export type DirectoryStatus = "connected" | "waiting" | "candidate" | "blocked" | "error" | "excluded";
 
 export interface SourceDirectoryEntry {
-  /** 연결됐거나 코드가 준비된 출처의 수집 id. 조사 단계 후보는 없음. */
+  /** 연결됐거나 코드가 준비된 출처의 수집 id. 조사 단계 후보·대상 아님 줄은 없음. */
   id?: string;
   label: string;
   url: string;
-  /** 미연결일 때의 상태(연결되면 자동으로 connected 로 덮인다). */
-  status: Exclude<DirectoryStatus, "connected">;
+  /**
+   * 미연결일 때의 상태. connected 는 연결 목록 대조로, error 는 회차 장부로 **자동** 덮인다 —
+   * 손으로 적지 않는다.
+   *  - waiting  : 코드·조사는 됐고 바깥 사정(국내 경유·API 승인)만 남음
+   *  - candidate: 조사 중 — 조사가 끝나면 0 이어야 정상(연결하거나 excluded 로 옮긴다)
+   *  - blocked  : 지문·봇 차단형(코드로 못 여는 것)
+   *  - excluded : 이 트랙(공고·상시상품) 대상이 아니거나 증거로 안 붙이기로 한 곳 — 사유 필수
+   */
+  status: Exclude<DirectoryStatus, "connected" | "error">;
   /** 막힌 사유·다음 행동. 연결된 곳은 빈 문자열 허용. */
   note: string;
+}
+
+/** 회차 장부의 출처별 결과 — ERP `SyncReport.perSource` 의 두 칸만. */
+export interface DirectoryRunInfo {
+  saved: number | null;
+  error: string | null;
 }
 
 export const SOURCE_DIRECTORY: SourceDirectoryEntry[] = [
@@ -76,8 +89,9 @@ export const SOURCE_DIRECTORY: SourceDirectoryEntry[] = [
 
   // ── 대기 — 코드·조사는 됐고 바깥 사정만 남음 ──
   { id: "tp-jeonbuk", label: "전북테크노파크", url: "https://www.jbtp.or.kr", status: "waiting",
-    note: "국내 IP 로만 열림 — 국내 경유 서버(사장님 가입·결제) 생기면 자동 수집 전환. 코드·시험 완료, 52건 수동 적재됨" },
-  { label: "사업주훈련 훈련과정 API", url: "https://www.work24.go.kr", status: "waiting", note: "키·검증 완료. 공고가 아니라 카탈로그 6.2만 건 — 별도 「훈련과정 찾기」 설계 후" },
+    note: "국내 경유 필요 — 서울 프록시(POLICY_BOARD_PROXY_URL)가 등록되면 다음 회차에 자동 연결. 코드·시험 완료, 52건 수동 적재됨" },
+  { label: "사업주훈련 훈련과정 API", url: "https://www.work24.go.kr", status: "excluded",
+    note: "공고가 아니라 훈련과정 카탈로그(6.2만 건) — 「훈련과정 찾기」 별도 트랙. 키·검증은 완료" },
 
   // ── 후보(겹침 대조 끝 — 연결만 남음) ──
   // 2026-09-01 겹침 대조: 각 사이트 최신 공고 10건이 우리 DB(기업마당·보조금24 포함)에 있는지 제목으로 대조.
@@ -90,7 +104,8 @@ export const SOURCE_DIRECTORY: SourceDirectoryEntry[] = [
   // ★2026-09-01 주소 정정. 아래 세 곳은 적혀 있던 주소가 틀려 그동안 조사 자체가 헛돌았다.
   // 적혀 있던 anyang.go.kr 은 안양시청 대표홈페이지였다(제목으로 확인). 후보 aca.or.kr 은 이름은
   // 풀리는데(27.101.104.171) 443·80 둘 다 연결 자체가 안 된다 — 전북TP 와 같은 국내 IP 전용으로 보인다.
-  { label: "안양산업진흥원", url: "https://aca.or.kr", status: "waiting", note: "적힌 주소가 안양시청이라 정정. 새 주소는 이름은 풀리나 우리 쪽에서 연결 불가 — 국내 경유 필요(전북TP 와 같은 사정)" },
+  { label: "안양산업진흥원", url: "https://aca.or.kr", status: "waiting",
+    note: "국내 경유 필요 — 전북TP 와 같은 사정(aca.or.kr 은 우리 쪽에서 연결 불가). 프록시 뒤 구조 조사·수집기 작성" },
   // 2026-09-01 연결. 겹침 0/6. 목록은 스크립트가 아니라 ul.table li.tr 이다(주소 www.pipabiz.or.kr).
   { id: "pipa", label: "평택산업진흥원", url: "https://www.pipabiz.or.kr", status: "candidate", note: "" },
   { id: "bizbc", label: "부천산업진흥원", url: "https://www.bizbc.or.kr", status: "candidate", note: "" },
@@ -104,7 +119,8 @@ export const SOURCE_DIRECTORY: SourceDirectoryEntry[] = [
   { id: "nyj", label: "남양주시 기업지원 공고", url: "https://www.nyj.go.kr/www", status: "candidate", note: "" },
   { id: "bssinbo", label: "부산신용보증재단", url: "https://www.busansinbo.or.kr", status: "candidate", note: "" },
   { id: "gjsinbo", label: "광주신용보증재단", url: "https://www.gjsinbo.or.kr", status: "candidate", note: "" },
-  { id: "djsinbo", label: "대전신용보증재단", url: "https://www.sinbo.or.kr", status: "candidate", note: "" },
+  { id: "djsinbo", label: "대전신용보증재단", url: "https://www.sinbo.or.kr", status: "waiting",
+    note: "국내 경유 필요 — 운영 서버(미국 IP)에서 연결 시간초과/빈 응답(2026-09-03 컨테이너 실측). 서울 프록시가 등록되면 다음 회차에 자동 연결" },
   { id: "icsinbo", label: "인천신용보증재단", url: "https://www.icsinbo.or.kr", status: "candidate", note: "" },
   { id: "ulsinbo", label: "울산신용보증재단 자금공고", url: "https://www.ulsanshinbo.co.kr", status: "candidate", note: "" },
   { id: "gwsinbo", label: "강원신용보증재단 협약보증", url: "https://gwsinbo.or.kr", status: "candidate", note: "" },
@@ -114,7 +130,8 @@ export const SOURCE_DIRECTORY: SourceDirectoryEntry[] = [
   { id: "cnsinbo", label: "충남신용보증재단", url: "https://www.cnsinbo.co.kr", status: "candidate", note: "" },
   { id: "cbsinbo", label: "충북신용보증재단", url: "https://www.cbsinbo.or.kr", status: "candidate", note: "" },
   { id: "jcgf", label: "제주신용보증재단", url: "https://jcgf.or.kr", status: "candidate", note: "" },
-  { id: "seoulsinbo", label: "서울신용보증재단", url: "https://www.seoulshinbo.co.kr", status: "candidate", note: "" },
+  { id: "seoulsinbo", label: "서울신용보증재단", url: "https://www.seoulshinbo.co.kr", status: "waiting",
+    note: "국내 경유 필요 — 운영 서버(미국 IP)에서 연결 시간초과/빈 응답(2026-09-03 컨테이너 실측). 서울 프록시가 등록되면 다음 회차에 자동 연결" },
   { id: "kibo", label: "기술보증기금 공지", url: "https://www.kibo.or.kr", status: "candidate", note: "" },
   { id: "jnsinbo", label: "전남신용보증재단", url: "https://www.jnsinbo.or.kr", status: "candidate", note: "" },
   { id: "kosmes", label: "중소벤처기업진흥공단 공지", url: "https://www.kosmes.or.kr", status: "candidate", note: "" },
@@ -125,7 +142,8 @@ export const SOURCE_DIRECTORY: SourceDirectoryEntry[] = [
   { id: "koreg", label: "신용보증재단중앙회 공지", url: "https://www.koreg.or.kr", status: "candidate", note: "" },
   { id: "kocca", label: "한국콘텐츠진흥원 지원사업공고", url: "https://www.kocca.kr", status: "candidate", note: "" },
   { id: "jba", label: "제주경제통상진흥원", url: "https://www.jba.or.kr", status: "candidate", note: "" },
-  { id: "sjtp", label: "세종테크노파크", url: "https://sjtp.or.kr", status: "candidate", note: "" },
+  { id: "sjtp", label: "세종테크노파크", url: "https://sjtp.or.kr", status: "waiting",
+    note: "국내 경유 필요 — 운영 서버(미국 IP)에서 연결 시간초과/빈 응답(2026-09-03 컨테이너 실측). 서울 프록시가 등록되면 다음 회차에 자동 연결" },
   { id: "cbtp", label: "충북테크노파크", url: "https://www.cbtp.or.kr", status: "candidate", note: "" },
   { id: "ptp", label: "포항테크노파크", url: "https://ptp.or.kr", status: "candidate", note: "" },
   { id: "bepa", label: "부산경제진흥원", url: "https://bepa.kr", status: "candidate", note: "" },
@@ -154,14 +172,17 @@ export const SOURCE_DIRECTORY: SourceDirectoryEntry[] = [
   // ★2026-09-02 「조사 필요 8곳」 결론 완료. 아래는 **열어 보고 제목까지 대조한 뒤 「안 붙인다」고 정한** 곳이다.
   //   다시 조사하지 마라 — 근거는 계획서 2026-09-02-unlinked-overlap-and-connect.md 의 대조표에 있다.
   //   교훈: 「신규가 많다」와 「붙일 값어치가 있다」는 다르다. 아래 셋이 신규 건수 1·2·3등인데 내용이 지원사업이 아니었다.
-  { label: "중소벤처기업유통원(구 중소기업유통센터)", url: "https://www.kodma.or.kr", status: "candidate",
-    note: "기관 개칭으로 도메인 이전(sbdc.or.kr → kodma.or.kr) · 546건 · 표본 4건 겹침 100%(온라인판로·점프업·실증지원 전부 중기부·소진공으로 들어옴) — 안 붙임" },
-  { label: "대한상공회의소", url: "https://www.korcham.net", status: "candidate",
-    note: "열림 · 공지 1,938건이 거의 전부 상의 자체 용역 입찰이고, 목록 제목이 원문에서부터 25자에 잘려 나와 중복 대조 자체가 불가 — 안 붙임" },
-  { label: "기초지자체 산하 미확인(8곳 묶음)", url: "https://www.snip.or.kr", status: "candidate",
-    note: "성남은 연결함. 시흥(sida.kr)·고양(gipa.or.kr)은 열리지만 기업마당이 「[경기] …」로 이미 싣는다(겹침 3/5·4/5) · 안산·용인·김포·천안·광명·남양주·파주·청주·구미는 실주소 미확정 — 다음엔 시청 출자·출연기관 목록에서 딸 것" },
-  { label: "지역 데이터포털·공공데이터포털", url: "https://www.data.go.kr", status: "candidate",
-    note: "게시판이 아니라 오픈 API 카탈로그라 이 트랙으로는 못 붙인다 · 다만 「한국콘텐츠진흥원_지원사업공고」 오픈 API 가 여기 이미 열려 있다 — 아래 KOCCA 승인 대기를 이 길로 건너뛸 수 있는지 확인할 것" },
+  // 2026-09-05 연결(사장님 결정). 표본 4건 겹침 100% 였지만 겹침은 dedupKey 병합이 접는다.
+  { id: "kodma", label: "중소벤처기업유통원", url: "https://www.kodma.or.kr", status: "candidate", note: "" },
+  { label: "대한상공회의소", url: "https://www.korcham.net", status: "excluded",
+    note: "기업지원·사업공고 전용 게시판 없음(2026-09-05 홈 메뉴 실측: 뉴스·경제자료·경제정보·지역 네트워크·소개 + 공지사항뿐) · 공지 1,938건은 자체 용역 입찰 위주 · 제목 25자 잘림 — 안 붙임" },
+  // 2026-09-05 — 옛 「기초지자체 8곳 묶음」 줄을 푼 것. 안산·용인·김포·천안·광명·남양주·파주·구미는 위에 개별 연결돼 있다.
+  { id: "sida", label: "시흥산업진흥원", url: "https://www.sida.kr", status: "candidate", note: "" },
+  { id: "gipa", label: "고양산업진흥원", url: "https://www.gipa.or.kr", status: "candidate", note: "" },
+  { label: "청주시 e기업사랑센터(충북)", url: "http://ebizcb.chungbuk.go.kr", status: "excluded",
+    note: "충북기업진흥원이 운영하는 도 단위 포털(청주시 전용 아님) — 같은 공고를 cba 가 이미 싣는다(2026-09-05 제목 대조 2/2 겹침: 중소기업육성자금 융자 지원계획 변경·대출금리 알림). 「청주산업진흥재단」은 실재하지 않음" },
+  { label: "지역 데이터포털·공공데이터포털", url: "https://www.data.go.kr", status: "excluded",
+    note: "게시판이 아니라 오픈 API 카탈로그 — 이 트랙 대상 아님. KOCCA 지원사업공고는 게시판(kocca)으로 이미 연결" },
 
   // ── 자금 조달 지도: 상시 상품 수집원 7곳(2026-09-03 연결, Task 14) ──
   // 접수기간이 없는 돈(은행 사업자대출·정책자금·보증·서민금융·투자)이라 저장 표가 다르다
@@ -205,6 +226,11 @@ export type ResolveDirectoryOpts = {
   ranAt?: string | null;
   /** 장부 조회 실패 — 모든 행 hitCap 은 모름(null). */
   capsUnknown?: boolean;
+  /**
+   * 회차 장부. 있으면 「연결됐는데 저장 0 + 오류」를 error 로 덮는다.
+   * 없으면(랩·일루아처럼 장부를 안 읽는 호출자) 예전과 같이 connected 만 판정한다.
+   */
+  runs?: ReadonlyMap<string, DirectoryRunInfo>;
 };
 
 function visibleHitCap(
@@ -227,14 +253,18 @@ export function resolveDirectory(
   caps: ReadonlyMap<string, BoardCapRecord> = new Map(),
   opts: ResolveDirectoryOpts = {},
 ): ResolvedDirectoryEntry[] {
-  // ※ 교차(&)로 쓰면 명부의 좁은 status 와 교차돼 "connected" 가 타입에서 사라진다(빌드 실측) — Omit 으로 덮는다.
   const connected = new Set(connectedIds);
   return SOURCE_DIRECTORY.map((s) => {
     const cap = s.id ? caps.get(s.id) : undefined;
+    const run = s.id ? opts.runs?.get(s.id) : undefined;
+    const isConnected = !!s.id && connected.has(s.id);
+    // ★「연결됨」 딱지는 최근 회차 저장 > 0 일 때만 정직하다. 오류로 0건이면 error.
+    const status: DirectoryStatus = isConnected
+      ? run && run.error && (run.saved ?? 0) === 0 ? "error" : "connected"
+      : s.status;
     return {
       ...s,
-      status: s.id && connected.has(s.id) ? ("connected" as const) : s.status,
-      // 상한은 note 가 아니라 이 칸 — note 에 넣으면 noteTextOf 가 회차 건수를 가린다.
+      status,
       hitCap: visibleHitCap(cap, opts),
       lastPageNew: cap?.lastPageNew ?? 0,
       capAt: cap?.at ?? null,
