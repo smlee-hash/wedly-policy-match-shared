@@ -25,7 +25,7 @@
  * 없는 onestop 전용 이름(「원스톱 폐업지원」)만 보탠다.
  */
 import { parse, type HTMLElement } from "node-html-parser";
-import { extractAmount } from "../../amount-rate-extract";
+import { extractAmount } from "../../../funding/amount-rate-extract";
 import { fetchProductText } from "../fetch";
 import type { NormalizedProduct, ProductSource, ProductTargetRules } from "../types";
 

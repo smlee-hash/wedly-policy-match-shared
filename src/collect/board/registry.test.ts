@@ -2,24 +2,27 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const findUnique = vi.fn();
-const upsert = vi.fn();
-const count = vi.fn();
+// 주입 스텁 — 게시판 등록부는 prisma·AI 를 CollectDeps 로 받는다(P3-B2). 원문
+// `prisma.jsonCache.findUnique/upsert`·`policyAnnouncement.count` 을 이 세 스텁이 대신한다.
+const jsonCacheGet = vi.fn((_key: string): Promise<unknown> => Promise.resolve(null));
+const jsonCacheSet = vi.fn((_key: string, _value: unknown): Promise<void> => Promise.resolve());
+const countOpenAnnouncements = vi.fn((_source: string, _since: Date): Promise<number> => Promise.resolve(0));
 const { noteSuccess } = vi.hoisted(() => ({ noteSuccess: vi.fn(async () => {}) }));
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    jsonCache: {
-      findUnique: (...a: unknown[]) => findUnique(...a),
-      upsert: (...a: unknown[]) => upsert(...a),
-    },
-    policyAnnouncement: { count: (...a: unknown[]) => count(...a) },
-  },
-}));
 vi.mock("./alert", () => ({
   noteFailureAndMaybeAlert: vi.fn(async () => {}),
   noteSuccess,
 }));
+
+import type { CollectDeps } from "../types";
+const deps: CollectDeps = {
+  askModel: vi.fn(async () => ""),
+  jsonCacheGet,
+  jsonCacheSet,
+  countOpenAnnouncements,
+  updateAnnouncement: vi.fn(async () => {}),
+  updateAnnouncementIfEmpty: vi.fn(async () => 0),
+};
 
 import {
   BOARD_SOURCES,
@@ -98,9 +101,9 @@ function redirectResWithCookies(location: string, cookies: string[]) {
 
 describe("board registry", () => {
   beforeEach(() => {
-    findUnique.mockReset().mockResolvedValue(null);
-    upsert.mockReset().mockResolvedValue({});
-    count.mockReset().mockResolvedValue(0);
+    jsonCacheGet.mockReset().mockResolvedValue(null);
+    jsonCacheSet.mockReset().mockResolvedValue(undefined);
+    countOpenAnnouncements.mockReset().mockResolvedValue(0);
     noteSuccess.mockReset();
   });
   afterEach(() => {
@@ -145,7 +148,7 @@ describe("board registry", () => {
     const before = process.env.POLICY_BOARD_PROXY_URL;
     delete process.env.POLICY_BOARD_PROXY_URL;
     try {
-      const wrapped = boardSyncSources();
+      const wrapped = boardSyncSources(deps);
       // 프록시 없으면 국내 IP 전용 14곳(기존 6곳 전북TP·대전신보·서울신보·세종TP·안양·진주바이오 + 2026-09-06 P2 8곳 hrdk·kfme·kwbiz·pomia·uesc·suncheon·gbia·ikse)이 빠져 104곳. 118은 BOARD_SOURCES 쪽.
       expect(wrapped).toHaveLength(104);
       expect(wrapped.every((s) => s.clockOnly === true)).toBe(true);
@@ -266,60 +269,51 @@ describe("board registry", () => {
   });
 
   it("persisted 규칙이 있으면 list.rowSelector·fields 를 덮어쓴다", async () => {
-    findUnique.mockResolvedValue({
-      key: "board-rule:tp-busan",
-      value: {
-        rowSelector: "table.healed tbody tr",
-        fields: {
-          title: { selector: "a.healed" },
-          detailUrl: { selector: "a.healed", attr: "href" },
-          date: { selector: ".d" },
-        },
+    jsonCacheGet.mockResolvedValue({
+      rowSelector: "table.healed tbody tr",
+      fields: {
+        title: { selector: "a.healed" },
+        detailUrl: { selector: "a.healed", attr: "href" },
+        date: { selector: ".d" },
       },
     });
-    const resolved = await applyPersistedBoardRule(tpBusan);
+    const resolved = await applyPersistedBoardRule(tpBusan, deps);
     expect(resolved.list.rowSelector).toBe("table.healed tbody tr");
     expect(resolved.list.fields.title.selector).toBe("a.healed");
-    expect(findUnique).toHaveBeenCalledWith({ where: { key: "board-rule:tp-busan" } });
+    expect(jsonCacheGet).toHaveBeenCalledWith("board-rule:tp-busan");
   });
 
   it("sanitize 실패 규칙은 적용하지 않는다", async () => {
-    findUnique.mockResolvedValue({
-      key: "board-rule:tp-busan",
-      value: {
-        rowSelector: "table.healed tbody tr",
-        fields: {
-          title: { selector: "a.healed" },
-          detailUrl: { selector: "a.healed", attr: "href" },
-          date: { selector: ".d" },
-          xss: { selector: "script" },
-        },
+    jsonCacheGet.mockResolvedValue({
+      rowSelector: "table.healed tbody tr",
+      fields: {
+        title: { selector: "a.healed" },
+        detailUrl: { selector: "a.healed", attr: "href" },
+        date: { selector: ".d" },
+        xss: { selector: "script" },
       },
     });
-    const resolved = await applyPersistedBoardRule(tpBusan);
+    const resolved = await applyPersistedBoardRule(tpBusan, deps);
     expect(resolved.list.rowSelector).toBe(tpBusan.list.rowSelector);
   });
 
   it("persisted 규칙이 적용되면 customParse 를 뺀다", async () => {
-    findUnique.mockResolvedValue({
-      key: "board-rule:ulsan",
-      value: {
-        rowSelector: "table.media-table tbody tr",
-        fields: {
-          title: { selector: "a" },
-          detailUrl: { selector: "a", attr: "onclick" },
-          date: { regex: "(\\d{4}-\\d{2}-\\d{2})" },
-        },
+    jsonCacheGet.mockResolvedValue({
+      rowSelector: "table.media-table tbody tr",
+      fields: {
+        title: { selector: "a" },
+        detailUrl: { selector: "a", attr: "onclick" },
+        date: { regex: "(\\d{4}-\\d{2}-\\d{2})" },
       },
     });
-    const resolved = await applyPersistedBoardRule(ulsan);
+    const resolved = await applyPersistedBoardRule(ulsan, deps);
     expect(resolved.customParse).toBeUndefined();
     expect(resolved.list.rowSelector).toBe("table.media-table tbody tr");
   });
 
   it("prisma 조회 실패는 규칙 없음으로 진행한다", async () => {
-    findUnique.mockRejectedValue(new Error("down"));
-    await expect(applyPersistedBoardRule(tpBusan)).resolves.toBe(tpBusan);
+    jsonCacheGet.mockRejectedValue(new Error("down"));
+    await expect(applyPersistedBoardRule(tpBusan, deps)).resolves.toBe(tpBusan);
   });
 
   it("실패 카운터는 숫자 문자열을 Number 로 읽고 아니면 0", () => {
@@ -332,25 +326,19 @@ describe("board registry", () => {
 
   it("prevOpenCount 는 26시간 창의 open 만 센다", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("net"); }));
-    const src = boardSyncSources().find((s) => s.name === "tp-busan");
+    const src = boardSyncSources(deps).find((s) => s.name === "tp-busan");
     await expect(src!.fetchAll()).rejects.toThrow();
-    expect(count).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({
-        source: "tp-busan",
-        status: "open",
-        lastSeenAt: expect.objectContaining({ gt: expect.any(Date) }),
-      }),
-    }));
-    const gt = (count.mock.calls[0][0] as { where: { lastSeenAt: { gt: Date } } }).where.lastSeenAt.gt;
+    expect(countOpenAnnouncements).toHaveBeenCalledWith("tp-busan", expect.any(Date));
+    const gt = countOpenAnnouncements.mock.calls[0][1];
     const delta = Date.now() - gt.getTime();
     expect(delta).toBeGreaterThan(25 * 3600 * 1000);
     expect(delta).toBeLessThan(27 * 3600 * 1000);
   });
 
   it("prevOpenCount 조회 실패는 0 으로 흡수한다", async () => {
-    count.mockRejectedValue(new Error("db"));
+    countOpenAnnouncements.mockRejectedValue(new Error("db"));
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("net"); }));
-    const src = boardSyncSources().find((s) => s.name === "ulsan");
+    const src = boardSyncSources(deps).find((s) => s.name === "ulsan");
     await expect(src!.fetchAll()).rejects.toThrow();
   });
 
@@ -450,7 +438,7 @@ describe("board registry", () => {
   //    리다이렉트 동작은 출처와 무관하므로 경유가 필요 없는 부산TP 로 바꿨다.
   //    전북TP 의 새 동작은 아래 「국내 경유가 필요한 출처」 묶음에서 따로 잰다.
   it("같은 호스트 3xx 는 Location 을 절대화해 따라가고 redirect:manual 이다", async () => {
-    const fetchMock = vi.fn(async (url: string) => {
+    const fetchMock = vi.fn(async (url: string, _init?: unknown) => {
       if (url === "https://www.btp.or.kr/board/list") {
         return redirectRes("/board/list?ok=1");
       }
@@ -647,19 +635,17 @@ describe("board registry", () => {
   });
 
   it("24시간 안 자가수리는 즉시 throw 하고 직전에 시각을 기록한다", async () => {
-    findUnique.mockResolvedValue({ value: Date.now() - 60_000 });
-    await expect(enforceHealCooldown("tp-busan")).rejects.toThrow(/쿨다운/);
-    findUnique.mockResolvedValue(null);
-    await expect(enforceHealCooldown("ulsan")).resolves.toBeUndefined();
-    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({
-      where: { key: "board-heal-cooldown:ulsan" },
-    }));
+    jsonCacheGet.mockResolvedValue(Date.now() - 60_000);
+    await expect(enforceHealCooldown("tp-busan", deps)).rejects.toThrow(/쿨다운/);
+    jsonCacheGet.mockResolvedValue(null);
+    await expect(enforceHealCooldown("ulsan", deps)).resolves.toBeUndefined();
+    expect(jsonCacheSet).toHaveBeenCalledWith("board-heal-cooldown:ulsan", expect.any(Number));
   });
 
   it("fetchAll 성공 시 실패 카운터를 리셋한다", async () => {
     const html = readFileSync(join(__dirname, "__fixtures__/ulsan-list.html"), "utf-8");
     vi.stubGlobal("fetch", vi.fn(async () => okRes(html)));
-    const src = boardSyncSources().find((s) => s.name === "ulsan");
+    const src = boardSyncSources(deps).find((s) => s.name === "ulsan");
     const list = await src!.fetchAll();
     expect(list.length).toBeGreaterThan(0);
     expect(noteSuccess).toHaveBeenCalledWith("ulsan", expect.anything());
@@ -671,7 +657,7 @@ describe("국내 경유가 필요한 출처", () => {
     const before = process.env.POLICY_BOARD_PROXY_URL;
     delete process.env.POLICY_BOARD_PROXY_URL;
     try {
-      const ids = boardSyncSources().map((s) => s.name);
+      const ids = boardSyncSources(deps).map((s) => s.name);
       expect(ids).not.toContain("tp-jeonbuk");
       expect(ids).not.toContain("djsinbo");
       expect(ids).not.toContain("seoulsinbo");
@@ -693,7 +679,7 @@ describe("국내 경유가 필요한 출처", () => {
     const before = process.env.POLICY_BOARD_PROXY_URL;
     process.env.POLICY_BOARD_PROXY_URL = "http://example.invalid:8080";
     try {
-      const ids = boardSyncSources().map((s) => s.name);
+      const ids = boardSyncSources(deps).map((s) => s.name);
       expect(ids).toContain("tp-jeonbuk");
       expect(ids).toContain("djsinbo");
       expect(ids).toContain("seoulsinbo");
@@ -731,7 +717,7 @@ describe("국내 경유가 필요한 출처", () => {
     const before = process.env.POLICY_BOARD_PROXY_URL;
     process.env.POLICY_BOARD_PROXY_URL = "   ";
     try {
-      expect(boardSyncSources().map((s) => s.name)).not.toContain("tp-jeonbuk");
+      expect(boardSyncSources(deps).map((s) => s.name)).not.toContain("tp-jeonbuk");
     } finally {
       if (before === undefined) delete process.env.POLICY_BOARD_PROXY_URL;
       else process.env.POLICY_BOARD_PROXY_URL = before;

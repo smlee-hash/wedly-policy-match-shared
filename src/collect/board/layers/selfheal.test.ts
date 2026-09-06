@@ -27,7 +27,7 @@ describe("selfHeal", () => {
     expect(r.rule).toBeUndefined();
   });
   it("askModel 에 프롬프트를 주입해 1회 호출한다", async () => {
-    const askModel = vi.fn(async () => JSON.stringify(GOOD_RULE));
+    const askModel = vi.fn(async (_prompt: string) => JSON.stringify(GOOD_RULE));
     await selfHeal(HTML, cfg, { prevCount: 0 }, askModel);
     expect(askModel).toHaveBeenCalledOnce();
     expect(askModel.mock.calls[0][0]).toBe(buildHealPrompt(HTML));

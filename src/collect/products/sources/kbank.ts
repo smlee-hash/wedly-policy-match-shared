@@ -19,7 +19,7 @@
  * 숫자를 지어내지 않는다(계획서 Task 11 원 결론은 유지, 다만 못 보고 지나친 필드가 있었다).
  */
 import { parse } from "node-html-parser";
-import { extractRate } from "../../amount-rate-extract";
+import { extractRate } from "../../../funding/amount-rate-extract";
 import { fetchProductText } from "../fetch";
 import type { NormalizedProduct, ProductSource, ProductTargetRules } from "../types";
 

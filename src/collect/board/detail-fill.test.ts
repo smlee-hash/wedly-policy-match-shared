@@ -2,18 +2,17 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const update = vi.fn();
-const updateMany = vi.fn();
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    jsonCache: { findUnique: vi.fn(), upsert: vi.fn() },
-    policyAnnouncement: {
-      count: vi.fn().mockResolvedValue(0),
-      update: (...a: unknown[]) => update(...a),
-      updateMany: (...a: unknown[]) => updateMany(...a),
-    },
-  },
-}));
+import type { CollectDeps, PolicyAnnouncementUpdate } from "../types";
+// 주입 스텁 — 상세 채움은 공고 갱신을 CollectDeps 로 받는다(P3-B2). 원문
+// `prisma.policyAnnouncement.update`(무조건)·`updateMany({ where:{ id, targetText:"" } })`(빈 행만)
+// 을 이 둘이 대신한다. `updateAnnouncement(id, data)` = update, `updateAnnouncementIfEmpty(id,data)` =
+// updateMany 이 쓴 줄 수를 돌려준다(빈 행 조건 자체는 앱 콜백이 건다 — 여기선 인자만 본다).
+const updateAnnouncement = vi.fn((_id: string, _data: PolicyAnnouncementUpdate): Promise<void> => Promise.resolve());
+const updateAnnouncementIfEmpty = vi.fn((_id: string, _data: PolicyAnnouncementUpdate): Promise<number> => Promise.resolve(1));
+const deps: Pick<CollectDeps, "updateAnnouncement" | "updateAnnouncementIfEmpty"> = {
+  updateAnnouncement,
+  updateAnnouncementIfEmpty,
+};
 
 /**
  * 국내 경유 출처(안양·전북TP…)도 시험에서는 **전역 fetch(stub)** 로 흐르게 한다.
@@ -58,8 +57,8 @@ describe("harvestBoardAttachments", () => {
 
 describe("fillBoardDetail", () => {
   beforeEach(() => {
-    update.mockReset().mockResolvedValue({});
-    updateMany.mockReset().mockResolvedValue({ count: 1 });
+    updateAnnouncement.mockReset().mockResolvedValue(undefined);
+    updateAnnouncementIfEmpty.mockReset().mockResolvedValue(1);
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -100,9 +99,9 @@ describe("fillBoardDetail", () => {
       source: "hespa",
       url: "https://hespa.or.kr/main/index.php?m_cd=23&b_id=20260615083905479",
       targetText: "",
-    });
+    }, deps);
     expect(ok).toBe("error");
-    expect(update).not.toHaveBeenCalled();
+    expect(updateAnnouncement).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledWith(
       "[policy-detail] 상세 조달이 빈 글을 돌려줌",
       "hespa",
@@ -113,17 +112,17 @@ describe("fillBoardDetail", () => {
   it("API 출처 행은 건드리지 않는다", async () => {
     const ok = await fillBoardDetail({
       id: "ann-1", source: "bizinfo", url: "https://www.bizinfo.go.kr/x", targetText: "",
-    });
+    }, deps);
     expect(ok).toBe("empty");
-    expect(update).not.toHaveBeenCalled();
+    expect(updateAnnouncement).not.toHaveBeenCalled();
   });
 
   it("이미 본문이 있으면 채우지 않는다", async () => {
     const ok = await fillBoardDetail({
       id: "ann-1", source: "tp-daejeon", url: "https://www.djtp.or.kr/v/1", targetText: "이미 있음",
-    });
+    }, deps);
     expect(ok).toBe("empty");
-    expect(update).not.toHaveBeenCalled();
+    expect(updateAnnouncement).not.toHaveBeenCalled();
   });
 
   it("게시판이고 본문이 비었으면 상세 텍스트와 첨부를 채운다", async () => {
@@ -137,10 +136,10 @@ describe("fillBoardDetail", () => {
       source: "tp-daejeon",
       url: "https://www.djtp.or.kr/board.es?mid=a20102000000&bid=0102&act=view&list_no=9",
       targetText: "",
-    });
+    }, deps);
     expect(ok).toBe("filled");
-    expect(update).toHaveBeenCalledOnce();
-    const data = update.mock.calls[0][0] as { data: { targetText: string; attachments: { url: string; kind: string }[] } };
+    expect(updateAnnouncement).toHaveBeenCalledOnce();
+    const data = { data: updateAnnouncement.mock.calls[0][1] } as { data: { targetText: string; attachments: { url: string; kind: string }[] } };
     expect(data.data.targetText).toContain("신청대상");
     expect(data.data.attachments.some((a) => a.kind === "pdf")).toBe(true);
     expect(warn).not.toHaveBeenCalled();
@@ -154,9 +153,9 @@ describe("fillBoardDetail", () => {
       source: "tp-daejeon",
       url: "https://www.djtp.or.kr/board.es?mid=a20102000000&bid=0102&act=view&list_no=9",
       targetText: "",
-    });
+    }, deps);
     expect(ok).toBe("filled");
-    const data = update.mock.calls[0][0] as { data: { targetText: string; attachments: { kind: string }[] } };
+    const data = { data: updateAnnouncement.mock.calls[0][1] } as { data: { targetText: string; attachments: { kind: string }[] } };
     expect(data.data.targetText.trim()).toBe("");
     expect(data.data.attachments.some((a) => a.kind === "pdf")).toBe(true);
   });
@@ -175,9 +174,9 @@ describe("fillBoardDetail", () => {
       url: "https://www.djtp.or.kr/board.es?mid=a20102000000&bid=0102&act=view&list_no=9",
       targetText: "",
       attachments: [{ name: "옛파일.pdf", url: "https://www.djtp.or.kr/files/old.pdf", kind: "pdf" }],
-    });
+    }, deps);
     expect(ok).toBe("filled");
-    const data = (update.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    const data = (updateAnnouncement.mock.calls[0][1] as Record<string, unknown>);
     expect(data.attachmentFillTriedAt).toBeNull();
   });
 
@@ -196,9 +195,9 @@ describe("fillBoardDetail", () => {
         { name: "b.hwp", url: "https://www.djtp.or.kr/files/b.hwp", kind: "hwp" },
         { name: "a.pdf", url: "https://www.djtp.or.kr/files/a.pdf", kind: "pdf" },
       ],
-    });
+    }, deps);
     expect(ok).toBe("filled");
-    const data = (update.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    const data = (updateAnnouncement.mock.calls[0][1] as Record<string, unknown>);
     expect(data.attachmentFillTriedAt).toBeUndefined();
   });
 
@@ -221,9 +220,9 @@ describe("fillBoardDetail", () => {
       targetText: "",
       // 저장돼 있던 값은 **같은 주소**인데 본문(열쇠)만 다르다.
       attachments: [{ name: "old.hwp", url: DOWN, kind: "hwp", method: "POST", body: "attachSeq2=T0xE" }],
-    });
+    }, deps);
     expect(ok).toBe("filled");
-    const data = (update.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    const data = (updateAnnouncement.mock.calls[0][1] as Record<string, unknown>);
     expect((data.attachments as { url: string; body?: string }[])[0]).toMatchObject({
       url: DOWN,
       body: "attachSeq2=TkVX",
@@ -242,9 +241,9 @@ describe("fillBoardDetail", () => {
       url: "https://www.hrdkorea.or.kr/3/1/1?k=56065",
       targetText: "",
       attachments: [{ name: "same.hwp", url: DOWN, kind: "hwp", method: "POST", body: "attachSeq2=U0FNRQ%3D%3D" }],
-    });
+    }, deps);
     expect(ok).toBe("filled");
-    const data = (update.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    const data = (updateAnnouncement.mock.calls[0][1] as Record<string, unknown>);
     expect(data.attachmentFillTriedAt).toBeUndefined();
   });
 
@@ -255,9 +254,9 @@ describe("fillBoardDetail", () => {
       source: "tp-daejeon",
       url: "https://www.djtp.or.kr/board.es?mid=a20102000000&bid=0102&act=view&list_no=9",
       targetText: "",
-    });
+    }, deps);
     expect(ok).toBe("empty");
-    expect(update).not.toHaveBeenCalled();
+    expect(updateAnnouncement).not.toHaveBeenCalled();
   });
 
   it("오류가 나도 throw 하지 않고 error", async () => {
@@ -265,8 +264,8 @@ describe("fillBoardDetail", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     await expect(fillBoardDetail({
       id: "ann-1", source: "tp-busan", url: "https://www.btp.or.kr/v/1", targetText: "",
-    })).resolves.toBe("error");
-    expect(update).not.toHaveBeenCalled();
+    }, deps)).resolves.toBe("error");
+    expect(updateAnnouncement).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalled();
   });
 
@@ -276,42 +275,41 @@ describe("fillBoardDetail", () => {
     okFetch(html);
     vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    updateMany.mockResolvedValue({ count: 1 });
+    updateAnnouncementIfEmpty.mockResolvedValue(1);
     const filled = await fillBoardDetail({
       id: "ann-1",
       source: "tp-daejeon",
       url: "https://www.djtp.or.kr/board.es?mid=a20102000000&bid=0102&act=view&list_no=9",
       targetText: "",
-    }, { onlyIfEmpty: true });
+    }, deps, { onlyIfEmpty: true });
     expect(filled).toBe("filled");
-    expect(updateMany).toHaveBeenCalledTimes(1);
-    const w = updateMany.mock.calls[0][0] as { where: Record<string, unknown>; data: { targetText: string } };
-    expect(w.where).toEqual({ id: "ann-1", targetText: "" });
-    expect(w.data.targetText).toContain("신청대상");
-    expect(update).not.toHaveBeenCalled();
+    expect(updateAnnouncementIfEmpty).toHaveBeenCalledTimes(1);
+    // 빈 행 조건(where.targetText:"")은 앱 콜백이 건다 — 여기선 id·data 만 본다(P3-B2 주입 경계).
+    expect(updateAnnouncementIfEmpty.mock.calls[0][0]).toBe("ann-1");
+    expect((updateAnnouncementIfEmpty.mock.calls[0][1] as { targetText: string }).targetText).toContain("신청대상");
+    expect(updateAnnouncement).not.toHaveBeenCalled();
 
-    updateMany.mockReset().mockResolvedValue({ count: 0 });
+    updateAnnouncementIfEmpty.mockReset().mockResolvedValue(0);
     const skipped = await fillBoardDetail({
       id: "ann-1",
       source: "tp-daejeon",
       url: "https://www.djtp.or.kr/board.es?mid=a20102000000&bid=0102&act=view&list_no=9",
       targetText: "",
-    }, { onlyIfEmpty: true });
+    }, deps, { onlyIfEmpty: true });
     expect(skipped).toBe("empty");
-    expect(update).not.toHaveBeenCalled();
+    expect(updateAnnouncement).not.toHaveBeenCalled();
 
-    updateMany.mockClear();
+    updateAnnouncementIfEmpty.mockClear();
     const def = await fillBoardDetail({
       id: "ann-1",
       source: "tp-daejeon",
       url: "https://www.djtp.or.kr/board.es?mid=a20102000000&bid=0102&act=view&list_no=9",
       targetText: "",
-    });
+    }, deps);
     expect(def).toBe("filled");
-    expect(update).toHaveBeenCalledTimes(1);
-    const u = update.mock.calls[0][0] as { where: Record<string, unknown> };
-    expect(u.where).toEqual({ id: "ann-1" });
-    expect(updateMany).not.toHaveBeenCalled();
+    expect(updateAnnouncement).toHaveBeenCalledTimes(1);
+    expect(updateAnnouncement.mock.calls[0][0]).toBe("ann-1");
+    expect(updateAnnouncementIfEmpty).not.toHaveBeenCalled();
   });
 
   /**
@@ -329,9 +327,9 @@ describe("fillBoardDetail", () => {
       title: "2026년 대전 중소기업육성자금 지원계획 공고",
       summary: "",
       agency: "대전테크노파크",
-    });
+    }, deps);
     expect(ok).toBe("filled");
-    const data = (update.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    const data = (updateAnnouncement.mock.calls[0][1] as Record<string, unknown>);
     expect(data.fundingGroup).toBe("policy");
     expect(data.amountText).toBe("최대 5,000만원");
     // Prisma BigInt 칸 — Number 로 넘기면 저장이 거부된다(store.ts 와 같은 규약).
@@ -360,9 +358,9 @@ describe("fillBoardDetail", () => {
       title: "2026년 안양시 유망기업 온‧오프라...",
       summary: "",
       agency: "안양산업진흥원",
-    });
+    }, deps);
     expect(ok).toBe("filled");
-    const data = (update.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    const data = (updateAnnouncement.mock.calls[0][1] as Record<string, unknown>);
     const full = "2026년 안양시 유망기업 온‧오프라인 유통망 입점 지원사업";
     expect(data.title).toBe(full);
     // ★열쇠가 함께 안 바뀌면 기업마당의 같은 공고와 영영 안 묶인다.
@@ -385,9 +383,9 @@ describe("fillBoardDetail", () => {
       summary: "",
       agency: "안양산업진흥원",
       sourceId: "https://aca.or.kr/support/supportBizView.do?sbIdx=541",
-    });
+    }, deps);
     expect(ok).toBe("title-only");
-    const data = (update.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    const data = (updateAnnouncement.mock.calls[0][1] as Record<string, unknown>);
     const full = "2026년 안양시 유망기업 온‧오프라인 유통망 입점 지원사업";
     expect(data.title).toBe(full);
     expect(data.dedupKey).toBe(dedupKeyOf({ title: full, agency: "안양산업진흥원" }));
@@ -404,9 +402,9 @@ describe("fillBoardDetail", () => {
     const ok = await fillBoardDetail({
       id: "ann-1", source: "aca", url: "https://aca.or.kr/support/supportBizView.do?sbIdx=541",
       targetText: "", title: "2026년 안양시 유망기업 온‧오프라...", summary: "", agency: "안양산업진흥원",
-    });
+    }, deps);
     expect(ok).toBe("empty");
-    expect(update).not.toHaveBeenCalled();
+    expect(updateAnnouncement).not.toHaveBeenCalled();
   });
 
   it("승격된 제목이 detailTitle.drop 에 걸리면 closed 로 저장한다", async () => {
@@ -417,9 +415,9 @@ describe("fillBoardDetail", () => {
     const ok = await fillBoardDetail({
       id: "ann-1", source: "aca", url: "https://aca.or.kr/support/supportBizView.do?sbIdx=524",
       targetText: "", title: "2025 지식재산권 출원 지원사업 (...", summary: "", agency: "안양산업진흥원",
-    });
+    }, deps);
     expect(ok).toBe("filled");
-    const data = (update.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    const data = (updateAnnouncement.mock.calls[0][1] as Record<string, unknown>);
     expect(data.title).toBe("2025 지식재산권 출원 지원사업 (선정 결과 발표)");
     expect(data.status).toBe("closed");
   });
@@ -432,9 +430,9 @@ describe("fillBoardDetail", () => {
       id: "ann-1", source: "aca", url: "https://aca.or.kr/support/supportBizView.do?sbIdx=541",
       targetText: "", title: "2026년 안양시 유망기업 온‧오프라...", summary: "", agency: "안양산업진흥원",
       sourceId: "https://aca.or.kr/support/supportBizView.do?sbIdx=541",
-    });
+    }, deps);
     expect(ok).toBe("filled");
-    const data = (update.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    const data = (updateAnnouncement.mock.calls[0][1] as Record<string, unknown>);
     // 이 경우는 승격됐으므로 정상 열쇠(임시 표식 없음)
     expect(String(data.dedupKey)).not.toContain("#");
   });
@@ -451,9 +449,9 @@ describe("fillBoardDetail", () => {
       id: "ann-1", source: "aca", url: "https://aca.or.kr/support/supportBizView.do?sbIdx=535",
       targetText: "", title: "2026년 중소기업 수출보험 지원...", summary: "", agency: "안양산업진흥원",
       sourceId: "https://aca.or.kr/support/supportBizView.do?sbIdx=535",
-    });
+    }, deps);
     expect(ok).toBe("filled");
-    const data = (update.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    const data = (updateAnnouncement.mock.calls[0][1] as Record<string, unknown>);
     expect(data.title).toBe("2026년 중소기업 수출보험 지원");
     // 승격됐으므로 정상 열쇠(임시 표식 없음) — 실패하면 여전히 잘린 제목이라 `#` 붙은 임시 열쇠가 남는다.
     expect(String(data.dedupKey)).not.toContain("#");
@@ -471,12 +469,12 @@ describe("fillBoardDetail", () => {
     const ok = await fillBoardDetail({
       id: "ann-1", source: "aca", url: "https://aca.or.kr/support/supportBizView.do?sbIdx=541",
       targetText: "", title: "2026년 안양시 유망기업 온‧오프라...", summary: "", agency: "안양산업진흥원",
-    });
+    }, deps);
     expect(ok).toBe("error");
     expect(warn).toHaveBeenCalledTimes(1);
     expect(String(warn.mock.calls[0][0])).toContain("첨부 영역 선택자 미적중");
-    expect(update).not.toHaveBeenCalled();
-    expect(updateMany).not.toHaveBeenCalled();
+    expect(updateAnnouncement).not.toHaveBeenCalled();
+    expect(updateAnnouncementIfEmpty).not.toHaveBeenCalled();
   });
 
   /**
@@ -492,7 +490,7 @@ describe("fillBoardDetail", () => {
     const ok = await fillBoardDetail({
       id: "ann-1", source: "bizok", url: "https://bizok.incheon.go.kr/icbizok/12345",
       targetText: "", title: "인천 지원사업", summary: "", agency: "인천광역시",
-    });
+    }, deps);
     expect(ok).not.toBe("error");
     expect(warn).not.toHaveBeenCalledWith("[policy-detail] 첨부 영역 선택자 미적중", "bizok", expect.anything());
   });
@@ -516,9 +514,9 @@ describe("fillBoardDetail", () => {
       title: "2026년 대전 중소기업육성자금 지원계획 공고",
       summary: "",
       agency: "대전테크노파크",
-    });
+    }, deps);
     expect(ok).toBe("filled");
-    const data = (update.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    const data = (updateAnnouncement.mock.calls[0][1] as Record<string, unknown>);
     expect(data.title).toBeUndefined();
     expect(data.dedupKey).toBeUndefined();
   });
@@ -535,9 +533,9 @@ describe("fillBoardDetail", () => {
       title: "2026년 안양시 유망기업 온‧오프라...",
       summary: "",
       agency: "안양산업진흥원",
-    });
+    }, deps);
     expect(ok).toBe("filled");
-    const data = (update.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    const data = (updateAnnouncement.mock.calls[0][1] as Record<string, unknown>);
     expect(data.title).toBeUndefined();
     expect(data.dedupKey).toBeUndefined();
   });
@@ -554,16 +552,16 @@ describe("fillBoardDetail", () => {
     };
     // 구조화 단계(structurize.ts)는 소관기관을 안 넘긴다 — 그 자리에서 갈래가 안 잡힌다고
     // 저장된 값을 ""로 덮으면 지도에서 그 공고가 통째로 사라진다.
-    expect(await fillBoardDetail(row)).toBe("filled");
-    const data = (update.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+    expect(await fillBoardDetail(row, deps)).toBe("filled");
+    const data = (updateAnnouncement.mock.calls[0][1] as Record<string, unknown>);
     for (const k of ["fundingGroup", "amountText", "amountMaxWon", "rateText", "rateMin"]) {
       expect(Object.keys(data)).not.toContain(k);
     }
 
     // 「안 싣는다」가 기능이 죽은 것이 아님을 확인 — 소관기관까지 주면 그 자리에서 갈래가 잡힌다.
-    update.mockClear();
-    expect(await fillBoardDetail({ ...row, agency: "서울신용보증재단" })).toBe("filled");
-    expect((update.mock.calls[0][0] as { data: Record<string, unknown> }).data.fundingGroup).toBe("guarantee");
+    updateAnnouncement.mockClear();
+    expect(await fillBoardDetail({ ...row, agency: "서울신용보증재단" }, deps)).toBe("filled");
+    expect((updateAnnouncement.mock.calls[0][1] as Record<string, unknown>).fundingGroup).toBe("guarantee");
   });
 });
 
@@ -824,8 +822,8 @@ describe("detailApplyPeriod — 상세 기간 칸을 접수기간으로 읽는�
   };
 
   beforeEach(() => {
-    update.mockReset().mockResolvedValue({});
-    updateMany.mockReset().mockResolvedValue({ count: 1 });
+    updateAnnouncement.mockReset().mockResolvedValue(undefined);
+    updateAnnouncementIfEmpty.mockReset().mockResolvedValue(1);
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -860,9 +858,9 @@ describe("detailApplyPeriod — 상세 기간 칸을 접수기간으로 읽는�
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-06T00:00:00Z"));
     okFetch(mainbizDetail);
-    const ok = await fillBoardDetail(ROW);
+    const ok = await fillBoardDetail(ROW, deps);
     expect(ok).toBe("filled");
-    const data = update.mock.calls[0][0].data as Record<string, unknown>;
+    const data = updateAnnouncement.mock.calls[0][1] as Record<string, unknown>;
     expect((data.applyStart as Date).toISOString()).toBe("2026-09-03T15:00:00.000Z"); // KST 09-04 00:00
     expect((data.applyEnd as Date).toISOString()).toBe("2026-09-09T14:59:59.000Z"); // KST 09-09 23:59:59
     expect(data.applyPeriodText).toBe("2026-09-04 ~ 2026-09-09");
@@ -873,9 +871,9 @@ describe("detailApplyPeriod — 상세 기간 칸을 접수기간으로 읽는�
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-10-01T00:00:00Z"));
     okFetch(mainbizDetail);
-    const ok = await fillBoardDetail(ROW);
+    const ok = await fillBoardDetail(ROW, deps);
     expect(ok).toBe("filled");
-    const data = update.mock.calls[0][0].data as Record<string, unknown>;
+    const data = updateAnnouncement.mock.calls[0][1] as Record<string, unknown>;
     expect(data.status).toBe("closed");
     expect((data.applyEnd as Date).toISOString()).toBe("2026-09-09T14:59:59.000Z");
   });
@@ -885,9 +883,9 @@ describe("detailApplyPeriod — 상세 기간 칸을 접수기간으로 읽는�
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-06T00:00:00Z"));
     okFetch(mainbizDetail.replaceAll("기간 :", "게시 :"));
-    const ok = await fillBoardDetail(ROW);
+    const ok = await fillBoardDetail(ROW, deps);
     expect(ok).toBe("filled");
-    const data = update.mock.calls[0][0].data as Record<string, unknown>;
+    const data = updateAnnouncement.mock.calls[0][1] as Record<string, unknown>;
     expect(data).not.toHaveProperty("applyStart");
     expect(data).not.toHaveProperty("applyEnd");
     expect(data).not.toHaveProperty("status");
@@ -909,11 +907,11 @@ describe("detailApplyPeriod — 상세 기간 칸을 접수기간으로 읽는�
       "상시 모집",
       "2026-09-04 ~ 2026-02-30",
     ]) {
-      update.mockClear();
+      updateAnnouncement.mockClear();
       okFetch(mainbizDetail.replace("2026-09-04 ~ 2026-09-09", half));
-      const ok = await fillBoardDetail(ROW);
+      const ok = await fillBoardDetail(ROW, deps);
       expect(ok, half).toBe("filled");
-      const data = update.mock.calls[0][0].data as Record<string, unknown>;
+      const data = updateAnnouncement.mock.calls[0][1] as Record<string, unknown>;
       expect(data, half).not.toHaveProperty("applyStart");
       expect(data, half).not.toHaveProperty("applyEnd");
       expect(data, half).not.toHaveProperty("status");
@@ -925,8 +923,8 @@ describe("detailApplyPeriod — 상세 기간 칸을 접수기간으로 읽는�
     vi.setSystemTime(new Date("2026-09-06T00:00:00Z"));
     // 기간 칸만 지우고 작성일·진행상태는 그대로 둔다.
     okFetch(mainbizDetail.replace(/<span class="each">기간 :[\s\S]*?<\/span>\s*<\/span>/, ""));
-    await fillBoardDetail(ROW);
-    const data = update.mock.calls[0][0].data as Record<string, unknown>;
+    await fillBoardDetail(ROW, deps);
+    const data = updateAnnouncement.mock.calls[0][1] as Record<string, unknown>;
     expect(data).not.toHaveProperty("applyStart");
   });
 
@@ -935,8 +933,8 @@ describe("detailApplyPeriod — 상세 기간 칸을 접수기간으로 읽는�
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-06T00:00:00Z"));
     okFetch(mainbizDetail);
-    await fillBoardDetail(ROW);
-    const data = update.mock.calls[0][0].data as {
+    await fillBoardDetail(ROW, deps);
+    const data = updateAnnouncement.mock.calls[0][1] as {
       attachments: { name: string; url: string; kind: string }[];
     };
     expect(data.attachments).toHaveLength(1);

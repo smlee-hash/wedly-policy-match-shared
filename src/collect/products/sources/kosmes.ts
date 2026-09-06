@@ -14,9 +14,9 @@
  * 자금 2~3개, 나머지는 이 둘).
  */
 import { parse } from "node-html-parser";
-import { extractAmount, extractRate, wonOf } from "../../amount-rate-extract";
+import { extractAmount, extractRate, wonOf } from "../../../funding/amount-rate-extract";
 import { fetchProductText } from "../fetch";
-import type { FundingGroup } from "../../funding-group";
+import type { FundingGroup } from "../../../funding/funding-group";
 import type { NormalizedProduct, ProductSource, ProductTargetRules } from "../types";
 
 /** 명부 id·FinanceProduct.source 공통 계약 — 접두어 `product-`. 게시판 수집기 id `kosmes` 와 겹치면

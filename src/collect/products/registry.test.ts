@@ -11,15 +11,18 @@ vi.mock("../board/alert", () => ({
 vi.mock("../board/alert-slack", () => ({
   sendPolicyBoardAlert: vi.fn(),
 }));
-// productAlertStore 가 실제로 만지는 것은 아래 두 함수뿐 — 위 두 함수를 통째로 흉내내는 이상
-// 실호출될 일이 없지만, registry.ts 상단 import 가 살아 있어야 하므로 형태만 갖춰 둔다.
-vi.mock("@/lib/prisma", () => ({
-  prisma: { jsonCache: { findUnique: vi.fn(), upsert: vi.fn() } },
-}));
 
 import { PRODUCT_SOURCES, productSyncSources } from "./registry";
-import { SOURCE_DIRECTORY } from "../source-directory";
+import { SOURCE_DIRECTORY } from "../../funding/source-directory";
 import type { NormalizedProduct, ProductSource } from "./types";
+import type { CollectDeps } from "../types";
+
+// 주입 스텁 — 등록부가 JsonCache 를 CollectDeps 로 받는다(P3-B2). 이 시험은 alert 두 함수를
+// 통째로 흉내내므로 productAlertStore 의 실제 읽기·쓰기는 안 일어난다 — 형태만 갖춘다.
+const deps: Pick<CollectDeps, "jsonCacheGet" | "jsonCacheSet"> = {
+  jsonCacheGet: async () => null,
+  jsonCacheSet: async () => {},
+};
 
 const fake = (id: string): ProductSource => ({
   id,
@@ -36,7 +39,7 @@ beforeEach(() => {
 describe("상시 상품 수집원 명부", () => {
   it("기본 인자는 PRODUCT_SOURCES — 등록한 만큼만 회차에 실린다(Task 14 로 7개 + P2 w6 카카오뱅크, manual 제외)", () => {
     expect(Array.isArray(PRODUCT_SOURCES)).toBe(true);
-    expect(productSyncSources().map((s) => s.name)).toEqual(PRODUCT_SOURCES.map((s) => s.id));
+    expect(productSyncSources(deps).map((s) => s.name)).toEqual(PRODUCT_SOURCES.map((s) => s.id));
   });
 
   it("★8개 어댑터가 전부 등록됐고, 전부 접두어 product- 다 — manual 은 회차에 안 넣는다(계획서 리뷰 대장 #4)", () => {
@@ -60,7 +63,7 @@ describe("상시 상품 수집원 명부", () => {
   });
 
   it("회차용으로 감싸면 kind:\"product\" · clockOnly · 이름은 수집원 id 다", () => {
-    const wrapped = productSyncSources([fake("kinfa"), fake("sbiz")]);
+    const wrapped = productSyncSources(deps, [fake("kinfa"), fake("sbiz")]);
     expect(wrapped.map((s) => s.name)).toEqual(["kinfa", "sbiz"]);
     expect(wrapped.every((s) => s.kind === "product")).toBe(true);
     expect(wrapped.every((s) => s.clockOnly === true)).toBe(true);
@@ -69,13 +72,13 @@ describe("상시 상품 수집원 명부", () => {
   it("감싼 뒤에도 원래 fetchAll 이 그대로 불린다", async () => {
     let called = 0;
     const src: ProductSource = { ...fake("kbank"), fetchAll: async () => { called += 1; return []; } };
-    const [wrapped] = productSyncSources([src]);
+    const [wrapped] = productSyncSources(deps, [src]);
     await wrapped.fetchAll();
     expect(called).toBe(1);
   });
 
   it("★성공하면 noteSuccess 를 그 출처 id 로 부른다 — 연속 실패 카운트를 리셋한다(계획서 리뷰 대장 #16)", async () => {
-    const [wrapped] = productSyncSources([fake("kinfa")]);
+    const [wrapped] = productSyncSources(deps, [fake("kinfa")]);
     const list = await wrapped.fetchAll();
     expect(list).toEqual([]);
     expect(noteSuccessMock).toHaveBeenCalledTimes(1);
@@ -85,7 +88,7 @@ describe("상시 상품 수집원 명부", () => {
 
   it("★실패하면 noteFailureAndMaybeAlert 를 [id,사유] 로 부르고 원래 오류를 그대로 다시 던진다 — sync.ts 의 실패 집계가 그대로 살아 있어야 한다", async () => {
     const failing: ProductSource = { ...fake("kbank"), fetchAll: async () => { throw new Error("타임아웃"); } };
-    const [wrapped] = productSyncSources([failing]);
+    const [wrapped] = productSyncSources(deps, [failing]);
     await expect(wrapped.fetchAll()).rejects.toThrow("타임아웃");
     expect(noteFailureMock).toHaveBeenCalledTimes(1);
     expect(noteFailureMock.mock.calls[0][0]).toBe("kbank");

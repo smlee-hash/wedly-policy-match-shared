@@ -1,10 +1,9 @@
-import { prisma } from "@/lib/prisma";
 import { buildRuleStructure } from "../rule-structure";
 import { classifyWedlyCategory } from "../../engine/wedly-category";
 import { attachmentKindOf, dedupKeyOf, parseApplyPeriod, type PolicyAttachment } from "../../engine/types";
 import { asPolicyAttachments } from "../attachment-text";
-import { fundingFieldsOf } from "@/lib/services/policy-match/store";
-import type { Prisma } from "@prisma/client";
+import { fundingFieldsOf } from "../funding-fields";
+import type { CollectDeps, PolicyAnnouncementUpdate } from "../types";
 import { fetchBoardDetail } from "./engine";
 import { encodeAttachmentHref } from "./attachment-url";
 import { absolutize, decodeHtmlEntities, normalizeDateText, parseHtml } from "./html";
@@ -319,10 +318,10 @@ function titleFieldsOf(
   cfg: BoardConfig,
   row: BoardDetailFillRow,
   title: string,
-): Prisma.PolicyAnnouncementUncheckedUpdateInput {
+): PolicyAnnouncementUpdate {
   // 소관기관은 행에 없으면 출처 기본값 — 빈 문자열로 열쇠를 만들면 기관이 빠진 열쇠가 된다.
   const agency = row.agency ?? cfg.agency;
-  const data: Prisma.PolicyAnnouncementUncheckedUpdateInput = {
+  const data: PolicyAnnouncementUpdate = {
     title,
     wedlyCategory: classifyWedlyCategory(title, row.summary ?? ""),
   };
@@ -383,7 +382,7 @@ export function detailApplyPeriodOf(
 function periodFieldsOf(
   period: { text: string; start: Date; end: Date },
   now: Date,
-): Prisma.PolicyAnnouncementUncheckedUpdateInput {
+): PolicyAnnouncementUpdate {
   return {
     applyStart: period.start,
     applyEnd: period.end,
@@ -482,6 +481,13 @@ export type BoardDetailFillResult = "filled" | "title-only" | "empty" | "error";
 export async function fillBoardDetail(
   row: BoardDetailFillRow,
   /**
+   * 공고 갱신 통로 — 순수 판정만 이 보관함이 하고, 실제 DB 쓰기는 앱이 넣어 준다.
+   * `updateAnnouncement` = 무조건 갱신, `updateAnnouncementIfEmpty` = 아직 본문이 빈 행일 때만
+   * 갱신하고 쓴 줄 수를 돌려준다(0 이면 그사이 남이 채운 것). 원문은 `prisma.policyAnnouncement`
+   * 의 `update`·`updateMany({ where:{ id, targetText:"" } })` 였다.
+   */
+  deps: Pick<CollectDeps, "updateAnnouncement" | "updateAnnouncementIfEmpty">,
+  /**
    * `onlyIfEmpty` — 「아직 본문이 빈 행」일 때만 쓴다. 수집 꼬리 단계처럼 **미리 뽑아 둔 목록**을
    * 들고 도는 쪽에서 켠다: 뽑고 나서 쓰기까지 사이에 남이 더 새 내용으로 채웠으면 옛 내용으로
    * 덮어 버리기 때문이다. 사람이 진단·열람으로 부를 때는 **다시 읽어 덮는 것이 목적**이라 끄고 쓴다.
@@ -578,20 +584,20 @@ export async function fillBoardDetail(
       if (!promoted && !periodFields) return "empty";
       // 본문·첨부는 못 얻었지만 제목이 올랐거나 접수기간을 읽었다 — 그 칸들만 고치고 끝낸다.
       // `targetText` 를 안 쓰므로 「아직 빈 행」 울타리가 필요 없다(남의 본문을 덮지 않는다).
-      await prisma.policyAnnouncement.update({
-        where: { id: row.id },
-        // 제목 거르개(`detailTitle.drop`)가 닫은 status 가 기간 판정보다 뒤에 온다 —
-        // 「지원사업이 아니다」는 판정이 마감일보다 세다.
-        data: { ...(periodFields ?? {}), ...(promoted ? titleFieldsOf(cfg, row, title) : {}) },
+      // 제목 거르개(`detailTitle.drop`)가 닫은 status 가 기간 판정보다 뒤에 온다 —
+      // 「지원사업이 아니다」는 판정이 마감일보다 세다.
+      await deps.updateAnnouncement(row.id, {
+        ...(periodFields ?? {}),
+        ...(promoted ? titleFieldsOf(cfg, row, title) : {}),
       });
       return "title-only";
     }
     // 본문이 이제야 채워졌으니 무료 추출도 다시 — 안 하면 「제목+요약」짜리 조건이 영구히 남아
     // 추천(3차)에서 조건 있는 공고가 「조건 0개」로 잘못 정렬된다(적대 리뷰 2026-08-29 중요6).
-    const data: Prisma.PolicyAnnouncementUncheckedUpdateInput = {
+    const data: PolicyAnnouncementUpdate = {
       targetText: text,
-      attachments: attachments as unknown as Prisma.InputJsonValue,
-      ruleStructure: buildRuleStructure(text, row.summary ?? "", title, row.agency ?? "") as unknown as Prisma.InputJsonValue,
+      attachments: attachments,
+      ruleStructure: buildRuleStructure(text, row.summary ?? "", title, row.agency ?? ""),
     };
     // ★첨부 주소가 실제로 바뀌었으면 도장(attachmentFillTriedAt)도 지운다 — 안 지우면 옛 실패에서
     //  찍힌 도장(7일) 탓에 방금 고친 새 주소를 바로 못 내려받는다(2026-09-06 충북TP 실측 — 인코딩을
@@ -632,10 +638,10 @@ export async function fillBoardDetail(
     }
     if (opts.onlyIfEmpty) {
       // 뽑을 때와 **같은 조건**으로 쓴다 — 그사이 남이 채웠으면 0행이 되어 조용히 넘어간다.
-      const w = await prisma.policyAnnouncement.updateMany({ where: { id: row.id, targetText: "" }, data });
-      if (w.count === 0) return "empty";
+      const written = await deps.updateAnnouncementIfEmpty(row.id, data);
+      if (written === 0) return "empty";
     } else {
-      await prisma.policyAnnouncement.update({ where: { id: row.id }, data });
+      await deps.updateAnnouncement(row.id, data);
     }
     return "filled";
   } catch (e) {

@@ -1,15 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const announcementFindMany = vi.fn();
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    policyAnnouncement: {
-      findMany: (...a: unknown[]) => announcementFindMany(...a),
-    },
-  },
-}));
+// prisma 조회(아는 번호·이어볼 자리·저장 행)는 CollectDeps 성격의 옵션으로 주입한다(P3-B2):
+// `loadKnown`(아는 열린 번호)·`loadCursor`/`saveCursor`(이어보기 자리)·`loadStored`(복원 행).
+// 「열린 행만 분모」 같은 실제 SQL 조건은 앱의 loadKnown 구현이 지고, ERP 쪽 시험이 잰다.
 
 import {
   estimateTitle,
@@ -185,10 +180,6 @@ describe("planScanIds — 훑기 계획", () => {
 });
 
 describe("fetchWork24All — 수집 루프 (fetcher 주입)", () => {
-  beforeEach(() => {
-    announcementFindMany.mockReset().mockResolvedValue([]);
-  });
-
   const okFetch: Work24Fetcher = async (id) =>
     id === "SI00000318" ? { status: 200, text: VALID } : { status: 200, text: EMPTY };
 
@@ -231,21 +222,15 @@ describe("fetchWork24All — 수집 루프 (fetcher 주입)", () => {
     ).rejects.toThrow(/통신 실패/);
   });
 
-  it("기본 knownIds 조회는 열린 행만 분모 — 닫힌 번호는 전 구간 훑기가 다시 방문", async () => {
-    announcementFindMany.mockResolvedValue([
-      { sourceId: "SI00000001" },
-      { sourceId: "SI00000002" },
-    ]);
+  it("knownIds 를 안 주면 loadKnown 으로 아는 번호를 읽어 분모로 쓴다", async () => {
+    // 「열린 행만」 SQL 조건은 앱의 loadKnown 구현이 진다(ERP 쪽 시험). 여기선 loadKnown 이
+    // 준 아는 번호가 분모·복원에 그대로 흐르는지(주입 배선)만 본다.
     const open = ["SI00000001", "SI00000002"];
+    const loadKnown = vi.fn(async () => ({ knownIds: open, storedTitles: new Map<string, string>() }));
     const fetcher: Work24Fetcher = async (id) =>
       open.includes(id) ? { status: 200, text: VALID } : { status: 200, text: EMPTY };
-    const out = await fetchWork24All({ fetcher, delayMs: 0, seedEnd: 10 });
-    expect(announcementFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { source: "work24", status: "open" },
-        select: { sourceId: true, title: true },
-      }),
-    );
+    const out = await fetchWork24All({ fetcher, delayMs: 0, seedEnd: 10, loadKnown });
+    expect(loadKnown).toHaveBeenCalledTimes(1);
     expect(out.map((a) => a.sourceId).sort()).toEqual(open);
   });
 

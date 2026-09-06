@@ -319,7 +319,7 @@ describe("fetchBoardAll", () => {
       list: { ...cfg.list, rowSelector: "table.nope tr" },
       expectMinRows: 1,
     };
-    const onHealedRule = vi.fn(async () => {});
+    const onHealedRule = vi.fn(async (_rule: { rowSelector: string; fields: unknown }) => {});
     const out = await fetchBoardAll(broken, deps({
       fetchText: async () => html,
       askModel: async () => JSON.stringify({

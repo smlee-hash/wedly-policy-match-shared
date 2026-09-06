@@ -1,28 +1,15 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-const upsert = vi.fn();
-const create = vi.fn();
-const updateMany = vi.fn();
-const findMany = vi.fn();
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    policyAnnouncement: {
-      upsert: (...a: unknown[]) => upsert(...a),
-      create: (...a: unknown[]) => create(...a),
-      updateMany: (...a: unknown[]) => updateMany(...a),
-      findMany: (...a: unknown[]) => findMany(...a),
-    },
-  },
-}));
+// ★「저장 경로」 describe(안양 목록 접수기간/승격 열쇠가 upsertAnnouncements 까지 살아 있는지)는
+//  이 보관함(순수 수집기)이 아니라 ERP `services/policy-match/store` 를 시험하는 통합 검사라
+//  여기서 뺐다(P3-B2, 2026-09-06). ERP 쪽에서 다시 만든다 — 상세는 최종 보고 참조.
 
 import { acaConfig, acaListUrl, acaTargetOf, isAcaDropTitle, parseAcaList } from "./aca";
-import { parseHtml, normalizeDateText } from "../html";
+import { parseHtml } from "../html";
 import { upgradeTruncatedTitle } from "../title-upgrade";
 import { harvestBoardAttachments } from "../detail-fill";
-import { parseApplyPeriod } from "../../../engine/types";
-import { upsertAnnouncements } from "@/lib/services/policy-match/store";
 
 const fixture = (name: string) =>
   readFileSync(join(__dirname, "..", "__fixtures__", name), "utf-8");
@@ -130,84 +117,6 @@ describe("안양산업진흥원(aca) 목록", () => {
     expect(isAcaDropTitle("청년 채용 지원사업 참여기업 모집")).toBe(false);
   });
 });
-
-describe("안양산업진흥원(aca) 저장 경로", () => {
-  beforeEach(() => {
-    upsert.mockReset().mockResolvedValue({});
-    create.mockReset().mockResolvedValue({});
-    updateMany.mockReset().mockResolvedValue({ count: 1 });
-    findMany.mockReset().mockResolvedValue([]);
-  });
-
-  /** ★목록 접수기간이 저장 단계까지 살아 applyStart·applyEnd 가 되고, 지난 공고는 닫힌다. */
-  it("접수기간이 applyStart·applyEnd 로 채워지고 과거 마감은 closed 로 저장된다", async () => {
-    const row = parseAcaList(list, 1)[0]; // 2026-08-20 ~ 2026-09-04
-    const { start, end } = parseApplyPeriod(normalizeDateText(row.dateText));
-    expect(start?.toISOString()).toBe("2026-08-19T15:00:00.000Z"); // KST 08-20 00:00
-    expect(end?.toISOString()).toBe("2026-09-04T14:59:59.000Z"); // KST 09-04 23:59:59
-
-    const now = new Date("2026-09-30T00:00:00Z"); // 마감 뒤
-    await upsertAnnouncements(
-      [{
-        source: acaConfig.id, sourceId: row.detailUrl, title: row.title,
-        agency: row.agency ?? acaConfig.agency, category: row.category ?? "",
-        region: acaConfig.region, summary: "", targetText: "",
-        applyStart: start, applyEnd: end, applyPeriodText: normalizeDateText(row.dateText),
-        url: row.detailUrl, attachments: [], raw: {},
-      }],
-      now,
-    );
-    const data = (updateMany.mock.calls[0][0] as { data: Record<string, unknown> }).data;
-    expect(data.status).toBe("closed");
-    expect(data.applyEnd).toEqual(end);
-  });
-
-  /**
-   * ★승격 전 임시 열쇠(독립 검사 지적 3) — 앞 20자가 같은 **서로 다른** 공고가
-   * 한 열쇠로 뭉쳐 결과 목록에서 한 줄로 접히면 안 된다.
-   */
-  it("잘린 제목이 같은 두 줄은 서로 다른 열쇠를 받는다", async () => {
-    const mk = (sbIdx: string) => ({
-      source: acaConfig.id, sourceId: `https://aca.or.kr/support/supportBizView.do?sbIdx=${sbIdx}`,
-      title: "2026년 안양시 유망기업 온‧오프라...", agency: "안양산업진흥원",
-      category: "마케팅지원", region: "경기", summary: "", targetText: "",
-      applyStart: null, applyEnd: null, applyPeriodText: "",
-      url: `https://aca.or.kr/support/supportBizView.do?sbIdx=${sbIdx}`, attachments: [], raw: {},
-    });
-    await upsertAnnouncements([mk("541"), mk("540")], new Date("2026-09-01T00:00:00Z"));
-    const keys = updateMany.mock.calls.map(
-      (c) => (c[0] as { data: Record<string, unknown> }).data.dedupKey as string,
-    );
-    expect(keys).toHaveLength(2);
-    expect(keys[0]).not.toBe(keys[1]);
-    for (const k of keys) expect(k).toContain("#https://aca.or.kr");
-  });
-
-  it("제목이 승격되면 임시 표식이 빠진 정상 열쇠가 된다", async () => {
-    findMany.mockResolvedValue([
-      {
-        source: acaConfig.id,
-        sourceId: "https://aca.or.kr/support/supportBizView.do?sbIdx=541",
-        targetText: "", summary: "", applyPeriodText: "",
-        title: "2026년 안양시 유망기업 온‧오프라인 유통망 입점 지원사업",
-      },
-    ]);
-    await upsertAnnouncements(
-      [{
-        source: acaConfig.id, sourceId: "https://aca.or.kr/support/supportBizView.do?sbIdx=541",
-        title: "2026년 안양시 유망기업 온‧오프라...", agency: "안양산업진흥원",
-        category: "마케팅지원", region: "경기", summary: "", targetText: "",
-        applyStart: null, applyEnd: null, applyPeriodText: "",
-        url: "https://aca.or.kr/support/supportBizView.do?sbIdx=541", attachments: [], raw: {},
-      }],
-      new Date("2026-09-01T00:00:00Z"),
-    );
-    const data = (updateMany.mock.calls[0][0] as { data: Record<string, unknown> }).data;
-    expect(data.title).toBe("2026년 안양시 유망기업 온‧오프라인 유통망 입점 지원사업");
-    expect(data.dedupKey).not.toContain("#");
-  });
-});
-
 describe("안양산업진흥원(aca) 상세", () => {
   const titleOf = (html: string) =>
     (parseHtml(html).querySelector(acaConfig.detailTitle!.selector)?.text ?? "")

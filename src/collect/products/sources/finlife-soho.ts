@@ -17,8 +17,8 @@
  *   상태"인 것과 같은 패턴이다. 실사이트 실측(라이브 체크)으로 876행이 그대로 나오는지 확인한다.
  */
 import { parse } from "node-html-parser";
-import { classifyFundingGroup } from "../../funding-group";
-import { extractAmount, wonOf } from "../../amount-rate-extract";
+import { classifyFundingGroup } from "../../../funding/funding-group";
+import { extractAmount, wonOf } from "../../../funding/amount-rate-extract";
 import { fetchProductText, fetchProductWithCookies } from "../fetch";
 import type {
   InstitutionType,

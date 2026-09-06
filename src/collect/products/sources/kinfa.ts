@@ -20,8 +20,8 @@
  * 늘리지 않는다.
  */
 import { parse } from "node-html-parser";
-import { extractRate } from "../../amount-rate-extract";
-import { classifyFundingGroup, type FundingGroup } from "../../funding-group";
+import { extractRate } from "../../../funding/amount-rate-extract";
+import { classifyFundingGroup, type FundingGroup } from "../../../funding/funding-group";
 import { fetchProductText } from "../fetch";
 import type { NormalizedProduct, ProductSource, ProductTargetRules } from "../types";
 

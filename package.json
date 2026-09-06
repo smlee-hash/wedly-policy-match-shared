@@ -6,9 +6,24 @@
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "dependencies": {
+    "node-html-parser": "^6.1.13",
+    "iconv-lite": "^0.7.2",
+    "undici": "^8.10.0",
+    "cfb": "^1.2.2",
+    "unpdf": "^1.6.2"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./styles.css": "./src/styles.css",
+    "./collect": {
+      "types": "./src/collect/index.ts",
+      "default": "./src/collect/index.ts"
+    },
+    "./collect/*": {
+      "types": "./src/collect/*.ts",
+      "default": "./src/collect/*.ts"
+    },
     "./match-engine": {
       "types": "./src/engine/match-engine.ts",
       "default": "./src/engine/match-engine.ts"
@@ -140,6 +155,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.577.0",
     "next": "16.2.12",
+    "pdf-lib": "^1.17.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-icons": "^5.7.0",

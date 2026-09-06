@@ -25,7 +25,7 @@
  *  **방침 표식** 대상이라 명부 note 에 적는다(계획서 「방침 표식」 — 사장님 확인 대상).
  */
 import { parse } from "node-html-parser";
-import { extractAmount, extractRate } from "../../amount-rate-extract";
+import { extractAmount, extractRate } from "../../../funding/amount-rate-extract";
 import { fetchProductText } from "../fetch";
 import type { NormalizedProduct, ProductSource, ProductTargetRules } from "../types";
 

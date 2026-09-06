@@ -1,7 +1,6 @@
 // 고용24(work24.go.kr) 고용정책 제도 어댑터 — 번호 훑기.
 // 목록 페이지는 자동 수집을 차단하지만 상세는 번호 하나로 열린다(설계서 §2 실측).
 // 로그인·열쇠 불필요. robots.txt 허용 경로. 하루 1회 · 요청 간격 700ms.
-import { prisma } from "@/lib/prisma";
 import type { NormalizedAnnouncement } from "../types";
 
 const DETAIL = "https://www.work24.go.kr/cm/c/f/1100/selecSystInfo.do";
@@ -216,65 +215,24 @@ const sleep = (ms: number) => (ms > 0 ? new Promise((r) => setTimeout(r, ms)) : 
 const RETRY_BUDGET_PER_RUN = 30; // 빈 제목 재시도 총량 상한(회차당)
 
 export interface FetchWork24Options {
-  knownIds?: string[];       // 미지정이면 DB 에서 읽는다
-  knownTitles?: Map<string, string>; // 아는 번호의 저장된 진짜 제목(시험 주입용 — 기본은 DB에서 함께 읽음)
+  knownIds?: string[];       // 미지정이면 loadKnown 으로 읽는다(앱 주입)
+  knownTitles?: Map<string, string>; // 아는 번호의 저장된 진짜 제목(knownIds 와 함께 줄 때)
   fetcher?: Work24Fetcher;   // 시험 주입용
   delayMs?: number;          // 기본 700
   seedEnd?: number;          // 시험 주입용
   loadStored?: (ids: string[]) => Promise<NormalizedAnnouncement[]>;
   now?: () => number;               // 시험 주입용 시계(ms)
   budgetMs?: number;                // 이 시간이 지나면 이번 회차는 여기까지만 훑는다
-  loadCursor?: () => Promise<number>;      // 이어볼 번호 읽기(기본 JsonCache)
-  saveCursor?: (n: number) => Promise<void>; // 다음에 이어볼 번호 적기
+  loadCursor?: () => Promise<number>;      // 이어볼 번호 읽기(앱 주입 — 없으면 SEED_START)
+  saveCursor?: (n: number) => Promise<void>; // 다음에 이어볼 번호 적기(앱 주입 — 없으면 무시)
   ratioMinSample?: number;          // 비율 안전선을 적용할 최소 표본(시험 주입용)
-}
-
-async function defaultLoadCursor(): Promise<number> {
-  try {
-    const row = await prisma.jsonCache.findUnique({ where: { key: WORK24_CURSOR_KEY } });
-    const n = Number((row?.value as { next?: unknown } | null)?.next);
-    return Number.isFinite(n) && n >= SEED_START ? Math.floor(n) : SEED_START;
-  } catch {
-    return SEED_START; // 못 읽으면 처음부터 — 손해는 시간뿐이다
-  }
-}
-
-async function defaultSaveCursor(n: number): Promise<void> {
-  try {
-    await prisma.jsonCache.upsert({
-      where: { key: WORK24_CURSOR_KEY },
-      create: { key: WORK24_CURSOR_KEY, value: { next: n } },
-      update: { value: { next: n } },
-    });
-  } catch (e) {
-    // ★경고가 아니라 **오류**로 남긴다. 이 저장이 계속 실패하면 매 회차 앞쪽 6분 구간만 되풀이해
-    //  훑고 뒤쪽 번호는 영영 방문하지 않는데, 수집원은 「성공」으로 보고돼 조용히 굶는다
-    //  (적대 리뷰 보통①). 로그에서 이 줄이 반복되면 그 상태다.
-    console.error("[policy-match] 고용24 이어볼 자리 저장 실패 — 다음 회차가 같은 구간을 다시 훑는다", e instanceof Error ? e.message : String(e));
-  }
-}
-
-async function defaultLoadStored(ids: string[]): Promise<NormalizedAnnouncement[]> {
-  if (ids.length === 0) return [];
-  const rows = await prisma.policyAnnouncement.findMany({
-    where: { source: "work24", sourceId: { in: ids }, status: "open" },
-  });
-  return rows.map((row) => ({
-    source: row.source as NormalizedAnnouncement["source"],
-    sourceId: row.sourceId,
-    title: row.title,
-    agency: row.agency,
-    category: row.category,
-    region: row.region,
-    summary: row.summary,
-    targetText: row.targetText,
-    applyStart: row.applyStart,
-    applyEnd: row.applyEnd,
-    applyPeriodText: row.applyPeriodText,
-    url: row.url,
-    attachments: row.attachments as unknown as NormalizedAnnouncement["attachments"],
-    raw: row.raw as unknown as NormalizedAnnouncement["raw"],
-  }));
+  /**
+   * 아는(열린) 고용24 번호와 그 저장 제목을 읽는다 — `knownIds` 를 안 주면 이걸 부른다.
+   * 원문(ERP): `prisma.policyAnnouncement.findMany({ where:{ source:"work24", status:"open" },
+   * select:{ sourceId:true, title:true } })` → `{ knownIds: rows.map(r=>r.sourceId),
+   * storedTitles: Map(제목 있는 것) }`. 안 주면 아는 번호 없이(시딩 모드) 돈다.
+   */
+  loadKnown?: () => Promise<{ knownIds: string[]; storedTitles: Map<string, string> }>;
 }
 
 /**
@@ -290,21 +248,18 @@ async function defaultLoadStored(ids: string[]): Promise<NormalizedAnnouncement[
 export async function fetchWork24All(opts: FetchWork24Options = {}): Promise<NormalizedAnnouncement[]> {
   const fetcher = opts.fetcher ?? realFetcher;
   const delayMs = opts.delayMs ?? 700;
-  const loadStored = opts.loadStored ?? defaultLoadStored;
+  const loadStored = opts.loadStored ?? (async () => []);
   let knownIds: string[];
   let storedTitles: Map<string, string>;
   if (opts.knownIds) {
     knownIds = opts.knownIds;
     storedTitles = opts.knownTitles ?? new Map();
   } else {
-    const rows = await prisma.policyAnnouncement.findMany({
-      // 닫힌 행이 분모에 쌓이면 자연 폐기가 절반을 넘어 개편 감지가 매회 오발한다.
-      // 닫힌 번호는 전 구간 훑기(1~끝)가 어차피 다시 방문하므로 되살아날 길은 유지된다.
-      where: { source: "work24", status: "open" },
-      select: { sourceId: true, title: true },
-    });
-    knownIds = rows.map((r) => r.sourceId);
-    storedTitles = new Map(rows.filter((r) => r.title).map((r) => [r.sourceId, r.title]));
+    // 닫힌 행이 분모에 쌓이면 자연 폐기가 절반을 넘어 개편 감지가 매회 오발한다.
+    // 닫힌 번호는 전 구간 훑기(1~끝)가 어차피 다시 방문하므로 되살아날 길은 유지된다(loadKnown 은 open 만 준다).
+    const known = await (opts.loadKnown?.() ?? Promise.resolve({ knownIds: [], storedTitles: new Map<string, string>() }));
+    knownIds = known.knownIds;
+    storedTitles = known.storedTitles;
   }
   const ids = planScanIds(knownIds, opts.seedEnd);
   const knownSet = new Set(knownIds);
@@ -317,8 +272,8 @@ export async function fetchWork24All(opts: FetchWork24Options = {}): Promise<Nor
   const knownCount = new Set(knownIds).size;
   const neededForKnownMs = Math.ceil(knownCount * 1.2) * 1000 + 30_000;
   const budgetMs = opts.budgetMs ?? Math.min(10 * 60_000, Math.max(SCAN_BUDGET_MS, neededForKnownMs));
-  const loadCursor = opts.loadCursor ?? defaultLoadCursor;
-  const saveCursor = opts.saveCursor ?? defaultSaveCursor;
+  const loadCursor = opts.loadCursor ?? (async () => SEED_START);
+  const saveCursor = opts.saveCursor ?? (async () => {});
   const startedMs = nowMs();
   const cursor = await loadCursor();
   // ★순서: **아는 번호를 전부 먼저**, 그다음 남은 예산으로 「새 번호 찾기」를 이어보기로 나눈다.

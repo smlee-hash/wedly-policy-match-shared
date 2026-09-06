@@ -18,10 +18,9 @@
  *   `MANUAL_PRODUCTS` 를 상수로 직접 합친다 — 수집원 명부(`source-directory.ts`)에도 그래서
  *   이 항목만의 줄이 없다.
  */
-import { prisma } from "@/lib/prisma";
 import { noteFailureAndMaybeAlert, noteSuccess } from "../board/alert";
 import { sendPolicyBoardAlert } from "../board/alert-slack";
-import type { ProductSyncSource } from "@/lib/services/policy-match/sync";
+import type { ProductSyncSource, CollectDeps } from "../types";
 import type { ProductSource } from "./types";
 import { kinfaSource } from "./sources/kinfa";
 import { sbizSource } from "./sources/sbiz";
@@ -50,24 +49,22 @@ export const PRODUCT_SOURCES: ProductSource[] = [
  * JsonCache 한 줄로 연속 실패 횟수를 센다)이되 열쇠 이름공간을 분리한 것 — 상품 출처 id 는 이미
  * `product-` 접두어로 게시판과 안 겹치지만, 실패 카운트 장부까지 굳이 같은 열쇠를 쓸 이유가 없다.
  */
-function productAlertStore(id: string): { get: () => Promise<number>; set: (n: number) => Promise<void> } {
+function productAlertStore(
+  id: string,
+  deps: Pick<CollectDeps, "jsonCacheGet" | "jsonCacheSet">,
+): { get: () => Promise<number>; set: (n: number) => Promise<void> } {
   const key = `product-alert:${id}`;
   return {
     get: async () => {
       try {
-        const cached = await prisma.jsonCache.findUnique({ where: { key } });
-        const v = cached?.value;
+        const v = await deps.jsonCacheGet(key);
         return typeof v === "number" && Number.isFinite(v) ? v : 0;
       } catch {
         return 0;
       }
     },
     set: async (n: number) => {
-      await prisma.jsonCache.upsert({
-        where: { key },
-        create: { key, value: n },
-        update: { value: n },
-      });
+      await deps.jsonCacheSet(key, n);
     },
   };
 }
@@ -83,6 +80,7 @@ function productAlertStore(id: string): { get: () => Promise<number>; set: (n: n
  * 채우는 절차는 그대로 살아 있어야 한다(여기서 삼키면 회차 보고에서 실패가 사라진다).
  */
 export function productSyncSources(
+  deps: Pick<CollectDeps, "jsonCacheGet" | "jsonCacheSet">,
   sources: readonly ProductSource[] = PRODUCT_SOURCES,
 ): ProductSyncSource[] {
   return sources.map((s) => ({
@@ -93,7 +91,7 @@ export function productSyncSources(
       try {
         const list = await s.fetchAll();
         try {
-          await noteSuccess(s.id, { store: productAlertStore(s.id) });
+          await noteSuccess(s.id, { store: productAlertStore(s.id, deps) });
         } catch {
           /* 리셋 실패는 이번 수집 성공을 막지 않는다 */
         }
@@ -103,7 +101,7 @@ export function productSyncSources(
         try {
           await noteFailureAndMaybeAlert(s.id, reason, {
             send: sendPolicyBoardAlert,
-            store: productAlertStore(s.id),
+            store: productAlertStore(s.id, deps),
           });
         } catch {
           /* 알림 실패는 원래 오류를 가리지 않는다 */

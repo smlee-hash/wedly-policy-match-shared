@@ -16,7 +16,7 @@ import { EXPECTED_EXTRA_CA_SHA256, checkExtraCaLoaded, judgeExtraCa } from "./ex
  * 경로는 **이 파일 기준**으로 잡는다. cwd 기준으로 잡으면 저장소 루트 밖에서
  * vitest 를 돌릴 때 파일을 못 찾아 거짓 실패한다(적대 리뷰 경미 1).
  */
-const PEM_PATH = new URL("../../../../certs/extra-intermediates.pem", import.meta.url);
+const PEM_PATH = new URL("../../../certs/extra-intermediates.pem", import.meta.url);
 
 /** 만료가 이보다 가까우면 **막는다**. */
 const FAIL_DAYS_LEFT = 30;

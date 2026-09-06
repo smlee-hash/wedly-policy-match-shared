@@ -12,7 +12,7 @@
  * 알 수 없다 — rateMin 은 null 로 정직하게 비우고, 사람이 읽을 rateText 는 원문을 그대로 보여준다.
  */
 import { parse } from "node-html-parser";
-import { extractAmount, extractRate, wonOf } from "../../amount-rate-extract";
+import { extractAmount, extractRate, wonOf } from "../../../funding/amount-rate-extract";
 import { fetchProductText } from "../fetch";
 import type { NormalizedProduct, ProductSource, ProductTargetRules } from "../types";
 

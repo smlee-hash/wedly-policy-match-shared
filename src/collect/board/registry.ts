@@ -1,9 +1,8 @@
 import type { BoardConfig, BoardFetchInit } from "./types";
-import type { AnnouncementSyncSource } from "@/lib/services/policy-match/sync";
+import type { AnnouncementSyncSource, CollectDeps } from "../types";
 import { allowedHostsOf, fetchBoardAll, type BoardDeps } from "./engine";
 import { decodeBody } from "./html";
 import { sanitizeHealedRule } from "./layers/selfheal";
-import { prisma } from "@/lib/prisma";
 import { noteSuccess } from "./alert";
 import { boardCapKey, notePageCap, parseBoardCap, type BoardCapRecord } from "./page-cap";
 import { BOARD_SOURCES } from "./source-list";
@@ -37,10 +36,12 @@ export function asFailCount(value: unknown): number {
 }
 
 /** JsonCache `board-rule:<id>` 가 있으면 list.rowSelector·fields 를 덮어쓰고 customParse 를 끈다. */
-export async function applyPersistedBoardRule(cfg: BoardConfig): Promise<BoardConfig> {
+export async function applyPersistedBoardRule(
+  cfg: BoardConfig,
+  deps: Pick<CollectDeps, "jsonCacheGet">,
+): Promise<BoardConfig> {
   try {
-    const row = await prisma.jsonCache.findUnique({ where: { key: `board-rule:${cfg.id}` } });
-    const rule = sanitizeHealedRule(row?.value);
+    const rule = sanitizeHealedRule(await deps.jsonCacheGet(`board-rule:${cfg.id}`));
     if (!rule) return cfg;
     return {
       ...cfg,
@@ -431,76 +432,62 @@ export async function fetchBoardTextWithCookies(
   }
 }
 
-export async function enforceHealCooldown(id: string, now = Date.now()): Promise<void> {
+export async function enforceHealCooldown(
+  id: string,
+  deps: Pick<CollectDeps, "jsonCacheGet" | "jsonCacheSet">,
+  now = Date.now(),
+): Promise<void> {
   const key = `board-heal-cooldown:${id}`;
   try {
-    const cached = await prisma.jsonCache.findUnique({ where: { key } });
-    const last = asFailCount(cached?.value);
+    const last = asFailCount(await deps.jsonCacheGet(key));
     if (last > 0 && now - last < HEAL_COOLDOWN_MS) {
       throw new Error("자가수리 쿨다운 24시간 이내");
     }
   } catch (e) {
     if (e instanceof Error && e.message.includes("쿨다운")) throw e;
   }
-  await prisma.jsonCache.upsert({
-    where: { key },
-    create: { key, value: now },
-    update: { value: now },
-  });
+  await deps.jsonCacheSet(key, now);
 }
 
-function alertStore(id: string) {
+function alertStore(id: string, deps: Pick<CollectDeps, "jsonCacheGet" | "jsonCacheSet">) {
   const key = `board-alert:${id}`;
   return {
     get: async () => {
       try {
-        const cached = await prisma.jsonCache.findUnique({ where: { key } });
-        return asFailCount(cached?.value);
+        return asFailCount(await deps.jsonCacheGet(key));
       } catch {
         return 0;
       }
     },
     set: async (n: number) => {
-      await prisma.jsonCache.upsert({
-        where: { key },
-        create: { key, value: n },
-        update: { value: n },
-      });
+      await deps.jsonCacheSet(key, n);
     },
   };
 }
 
-function capStore(id: string) {
+function capStore(id: string, deps: Pick<CollectDeps, "jsonCacheGet" | "jsonCacheSet">) {
   const key = boardCapKey(id);
   return {
     get: async (): Promise<BoardCapRecord | null> => {
       try {
-        const row = await prisma.jsonCache.findUnique({ where: { key } });
-        return parseBoardCap(row?.value);
+        return parseBoardCap(await deps.jsonCacheGet(key));
       } catch {
         return null;
       }
     },
     set: async (value: BoardCapRecord) => {
-      await prisma.jsonCache.upsert({
-        where: { key },
-        create: { key, value: value as never },
-        update: { value: value as never },
-      });
+      await deps.jsonCacheSet(key, value);
     },
   };
 }
 
-async function realDeps(cfg: BoardConfig): Promise<BoardDeps> {
+async function realDeps(cfg: BoardConfig, deps: CollectDeps): Promise<BoardDeps> {
   let prevOpenCount = 0;
   try {
-    prevOpenCount = await prisma.policyAnnouncement.count({
-      where: {
-        source: cfg.id,
-        status: "open",
-        lastSeenAt: { gt: new Date(Date.now() - PREV_OPEN_WINDOW_MS) },
-      },
-    });
+    prevOpenCount = await deps.countOpenAnnouncements(
+      cfg.id,
+      new Date(Date.now() - PREV_OPEN_WINDOW_MS),
+    );
   } catch {
     prevOpenCount = 0;
   }
@@ -509,39 +496,27 @@ async function realDeps(cfg: BoardConfig): Promise<BoardDeps> {
     prevOpenCount,
     fetchText: (url, charset, init) => fetchBoardText(url, charset, cfg, init),
     askModel: async (prompt) => {
-      await enforceHealCooldown(cfg.id);
-      const { anthropic } = await import("@/lib/ai/client");
-      const message = await anthropic.messages.create({
-        model: "claude-haiku-4-5",
-        max_tokens: 500,
-        messages: [{ role: "user", content: prompt }],
-      });
-      const block = message.content.find((b) => b.type === "text");
-      return block && block.type === "text" ? block.text : "";
+      await enforceHealCooldown(cfg.id, deps);
+      return deps.askModel(prompt);
     },
     onAllFailed: async (c, reason) => {
       const { noteFailureAndMaybeAlert } = await import("./alert");
       const { sendPolicyBoardAlert } = await import("./alert-slack");
       await noteFailureAndMaybeAlert(c.id, reason, {
         send: sendPolicyBoardAlert,
-        store: alertStore(c.id),
+        store: alertStore(c.id, deps),
       });
     },
     onHealedRule: async (rule) => {
-      const key = `board-rule:${cfg.id}`;
-      await prisma.jsonCache.upsert({
-        where: { key },
-        create: { key, value: rule as never },
-        update: { value: rule as never },
-      });
+      await deps.jsonCacheSet(`board-rule:${cfg.id}`, rule);
     },
     onPageCap: async (info) => {
-      await notePageCap(cfg.id, { ...info, runAt }, { store: capStore(cfg.id) });
+      await notePageCap(cfg.id, { ...info, runAt }, { store: capStore(cfg.id, deps) });
     },
   };
 }
 
-export function boardSyncSources(): AnnouncementSyncSource[] {
+export function boardSyncSources(deps: CollectDeps): AnnouncementSyncSource[] {
   // 설정값 해석은 boardProxyUrl 하나로 통일한다. 여기서 process.env 를 직접 읽으면
   // 공백만 든 값(" ")을 「있다」로 보는데 proxy.ts 는 「없다」로 봐서, 출처가 등록만 되고
   // 매 회차 실패해 알림만 쌓인다 — 이 필터가 막으려던 바로 그 상황이다(적대 리뷰 지적).
@@ -554,9 +529,9 @@ export function boardSyncSources(): AnnouncementSyncSource[] {
       clockOnly: true as const,
       staleAfterDays: 30,
       fetchAll: async () => {
-        const resolved = await applyPersistedBoardRule(cfg);
-        const list = await fetchBoardAll(resolved, await realDeps(resolved));
-        try { await noteSuccess(cfg.id, { store: alertStore(cfg.id) }); } catch { /* 리셋 실패는 수집 성공을 막지 않음 */ }
+        const resolved = await applyPersistedBoardRule(cfg, deps);
+        const list = await fetchBoardAll(resolved, await realDeps(resolved, deps));
+        try { await noteSuccess(cfg.id, { store: alertStore(cfg.id, deps) }); } catch { /* 리셋 실패는 수집 성공을 막지 않음 */ }
         return list;
       },
     }));

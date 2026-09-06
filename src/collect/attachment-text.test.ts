@@ -176,6 +176,9 @@ describe("fetchAttachmentTexts", () => {
       {
         // 기본 상한은 1개다(비용) — 이 시험은 여러 파일을 다루는 장치를 재므로 명시해 준다.
         maxFiles: 3,
+        // hwpx 추출기는 앱 주입(P3-B2) — 실물 hwpx 파싱은 ERP extract-text.test.ts 가 잰다.
+        // 여기선 스텁이 낸 글자가 결과에 흘러드는 배선만 본다.
+        extractHwpx: () => "하청노동자 안양시 지원 본문",
         fetch: async (url) => {
           if (url.endsWith("a.hwpx")) return okResponse(hwpx);
           if (url.endsWith("b.hwp")) return okResponse(hwp);
@@ -276,6 +279,7 @@ describe("fetchAttachmentTexts", () => {
       ],
       {
         maxFiles: 3,
+        extractHwpx: () => "하청노동자 안양시 지원 본문",
         fetch: async (url) => {
           urls.push(url);
           return okResponse(url.endsWith(".hwpx") ? hwpx : pdf);
@@ -612,7 +616,7 @@ describe("fetchAttachmentTexts — 이름/주소 kind 가 비면 바이트 냄�
           kind: "pdf",
         }),
       ],
-      { fetch: async () => okResponse(hwpx) },
+      { fetch: async () => okResponse(hwpx), extractHwpx: () => "하청노동자 안양시 지원 본문" },
     );
     expect(r.readFiles).toEqual(["cover.pdf"]);
     expect(r.failedFiles).toEqual([]);
@@ -641,7 +645,7 @@ describe("fetchAttachmentTexts — 이름/주소 kind 가 비면 바이트 냄�
           kind: "pdf",
         }),
       ],
-      { fetch: async () => okResponse(hwpx) },
+      { fetch: async () => okResponse(hwpx), extractHwpx: () => "하청노동자 안양시 지원 본문" },
     );
     expect(unpdfCalls.getDocumentProxy).not.toHaveBeenCalled();
     expect(r.readFiles).toEqual(["cover.pdf"]);

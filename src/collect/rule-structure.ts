@@ -1,5 +1,5 @@
-import { extractConditions, titleRegionConditions } from "./rule-extract";
-import type { AnnouncementStructure } from "./structure-types";
+import { extractConditions, titleRegionConditions } from "../engine/rule-extract";
+import type { AnnouncementStructure } from "../engine/structure-types";
 
 /**
  * 무료 추출 규칙 판본. 규칙을 넓히면 올린다 — 이미 저장된 공고를 어디까지 다시 뽑아야

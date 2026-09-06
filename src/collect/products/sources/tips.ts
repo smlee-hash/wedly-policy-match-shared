@@ -29,7 +29,7 @@
  */
 import { get as httpsGet } from "node:https";
 import { parse } from "node-html-parser";
-import { wonOf } from "../../amount-rate-extract";
+import { wonOf } from "../../../funding/amount-rate-extract";
 import type { NormalizedProduct, ProductSource, ProductTargetRules } from "../types";
 
 /** 명부 id·FinanceProduct.source 공통 계약 — 접두어 `product-`(2026-09-03 자금 조달 지도 공통 계약). */

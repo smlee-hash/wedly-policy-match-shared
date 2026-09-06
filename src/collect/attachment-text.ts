@@ -2,7 +2,6 @@
 // 네트워크는 주입 가능한 fetch — 시험은 가짜, 운영만 실호출.
 import { parse as parseCfb, find as findCfb } from "cfb";
 import { getDocumentProxy, extractText } from "unpdf";
-import { extractHwpx } from "@/lib/documents/extract-text";
 import {
   ATTACHMENT_KINDS,
   attachmentKindOf,
@@ -133,12 +132,22 @@ export function safeAttachmentUrl(raw: string | null | undefined): string | null
 
 export type AttachmentFetch = (url: string, init?: RequestInit) => Promise<Response>;
 
+/**
+ * hwpx(한글 2014+)에서 글자를 뽑는 함수 — 앱이 넣어 준다(원문: 앱의 documents/extract-text
+ * 의 `extractHwpx`, adm-zip 로 `Contents/section*.xml` 을 푼다). pdf·hwp 는 이 보관함이 이미
+ * `unpdf`·`cfb` 로 직접 뽑지만, hwpx 추출기는 adm-zip 을 끌고 와 여기 두지 않고 주입으로 받는다.
+ * 안 넘기면 hwpx 는 빈 글로 취급한다(앱은 반드시 넣어 준다).
+ */
+export type ExtractHwpx = (buf: Buffer) => string | Promise<string>;
+
 export type FetchAttachmentTextsOptions = {
   maxFiles?: number;
   maxBytes?: number;
   timeoutMs?: number;
   totalCharCap?: number;
   fetch?: AttachmentFetch;
+  /** hwpx 글자 추출기(앱 주입). 위 `ExtractHwpx` 주석 참조. */
+  extractHwpx?: ExtractHwpx;
   /**
    * 바깥에서 건 **예산** 표식. 파일 하나짜리 시간 상한(`timeoutMs`)과 **함께** 걸려,
    * 둘 중 먼저 끝나는 쪽이 요청을 끊는다.
@@ -265,7 +274,11 @@ export function stripUnstorableChars(text: string): string {
   );
 }
 
-async function extractByKind(kind: ExtractableKind, buf: Buffer): Promise<string> {
+async function extractByKind(
+  kind: ExtractableKind,
+  buf: Buffer,
+  extractHwpx: ExtractHwpx,
+): Promise<string> {
   const raw =
     kind === "pdf"
       ? await extractPdfBytes(Uint8Array.from(buf))
@@ -429,6 +442,7 @@ export async function fetchAttachmentTexts(
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const totalCharCap = opts.totalCharCap ?? DEFAULT_CHAR_CAP;
   const fetchImpl = opts.fetch ?? fetch;
+  const extractHwpx: ExtractHwpx = opts.extractHwpx ?? (() => "");
 
   const list = asPolicyAttachments(attachments).filter((a) => CANDIDATE_KINDS.has(a.kind));
   // 같은 등급 안에서는 원래 차례를 지킨다(안정 정렬) — 첫 첨부가 대개 본 공고문이다.
@@ -474,14 +488,14 @@ export async function fetchAttachmentTexts(
       }
       let body = "";
       try {
-        body = (await extractByKind(primary, buf)).trim();
+        body = (await extractByKind(primary, buf, extractHwpx)).trim();
       } catch {
         body = "";
       }
       // 비거나 파서가 던지면 primary 와 다른 declaredKind 로 한 번 더 뽑는다.
       if (!body && declaredKind && declaredKind !== primary) {
         try {
-          body = (await extractByKind(declaredKind, buf)).trim();
+          body = (await extractByKind(declaredKind, buf, extractHwpx)).trim();
         } catch {
           body = "";
         }
