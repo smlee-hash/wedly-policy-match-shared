@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { pagingParamsOf } from "../engine";
 import { koficConfig, koficDetailAttachments, isKoficDropTitle, parseKoficList } from "./kofic";
-import { safeAttachmentUrl } from "@/lib/policy-match/attachment-text";
+import { safeAttachmentUrl } from "../../attachment-text";
 
 /**
  * ★손으로 쓴 HTML 대신 **실사이트 고정본**으로 잰다.

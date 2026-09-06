@@ -1,6 +1,6 @@
 import type { BoardConfig, BoardFetchInit, BoardRow, ExtractLayerName } from "./types";
-import type { NormalizedAnnouncement } from "@/lib/policy-match/types";
-import { parseApplyPeriod } from "@/lib/policy-match/types";
+import type { NormalizedAnnouncement } from "../../engine/types";
+import { parseApplyPeriod } from "../../engine/types";
 import { parseHtml, normalizeDateText } from "./html";
 import { validateRows } from "./validate";
 import { extractBySelector } from "./layers/selector";
@@ -8,7 +8,7 @@ import { extractByHeuristic } from "./layers/heuristic";
 import { extractFromRss, extractFromJson } from "./layers/feed";
 import { selfHeal, type HealedRule } from "./layers/selfheal";
 import type { PageCapInfo } from "./page-cap";
-import { withDeadline } from "@/lib/policy-match/with-deadline";
+import { withDeadline } from "../with-deadline";
 
 /** 장부 쓰기가 풀 고갈로 멈추면 회차 전체를 붙잡지 않는다. 넘긴 약속은 withDeadline 이 삼킨다. */
 export const PAGE_CAP_WRITE_TIMEOUT_MS = 5_000;

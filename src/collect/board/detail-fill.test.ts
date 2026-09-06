@@ -34,9 +34,9 @@ vi.mock("./proxy", async (importOriginal) => {
 
 import { fillBoardDetail, harvestBoardAttachments, mainbizAttachmentName } from "./detail-fill";
 import { parseHtml } from "./html";
-import { safeAttachmentUrl } from "@/lib/policy-match/attachment-text";
-import { dedupKeyOf } from "@/lib/policy-match/types";
-import { classifyWedlyCategory } from "@/lib/policy-match/wedly-category";
+import { safeAttachmentUrl } from "../attachment-text";
+import { dedupKeyOf } from "../../engine/types";
+import { classifyWedlyCategory } from "../../engine/wedly-category";
 import { itpConfig } from "./sources/itp";
 import { BOARD_SOURCES } from "./registry";
 

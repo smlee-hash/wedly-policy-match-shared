@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { decodeBody } from "../html";
 import { pagingParamsOf } from "../engine";
 import { hrdkConfig, hrdkDetailAttachments, isHrdkDropTitle, parseHrdkList, parseJavaDate } from "./hrdk";
-import { safeAttachmentUrl } from "@/lib/policy-match/attachment-text";
+import { safeAttachmentUrl } from "../../attachment-text";
 
 /**
  * ★손으로 쓴 HTML 대신 **실사이트 고정본**으로 잰다(창원 사고 — 지어낸 HTML 은 선택자 오타를 통과시킨다).

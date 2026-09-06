@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { isPinnedRow, isSidaDropTitle, parseSidaList, sidaConfig } from "./sida";
 import { harvestBoardAttachments } from "../detail-fill";
-import { safeAttachmentUrl } from "@/lib/policy-match/attachment-text";
+import { safeAttachmentUrl } from "../../attachment-text";
 import { parseHtml } from "../html";
 
 /**

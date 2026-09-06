@@ -27,8 +27,8 @@ import {
   DEFAULT_CHAR_CAP,
   FORM_CONTENT_TYPE,
 } from "./attachment-text";
-import { BOARD_SOURCES } from "@/lib/policy-match/board/source-list";
-import { allowedHostsOf } from "@/lib/policy-match/board/engine";
+import { BOARD_SOURCES } from "./board/source-list";
+import { allowedHostsOf } from "./board/engine";
 
 const FIX = join(__dirname, "__fixtures__");
 const hwpBuf = () => readFileSync(join(FIX, "sample.hwp"));

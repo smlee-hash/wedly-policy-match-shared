@@ -1,5 +1,5 @@
 // 범용 게시판 수집기 — 출처별 설정과 추출 결과의 계약.
-import type { NormalizedAnnouncement, PolicyAttachment } from "@/lib/policy-match/types";
+import type { NormalizedAnnouncement, PolicyAttachment } from "../../engine/types";
 
 /**
  * 목록·상세 요청을 기본값(헤더 없는 GET)과 다르게 보낼 때 쓴다.

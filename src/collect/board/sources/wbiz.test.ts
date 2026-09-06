@@ -10,7 +10,7 @@ import {
   wbizCsrfToken,
   wbizDetailAttachments,
 } from "./wbiz";
-import { safeAttachmentUrl } from "@/lib/policy-match/attachment-text";
+import { safeAttachmentUrl } from "../../attachment-text";
 import { isProxyTransportError } from "../proxy";
 
 /**

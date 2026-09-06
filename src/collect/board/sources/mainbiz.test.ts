@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 import { parseHtml } from "../html";
 import { pagingParamsOf } from "../engine";
 import { harvestBoardAttachments } from "../detail-fill";
-import { parseApplyPeriod } from "@/lib/policy-match/types";
-import { safeAttachmentUrl } from "@/lib/policy-match/attachment-text";
+import { parseApplyPeriod } from "../../../engine/types";
+import { safeAttachmentUrl } from "../../attachment-text";
 import { isMainbizDropTitle, mainbizConfig, parseMainbizList } from "./mainbiz";
 
 /**

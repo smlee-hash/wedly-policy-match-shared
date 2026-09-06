@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { isKiriaDropTitle, kiriaConfig, parseKiriaList } from "./kiria";
 import { harvestBoardAttachments } from "../detail-fill";
 import { fetchBoardDetail } from "../engine";
-import { safeAttachmentUrl } from "@/lib/policy-match/attachment-text";
+import { safeAttachmentUrl } from "../../attachment-text";
 import { parseHtml } from "../html";
 
 /**

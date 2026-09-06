@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { parseHtml } from "../html";
 import { pagingParamsOf } from "../engine";
 import { harvestBoardAttachments } from "../detail-fill";
-import { safeAttachmentUrl } from "@/lib/policy-match/attachment-text";
+import { safeAttachmentUrl } from "../../attachment-text";
 import { gbiaConfig, gbiaYmd, isGbiaDropTitle, parseGbiaList } from "./gbia";
 
 /**

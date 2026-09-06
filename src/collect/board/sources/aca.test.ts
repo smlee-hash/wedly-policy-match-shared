@@ -21,7 +21,7 @@ import { acaConfig, acaListUrl, acaTargetOf, isAcaDropTitle, parseAcaList } from
 import { parseHtml, normalizeDateText } from "../html";
 import { upgradeTruncatedTitle } from "../title-upgrade";
 import { harvestBoardAttachments } from "../detail-fill";
-import { parseApplyPeriod } from "@/lib/policy-match/types";
+import { parseApplyPeriod } from "../../../engine/types";
 import { upsertAnnouncements } from "@/lib/services/policy-match/store";
 
 const fixture = (name: string) =>

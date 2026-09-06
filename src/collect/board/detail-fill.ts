@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { buildRuleStructure } from "@/lib/policy-match/rule-structure";
-import { classifyWedlyCategory } from "@/lib/policy-match/wedly-category";
-import { attachmentKindOf, dedupKeyOf, parseApplyPeriod, type PolicyAttachment } from "@/lib/policy-match/types";
-import { asPolicyAttachments } from "@/lib/policy-match/attachment-text";
+import { buildRuleStructure } from "../rule-structure";
+import { classifyWedlyCategory } from "../../engine/wedly-category";
+import { attachmentKindOf, dedupKeyOf, parseApplyPeriod, type PolicyAttachment } from "../../engine/types";
+import { asPolicyAttachments } from "../attachment-text";
 import { fundingFieldsOf } from "@/lib/services/policy-match/store";
 import type { Prisma } from "@prisma/client";
 import { fetchBoardDetail } from "./engine";

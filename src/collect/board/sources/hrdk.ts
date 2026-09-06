@@ -1,4 +1,4 @@
-import { attachmentKindOf } from "@/lib/policy-match/types";
+import { attachmentKindOf } from "../../../engine/types";
 import { decodeHtmlEntities, parseHtml } from "../html";
 import { isImageAttachment } from "./attachment-skip";
 import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
