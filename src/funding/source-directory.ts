@@ -211,6 +211,93 @@ export const SOURCE_DIRECTORY: SourceDirectoryEntry[] = [
   //  "미연결 후보"처럼 보여 오해를 준다 — 사연은 여기 주석으로만 남긴다.
 
   // ── 차단·성격상 곤란 ──
+
+  // ── 연결 후보(P2, 2026-09-06 조사) — 계획서 docs/superpowers/plans/2026-09-06-policy-lab-p2-wave.md,
+  //   워크플로우 12일꾼이 36곳 실사이트를 대조한 결과(스크래치 p2-recon-summary.md·p2-recon-sites.json).
+  //   ★계획서 표(연결(거르개 포함) 22 · 절 표제 25줄)는 집계가 하나 밀려 있다 — 그 22 줄을 실제로 세면
+  //   21개뿐이고(hrdk·kead·iris·kimst·kofic·wbiz·moel·kfme·kwbiz·innobiz·mainbiz·gbia·jbio·pomia·wfi·
+  //   hespa·sscf·uesc·ikse·hanam·suncheon), 설계서 부록 A(2026-09-04-policy-lab-design.md) 의 갈래별
+  //   합산(중앙게시판 9 + 협회 4 + 광역·기초 4 + 조사필요 6 + 상품 1 = 24)과도 교차 검증된다.
+  //   실제 신규 항목은 **후보 23 + 상시 상품 1 = 24**다(48줄 목표도 24+22+1=47로 갱신) — 없는 25번째를
+  //   지어내지 않는다.
+  { id: "kiria", label: "한국로봇산업진흥원 사업공고", url: "https://www.kiria.org", status: "candidate", note: "2026-09-06 조사: 접수기간 칸 있음, 첨부 GET" },
+  { id: "knrec", label: "한국에너지공단 사업공고", url: "https://www.knrec.or.kr", status: "candidate", note: "마감일 칸 있음" },
+  { id: "kimst", label: "해양수산과학기술진흥원 공지", url: "https://www.kimst.re.kr", status: "candidate", note: "사업공고 게시판은 IRIS 거울이라 공지사항만" },
+  { id: "wfi", label: "원주미래산업진흥원 사업공고", url: "https://wfi.or.kr", status: "candidate", note: "월 1건 미만 저물량" },
+  { id: "hrdk", label: "한국산업인력공단 공지", url: "https://www.hrdkorea.or.kr", status: "candidate", note: "euc-kr·첨부 POST, 채용 거르개" },
+  { id: "kofic", label: "영화진흥위원회 공지", url: "https://www.kofic.or.kr", status: "candidate", note: "기업 비율 낮음(0.12) 거르개" },
+  { id: "wbiz", label: "여성기업종합지원센터 공고", url: "https://www.wbiz.or.kr", status: "candidate", note: "첨부 세션+CSRF POST, 시설대관 제외" },
+  { id: "iris", label: "IRIS 범부처 R&D 공고", url: "https://www.iris.go.kr", status: "candidate", note: "대학·출연연 전용 제외 거르개" },
+  { id: "kead", label: "한국장애인고용공단 공지", url: "https://www.kead.or.kr", status: "candidate", note: "공단 채용공고 거르개 필수" },
+  { id: "moel", label: "고용노동부 공지", url: "https://www.moel.go.kr", status: "candidate", note: "잡탕 게시판, 5단 거르개" },
+  { id: "kfme", label: "소상공인연합회 공지", url: "https://www.kfme.or.kr", status: "candidate", note: "월 2건 수준" },
+  { id: "kwbiz", label: "한국여성경제인협회 공지", url: "https://www.kwbiz.or.kr", status: "candidate", note: "/guide 상시 프로그램 16종은 후속" },
+  { id: "mainbiz", label: "메인비즈협회 지원사업", url: "https://www.mainbiz.or.kr", status: "candidate", note: "상세에 기간 칸" },
+  { id: "innobiz", label: "이노비즈협회 지원정보", url: "https://innobiz.or.kr", status: "candidate", note: "★robots Disallow: / — 관례대로 진행, 방침 확인 필요" },
+  { id: "gbia", label: "김해의생명산업진흥원 사업공고", url: "https://gbia.or.kr", status: "candidate", note: "★robots /bbs/ 금지 · 첨부 세션+euc-kr 파일명" },
+  // ★정정(코디네이터 2026-09-06): 국내 데이터센터 IP 까지 막혀 candidate 가 아니라 blocked. id·url 은 그대로.
+  { id: "jbio", label: "진주바이오산업진흥원 공고", url: "https://jbio.or.kr", status: "blocked",
+    note: "데이터센터 IP 차단 — 2026-09-06 실측: 주거용 회선 200, 서울 VM(Vultr) 직접 접속·경유 모두 20초 무응답(서울신보와 같은 유형). 수집기는 등록된 채 두어 풀리면 자동 복귀" },
+  { id: "pomia", label: "포항소재산업진흥원 사업공고", url: "https://pomia.or.kr", status: "candidate", note: "첨부 통로 /inc 는 robots 비허용" },
+  { id: "hespa", label: "아산 헬스케어스파산업진흥원 공지", url: "https://hespa.or.kr", status: "candidate", note: "JSON 통로, 월 1건" },
+  { id: "sscf", label: "수원도시재단 지원사업공고", url: "https://sscf2016.or.kr", status: "candidate", note: "수원시 출연기관 8곳 중 유일한 기업지원 창구" },
+  { id: "uesc", label: "의정부시 기업지원센터 공고", url: "https://www.uesc.or.kr", status: "candidate", note: "원천 공고, bus_01/02 는 거울이라 제외" },
+  { id: "ikse", label: "익산시 사회적경제지원센터 공지", url: "https://www.ikse.or.kr", status: "candidate", note: "국가식품클러스터는 별개" },
+  { id: "hanam", label: "하남시 기업지원포털 공지", url: "https://www.hanam.go.kr", status: "candidate", note: "「기업지원사업」 메뉴는 기업마당 거울이라 공지만" },
+  { id: "suncheon", label: "순천시 기업지원포털", url: "https://www.suncheon.go.kr", status: "candidate", note: "산하기관 없음, 시청 직영 포털(접수기간 칸)" },
+  // ★id 접두어 product- 는 파일 규칙(위 자금 조달 지도 섹션 주석 「계획서 리뷰 대장 #1 치명」)이 강제 —
+  //  공고 수집원 이름과 절대 안 겹치게. 상시 상품 어댑터(products/)로 등록되므로 board 계열과 분리한다.
+  { id: "product-kakaobank-soho", label: "카카오뱅크 사장님대출(상시)", url: "https://www.kakaobank.com", status: "candidate", note: "상시 상품 어댑터" },
+
+  // ── P2 대상 아님(22) — 2026-09-06 실사이트 조사 12 + 설계서 부록 A(2026-08-25/26 원 조사) 10 ──
+  { label: "창원시 고시공고", url: "https://www.changwon.go.kr", status: "excluded",
+    note: "robots.txt 가 이 고시공고 경로를 명시적으로 금지하고 기업 비율도 0.01 로 낮다(2026-09-06 조사)" },
+  { label: "대구 원스톱기업지원센터", url: "https://onestop119.daegu.go.kr", status: "excluded",
+    note: "기업마당(bizinfo, 이미 연결됨) 재게시 거울 — 상세 3건 모두 첨부 0개(2026-09-06 조사)" },
+  { label: "정보통신기획평가원(IITP)", url: "https://www.iitp.kr", status: "excluded",
+    note: "www.iitp.kr·ezone.iitp.kr 모두 robots.txt 전면 금지(Disallow: /) + 게시판이 POST 전용(2026-09-06 조사)" },
+  { label: "제주시 산하 기업지원 기관", url: "https://www.jejusi.go.kr", status: "excluded",
+    note: "제주시는 법인격 없는 행정시라 출자·출연기관을 둘 수 없다(2026-09-06 조사)" },
+  { label: "국토교통과학기술진흥원(KAIA)", url: "https://www.kaia.re.kr", status: "excluded",
+    note: "IRIS 전문기관이라 최신 공고가 IRIS 와 그대로 겹치는 거울(2026-09-06 조사)" },
+  { label: "창업진흥원(KISED)", url: "https://www.kised.or.kr", status: "excluded",
+    note: "K-Startup 거울 — 30건 전부 자체 상세 없이 pbancSn 링크만 건다(2026-09-06 조사)" },
+  { label: "행정안전부", url: "https://www.mois.go.kr", status: "excluded",
+    note: "새소식 게시판이 채용·공시송달·민방위 위주라 기업 지원 공고 비율이 0.05 다(2026-09-06 조사)" },
+  { label: "국가보훈부", url: "https://www.mpva.go.kr", status: "excluded",
+    note: "공지사항에 기업 대상 공고가 40일에 1건 수준(2026-09-06 조사)" },
+  { label: "양산시 산하 기업지원 기관", url: "https://www.yangsan.go.kr", status: "excluded",
+    note: "산하 지방공기업은 상수도·하수도·시설관리공단뿐 — 기업지원 기관이 없다(2026-09-06 조사)" },
+  { label: "여수시 산하 기업지원 기관", url: "https://www.yeosu.go.kr", status: "excluded",
+    note: "산하기관은 도시관리공단·박람회재단·사회적경제센터뿐 — 기업지원 기관이 없다(2026-09-06 조사)" },
+  { label: "국토교통부 본청", url: "https://www.molit.go.kr", status: "excluded",
+    note: "국토교통 R&D 공고 창구는 KAIA 이며 본청 자체는 기업 대상 공고가 0건(2026-09-06 조사)" },
+  { label: "광주시(경기) 산하 기업지원 기관", url: "https://www.gjcity.go.kr", status: "excluded",
+    note: "산하 기업지원 기관이 없고 시청 직속기관도 보건소·농업기술센터뿐이라 시청 고시도 대상 아님(2026-09-06 조사)" },
+  { label: "나라장터 입찰공고 API", url: "https://www.data.go.kr/data/15129394/openapi.do", status: "excluded",
+    note: "입찰 트랙 — 정책자금이 아니라 로드맵 6단계에서 별도 설계(설계서 부록 A, 4건 공통 사유)" },
+  { label: "낙찰정보 API", url: "https://www.data.go.kr/data/15129397/openapi.do", status: "excluded",
+    note: "입찰 트랙 — 정책자금이 아니라 로드맵 6단계에서 별도 설계(설계서 부록 A, 4건 공통 사유)" },
+  { label: "누리장터 민간입찰 API", url: "https://www.data.go.kr/data/15129456/openapi.do", status: "excluded",
+    note: "입찰 트랙 — 정책자금이 아니라 로드맵 6단계에서 별도 설계(설계서 부록 A, 4건 공통 사유)" },
+  { label: "계약과정통합 API", url: "https://www.data.go.kr/data/15129459/openapi.do", status: "excluded",
+    note: "입찰 트랙 — 정책자금이 아니라 로드맵 6단계에서 별도 설계(설계서 부록 A, 4건 공통 사유)" },
+  { label: "경기기업비서(egbiz)", url: "https://www.egbiz.or.kr", status: "excluded",
+    note: "기업마당 거울 확정 — 목록 전부 작성자 칸이 기업마당인 재게시(2026-08-25 실측)" },
+  { label: "서울기업지원센터(sbsc)", url: "https://sbsc.sba.kr", status: "excluded",
+    note: "기업마당 거울 확정 — 최근 10건 전부 기업마당 상세(pblancId)로 직접 링크(2026-08-25 실측)" },
+  { label: "울산TP 자체 게시판", url: "https://www.utp.or.kr", status: "excluded",
+    note: "2024-06 폐쇄 — 이미 연결된 울산 기업지원플랫폼(id: ulsan, 통합시스템)이 후신" },
+  { label: "보증드림", url: "https://untact.koreg.or.kr", status: "excluded",
+    note: "상품 안내가 아니라 신청 접수 포털이라 수집 대상 아님" },
+  { label: "국방부 본청", url: "https://www.mnd.go.kr", status: "excluded",
+    note: "고시공고 위주라 기업지원 성격이 희박하다(2026-08-26 확인)" },
+  { label: "해양수산부 본청", url: "https://www.mof.go.kr", status: "excluded",
+    note: "산하 진흥기관(해양수산과학기술진흥원 KIMST 등)이 실제 창구 — 본청은 공고 창구가 아님" },
+
+  // ── P2 대기(1) — 코드는 이번 물결 범위 밖(계획서 「하지 않는 것」), 그래서 code-ready 전용인 id 를 안 붙인다 ──
+  { label: "KOCCA 금융지원정보 API", url: "https://www.data.go.kr/data/15134253/openapi.do", status: "waiting",
+    note: "기관회원 승인 대기" },
 ];
 
 export type ResolvedDirectoryEntry = Omit<SourceDirectoryEntry, "status"> & {

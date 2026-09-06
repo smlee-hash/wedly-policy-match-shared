@@ -95,4 +95,51 @@ describe("수집원 명부 — 상태 5종(2026-09-05 P0)", () => {
       }
     }
   });
+
+  // ── P2 물결(2026-09-06) — 계획서 표기 "25줄"은 집계가 하나 밀린 것이었다. 실사이트 조사 12 +
+  //   설계서 부록 A 10 도 각 12/10 그대로지만, 연결 후보만 계획서의 "22"(하나 밀림) 대신 실제
+  //   21 + 이미 후보였던 kiria·knrec 2 + 상품 1 = 24 로 들어왔다(교차검증: 부록 A 갈래합산 9+4+4+6+1=24).
+  it("P2 연결 후보(2026-09-06 조사)는 id 가 다 있고 서로 안 겹친다(계획서 25 표기는 오산 — 실제 24)", () => {
+    const p2CandidateIds = [
+      "kiria", "knrec", "kimst", "wfi", "hrdk", "kofic", "wbiz", "iris", "kead", "moel",
+      "kfme", "kwbiz", "mainbiz", "innobiz", "gbia", "jbio", "pomia", "hespa", "sscf",
+      "uesc", "ikse", "hanam", "suncheon", "product-kakaobank-soho",
+    ];
+    expect(p2CandidateIds.length, "P2 연결 후보 실제 건수").toBe(24);
+    expect(new Set(p2CandidateIds).size, "P2 연결 후보 id 중복").toBe(24);
+    for (const id of p2CandidateIds) {
+      const row = SOURCE_DIRECTORY.find((s) => s.id === id);
+      expect(row?.id, `${id} 가 명부에 없음`).toBe(id);
+    }
+    // jbio 는 코디네이터 정정(2026-09-06)으로 blocked, 나머지 23곳은 candidate.
+    const jbio = SOURCE_DIRECTORY.find((s) => s.id === "jbio");
+    expect(jbio?.status).toBe("blocked");
+    const others = p2CandidateIds.filter((id) => id !== "jbio");
+    for (const id of others) {
+      const row = SOURCE_DIRECTORY.find((s) => s.id === id);
+      expect(row?.status, id).toBe("candidate");
+    }
+  });
+
+  it("P2 대상 아님(22)·대기(1)도 id 없이 사유가 있다", () => {
+    const p2ExcludedLabels = [
+      "창원시 고시공고", "대구 원스톱기업지원센터", "정보통신기획평가원(IITP)", "제주시 산하 기업지원 기관",
+      "국토교통과학기술진흥원(KAIA)", "창업진흥원(KISED)", "행정안전부", "국가보훈부",
+      "양산시 산하 기업지원 기관", "여수시 산하 기업지원 기관", "국토교통부 본청", "광주시(경기) 산하 기업지원 기관",
+      "나라장터 입찰공고 API", "낙찰정보 API", "누리장터 민간입찰 API", "계약과정통합 API",
+      "경기기업비서(egbiz)", "서울기업지원센터(sbsc)", "울산TP 자체 게시판", "보증드림",
+      "국방부 본청", "해양수산부 본청",
+    ];
+    expect(p2ExcludedLabels.length).toBe(22);
+    for (const label of p2ExcludedLabels) {
+      const row = SOURCE_DIRECTORY.find((s) => s.label === label);
+      expect(row?.status, label).toBe("excluded");
+      expect(row?.id, label).toBeUndefined();
+      expect(row?.note.length, label).toBeGreaterThan(10);
+    }
+    const kocca = SOURCE_DIRECTORY.find((s) => s.label === "KOCCA 금융지원정보 API");
+    expect(kocca?.status).toBe("waiting");
+    expect(kocca?.id).toBeUndefined();
+    expect(kocca?.note).toBe("기관회원 승인 대기");
+  });
 });
