@@ -131,6 +131,7 @@
   },
   "files": [
     "src",
+    "certs",
     "README.md"
   ],
   "scripts": {
