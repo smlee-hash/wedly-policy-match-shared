@@ -234,7 +234,7 @@ export const SOURCE_DIRECTORY: SourceDirectoryEntry[] = [
   { id: "kwbiz", label: "한국여성경제인협회 공지", url: "https://www.kwbiz.or.kr", status: "candidate", note: "/guide 상시 프로그램 16종은 후속" },
   { id: "mainbiz", label: "메인비즈협회 지원사업", url: "https://www.mainbiz.or.kr", status: "candidate", note: "상세에 기간 칸" },
   { id: "innobiz", label: "이노비즈협회 지원정보", url: "https://innobiz.or.kr", status: "candidate", note: "★robots Disallow: / — 관례대로 진행, 방침 확인 필요" },
-  { id: "gbia", label: "김해의생명산업진흥원 사업공고", url: "https://gbia.or.kr", status: "candidate", note: "★robots /bbs/ 금지 · 첨부 세션+euc-kr 파일명" },
+  { id: "gbia", label: "김해의생명산업진흥원 사업공고", url: "https://gbia.or.kr", status: "blocked", note: "데이터센터 IP 차단 — 2026-09-06 실측: 미국·서울 VM 둘 다 20초 무응답, 주거용 회선만 200. 수집기는 등록된 채 두어 풀리면 자동 복귀" },
   // ★정정(코디네이터 2026-09-06): 국내 데이터센터 IP 까지 막혀 candidate 가 아니라 blocked. id·url 은 그대로.
   { id: "jbio", label: "진주바이오산업진흥원 공고", url: "https://jbio.or.kr", status: "blocked",
     note: "데이터센터 IP 차단 — 2026-09-06 실측: 주거용 회선 200, 서울 VM(Vultr) 직접 접속·경유 모두 20초 무응답(서울신보와 같은 유형). 수집기는 등록된 채 두어 풀리면 자동 복귀" },
@@ -242,7 +242,7 @@ export const SOURCE_DIRECTORY: SourceDirectoryEntry[] = [
   { id: "hespa", label: "아산 헬스케어스파산업진흥원 공지", url: "https://hespa.or.kr", status: "candidate", note: "JSON 통로, 월 1건" },
   { id: "sscf", label: "수원도시재단 지원사업공고", url: "https://sscf2016.or.kr", status: "candidate", note: "수원시 출연기관 8곳 중 유일한 기업지원 창구" },
   { id: "uesc", label: "의정부시 기업지원센터 공고", url: "https://www.uesc.or.kr", status: "candidate", note: "원천 공고, bus_01/02 는 거울이라 제외" },
-  { id: "ikse", label: "익산시 사회적경제지원센터 공지", url: "https://www.ikse.or.kr", status: "candidate", note: "국가식품클러스터는 별개" },
+  { id: "ikse", label: "익산시 사회적경제지원센터 공지", url: "https://www.ikse.or.kr", status: "blocked", note: "데이터센터 IP 차단 — 2026-09-06 실측: 미국·서울 VM 둘 다 20초 무응답, 주거용 회선만 200. 수집기는 등록된 채 두어 풀리면 자동 복귀" },
   { id: "hanam", label: "하남시 기업지원포털 공지", url: "https://www.hanam.go.kr", status: "candidate", note: "「기업지원사업」 메뉴는 기업마당 거울이라 공지만" },
   { id: "suncheon", label: "순천시 기업지원포털", url: "https://www.suncheon.go.kr", status: "candidate", note: "산하기관 없음, 시청 직영 포털(접수기간 칸)" },
   // ★id 접두어 product- 는 파일 규칙(위 자금 조달 지도 섹션 주석 「계획서 리뷰 대장 #1 치명」)이 강제 —

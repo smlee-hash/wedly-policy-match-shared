@@ -111,10 +111,12 @@ describe("수집원 명부 — 상태 5종(2026-09-05 P0)", () => {
       const row = SOURCE_DIRECTORY.find((s) => s.id === id);
       expect(row?.id, `${id} 가 명부에 없음`).toBe(id);
     }
-    // jbio 는 코디네이터 정정(2026-09-06)으로 blocked, 나머지 23곳은 candidate.
-    const jbio = SOURCE_DIRECTORY.find((s) => s.id === "jbio");
-    expect(jbio?.status).toBe("blocked");
-    const others = p2CandidateIds.filter((id) => id !== "jbio");
+    // 데이터센터 IP 차단 3곳(jbio·gbia·ikse)은 blocked, 나머지 21곳은 candidate(2026-09-06).
+    const blockedIds = ["jbio", "gbia", "ikse"];
+    for (const id of blockedIds) {
+      expect(SOURCE_DIRECTORY.find((s) => s.id === id)?.status, id).toBe("blocked");
+    }
+    const others = p2CandidateIds.filter((id) => !blockedIds.includes(id));
     for (const id of others) {
       const row = SOURCE_DIRECTORY.find((s) => s.id === id);
       expect(row?.status, id).toBe("candidate");
