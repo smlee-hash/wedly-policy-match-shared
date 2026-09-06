@@ -1,0 +1,683 @@
+<!doctype html>
+<html class="no-js" lang="ko">
+<head>
+<link rel="shortcut icon" href="fa.ico" />
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/default.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="">
+<meta http-equiv="imagetoolbar" content="no">
+<meta http-equiv="X-UA-Compatible" content="IE=10,chrome=1">
+<title>기업지원사업 관리시스템</title>
+
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/default.css">
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/gnustrap.css">
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/default.css">
+
+<script>
+// 자바스크립트에서 사용하는 전역변수 선언
+var g5_url       = "https://platform.utp.or.kr";
+var g5_bbs_url   = "https://platform.utp.or.kr/bbs";
+var g5_is_member = "";
+var g5_is_admin  = "";
+var g5_is_mobile = "";
+var g5_bo_table  = "";
+var g5_sca       = "";
+var g5_editor    = "";
+var g5_cookie_domain = "";
+</script>
+<script src="https://platform.utp.or.kr/js/jquery-1.8.3.min.js"></script>
+<script src="https://platform.utp.or.kr/js/jquery.menu.js"></script>
+<script src="https://platform.utp.or.kr/js/common.js"></script>
+<script src="https://platform.utp.or.kr/js/wrest.js"></script>
+<script src='https://platform.utp.or.kr/usn/js/etc.js' type="text/javascript" charset="utf-8"></script>
+
+<!--animate 플래쉬 효과-->
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/animate.min.css" type="text/css" rel="stylesheet">
+
+<!--animation 플래쉬 효과-->
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/animation.css" type="text/css" rel="stylesheet">
+
+<!--텍사스 자동 반응형-->
+<script src="https://platform.utp.or.kr/js/jquery.expandable.js" type="text/javascript" charset="utf-8"></script>
+
+<!--폰트어썸-->
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/font-awesome.css" type="text/css" rel="stylesheet">
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/font-awesome.min.css" type="text/css" rel="stylesheet">
+
+<!--부트스트랩-->
+<script src="https://platform.utp.or.kr/js/bootstrap.min.js"></script>
+
+<!--그누스트랩-->
+<script src="https://platform.utp.or.kr/js/gnustrap.js"></script>
+
+<!--다음주소-->
+<script src="//t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+<!--[if lt IE 9]>
+  <script src="https://platform.utp.or.kr/js/html5.js"></script>
+  <script src="https://platform.utp.or.kr/js/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body id="top" class="index" data-twttr-rendered="true" >
+
+
+<!-- 쪽지 팝업 테스트 -->
+
+<!--모달 팝업창 -->
+<div class="modal fade" id="Modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+<div class="modal-dialog" role="document">
+    <div class="modal-content" style="text-align:center">
+        <!-- remote ajax call이 되는영역 -->
+    </div>
+  </div>
+</div>
+<script>
+
+function funWinOpen(url,wd,ht,scl){
+	var option = "width="+wd+",height="+ht+",scrollbars="+scl;
+	window.open(url,"winopen",option);
+}
+
+
+function OpenWindow(url,intWidth,intHeight) { 
+      window.open(url, "_blank", "width="+intWidth+",height="+intHeight+",resizable=1,scrollbars=1") ; 
+} 
+
+function goGlobalSearch(){
+	if(document.searchform.searchGonggo.value == ""){
+		alert("검색어(키워드)를 입력하세요.");
+		document.searchform.searchGonggo.focus();
+		return false;	
+	}
+}
+</script>
+
+<!-- 상단 시작 { -->
+    
+    <!-- Navigation -->
+    <nav class="navbar navbar-default navbar-static-top" role="navigation" >
+
+    
+        <div class="container">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            
+
+			
+		<div class="collapse navbar-collapse navHeaderCollapse">
+            <ol class="breadcrumb list_styleGmenu" style="background:none;">
+				<li><a href="/">홈</a></li>
+	              	            	  
+	                  	<li><a href="/bbs/login.php">로그인</a></li>
+	                  	<li><a href="/bbs/register.php">회원가입</a></li>
+	                   
+					    
+						<li><a href="javascript:OpenWindow('/systemInfo/corporateManual.php','1000','800')">기업 매뉴얼</a></li>                
+						<li><a href="/systemInfo/systemInfo.php">시스템 소개</a></li>									    
+						<li>
+							<div class="search_wrap">
+								<div id="searchwrapper">
+								
+									<form name="searchform" method="post" action="/search/search_result.php" onsubmit="return goGlobalSearch()">
+									<input type="text" maxlength="20" value="" name="searchGonggo" id="header_search" style="width:220px;ime-mode:active" placeholder="키워드 1개이상 가능 ex)나노,교육 "/><input type="image" src="/images/main/btn_search.jpg" title="검색" alt="검색"  style="position: relative;top:12px;left:-3px;" />
+									</form>
+								</div>
+							</div>
+						</li>
+								</ol>
+        </div>
+				
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <div class="logo">
+                <a class="navbar-brand" href="https://platform.utp.or.kr">
+                    <!--  <img src="https://platform.utp.or.kr/img/logo.png" alt="사이트 로고"/> --><span class="logoTxt">U Biz Platform</span><br /><span class="logoTxt2">기업지원사업 관리시스템<span>
+                </a>
+                </div>
+            </div>
+            
+               
+			<div class="navbar-collapse collapse">
+                            <ul class="nav navbar-nav navbar-right">
+                                    <li  class='dropdown'  >
+                        <a  href='/'   class="dropdown-toggle" data-toggle="dropdown" >지원사업</a>                     <ul class='dropdown-menu multi-level'>                    	<li >
+                    		<a  href='/com/menupanel.php' >메뉴판</a>	                    
+	                   	</li>                
+                                        	<li >
+                    		<a  href='/com/biz_gonggo_all.php' >사업공고</a>	                    
+	                   	</li>                
+                    <li class='divider'></li>                    	<li >
+                    		<a  href='/bbs/board.php?bo_table=plan' >공지사항</a>	                    
+	                   	</li>                
+                    </ul>                    </li>                
+                                    <li  >
+                        <a  href='/com/biz_gonggo_all.php'  >사업검색</a>                                         </li>                
+                                    <li  class='dropdown'  >
+                        <a  href='/'   class="dropdown-toggle" data-toggle="dropdown" >입주기업신청</a>                     <ul class='dropdown-menu multi-level'>                    	<li >
+                    		<a  href='/bbs/board.php?bo_table=tenant_manage' >입주기업신청</a>	                    
+	                   	</li>                
+                    </ul>                    </li>                
+                                    <li  class='dropdown'  >
+                        <a  href='/'   class="dropdown-toggle" data-toggle="dropdown" >지역혁신정보</a>                     <ul class='dropdown-menu multi-level'>                    	<li >
+                    		<a  href='/com/work_list.php' >구인구직</a>	                    
+	                   	</li>                
+                                        	<li >
+                    		<a  href='/com/workerTrainLi.php' >직업훈련</a>	                    
+	                   	</li>                
+                    <li class='divider'></li>                    	<li >
+                    		<a  href='/com/ecos_stats.php' >장비검색</a>	                    
+	                   	</li>                
+                    </ul>                    </li>                
+                                    <li  class='dropdown'  >
+                        <a  href='/'   class="dropdown-toggle" data-toggle="dropdown" >관심지원사업</a>                     <ul class='dropdown-menu multi-level'>                    	<li >
+                    		<a  href='/com/gonggo_list_sort.php' >맞춤사업공고</a>	                    
+	                   	</li>                
+                                        	<li >
+                    		<a  href='/com/bookmark_gonggo_list.php' >관심사업공고</a>	                    
+	                   	</li>                
+                    </ul>                    </li>                
+                                    <li  >
+                        <a  href='/com/gonggo_application_list.php'  >나의 지원현황</a>                                         </li>                
+                                    <li  class='dropdown'  >
+                        <a  href='/'   class="dropdown-toggle" data-toggle="dropdown" >나의 기업정보</a>                     <ul class='dropdown-menu multi-level'>                    	<li >
+                    		<a  href='/com/com_info1.php' >기업정보</a>	                    
+	                   	</li>                
+                                        	<li >
+                    		<a  href='/com/message_list.php' >쪽지 보관함</a>	                    
+	                   	</li>                
+                    </ul>                    </li>                
+                                  
+                </ul>
+                <!-- 
+                <ul class="nav navbar-nav navbar-right">
+	              <li class="dropdown"><a href="../navbar-static-top/" class="dropdown-toggle" data-toggle="dropdown"><i class="glyphicon glyphicon-log-in"></i></a>
+	              	<ul class="dropdown-menu multi-level">	  
+	              	            	  
+	                  	<li><a href="/bbs/login.php">로그인</a></li>
+	                  	<li><a href="/bbs/register.php">회원가입</a></li>
+	                   	                 
+	               </ul> -->   
+	              </li>
+	            </ul>
+            </div>           
+        </div>
+        <!-- /.container -->
+    </nav>
+
+    
+		<div class="sTit_wrap">
+		<div class="container">
+			<div class="subTitle">
+				<div class="hidden-xs">
+					<i class="fa fa-home"></i> HOME > 사업검색 > 지원사업정보					<span class="badgeTxt pull-right">
+																	</span>
+				</div>
+			</div>
+		</div>
+	</div>
+		<div class="container visible-lg visible-md"><h2 class="barH2">지원사업정보 </h2></div>
+		<div class="visible-xs visible-sm"><h2 class="barH2">지원사업정보<span class="badgeTxt pull-right"></span></h2></div>
+		<div class="subIn">
+		<div class="container" >
+		
+	
+   
+<script type="text/javascript">
+<!--
+/* ********************************************************
+ * 이전페이지(사업공고  목록 or 나의 사업관리) 페이지 이동
+ ******************************************************** */
+function returnGonggoList(url){
+	var form = document.form;	
+	form.action = url; 	
+	form.submit();				
+}
+
+/* ********************************************************
+ * 사업공고 수정 페이지 이동
+ ******************************************************** */
+function goEditGonggo(){
+	var form = document.form;	
+	form.cmd.value="";	
+	form.action = "./biz_gonggo_write.php"; 	
+	form.submit();			
+}
+
+/* ********************************************************
+ * 지원프로그램 신청서 페이지로 이동
+ ******************************************************** */
+function goApplicationPage(){
+	var form = document.form;	
+	form.cmd.value="enterGonggo";	
+	form.action = "./gonggo_application_write.php"; 	
+	form.submit();			
+}
+
+function getSecurityName(name){
+	var strName = name.substring(0.1);
+	return strName;
+}
+
+var curDoc = new Array();
+var curType = new Array();
+var curInfo = new Array();
+
+function showSecurityInfo(type, info) {
+	curType[type] = type; // 선택된 정보의 타입
+	curInfo[type] = info; // 선택된 정보의 값
+	curDoc[type] = document.getElementById(type);
+	
+	var sample = document.getElementById(type + "_sample");
+	curDoc[type].innerHTML = sample.value;
+
+	var divObj = document.createElement("div");
+	divObj.setAttribute("style", "float:right");
+
+	/* Captcha Image */
+	var captcha = document.createElement("img");
+	captcha.setAttribute("src","/common/captcha.php" + "?codeType=" + type);
+
+	var brObj = document.createElement("br");
+	
+	/* Input Captcha */
+	var inputObj = document.createElement("input");
+	inputObj.setAttribute("id", type + "_editCaptcha");
+	inputObj.setAttribute("placeholder","자동입력방지");
+
+	var aObj = document.createElement("a");
+	aObj.setAttribute("href","#");
+	aObj.onclick = function() {checkSecurityInfo(type)};
+
+	var imgObj = document.createElement("img");
+	imgObj.setAttribute("src","/images/common/btn_ok.gif");
+	imgObj.setAttribute("style","padding-bottom:2px;");
+	imgObj.setAttribute("alt","확인");
+	aObj.appendChild(imgObj);
+
+	divObj.appendChild(captcha);
+	divObj.appendChild(brObj);
+	divObj.appendChild(inputObj);
+	divObj.appendChild(aObj);
+	curDoc[type].appendChild(divObj);
+}
+
+
+var resultType = null;
+function checkSecurityInfo(type) {
+	resultType = type;
+	var editCaptcha = document.getElementById(resultType + "_editCaptcha"); 
+	checkSecurity(editCaptcha.value);
+}
+
+function showInfo(info){
+	curDoc[resultType].innerHTML = info;
+}
+
+var request = null;
+function createRequest(){
+	try{
+		request = new XMLHttpRequest(); // 요청객체를 XMLHttpRequest로 생성한다.
+		}catch(trymicrosoft){  //익스플로러 인가 여부를 판단해서 그에 맞는 객체를 생성한다.
+			try{
+				request = new ActiveXObject("Msxm12.XMLHTTP");
+			}catch(othermicrosoft){
+				try{
+					request=new ActiveXObject("Microsoft.XMLHTTP");
+				}catch(failed){
+					request = null;
+				}
+			}
+		}	   
+	   if(request == null) {alert(" request 객체 오류");}
+}
+
+function checkSecurity(type){
+	var ggcode = document.getElementsByName("rq_gonggocode");
+	urlstr = "/common/captcha_ajax.php?id=" + ggcode[0].value + "&captcha=" + type + "&codeType=" + resultType + "&info=" + curInfo[resultType];
+	createRequest();  
+	var url = urlstr; 
+	request.open("GET",url,true);
+	request.onreadystatechange = returnResult;		
+	request.send(null);
+}
+
+function returnResult()
+{   
+	if(request.readyState == 4)
+	{    
+		if(request.status == 200)
+		{   
+			var tempResult = request.responseText;   //넘어오는 값
+			var arry_Temp = tempResult.split("&");
+			if(arry_Temp[0] == 'success')
+			{
+				showInfo(arry_Temp[1]);
+			}
+			else
+			{
+				alert("자동입력방지문자를 정확히 입력해주세요.");
+				return;
+
+			}
+		}	
+	}
+}
+
+//-->
+</script>
+
+
+<form name="form" action="/com/biz_gonggo_detail.php" method="post" onsubmit="return goApplicationPage()">
+<input type="hidden" name="cmd" 			value=""/>
+<input type="hidden" name="opnr" 			value="/com/biz_gonggo_detail.php"/>
+<input type="hidden" name="searchCase" 		value=""/>
+<input type="hidden" name="searchPrgrm" 	value=""/>
+<input type="hidden" name="searchGovNm" 	value=""/>
+<input type="hidden" name="searchJugwan" 	value=""/>
+<input type="hidden" name="searchProject" 	value=""/>
+<input type="hidden" name="searchGonggo" 	value=""/>
+<input type="hidden" name="rq_bizcode" 		value="331"/>
+<input type="hidden" name="rq_prgmcode" 	value="629"/>
+<input type="hidden" name="rq_gonggocode" 	value="1063"/>
+<input type="hidden" name="rq_gonggopgrm" 	value="1461"/>
+
+
+
+	
+		<div class="table-responsive">
+	  	<table class="table table-bordered2">
+	   	<colgroup>
+		<col width="15%" />
+		<col width="35%" />
+		<col width="15%" />
+		<col />
+		</colgroup>
+	     
+	  </table>
+	</div>
+	  
+	  
+	  <br/>
+	  <h3 class="titH3">사업공고 정보</h3>
+	  <div class="table-responsive">
+	  	<table class="table table-bordered2">
+	   	<colgroup>
+		<col width="15%" />
+		<col width="35%" />
+		<col width="15%" />
+		<col />
+		</colgroup>
+	   <tr>	    	
+	    <th scope="row">공고명</th>
+	    <td >
+	    		    	<span class="hidden-xs" style="font-size:16px;color:#524398;font-weight:bold">	    	
+	    	 2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)	    	</span>
+	    	<span class="visible-xs" style=";color:#524398;font-weight:bold">	    	
+	    	<br/>2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)	    	</span>
+	    	
+	    </td>	 
+	    <th scope="row" class="hidden-xs">접수기간 </th>
+	    <td class="hidden-xs">
+	    	2026년 8월 26일  0시 부터 ~ 
+		  	2026년 9월 11일  23시 까지  		 
+		</td>	
+	  </tr><tr class="visible-xs"><th scope="row">접수기간</th><td >2026년 8월 26일  0시 부터 ~<br/>2026년 9월 11일  23시 까지</td></tr> 
+	  <tr>	    	
+	    <th scope="row">지원유형</th>
+	    <td > 	    	
+	    	사업화지원	    </td>	   
+	    <th class="hidden-xs" scope="row">프로그램</th>	    
+	    <td class="hidden-xs"> 	    	
+	    	<span style="font-size:16px;color:#524398;font-weight:bold">마케팅</span>
+	    </td>	
+	  </tr><tr class="visible-xs"><th scope="row">프로그램</th><td ><span style="color:#524398;font-weight:bold">마케팅</span></td></tr>
+	  <tr >	    		   
+	    <th scope="row"><span class="hidden-xs">지원</span>건수/금액</th>	    
+	    <td > 	    		    	
+	    	&nbsp; <span style="color:#524398;font-weight:bold">9</span> 건  &nbsp; &nbsp; / &nbsp; &nbsp; <span style="color:#524398;font-weight:bold">72,000</span> (천원)	    
+	    </td>
+	    <th class="hidden-xs" scope="row">		    	
+	    	첨부파일
+	    </th>		    
+	    <td class="hidden-xs">
+	    				
+						<a href="/common/platform_file_download.php?rq_pageid=biz_gonggo&rq_wrid=1063&file_field=bf_file_1&no=0">
+							<i class="glyphicon glyphicon-floppy-saved" style="font-size:15pt"></i> 붙임1._2026년__울산_남구__지역산업위기대응_맞춤형_지원사업_수혜기업_모집_공고문_1차_.pdf(260.4K)
+						</a><br/> 									
+							
+						<a href="/common/platform_file_download.php?rq_pageid=biz_gonggo&rq_wrid=1063&file_field=bf_file_1&no=1">
+							<i class="glyphicon glyphicon-floppy-saved" style="font-size:15pt"></i> 붙임2.신청서류.zip(301.9K)
+						</a><br/> 									
+				    		    
+	    </td>	
+	  </tr>	  
+	  <tr >   
+	    <th scope="row">신청대상</th>
+	    <td>	     
+	      	신청대상 : 울산광역시 남구 내 울산미포국가산업단지에 소재하거나, 2026년 내 해당 지역으로 이전 예정인 기업<br />
+산업분야 : 석유화학·정밀화학, 부품·소재 제조, 부산물 재활용, 유지보수, 계장, 검사 등 관련 분야 등 전·후방산업을 영위하는 중소·중견기업<br />
+ 	      
+	    </td>
+	    <th class="hidden-xs" scope="row">지원내용</th>
+	    <td class="hidden-xs">	   
+	    	기술지원 : 시제품제작 지원, 첨단기술지도 지원, 인허가 획득지원, 특허획득지원, IP-R&D 전략지원, DX 전환 지도 지원<br />
+사업화지원 : 마케팅 지원, 전시회 참가지원, 해외 공급망 다변화 지원, 경영 컨설팅지원<br />
+<br />
+- 지원금 : 프로그램별 25~50백만원 (기업당 최대 80백만원 이내) / 총 81건<br />
+       (기술지원 최대 50백만원 + 사업화지원 최대 30백만원)<br />
+<br />
+ 지원기간 : 2026. 07. ~ 2026. 12. (6개월) ※ (사업 기간 내 소급 적용 가능)  	      	   
+	    </td>
+	  </tr><tr class="visible-xs"><th scope="row">지원내용</th><td >기술지원 : 시제품제작 지원, 첨단기술지도 지원, 인허가 획득지원, 특허획득지원, IP-R&D 전략지원, DX 전환 지도 지원<br />
+사업화지원 : 마케팅 지원, 전시회 참가지원, 해외 공급망 다변화 지원, 경영 컨설팅지원<br />
+<br />
+- 지원금 : 프로그램별 25~50백만원 (기업당 최대 80백만원 이내) / 총 81건<br />
+       (기술지원 최대 50백만원 + 사업화지원 최대 30백만원)<br />
+<br />
+ 지원기간 : 2026. 07. ~ 2026. 12. (6개월) ※ (사업 기간 내 소급 적용 가능)</td></tr> 
+	  <tr >   
+	    <th scope="row">지원절차</th>
+	    <td>	
+	    	공고 및 접수<br />
+26. 08. 26. ~ 09. 11. 23:00<br />
+<br />
+현장조사<br />
+25.09월(필요시 진행)<br />
+<br />
+서면평가 또는 발표 평가(프로그램별 상이)<br />
+25.09월<br />
+<br />
+선정통보<br />
+25.09월 예정<br />
+<br />
+협약체결<br />
+25.09월 예정<br />
+* 상기 일정은 추진 상황에 따라 변동될 수 있음     	      		  	      
+	    </td>
+	    <th class="hidden-xs" scope="row">제출서류</th>
+	    <td class="hidden-xs">	
+	    	- 사업계획서(사업비 산정 증빙서류포함) _필수<br />
+- 사업자등록증 (종된 사업장명세(증명) 포함)_필수<br />
+- 기업정보 수집이용제공 및 활용 동의서_필수<br />
+- 정부과제 중복지원 및 부정행위근절 서약서_필수<br />
+- 연구개발기관의 신청 자격 적정성 확인서_필수<br />
+- 국세, 지방세 완납증명서_필수<br />
+- 기타(인증서, 특허 등)서류_해당시<br />
+- 울산 남구 미포산단 내 이전/설립 확약서_해당시     	      		  	      
+	    </td>
+	  </tr><tr class="visible-xs"><th scope="row">제출서류</th><td >- 사업계획서(사업비 산정 증빙서류포함) _필수<br />
+- 사업자등록증 (종된 사업장명세(증명) 포함)_필수<br />
+- 기업정보 수집이용제공 및 활용 동의서_필수<br />
+- 정부과제 중복지원 및 부정행위근절 서약서_필수<br />
+- 연구개발기관의 신청 자격 적정성 확인서_필수<br />
+- 국세, 지방세 완납증명서_필수<br />
+- 기타(인증서, 특허 등)서류_해당시<br />
+- 울산 남구 미포산단 내 이전/설립 확약서_해당시</td></tr> 
+	  <tr class="visible-xs">
+	  <th scope="row">첨부파일</th>
+	  <td >
+	  				
+						<a href="/common/platform_file_download.php?rq_pageid=biz_gonggo&rq_wrid=1063&file_field=bf_file_1&no=0">
+							<i class="glyphicon glyphicon-floppy-saved" style="font-size:15pt"></i> 붙임1._2026년__울산_남구__지역산업위기대응_맞춤형_지원사업_수혜기업_모집_공고문_1차_.pdf(260.4K)
+						</a><br/> 									
+							
+						<a href="/common/platform_file_download.php?rq_pageid=biz_gonggo&rq_wrid=1063&file_field=bf_file_1&no=1">
+							<i class="glyphicon glyphicon-floppy-saved" style="font-size:15pt"></i> 붙임2.신청서류.zip(301.9K)
+						</a><br/> 									
+				  </td>
+	  </tr>	  
+	  </table>
+	</div>
+	
+	 
+<br/>
+
+<h3 class="titH3">수행기관</h3>
+<div class="table-responsive">
+    	<table class="table table-bordered2">
+	   	<colgroup>
+		<col width="15%" />
+		<col width="35%" />
+		<col width="15%" />
+		<col />
+		</colgroup>
+	   <tr>
+	    <th scope="row">수행기관명</th>
+	    <td colspan="3" class="hidden-xs">
+		  	울산테크노파크	    </td>
+	    <td class="visible-xs">
+		  	울산테크노파크	    </td>	
+	  </tr>     	  
+	   <tr>
+	    <th scope="row">담당자명</th>
+	    <td>
+	    	<div id="gov_user_name"><input type="text" id="gov_user_name_sample" value="송**" style="border:0px;" size="4" readonly></input>
+			<a href="#" onclick="showSecurityInfo('gov_user_name', 'gov_user_nm')"><img id="gov_user_name_show" src="/images/common/btn_view.gif" alt="보기" / ></a></div>
+	    </td>	
+	    <th class="hidden-xs" scope="row">이메일</th>
+	    <td class="hidden-xs">
+		  	<div id="gov_user_email"><input type="text" id="gov_user_email_sample" value="nao****@****.***" style="border:0px;" size="14" readonly></input>
+			<a href="#" onclick="showSecurityInfo('gov_user_email', 'gov_user_email')"><img id="gov_user_email_show" src="/images/common/btn_view.gif" alt="보기" /></a></div>
+	    </td>	
+	  </tr><tr class="visible-xs"><th scope="row">이메일</th><td >naoesky@utp.or.kr</td></tr>      
+	  <tr>
+	    <th scope="row">전화번호</th>
+	    <td>
+		  	052-219-0968	    </td>	
+	    <th class="hidden-xs" scope="row">핸드폰번호</th>
+	    <td class="hidden-xs">
+				    </td>	
+	  </tr><tr class="visible-xs"><th scope="row">제출서류</th><td ></td></tr>      	   
+	</table>
+</div>	  
+<br/>
+
+	<div class="panel-footer text-center">
+		<div class="btn-group">
+			
+        	<button type="button" class="btn btn-default" onclick="location.href='/'"><i class="glyphicon glyphicon-chevron-left"> 사업공고 목록</i></button>  
+        		        						<button type="button" class="btn btn-warning" onclick="alert('기업체권한으로 로그인해야 참가신청할 수 있습니다.')"><i class="glyphicon glyphicon-remove"></i> 지원프로그램 참가신청서 작성</button>	
+				         	 
+        </div>	       
+    </div>
+</form>
+
+
+
+
+
+	<div class="clearfix"></div>
+	
+	<br/><br/>
+</div></div>
+
+<a href="#" class="btn btn-default back-to-top"><span class="glyphicon glyphicon-chevron-up"></span></a>
+<a href="#" class="btn btn-default go-to-bottom"><span class="glyphicon glyphicon-chevron-down"></span></a>
+
+<script type="text/javascript">
+$(document).ready(function() {
+    var offset1 = 300;    // 수직으로 어느정도 움직여야 버튼이 나올까?
+    var offset2 = 100;    // 수직으로 어느정도 움직여야 버튼이 나올까?
+    var duration = 0;     // top으로 이동할때까지의 animate 시간 (밀리세컨드, default는 400. 예제의 기본은 500)
+    var delay1 = 3000;    // 버튼이 사라질때까지의 시간 (3000 = 3초)
+
+    var timer;
+    $(window).bind('scroll',function () {
+        clearTimeout(timer);
+        timer = setTimeout( refresh , 150 );
+    });
+    var refresh = function () { 
+        if ($(this).scrollTop() > offset2) {
+            $('.go-to-bottom').fadeIn(duration);
+            setTimeout(function(){$('.go-to-bottom').hide();},2000);
+        } else {
+            $('.go-to-bottom').fadeOut(duration);
+        }
+
+        if ($(this).scrollTop() > offset1) {
+            $('.back-to-top').fadeIn(duration);
+            setTimeout(function(){$('.back-to-top').hide();},2000);
+        } else {
+            $('.back-to-top').fadeOut(duration);
+        }
+    };
+
+    $('.back-to-top').click(function(event) {
+        event.preventDefault();
+        $('html, body').animate({scrollTop: 0}, duration);
+        return false;
+    })
+    $('.go-to-bottom').click(function(event) {
+        event.preventDefault();
+        $('html, body').animate({ scrollTop: $(document).height() }, duration);
+        return false;
+    })
+});
+</script>
+
+
+<!-- 하단 시작 -->
+
+    <div id="footer">
+		     <p class="visible-lg visible-md">(44412) 울산광역시 중구 종가로 15(다운동) 울산테크노파크  &nbsp; &nbsp; uttc@utp.or.kr  &nbsp; &nbsp;  CopyrightⓒULSAN TECHNOPARK INSTITUTE. All rights reserved. </p>
+		     <p class="visible-xs visible-sm">(44412) 울산광역시 중구 종가로 15(다운동) 울산테크노파크<br />Copyrightⓒ울산테크노파크. All rights reserved. </p>
+    </div>
+
+<!--
+-->
+<!-- } 하단 끝 -->
+
+<script>
+$(function() {
+    // 폰트 리사이즈 쿠키있으면 실행
+    font_resize("container", get_cookie("ck_font_resize_rmv_class"), get_cookie("ck_font_resize_add_class"));
+});
+</script>
+
+
+
+<!-- ie6,7에서 사이드뷰가 게시판 목록에서 아래 사이드뷰에 가려지는 현상 수정 -->
+<!--[if lte IE 7]>
+<script>
+$(function() {
+    var $sv_use = $(".sv_use");
+    var count = $sv_use.length;
+
+    $sv_use.each(function() {
+        $(this).css("z-index", count);
+        $(this).css("position", "relative");
+        count = count - 1;
+    });
+});
+</script>
+<![endif]-->
+
+</body>
+</html>

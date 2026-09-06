@@ -1,0 +1,1284 @@
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang = "ko">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" >
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="google-site-verification" content="auGkjgtRVQiBkuXFir2l8rvvfkq4-_PaAipvIjLVjvk" />
+<meta name="robots" content="noindex, follow">
+
+<title>소상공인정책자금</title>
+
+    <link rel="icon" type="image/png" sizes="64x64" href="https://cdn.semas.or.kr/ols/img/logo/sl_favicon.png">
+    <link rel="stylesheet" href="https://cdn.semas.or.kr/ols/css/sl_main.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.semas.or.kr/ols/js/jquery-ui.css" />
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+
+	<!-- 공통 CSS 신규-->
+	<link rel="stylesheet" href="https://cdn.semas.or.kr/ols/css/font-face.css" />
+	<link rel="stylesheet" href="https://cdn.semas.or.kr/ols/css/core.css" />
+	<link rel="stylesheet" href="https://cdn.semas.or.kr/ols/css/content.css" />
+	<link rel="stylesheet" href="https://cdn.semas.or.kr/ols/css/content_media.css" />
+	<link rel="stylesheet" href="https://cdn.semas.or.kr/ols/css/slick.css" />
+
+    <script src="https://cdn.semas.or.kr/ols/js/jquery-3.6.0.min.js"></script>
+	<script src="https://cdn.semas.or.kr/ols/js/slick.min.js"></script>
+    <script src="https://cdn.semas.or.kr/ols/js/slick.extensions.min.js"></script>
+
+    <script src="https://cdn.semas.or.kr/ols/js/script.js"></script>
+	<script type="text/javascript" src="https://cdn.semas.or.kr/ols/js/ols_common.js"></script>
+    <script src="https://cdn.semas.or.kr/ols/js/jquery-ui.js"></script>
+    <script src="https://cdn.semas.or.kr/ols/js/searchMenu.js"></script>
+
+	<script src="https://cdn.semas.or.kr/ols/js/jquery-ui.min.js"></script>
+
+
+	
+    <script src="https://cdn.semas.or.kr/ols/js/netfunnel.js"></script>
+	<script src="https://cdn.semas.or.kr/ols/js/netfunnel_skin.js"></script>
+
+    <script>
+	    $(document).keyup(function(event){
+	 		if (event.keyCode==9) {
+	 			if ( $(':focus').closest('li').attr('class') == 'depth1_item' ) {
+	 				$('.gnb_depth2').show();
+	 				$('.header_bottom').addClass('on');
+	 				$('.header_bottom nav').addClass('on');
+	 			}
+	 			if ( $(':focus').attr('class') == 'sitemap-link' ) {
+	 				$('.gnb_depth2').hide();
+	 				$('.header_bottom').removeClass('on');
+	 				$('.header_bottom nav').removeClass('on');
+	 			}
+	 		}
+	 	});
+
+         $(document).ready(function() {
+
+        	 if(screen.width>650){
+        		 $("#shadow_device").css("display","none");
+        	 }
+            var scrnId = "SMAN018M";
+            var subScrnId = scrnId.substr(1, 3);
+            scrnIdChk(scrnId, subScrnId);
+
+
+        	//메뉴 테스트
+  			$.ajax({
+ 	        type : "POST",
+ 	        url : "/ols/ScrnList.json",
+ 	        dataType : "json",
+ 	        error : function(xhr, status, err) {
+ 	            if(xhr.status == 403){
+ 	                alert("세션이 만료 되었습니다. 로그인 페이지로 이동합니다.");
+ 	            } else {
+ 	            }
+ 	        },
+ 	        success : function(Parse_data) {
+
+ 	        	$("#topMenu").empty();
+ 	        	$("#mobiMenu").empty();
+ 	        	//$(".lnb_wrap").empty();
+
+ 	        	var topContent = '';
+ 	        	var mobiContent = '';
+ 	        	var leftContent = '';
+
+ 	        	if (Parse_data != undefined && Parse_data != 'undefined') {
+
+ 	        		Parse_data.scrnList = Parse_data.scrnList.filter(obj => obj.useYn == 'Y');
+
+ 	        		var topScrnList = Parse_data.scrnList.filter(obj => obj.mnuLvl == '1' || obj.mnuLvl == '2');
+         			//top 처리 s
+ 	        		for(var i=0; i< topScrnList.length; i++){
+         				if (topScrnList[i].menuId.indexOf('MMYP') > -1 || topScrnList[i].menuId.indexOf('MSYS') > -1) {
+         					continue;
+         				}
+
+         				if (topScrnList[i].mnuLvl == '1' || topScrnList[i].mnuLvl == '2') {
+         					if (topScrnList[i].mnuLvl == '1') {
+	         					topContent += '<li class="depth1_item" id="top_li_'+topScrnList[i].menuId+'">';
+	         					topContent += '	   <a href="'+topScrnList[i].url+'" style="color:rgb(85,85,85);">';
+	         					topContent += '			<span>'+topScrnList[i].scrnNm+'</span>';
+	         					topContent += '	   </a>';
+
+	         					// 현재 순서가 마지막이 아니고 다음 순서가 레벨 1인경우 li태그 close
+	         					if (i < topScrnList.length-1 && topScrnList[i+1].mnuLvl == '1') {
+	         						topContent += '</li>';
+	         					}
+         					}
+
+         					if (topScrnList[i].mnuLvl == '2') {
+         						if (topScrnList[i-1].mnuLvl == '1') {
+         							topContent += '<ul class="gnb_depth2">';
+         						}
+         						topContent += '	   <li>';
+         						topContent += '	   		<a href="'+topScrnList[i].url+'">';
+         						topContent += '				<span>'+topScrnList[i].scrnNm+'</span>';
+         						topContent += '			</a>';
+         						topContent += '		</li>';
+
+         						// 현재 순서가 마지막이 아니고 다음 순서가 레벨 1인경우 ul태그 close
+         						if (i < topScrnList.length-1 && topScrnList[i+1].mnuLvl == '1') {
+         							topContent += '</ul>';
+         						}
+         					}
+         				}
+
+         			}
+         			//top 처리 e
+
+         			//mobi 처리 s
+ 	        		for(var i=0; i< Parse_data.scrnList.length; i++){
+         				if (Parse_data.scrnList[i].menuId.indexOf('MMYP') > -1 || Parse_data.scrnList[i].menuId.indexOf('MSYS') > -1) {
+         					continue;
+         				}
+
+         				if (Parse_data.scrnList[i].mnuLvl == '1') {
+	         				mobiContent += '<li>';
+	         				mobiContent += '	<span><a href="javascript:void(0);">'+Parse_data.scrnList[i].scrnNm+'</a></span>';
+
+	         				// 현재 순서가 마지막이 아니고 다음 순서가 레벨 1인경우 li태그 close
+	         				if (i<Parse_data.scrnList.length-1 && Parse_data.scrnList[i+1].mnuLvl == '1') {
+	         					mobiContent += '</li>';
+	         				} else{
+	         					mobiContent += '	<ul class="all_2depth">';
+	         				}
+
+         				}
+
+         				if (Parse_data.scrnList[i].mnuLvl == '2') {
+         					if(i<Parse_data.scrnList.length-1 && Parse_data.scrnList[i+1].mnuLvl == '3') {
+         						mobiContent += '<li class="depth2_cate has_depth">';
+         						mobiContent += '	<a href="javascript:void(0);">'+Parse_data.scrnList[i].scrnNm+'</a>';
+         						mobiContent += '	<ul class="all_3depth">';
+         					} else {
+         						mobiContent += '<li class="depth2_cate">';
+         						mobiContent += '	<a href="'+Parse_data.scrnList[i].url+'">'+Parse_data.scrnList[i].scrnNm+'</a>';
+         						mobiContent += '</li>';
+         					}
+
+         					// 현재 순서가 마지막이 아니고 다음 순서가 레벨 1인경우 ul태그 close
+         					if (i<Parse_data.scrnList.length-1 && Parse_data.scrnList[i+1].mnuLvl == '1') {
+         						mobiContent += '</ul>';
+         					}
+
+         				}
+
+         				if (Parse_data.scrnList[i].mnuLvl == '3') {
+         					mobiContent += '	<li><a href="'+Parse_data.scrnList[i].url+'">'+Parse_data.scrnList[i].scrnNm+'</a></li>';
+         					if (Parse_data.scrnList[i+1].mnuLvl != '3') {
+         						mobiContent += '</ul></li>';
+         						if (Parse_data.scrnList[i+1].mnuLvl == '1') {
+         							mobiContent += '</ul>';
+         						}
+         					}
+         				}
+         			}
+         			//mobi 처리 e
+
+         			//left 처리 s
+         			/* var leftScrnList = Parse_data.scrnList.filter(obj => obj.mnuLvl == '2' || obj.mnuLvl == '3');
+         			for(var i=0; i< leftScrnList.length; i++){
+         				if (leftScrnList[i].mnuLvl == '2') {
+         					leftContent += '<li id="li_'+leftScrnList[i].scrnId+'" diff-id="'+leftScrnList[i].indexOfId+'" name="'+leftScrnList[i].upMenuId+'" style="display:none;">';
+         					if (i<leftScrnList.length-1 && leftScrnList[i+1].mnuLvl == '2') {
+         						leftContent += '	<a href="'+leftScrnList[i].url+'" target="_self"><span>'+leftScrnList[i].scrnNm+'</span></a>';
+         						leftContent += '</li>'
+         					} else {
+         						// 마지막 index인 경우
+         						if (i == leftScrnList.length-1) {
+         							leftContent += '	<a href="'+leftScrnList[i].url+'" target="_self"><span>'+leftScrnList[i].scrnNm+'</span></a>';
+         							leftContent += '</li>';
+         						} else {
+         							leftContent += '	<a href="javascript:void(0);" target="_self"><span>'+leftScrnList[i].scrnNm+'</span></a>';
+         							leftContent += '	<div class="depth2" style="display:none;">';
+             						leftContent += '		<ul class="depth2_list">';
+         						}
+
+         					}
+
+         				}
+
+         				if (leftScrnList[i].mnuLvl == '3') {
+         					leftContent += '<li class="depth_item" id="sub_li_'+leftScrnList[i].scrnId+'" diff-id="'+leftScrnList[i].indexOfId+'">';
+         					leftContent += '	<a href="'+leftScrnList[i].url+'" class="depth2_text" target="_self">'+leftScrnList[i].scrnNm+'</a>';
+         					leftContent += '</li>';
+
+         					if (i<leftScrnList.length-1 && leftScrnList[i+1].mnuLvl != '3') {
+         						leftContent += '</ul></div></li>';
+         					}
+         				}
+
+
+         			}*/
+         			//left 처리 e
+
+       			}
+
+        			$("#topMenu").empty().append(topContent);
+        			$("#mobiMenu").empty().append(mobiContent);
+        			//$(".lnb_wrap").empty().append(leftContent);
+
+
+        			/*if ( $('#li_'+scrnId).length == 0 ) {
+                		var diffId = $('li[diff-id*='+scrnId+']').attr('id');
+                		if (diffId == undefined) {
+                			diffId = '';
+                		}
+                		diffId = diffId.replace('sub_li_', '').replace('li_', '');
+                		if (diffId != '') {
+                			scrnId = diffId;
+                		}
+
+                	}*/
+        			//$('.lnb_wrap').find('li[name="' + $('#li_'+scrnId).attr('name') + '"]').show();
+
+/*
+        			$('.lnb_wrap').find('li').click(function(){
+    	                $('.lnb_wrap').find('li').find('div').hide();
+    	                $(this).find('div').show();
+   	             	});*/
+
+
+         			//top 마우스 처리s
+         			$('.gnb_depth1 > li:first').removeClass('on');
+         			$('.menu-trigger').removeClass('active');
+         			$('.gnb_depth1').on('mouseenter',function(e){
+         				$('.gnb_depth2').show();
+         			  $('.header_bottom').addClass('on');
+         				$('.header_bottom nav').addClass('on');
+         			});
+         			$('.gnb_depth1').on('mouseleave',function(e){
+         				$('.gnb_depth2').hide();
+         			  $('.header_bottom').removeClass('on');
+         				$('.header_bottom nav').removeClass('on');
+         			});
+         			$('.gnb_depth1 > li').on('mouseenter',function(e){
+         				$(this).children('a').css('color','#1056ae').addClass('bar');
+         				$(this).find('.gnb_depth2').css("background","#1c3d88");
+         				$(this).find('.gnb_depth2 > li > a').css("color","#fff");
+         			});
+         			$('.gnb_depth1 > li').on('mouseleave',function(e){
+         				$(this).children('a').css('color','#555').removeClass('bar');
+         				$(this).find('.gnb_depth2').css("background","transparent");
+         				$(this).find('.gnb_depth2 > li > a').css("color","#555");
+         			});
+         			//top 마우스 처리e
+
+         			//fnMenuActive(scrnId);
+
+         			//head print bar 영역 처리 s
+         			if(scrnId != 'SMAN021M'){
+         				var pth = "";
+             			var pthTxt = "소상공인정책자금 ";
+             			pth += "<li><span>" + $(".side_title").find("span").text() + "</span></li>";
+             			pth += "<li><span>" + $(".lnb_wrap").find("li.active").find('a').find('span').text() + "</span></li>";
+             			pthTxt += $(".side_title").find("span").text()+'>'+ $(".lnb_wrap").find("li.active").find('a').find('span').text();
+             		    if ($(".lnb_wrap").find("li.active").find('.depth2').find('.depth2_list').find('li.active').length > 0) {
+             		    	pth += "<li><span>" + $(".lnb_wrap").find("li.active").find('.depth2').find('.depth2_list').find("li.active").find('a').text() + "</span></li>";
+             		    	pthTxt += '>'+$(".lnb_wrap").find("li.active").find('.depth2').find('.depth2_list').find("li.active").find('a').text()
+             		    }
+             		    $(".ul_path").append(pth);
+             		    document.title = pthTxt;
+         			}
+
+         		 	//head print bar 영역 처리 e
+         	}
+ 		    });
+
+
+
+            $(".depth2Mnu").click(function(){
+            	$(this).children('div').toggle();
+            });
+
+            $(".link_btn").click(function(){
+
+            })
+             $(".link_btn").click(function(){
+            	 $(this).parents('li').children('div').toggle();
+            });
+
+      	   $(".MainMenu").click(function(){
+      		    $(".MainMenu").children('ul').css("display","none");
+            	$(".mo-allmn").find('a').removeClass("on");
+            	$(this).children('ul').css("display","block");
+            	$(this).children('a').addClass("on");
+            	$(this).children('a').addClass('on');
+            	$(this).children().children().addClass('on');
+            	$(this).find('a').css("display","block");
+            });
+            $(".mn_2th li a").click(function(){
+                var li = $(this).parent();
+                var ul = li.parent();
+                li.find('ul').toggle();
+            });
+            $(".MainMenu>li").click(function(){
+            	var li = $(this).parent();
+                var ul = li.parent();
+                li.find('ul').toggle();
+            });
+             $(".subMenu>li").click(function(){
+            	 $(this).children('ul').toggle()
+            });
+             $(".ft_link").click(function(){
+            	 $(this).children('ul').toggle()
+            });
+
+            $(".container .content_top h2").text($(".lnb .l_top h2").text());
+            gfnCloseLoading();
+
+
+            $(".mo-gnbbtn").click(function(){
+            	$("#shadow_device").css("display","block");
+            	$("#mo-menu").css("display","block");
+            	$(".mo-allmn").find('ul').find('ul').css("display","none");
+            	fnMenuActive(scrnId);
+            });
+            $(".lnb_wrap").find('.active').children('div').css('display','block');
+
+            $(".btn-allmenu_m").click(function(){
+            	$("#allmenu_Wrap").toggle();
+            });
+
+            $(document).on('click', '.all_1depth>li span',
+            		function(event){
+            	if($(this).hasClass('on')){
+            		$(this).removeClass('on');
+            	    $(this).next(".all_2depth").slideUp();
+            	}else{
+            		$(".all_1depth > li span").removeClass("on");
+            	    $(this).addClass('on');
+            	    $(".all_1depth > li span").not($(this)).next(".all_2depth").slideUp();
+            	    $(this).next(".all_2depth").slideDown();
+            	}
+            });
+
+            $(document).on('click', '.all_2depth>li a',
+            		function(event){
+            	if($(this).hasClass('on')){
+            		$(this).removeClass('on');
+            	    $(this).next(".all_3depth").slideUp();
+            	}else{
+            		$(".all_2depth > li a").removeClass("on");
+            	    $(this).addClass('on');
+            	    $(".all_2depth > li a").not($(this)).next(".all_3depth").slideUp();
+            	    $(this).next(".all_3depth").slideDown();
+            	}
+            });
+            fn_control_mouse();
+        });
+
+        // 마우스 우클릭, 드래그 차단
+        function fn_control_mouse() {
+            $(document).bind("contextmenu", function(e) {return false;});
+            $(document).bind("selectstart", function(e) {return false;});
+            $(document).bind("dragstart", function(e) {return false;});
+        }
+
+        function fnMenuActive(scrnId) {
+
+        	$('#li_'+scrnId).addClass('active');
+        	if ($('#li_'+scrnId).find('.depth2').length > 0) {
+        		$('#li_'+scrnId).find('.depth2').show();
+        	}
+
+        	$('#sub_li_'+scrnId).addClass('active');
+        	$('#sub_li_'+scrnId).closest('.depth2').show();
+        	$('#sub_li_'+scrnId).closest('.depth2').closest('li').addClass('active');
+        	var showId = $('#sub_li_'+scrnId).closest('.depth2').closest('li').attr('id');
+        	var upMenuId = $('#'+showId).attr('name');
+        	//$('.lnb_wrap').find('li[name="' + upMenuId + '"]').show();
+        	var sideTtl = $('#top_li_'+upMenuId).find('a').eq(0).find('span').text();
+        	if (sideTtl != '' && sideTtl != undefined) {
+        		$('.side_title').find('span').text( sideTtl );
+        	} else {
+        		var upMenuId = $('#li_'+scrnId).attr('name');
+        		$('.side_title').find('span').text( $('#top_li_'+upMenuId).find('a').eq(0).find('span').text() );
+
+        		// 회원정보관리인 경우
+        		if (scrnId == 'SMFM000M' || scrnId == 'SMFM002M' || scrnId == 'SMFM003M'|| scrnId == 'SMFM008M') {
+        			$('.side_title').find('span').text( '마이페이지' );
+
+        		// 서비스안내인 경우
+        		} else if (scrnId == 'SMAN013M' || scrnId == 'SMAN014M' || scrnId == 'SMAN015M'
+        				|| scrnId == 'SMAN016M' || scrnId == 'SMAN017M') {
+        			$('.side_title').find('span').text( '서비스안내' );
+
+        			$('li[name="MSYS010"][id="li_SMAN018M"]').find('a').attr('target', '_blank');
+        			$('li[name="MSYS010"][id="li_SMAN018M"]').find('a').attr('title', '새창');
+        		}
+        	}
+
+
+        }
+
+        function fnLogout() {
+        	$('#logForm').attr('method', 'post');
+        	$('#logForm').attr('action', '/ols/man/SMAN020M/actionLogout.do');
+        	$('#logForm').attr('target', '_self');
+        	$('#logForm').submit();
+        }
+
+        function scrnIdChk(id, subId) {
+
+            var scrnId = id;
+            var subScrnId = subId;
+            switch(subScrnId) {
+                case 'MAN' :
+                	$(".side_title").children('li').removeClass("active");
+					if(scrnId == "SMAN019M"){
+						$("#sman019").addClass("active");
+                    } else if(scrnId == "SMAN013M"){
+                    	$("#sman013").addClass("active");
+                    }else if(scrnId == "SMAN051M" || scrnId == "SMAN052M"|| scrnId == "SMAN055M"|| scrnId == "SMAN056M"){
+                    	$("#sman051").addClass("active");
+                    }else if(scrnId == "SMAN054M"){
+                    	$("#sman054").addClass("active");
+                    }else if(scrnId == "SMAN066M" || scrnId == "SMAN061M" || scrnId == "SMAN062M" || scrnId == "SMAN063M" || scrnId == "SMAN064M"){
+                    	$("#sman066").addClass("active");
+                    }else if(scrnId == "SMAN099M"){
+                    	$("#sman099").addClass("active");
+                    }else if(scrnId == "SMAN018M"){
+                    	$("#sman018").addClass("active");
+                    }else if(scrnId == "SMAN070M"){
+                    	$("#sman070").addClass("active");
+                    }else if(scrnId == "SMAN080M"){
+                    	$("#sman080").addClass("active");
+                    }
+                    break;
+
+                case 'PFI' :
+                	$(".side_title").children('li').removeClass("active");
+					if(scrnId == "SPFI201M"){
+						$("#spfi201").addClass("active");
+                    }
+                    break;
+
+                case 'PFA' :
+                	$(".side_title").children('li').removeClass("active");
+					if(scrnId == "SPFA301M"){
+						$("#spfa301").addClass("active");
+						$("#spfa301").children('div').css('display','block');
+                    }else if(scrnId == "SPFA201M"){
+                    	$("#spfa201").addClass("active");
+                    }
+                    break;
+
+                case 'CFD' :
+                	$("#CFD").addClass("on");
+                	$("#SCFDM").children('ul').css("display","block");
+                	$("#SCFDM").parent().addClass("on");
+                    if(scrnId == "SCFD010M" || scrnId == "SCFD020M") {
+                        $("#MCFD1000").show();
+                        $("#MCFDM1000").show();
+                    } else if(scrnId == "SCFD011M" || scrnId == "SCFD031M" || scrnId == "SCFD032M" || scrnId == "SCFD033M" || scrnId == "SCFD034M" || scrnId == "SCFD035M"){
+                        $("#MCFD2000").show();
+                        $("#MCFDM2000").show();
+                    }
+                    break;
+
+                 case 'MFM' :
+                	$("#MFM").addClass("on");
+                	$("#SMFM").children('ul').css("display","block");
+                	$("#SMFM").children('a').addClass("on");
+                    if(scrnId == "SMFM001M" || scrnId == "SMFM002M") {
+                        $("#MMFM1000").show();
+                        $("#MMFMM1000").show();
+                        $("#MMFMM1000").addClass("on");
+                    } else if(scrnId == "SMFM400M" || scrnId == "SMFM401M" || scrnId == "SMFM402M" || scrnId == "SMFM403M"){
+                        $("#MMFM2000").show();
+                        $("#MMFMM2000").show();
+                        $("#MMFMM2000").addClass("on");
+                    } else if(scrnId == "SMFM200M" || scrnId == "SMFM300M"){
+                        $("#MMFM3000").show();
+                        $("#MMFMM3000").show();
+                        $("#MMFMM3000").addClass("on");
+                    } else if(scrnId == "SMFM420M"){
+                        $("#MMFM4000").show();
+                        $("#MMFMM4000").show();
+                        $("#MMFMM4000").addClass("on");
+                    } else if(scrnId == "SMFM100M"){
+                        $("#MMFM5000").show();
+                        $("#MMFMM5000").show();
+                        $("#MMFMM5000").parents().addClass("on");
+                    } else if(scrnId == "SMFM500M" || scrnId == "SMFM505M"){
+                        $("#MMFM6000").show();
+                        $("#MMFMM6000").show();
+                        $("#MMFMM6000").addClass("on");
+                    }else if(scrnId == "SMFM510M" || scrnId == "SMFM512M"){
+                        $("#MMFM8000").show();
+                        $("#MMFM8000").show();
+                        $("#MMFM8000").addClass("on");
+                    }else if(scrnId == "SMFM600M"){
+                        $("#MMFM7000").show();
+                        $("#MMFM7000").show();
+                        $("#MMFM7000").addClass("on");
+                    }
+
+                    break;
+
+            }
+
+        }
+		document.addEventListener('DOMContentLoaded', () => {
+			  const tables = document.querySelectorAll('.table_scroll');
+
+			  tables.forEach(table => {
+				const hideHint = () => table.classList.add('hide-hint');
+
+				table.addEventListener('scroll', hideHint, { once: true });
+				table.addEventListener('touchstart', hideHint, { once: true });
+				table.addEventListener('click', hideHint, { once: true });
+			  });
+			});
+
+        let devchkInterval = null;
+
+        function devchk() {
+            if (devchkInterval) return;
+            devchkInterval = setInterval(() => {
+                const t = Date.now();
+                debugger;
+                const delay = Date.now() - t;
+                if (delay > 120) {
+                }
+            }, 100);
+        }
+        devchk();
+
+    </script>
+</head>
+
+<body>
+<form id="logForm"></form>
+
+<ul id="skipToContent">
+<li><a href="#contents">본문 바로가기</a></li>
+</ul>
+
+
+
+<div class="loading_wrap">
+		<div class="spinner_background"></div>
+		<div class="spinner">
+					<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+		</div>
+</div>
+
+<div id="wrap">
+
+	<div id="header">
+		<div class="head_top">
+
+			<div class="wrap_inner">
+
+				<div class="top_link_site">
+					<ul class="link_site">
+						<li><a href="https://www.semas.or.kr/" target="_blank" title="새창" class="logo_semas"><span class="hidden">소상공인시장진흥공단</a></span></li>
+						<li><a href="https://www.sbiz24.kr/" target="_blank" title="새창"  class="logo_semas24"><span class="hidden">소상공인24</span></a></li>
+					</ul>
+				</div>
+
+				<div class="top_link_member">
+					<ul class="link_member">
+						
+
+
+
+<li>
+		<form id="lnb_search" name="lnb_search" action="/ols/cmn/SCNM001M/searchMenu.do" method="GET">
+							<div class="top_link_search">
+								<button type="button" class="search_toggle_btn">검색</button>
+								<div class="search_input_box">
+									<input type="text" name="keyword" title="검색어" class="search_real_input" placeholder="검색어를 입력하세요">
+									<button type="submit" class="search_real_btn">검색</button>
+								</div>
+							</div>
+		</form>
+
+				</li>
+						 
+						 	<li><a href="/ols/man/SMAN020M/page.do" class="login">로그인</a></li>
+						 <li><a href="/ols/man/SMAN030M/page.do" class="membership">회원가입</a></li>
+						  
+					</ul>
+				</div>
+			</div>
+		</div>
+		<div class="header_bottom">
+          <div class="section_inner">
+
+            <h1 class="logo"><a href="/ols/man/SMAN010M/page.do">소상공인정책자금</a></h1>
+
+
+
+            <nav>
+              <div class="gnb_wrap">
+
+				  <ul class="gnb_depth1" id="topMenu">
+				  </ul>
+				  <div class="bg_wrap"><span class="bg_txt">소상공인의 성장기반 마련 및<br>경영안정위한 정책자금지원</span></div>
+
+			  </div>
+            </nav>
+			 <div class="sitemap">
+					<div class="pc"><a href="/ols/man/SMAN099M/page.do" class="sitemap-link"><span>사이트맵</span></a></div>
+					<div class="mo">
+						<button type="button" class="btn-allmenu_m">
+	             		 <span class="blind">전체메뉴 열기</span>
+	              			<i></i>
+							<i></i>
+							<i></i>
+						</button>
+					</div>
+			 </div>
+          </div>
+          <!--content_inner-->
+        </div>
+		<!--header_bottom-->
+				<!--allmenu_Wrap s-->
+		<div class="allmenu_Wrap" id="allmenu_Wrap">
+				<div class="allmenu">
+					<ul class="all_1depth clear" id="mobiMenu">
+					</ul>
+				</div>
+
+			</div>
+		<!--allmenu_Wrap e-->
+	</div>
+</div>
+
+
+
+
+
+		<div id="sub_wrap">
+			<div class="sub_path">
+				<div class="wrap_inner">
+					<div class="path_wrap">
+					<ul class="ul_path">
+							<li><a href="/ols/man/SMAN010M/page.do" class="home"><span>홈</span></a></li>
+						</ul>
+						</div>
+					<div class="print_wrap">
+					<button onclick="return window.print();" class="print"><span>Print</span></button>
+					</div>
+				</div>
+			</div>
+
+		</div>
+
+<div id="cont_wrap">
+			<div class="wrap_inner">
+
+
+
+
+<div class="side">
+				 	<div class="side_title">
+					<span>정책자금안내</span>
+					</div>
+					<ul class="lnb_wrap">
+						<li  class="active"  id="sman018"><a href="/ols/man/SMAN018M/page.do" target="_self"><span>정책자금한눈에보기</span></a></li>
+						
+						<li  id="sman019"><a href="/ols/man/SMAN019M/page.do" target="_self"><span>금리안내</span></a></li>
+						<li class="depth2Mnu " id="sman051"><a href="javascript:void(0);"><span>공지사항</span></a>
+						<div class="depth2" style="display:none;">
+							<ul class="depth2_list">
+								<li class="depth_item ">
+									<a href="/ols/man/SMAN055M/page.do" class="depth2_text" target="_self">직접대출</a>
+								</li>
+								<li class="depth_item " >
+									<a href="/ols/man/SMAN056M/page.do" class="depth2_text" target="_self">대리대출</a>
+								</li>
+							</ul>
+						</div>
+						</li>
+						<li  id="sman054"><a href="/ols/man/SMAN054M/page.do" target="_self"><span>자주하는질문과답변</span></a></li>
+						<li  id="sman080"><a href="/ols/man/SMAN080M/page.do" target="_self"><span>상환스케줄계산기</span></a></li>
+						<li  id="sman090"><a href="/ols/man/SMAN090M/page.do" target="_self"><span>지역센터찾기</span></a></li>
+						<li  id="sman091"><a href="/ols/man/SMAN091M/page.do" target="_self"><span>지역본부찾기</span></a></li>
+						<li  id="sman099"><a href="/ols/man/SMAN099M/page.do" target="_self"><span>사이트맵</span></a></li>
+					</ul>
+				</div>
+
+
+				<!-- content s -->
+				<div class="content" id="contents">
+				 	<div class="cont_title">
+					<h2><span>정책자금한눈에보기</span></h2>
+					</div>
+
+					<div class="topinfo_wrap">
+						<div class="topinfo_txt">
+							<div class="topinfo_inner bg01">
+							<p class="txt01">정책자금을 한눈에 보실 수 있습니다.</p>
+							</div>
+						</div>
+
+					</div>
+
+					<h3>공통 지원자격</h3>
+					<ul class="ul_type01 mb3r">
+						<li>[소상공인 보호 및 지원에 관한 법률]상 소상공인: 상시근로자 5인 미만 업체<br>
+						(제조업, 건설업, 운수업, 광업: 상시근로자 10인 미만 업체)</li>
+						<li>제외업종: 유흥 향락 업종, 전문업종, 금융업, 보험업, 부동산업 등</li>
+					</ul>
+					<h3>금리 안내사항</h3>
+					<ul class="ul_type01 mb3r">
+						<li>대출금리 : 기준금리(분기별 변동)+ 가산금리</li>
+						<li>`26년 3/4 분기 정책자금 기준금리 : 3.85%</li>
+					</ul>
+
+					<h3>2026년 정책자금 직접대출 세부 지원요건</h3>
+
+					<div class="table_scroll mo_scroll_moveimg">
+					<table class="p-table scrollcol">
+						<caption>세부 지원요건 목록으로 자금명, 신청요건, 대출기간, 대출한도, 대출금리로 구성되어있습니다.</caption>
+							<colgroup>
+							<col style="width: 13%;">
+							<col style="width: 47%;">
+							<col style="width: 13%;">
+							<col style="width: 13%;">
+							<col style="width: 23%;">
+							</colgroup>
+					<thead>
+						<tr>
+							<th scope="col">자금명</th>
+							<th scope="col">신청요건<br> <span class="c_red">* 세부 신청요건은 반드시 공지사항을 참고하시기 바랍니다.</span></th>
+							<th scope="col">대출기간</th>
+							<th scope="col">대출한도</th>
+							<th scope="col">대출금리</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>혁신성장촉진자금</td>
+							<td class="tl"><span class="fw-bold">(혁신형)</span> 수출, 2년 연속 매출 10% 이상 신장, 스마트 공장 도입, 강한소상공인·로컬크리에이터, <br><span style="padding-left: 53px;">소상공인 졸업후보기업, 직접대출 성실상환</span><br>
+							<span class="fw-bold">(일반형)</span> 스마트기술, 백년소상공인, 사회연대경제조직, 신사업창업사관학교 수료생</td>
+							<td>(운전) 5년<br><span style="font-size:14px;">(비거치 또는 거치 2년 이내)</span><br>(시설) 8년<br><span style="font-size:14px;">(비거치 또는 거치 3년 이내)</span></td>
+							<td>(일반형)<br>운전 1억원,시설 5억원<br>(혁신형)<br>운전 2억원,시설 10억원</td>
+							<td>기준금리+0.4%P</td>
+						</tr>
+						<tr>
+							<td>민간투자연계형<br>매칭융자</td>
+							<td class="tl">민간투자 연계형 매칭융자 주관기관으로부터 투자금을 지원받고 '소상공인 선투자 추천서'를 <br>발급받은 소상공인</td>
+							<td>8년<br><span style="font-size:14px;">(비거치 또는 거치 3년 이내)</span></td>
+							<td>5억원</td>
+							<td>기준금리+0.4%P</td>
+						</tr>
+						<tr>
+							<td>상생성장지원자금</td>
+							<td class="tl"><span class="fw-bold">(일반형)</span> TOPS 프로그램 1단계에 선정된 소상공인<br>
+							<span class="fw-bold">(성장형)</span> TOPS 프로그램 2단계에 선정된 소상공인, 소진공과 상생협약을 맺은 온라인 플랫폼의 <span style="padding-left: 53px;">입점 소상공인</span><br>
+							<span class="fw-bold">(도약형)</span> 브랜드 소상공인 점프업 사업에 선정된 소상공인</td>
+							<td>(운전) 5년<span style="font-size:14px;">(비거치 또는거치 2년 이내)</span><br>(시설) 8년<span style="font-size:14px;">(비거치 또는 거치 3년 이내)</span></td>
+							<td>(일반형)운전 7천만원<br>(성장형)<br>운전 1억원,시설 5억원<br>(도약형)<br>운전 2억원,시설 10억원</td>
+							<td>기준금리+0.4%P</td>
+						</tr>
+						<tr>
+							<td>일시적경영애로자금</td>
+							<td class="tl">연매출 1억 4백만원 미만이고 업력 7년 미만이면서 일시적경영애로 사유가 있는 소상공인</td>
+							<td>5년(거치 2년)</td>
+							<td>7천만원</td>
+							<td>기준금리+0.0%P</td>
+						</tr>
+						<tr>
+							<td>신용취약소상공인자금</td>
+							<td class="tl">소상공인 지식배움터(http://edu.sbiz.or.kr) 내 신용관리 교육을 사전에 이수한 중·저신용<br>(NCB 839점 이하) 소상공인</td>
+							<td>5년(거치 2년)</td>
+							<td>3천만원</td>
+							<td>기준금리+1.6%P</td>
+						</tr>
+						<tr>
+							<td>재도전특별자금</td>
+							<td class="tl"><span class="fw-bold">(일반형① 재창업 준비단계)</span> 최근 1년 이내 소상공인희망리턴패키지사업의 재창업교육을<br><span style="padding-left: 169px;"> 수료한 소상공인</span><br>
+							<span class="fw-bold">(일반형② 재창업 초기단계)</span> 공단에서 요구하는 조건 중 1개 이상의 요건을 충족하는 소상공인<br>
+							<span class="fw-bold">(일반형③ 채무조정)</span> '채무해소 재기지원종합패키지 참여기관'에서 인정한 성실상환 소상공인 등<br>
+							<span class="fw-bold">(희망형)</span> '25년 소상공인희망리턴패키지사업의 재기사업화를 완료한 소상공인 등<br>
+							<span class="fw-bold">(도약형)</span> 재창업(업력 2년 이상) 후 성장하는 성실상환 소상공인</td>
+							<td>5년(거치 2년)</td>
+							<td>(일반형) 7천만원<br>(희망형) 1억원<br>(도약형) 2억원</td>
+							<td>기준금리+가산금리<br>*가산금리는 유형별 상이</td>
+						</tr>
+					</tbody>
+				</table>
+				</div>
+				<h3>2026년 정책자금 대리대출 세부 지원요건</h3>
+
+					<div class="table_scroll mo_scroll_moveimg">
+					<table class="p-table scrollcol">
+						<caption>세부 지원요건 목록으로 자금명, 신청요건, 대출기간, 대출한도, 대출금리로 구성되어있습니다.</caption>
+							<colgroup>
+							<col style="width: 13%;">
+							<col style="width: 47%;">
+							<col style="width: 13%;">
+							<col style="width: 13%;">
+							<col style="width: 23%;">
+							</colgroup>
+					<thead>
+						<tr>
+							<th scope="col">자금명</th>
+							<th scope="col">신청요건<br> <span class="c_red">* 세부 신청요건은 반드시 공지사항을 참고하시기 바랍니다.</span></th>
+							<th scope="col">대출기간</th>
+							<th scope="col">대출한도</th>
+							<th scope="col">대출금리</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>소공인특화자금</td>
+							<td class="tl">제조업을 영위하는 상시근로자수 10인 미만의 소공인</td>
+							<td>(운전) 5년(거치 2년)<br>(시설) 8년(거치 3년)</td>
+							<td>(운전) 1억원<br>(시설) 5억원</td>
+							<td>기준금리+0.6%P</td>
+						</tr>
+						<tr>
+							<td>일반경영안정자금</td>
+							<td class="tl">업력무관 소상공인</td>
+							<td>5년(거치 2년)</td>
+							<td>7천만원</td>
+							<td>기준금리+0.6%P</td>
+						</tr>
+						<tr>
+							<td>긴급경영안정자금<br>(재해피해)</td>
+							<td class="tl">재해 피해를 입고, 지자체에서 "재해 중소기업(소상공인) 확인증"을 발급받은 소상공인</td>
+							<td>5년(거치 2년)</td>
+							<td>1억원</td>
+							<td>고정금리(2.0%P)</td>
+						</tr>
+
+						<tr>
+							<td>긴급경영안정자금<br>(일시적 경영애로)</td>
+							<td class="tl">지역경제 위기가 우려되는 지역 또는 감염병 등으로 영업에 피해를 입은 소상공인</td>
+							<td>5년(거치 2년)</td>
+							<td>7천만원</td>
+							<td>기준금리+0.0%P</td>
+						</tr>
+						<tr>
+							<td>장애인기업지원자금</td>
+							<td class="tl">장애인복지카드(국가유공자 카드(또는 증서)) 또는 장애인기업확인서를 소지한 장애 소상공인</td>
+							<td>7년(거치2년)</td>
+							<td>1억원</td>
+							<td>고정금리(2.0%P)</td>
+						</tr>
+						<tr>
+							<td>청년고용연계자금</td>
+							<td class="tl">① 업력 3년 미만의 청년 소상공인(만39세 이하)<br>
+							② 상시근로자 중 과반수 이상 청년 근로자(만39세 이하)인 소상공인<br>
+							③ 최근 1년 이내 청년 근로자를 1인 이상 고용하고 유지중인 소상공인</td>
+							<td>5년(거치 2년)</td>
+							<td>7천만원</td>
+							<td>기준금리+0.0%P</td>
+						</tr>
+						<tr>
+							<td>대환대출</td>
+							<td class="tl">중∙저신용 소상공인이 보유한 은행권∙비은행권 사업자 대출 중, 고금리 대출 또는 만기연장에<br>애로가 있는 대출</td>
+							<td>10년<span style="font-size:14px;">(비거치 또는 거치2년)</span></td>
+							<td>5천만원</td>
+							<td>고정금리(4.5%P)</td>
+						</tr>
+					</tbody>
+				</table>
+				</div>
+
+
+<ul class="ul_type01 mb3r"><li> 각 자금별 접수 순서대로 처리, 예산 소진 시 마감</li></ul>
+
+
+
+
+
+
+				</div>
+				<!-- content e -->
+			</div>
+
+		</div>
+
+
+			<footer id="footer" class="footer">
+				<div class="footer_site">
+					<div class="wrap_inner">
+						<ul class="side_menu">
+							<li><a href="/ols/man/SMAN013M/page.do" target="_self"><span>이용약관</span></a></li>
+							<li><a href="/ols/man/SMAN014M/page.do" target="_self"><span class="c_red">개인정보처리방침</span></a></li>
+							<li><a href="/ols/man/SMAN015M/page.do" target="_self"><span>저작권정책</span></a></li>
+							<li><a href="/ols/man/SMAN016M/page.do" target="_self"><span>책임의한계와법적고지</span></a></li>
+							<li><a href="/ols/man/SMAN017M/page.do" target="_self"><span>이메일주소무단수집거부</span></a></li>
+							<li><a href="https://www.juso.go.kr/openIndexPage.do" target="_blank" title="새창"><span>도로명주소안내</span></a></li>
+						</ul>
+						<ul class="link_menu">
+							<li><button class="link_btn" type="button" title="목록열기"><span>유관기관 사이트</span></button>
+							<div class="layer">
+								<ul class="clearfix">
+
+									<li><a href="https://www.mss.go.kr" target="_blank" title="새창">중소벤처기업부</a></li>
+									<li><a href="https://www.bizinfo.go.kr" target="_blank" title="새창">기업마당</a></li>
+									<li><a href="https://www.fsc.go.kr" target="_blank" title="새창">금융위원회</a></li>
+									<li><a href="https://www.fss.or.kr" target="_blank" title="새창">금융감독원</a></li>
+									<li><a href="https://www.ccrs.or.kr" target="_blank" title="새창">신용회복위원회</a></li>
+									<li><a href="https://www.koreg.or.kr:444" target="_blank" title="새창">신용보증재단중앙회</a></li>
+									<li><a href="https://www.gov.kr/portal/" target="_blank" title="새창">정부24</a></li>
+									<li><a href="https://www.kibo.or.kr/dbranch/grnt/grnt02/onclickGrnt.do" target="_blank" title="새창">기술보증기금</a></li>
+
+								</ul>
+								</div>
+							</li>
+
+
+							<li><button class="link_btn" type="button" title="목록열기"><span>소상공인관련사이트</span></button>
+							<div class="layer">
+								<ul class="clearfix">
+									<li><a href="https://www.semas.or.kr" target="_blank" title="새창">소상공인시장진흥공단</a></li>
+									<li><a href="https://www.sbiz24.kr" target="_blank" title="새창">소상공인24</a></li>
+									<li><a href="https://bigdata.sbiz.or.kr" target="_blank" title="새창">소상공인365</a></li>
+									<li><a href="https://edu.sbiz.or.kr/edu/main/main.do" target="_blank" title="새창">소상공인교육</a></li>
+									<!-- <li><a href="http://yestv.or.kr" target="_blank" title="새창">소상공인방송</a></li> -->
+								</ul></div>
+							</li>
+						</ul>
+					</div>
+				</div>
+			  <div class="footer_copy">
+				<div class="wrap_inner">
+					<div class="footer_info">
+					    <p><span>(우) 34077 대전광역시 유성구 지족로 364번길 92, 2층 소상공인시장진흥공단</span></p>
+						<p><span>사업자등록번호 : 305-82-21570,</span><span>대표전화 : 1533-0100(소상공인 통합콜센터), 1357(중소기업 통합콜센터)</span></p>
+						<p class="copyright"><span>Copyright 2023 SEMAS,</span><span>All Right Reserved.</span></p>
+					</div>
+					<div class="wa_wrap">
+               		 <a href="http://www.webwatch.or.kr/Situation/WA_Situation.html?MenuCD=110" target="_blank" title="웹와치 홈페이지 새창으로 바로가기" class="webwatch">
+                   	<img src="/ols/img/wa_mark2024.png" alt="과학기술정보통신부 WA(WEB접근성) 품질인증 마크 웹와치(WebWatch) 2026.07.09 ~ 2027.07.08" title="과학기술정보통신부 WA(WEB접근성) 품질인증 마크 웹와치(WebWatch) 2026.07.09 ~ 2027.07.08"></a>
+
+					<a href="https://www.eprivacy.or.kr/front/certifiedSiteMark/certifiedSiteMarkPopup.do?certCmd=EP&certNum=2026-EP-R017" target="_blank" class="eprivacy" title="eprivacy 인증서 바로가기(새창)">	<img src="https://www.eprivacy.or.kr/images/mng/sub/mark1_eprivacy_plus.png" style="cursor:pointer;" onclick="window.open('https://www.eprivacy.or.kr/front/certifiedSiteMark/certifiedSiteMarkPopup.do?certCmd=EP&certNum=2026-EP-R017,'seal','width=527,height=720,location=no,status=no,scrollbars=no')" alt="eprivacy pass 인증서아이콘입니다.클릭시 해당페이지로 이동합니다." ></img></a>
+
+            		</div>
+				</div>
+				</div>
+			</footer>
+ <!-- layer_popup s -->
+<div class="pop_layout" id="gvmPlcyPrmtClctUsPop" style="display:none;">
+<div class="layer_popup_wrap">
+
+        <div class="layer_pop_inner">
+             <div class="pop_title">
+             <span>정부정책 홍보를 위한 수집 및 이용 동의</span>
+             </div>
+             <div class="pop_content">
+				 <ul class="ul_type01">
+				 	 <li>1. 개인정보의 수집 및 이용 목적<p>정부정책 홍보를 위한 활용</p>
+					 	<ul>
+						 	<li>정부정책 홍보, 이벤트 및 광고성 정보 제공 및 참여기회 제공, 접속 빈도 등 회원의 서비스 이용에 대한 통계</li>
+							<li>고객만족도 및 실태조사, 성과평가, 소상공인 정책연구 수행</li>
+							<li>소상공인 정책자금 및 공단·정부·지자체·공공기관의 소상공인 창업·경영지원사업, 지원제도 안내</li>
+							<li>소상공인 창업·경영지원사업, 지원제도 안내 정보 전송에 관한 사항</li>
+							<li>알림방법 : 알림톡/SMS/문자/전화</li>
+						 </ul>
+					 </li>
+					 <li class="mt1r">2. 수집하는 개인정보의 항목<p></p>
+						 <ul>
+						 	<li class="non">이름, 휴대전화번호, 사업장정보</li>
+						 </ul>
+					 </li>
+					 <li class="mt1r">3. 개인정보의 보유 및 이용기간
+					 	<ul>
+						 	<li class="non">회원 탈퇴 시</li>
+						 </ul>
+					 </li>
+					 <li class="mt1r">4. 동의거부권 및 불이익
+					 <ul>
+						 <li class="non">정부정책 홍보를 위한 수집 및 이용 동의를 거부하시더라도 회원 가입 시 제한은 없습니다. 다만, 정부정책 홍보 서비스 안내 및 참여에 제한이 있을 수 있습니다.</li>
+						 </ul>
+					 </li>
+				 </ul>
+    		 </div>
+			<div class="pop_bottom">
+				<div class="tc mb5r">
+					<button type="button" class="btn btn_md btn_gray" onclick="fnGvmPlcyPrmtClctUsYn('N'); return false;"><span>비동의</span></button>
+					<button type="button" class="btn btn_md btn_blue" onclick="fnGvmPlcyPrmtClctUsYn('Y'); return false;"><span>동의</span></button>
+				</div>
+			</div>
+</div>
+</div>
+</div>
+	<!-- layer_popup e -->
+ <!-- layer_popup s -->
+<div class="pop_layout" id="onepassPop" style="display:none;">
+<div class="layer_popup_wrap">
+        <div class="layer_pop_inner">
+             <div class="pop_content pop_wonpass">
+				<button class="ico_close" aria-label="닫기" id="btnOnepassClose">닫기</button>
+				<h2 class="wonpass_h2">통합로그인</h2>
+				<figure style="" class="wonpass_img">
+					<img src="/ols/img/modal_integrated_login_img.png" alt="">
+				</figure>
+				<div class="wonpass_wrap">
+					<p class="wonpass_main_title">중기 원패스 전환</p>
+					<p class="wonpass_sub_title">
+						<strong>하나의 아이디로 중소벤처기업부 유관기관 서비스를 모두 이용해 보세요.</strong><br> 기존 계정을 통합로그인으로 전환하시면, 사이트마다 로그인할 필요 없이 더욱 편리하고 안전하게 서비스를 이용하실 수 있습니다.</p>
+					<button type="button" class="wonpass_btn" id="btnOnepassTrans"><span>중기 원패스 전환 바로가기</span><i></i></button>
+				</div>
+				<button type="button" class="wonpass_btn_white" id="btnOnepassNoTrans"><span>중기 원패스 전환 없이 진행하기</span><i></i></button>
+				<p class="wonpass_sub_title">
+				<strong>※ 중소벤처기업부 통합로그인 관련 문의는 중소기업 통합콜센터 1357로 문의하시기 바랍니다.</strong></p>
+    		 </div>
+</div>
+</div>
+</div>
+	<!-- layer_popup e -->
+<input type="hidden" id="bulkBizYn" value="" />
+<input type="hidden" id="pswdChgYn" value="" />
+<input type="hidden" id="gvmPlcyPrmtClctUsYn" value="" />
+<input type="hidden" id="prvcPusAgreYn" value="" />
+<input type="hidden" id="mbrCiYn" value="" />
+<input type="hidden" id="mbrDiYn" value="" />
+<input type="hidden" id="mfmChk" value="N" />
+
+<form id="formMfm" name="formMfm"></form>
+<script>
+
+var scrnId = "SMAN018M";
+ window.onload = function(){
+	if ($('#pswdChgYn').val() != 'Y' && $('#bulkBizYn').val() == 'Y' && scrnId != 'SMFM003M') {
+		alert('다수사업자인 경우 계정통합처리를 진행해주시기 바랍니다.');
+		location.href = '/ols/mfm/SMFM003M/page.do';
+	}else{
+		bizCntChk();
+	}
+ 	
+	if("" == "N" ){
+		$("#onepassPop").show();
+		onepassPopFocus();
+	}
+	
+	
+
+	  $('.link_btn').click(function() {
+		  if($(this).hasClass('active') == true){
+			  $(this).removeAttr('title');
+			  $(this).attr('title', '목록열기');
+			  $(this).removeClass('active');
+		  }else{
+			  $(this).removeAttr('title');
+			  $(this).attr('title', '목록닫기');
+			  $(this).addClass('active');
+		  }
+	  });
+	  if('false' == 'true'  && $("#mbrDiYn").val() == 'N' && scrnId != "SMFM000M" && scrnId != "SMFM008M"&& scrnId != "SMFM001M"&& scrnId != "SMFM009M" && scrnId != "SMAN021M"){
+			alert("마이페이지에서 대표자인증을 진행해주시기 바랍니다.");
+			//$("#mfmChk").val('Y');
+			$("#formMfm").attr("action", "/ols/mfm/SMFM001M/page.do").submit();
+		}
+	  if('false' == 'true'  && $("#prvcPusAgreYn").val() == '' && scrnId != "SMFM000M" && scrnId != "SMFM008M"&& scrnId != "SMFM001M"&& scrnId != "SMFM009M" && scrnId != "SMAN021M"){
+			alert("마이페이지에서 약관동의를 진행해주시기 바랍니다.");
+			$("#formMfm").attr("action", "/ols/mfm/SMFM001M/page.do").submit();
+		}
+
+
+}
+function mfmChk(){
+	if($("input[name='bzmnTypeSeCd']").length != 0){
+		for(i=0; i<$("input[name='bzmnTypeSeCd']").length ; i++){
+			if(scrnId != "SMFM000M" && scrnId != "SMFM002M" && scrnId != "SMFM003M" && scrnId != "SMFM001M" && scrnId != "SMAN021M" && scrnId != "SMFM009M"  && scrnId != "SMFM008M" && $("#bzmnTypeSeCd"+i+"").val() == '2'){
+				if($("#corpFndnYmd"+i+"").val() == '' && ($("#stdIndsClsfCd"+i+"").val() == null || $("#stdIndsClsfCd"+i+"").val() == '')){
+					$("#mfmChk").val('Y');
+					alert("마이페이지에서 법인설립일과 업종코드, 주사업장정보를 등록하시기 바랍니다.");
+					$("#formMfm").attr("action", "/ols/mfm/SMFM008M/page.do").submit();
+					break;
+				}else if($("#corpFndnYmd"+i+"").val() == '' && ($("#stdIndsClsfCd"+i+"").val() != null || $("#stdIndsClsfCd"+i+"").val() != '') && scrnId != "SMAN021M"){
+					$("#mfmChk").val('Y');
+					alert("마이페이지에서 법인설립일을 등록하시기 바랍니다.");
+					$("#formMfm").attr("action", "/ols/mfm/SMFM008M/page.do").submit();
+				}
+			}else if(scrnId != "SMFM000M" && scrnId != "SMFM002M" && scrnId != "SMFM003M" && scrnId != "SMFM001M" && scrnId != "SMFM009M"&& scrnId != "SMFM008M" && scrnId != "SMAN020M" && scrnId != "SMAN021M"  && $("#bzmnTypeSeCd"+i+"").val() == '1'){
+					if(scrnId != "SMFM000M" && scrnId != "SMFM002M" && scrnId != "SMFM003M" && scrnId != "SMFM001M" && scrnId != "SMFM009M" && scrnId != "SMFM008M" && ($("#stdIndsClsfCd"+i+"").val() == null || $("#stdIndsClsfCd"+i+"").val() == '')){
+						alert("마이페이지에서 업종코드와 주사업장정보를 등록하시기 바랍니다.");
+						$("#mfmChk").val('Y');
+						$("#formMfm").attr("action", "/ols/mfm/SMFM008M/page.do").submit();
+						break;
+					}
+			}
+		}
+	}
+
+	if('false' == 'true'  && $("#gvmPlcyPrmtClctUsYn").val() == ''
+			&& $("#mfmChk").val() == 'N' && scrnId != "SMFM000M" && scrnId != "SMFM008M"){
+		$("#gvmPlcyPrmtClctUsPop").show();
+	}
+	if('false' == 'true'  && $("#mbrCiYn").val() == 'N' && scrnId != "SMFM000M" && scrnId != "SMFM008M"&& scrnId != "SMFM001M"&& scrnId != "SMFM009M" && scrnId != "SMAN021M"){
+		alert("마이페이지에서 대표자인증을 진행해주시기 바랍니다.");
+		$("#mfmChk").val('Y');
+		$("#formMfm").attr("action", "/ols/mfm/SMFM001M/page.do").submit();
+	}
+}
+function bizCntChk(){
+	if("" != '' && $("input[name='bzmnTypeSeCd']").length == 0){
+		if(scrnId != "SMFM000M" && scrnId != "SMFM002M" && scrnId != "SMFM003M" && scrnId != "SMFM001M" && scrnId != "SMFM009M"&& scrnId != "SMFM008M" && scrnId != "SMAN020M" && scrnId != "SMAN021M"){
+			alert("정책자금사이트에 사업자정보 등록이 필요합니다. 회원정보관리 페이지로 이동합니다.");
+			$("#formMfm").attr("action", "/ols/mfm/SMFM001M/page.do").submit();
+			}
+	}
+}
+
+function fnGvmPlcyPrmtClctUsYn(gvmPlcyPrmtClctUsYn){
+	var gvmPlcyPrmtClctUsYn = gvmPlcyPrmtClctUsYn;
+
+    gfnOpenLoading();
+
+    $.ajax({
+        type : "POST",
+        url : "/ols/cmn/SCNM001M/gvmPlcyPrmtClctUsYn.do",
+        data: {'gvmPlcyPrmtClctUsYn' : gvmPlcyPrmtClctUsYn },
+        dataType : "json",
+        async:false,
+        error : function(xhr, status, err) {
+            gfnCloseLoading();
+            if(xhr.status == 403){
+                alert("세션이 만료 되었습니다. 로그인 페이지로 이동합니다.");
+                self.close();
+                opener.loginChk();
+            }
+        },
+        success : function(Parse_data) {
+            gfnCloseLoading();
+            $("#gvmPlcyPrmtClctUsPop").css('display','none');
+        }
+    });
+}
+
+$(document).on("click","#btnOnepassTrans",function(){
+	var userType = "IND";
+	if($("input[name='bzmnTypeSeCd']").length == 1){
+		if($("input[name='bzmnTypeSeCd']").val() == '2'){
+			userType = "ENT";
+		}
+	}
+	const sndUrl = "/conversion/step1?redirect_uri=&mbrId=&return_client=&UserType="+userType;
+	window.open(sndUrl);
+});
+
+$(document).on("click","#btnOnepassLogin",function(){
+	const sndUrl = "/oidc/SMES/login.do";
+	window.open(sndUrl);
+});
+
+$(document).on("click","#btnOnepassClose",function(){
+	$("#onepassPop").hide();
+	onepassPopFocusBack();
+});
+
+$(document).on("click","#btnOnepassNoTrans",function(){
+	$("#onepassPop").hide();
+	onepassPopFocusBack();
+});
+(function () {
+	  "use strict";
+	  var pop;
+
+	  var lastInputWasKeyboard = false;
+	  document.addEventListener('keydown', function () { lastInputWasKeyboard = true; }, true);
+	  document.addEventListener('mousedown', function () { lastInputWasKeyboard = false; }, true);
+
+	  function getFocusable() {
+		return pop.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])');
+	  }
+
+	  window.onepassPopFocus = function () {
+		if (!pop) return;
+		var f = getFocusable();
+		if (f.length) f[0].focus();
+	  };
+
+	  window.onepassPopFocusBack = function () {
+		if (!lastInputWasKeyboard) return;
+		var top = document.querySelector('#skipToContent a') || document.querySelector('#header a');
+		if (top) top.focus();
+	  };
+
+	  function init() {
+		pop = document.getElementById('onepassPop');
+		if (!pop) return;
+
+		pop.setAttribute('role', 'dialog');
+		pop.setAttribute('aria-modal', 'true');
+		var title = pop.querySelector('.wonpass_h2');
+		if (title) { if (!title.id) title.id = 'onepassPopTitle'; pop.setAttribute('aria-labelledby', title.id); }
+
+		pop.addEventListener('keydown', function (e) {
+		  if (e.key === 'Escape' || e.keyCode === 27) {
+			pop.style.display = 'none';
+			window.onepassPopFocusBack();
+			return;
+		  }
+		  if (e.key !== 'Tab' && e.keyCode !== 9) return;
+		  var f = getFocusable();
+		  if (!f.length) return;
+		  var first = f[0], last = f[f.length - 1];
+		  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+		  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+		});
+	  }
+
+	  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+	  else init();
+	})();
+(function () {
+	  "use strict";
+
+	  function updateSlideFocus() {
+		var slides = document.querySelectorAll('.info_slide-wrap .slick-slide');
+		if (!slides.length) return;
+		slides.forEach(function (slide) {
+		  var hidden = slide.getAttribute('aria-hidden') === 'true'
+					|| slide.classList.contains('slick-cloned');
+		  var els = slide.querySelectorAll('a[href], button, input, select, textarea');
+		  for (var i = 0; i < els.length; i++) {
+			if (hidden) els[i].setAttribute('tabindex', '-1');
+			else els[i].removeAttribute('tabindex');
+		  }
+		});
+	  }
+
+	  function init() {
+		var slider = document.querySelector('.info_slide-wrap .slide_inner');
+		if (!slider) return;
+
+		updateSlideFocus();
+
+		if (window.jQuery) {
+		  try {
+			jQuery(slider).on('afterChange setPosition init breakpoint', updateSlideFocus);
+		  } catch (e) {}
+		}
+
+		var track = slider.querySelector('.slick-track');
+		if (track && window.MutationObserver) {
+		  var mo = new MutationObserver(updateSlideFocus);
+		  mo.observe(track, { attributes: true, subtree: true, attributeFilter: ['aria-hidden', 'class'] });
+		}
+
+		setInterval(updateSlideFocus, 1000);
+	  }
+
+	  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+	  else setTimeout(init, 500);
+	})();
+</script>
+</body>
+</html>

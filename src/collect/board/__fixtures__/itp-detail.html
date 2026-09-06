@@ -1,0 +1,644 @@
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+<meta name="viewport" content="width=device-width, user-scalable=yes, target-densitydpi=medium-dpi" />
+<title>인천테크노파크</title>
+<link rel="stylesheet" type="text/css" href="/user/css/default.css" />
+<link rel="stylesheet" type="text/css" href="/user/css/common.css" />
+<link rel="stylesheet" type="text/css" href="/user/css/table.css" />
+<link rel="stylesheet" type="text/css" href="/user/css/layout.css" />
+<link rel="stylesheet" type="text/css" href="/user/css/personal.css" />
+<!--link rel="stylesheet" type="text/css" href="/user/css/nanumgothic.css" /-->
+
+<link rel="stylesheet" type="text/css" href="/user/css/print.css" />
+
+<link rel="stylesheet" type="text/css" href="/user/css/sub.css" />
+        
+<!--[if lt IE 9]>
+	<script type="text/javascript" src="/user/js/html5.js"></script>
+<![endif]-->
+
+	<script src="//ajax.googleapis.com/ajax/libs/webfont/1.4.10/webfont.js"></script>
+	<script type="text/javascript">
+	  WebFont.load({
+ 		// For google fonts
+	    google: {
+	      families: ['Droid Sans', 'Droid Serif']
+	    }
+	    // For early access or custom font
+	    custom: {
+	        families: ['Nanum Gothic'],
+	        urls: ['http://fonts.googleapis.com/earlyaccess/nanumgothic.css']
+	    }
+ 	  });
+	</script>
+
+
+
+<!-- 구글 애널리틱스 적용-->
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-93781510-1', 'auto');
+  ga('send', 'pageview');
+</script>
+<!-- 구글 애널리틱스 적용-->
+
+<script type="text/javascript" src="/user/js/jquery-1.11.3.min.js"></script>
+<script type="text/javascript" src="/user/js/common.js"></script> 
+<script type="text/javascript" src="/user/js/tab/tab.js"></script>
+
+
+ 
+
+<script type="text/javascript">
+
+            
+            // ready
+            $(document).ready(function(){
+                $(".liMn").each(function(idx, obj){
+                    // 페이지 열릴때 모든매뉴 닫기 (첫번째꺼 빼고)
+                    $(".Depth1_area").eq(idx).hide();
+                    if(idx != 0){
+                    }else{
+                        //$(this).attr("class","on liMn");
+                    }
+                     
+                    
+                    //토글용
+                    $(this).children("[name=aTag]").click(function(){
+                    	var nn=$(this).parent().index();
+                        for(var j=1;j<=5;j++) {
+                        	if (nn==(j-1)) {
+                        	} else {
+	                        	$('#idMnu'+j).hide();
+	                        	$('#idMnu'+j).parent().attr("class","liMn");
+                        	}
+                        }
+                        if($(this).parent().attr("class").indexOf("on")){
+                            $(this).parent().attr("class","on liMn");
+                        }else{
+                            $(this).parent().attr("class","liMn");
+                        }
+                        //
+                        $(this).next("ul").slideToggle();
+                        //$(this).next("ul").slideDown();
+                    });
+                    
+
+
+                    //마우스over out용
+                    /*
+                    $(this).children("[name=aTag]").bind('mouseenter focusin', function(){
+                        if($(this).parent().attr("class").indexOf("on")){
+                            $(this).parent().attr("class","on liMn");
+                        }else{
+                            $(this).parent().attr("class","liMn");
+                        }
+                        $(this).next("ul").show();
+                    });
+                    $(".liMn").bind('mouseleave', function(){
+                        $(this).children("ul").hide();
+                    }); 
+                    */
+            
+
+                    
+                });
+            });
+            
+            // mobile nav
+            var view_put = [0,0]; // : 팝업이 위치할곳
+            var layer_popup = function(type) {  
+                var layerObj = document.getElementById("mnav");
+            
+                switch(type) {
+                    case "open":
+                    layerObj.style.top = view_put[0];
+                    layerObj.style.left = view_put[1];
+                    break;
+                    default:
+                    layerObj.style.top = "-10000px";
+                    layerObj.style.left = "-10000px";
+                    break;
+                };
+            };
+            
+            
+          
+             
+ $(document).ready(function(){             
+
+        //마우스over out용
+        /*
+        $('ul.mobile_menu li ul').hide();
+        $('ul.mobile_menu li ul li ul').hide(); 
+        //2depth
+        $("ul.mobile_menu li ul li a").bind('mouseenter focusin', function(){
+            $(this).parent().children("ul").show();
+        });
+        $("ul.mobile_menu li ul li").bind('mouseleave', function(){
+            $(this).children("ul").hide();
+        }); 
+        */
+        
+          
+		  //1depth
+		  $("#mnav div div.nav div nav ul.mobile_menu li a").click(function(e) {
+              e.stopPropagation();
+              return false;
+          });
+  
+          //2depth
+          $("#mnav div div.nav div nav ul.mobile_menu li ul li a").click(function(e) {
+            e.stopPropagation();
+           
+            var n = $(this).parent().find("li").length;
+            if (n==0) {
+                if ($(this).attr("target")=="_blank") {
+                    window.open( $(this).attr("href") )
+                } else {
+                    document.location.href = $(this).attr("href");
+                 } 
+                // return false; 
+            } else {
+                 $(this).parent().children("ul").toggle();
+                return false; 
+            }
+          });          
+          
+          
+	    //add20170203
+	    $('.m_liMn ul').hide(); 
+	    
+		$(".m_liMn").each(function(idx, obj){
+			// 토글버튼
+			$(this).children("[name=bTag]").click(function(){
+				 $(this).next("ul").slideToggle();
+			});
+		});                
+          //2depth
+          $(".m_liMn ul li a").click(function(e) {
+            e.stopPropagation();
+          
+            var n = $(this).parent().find("li").length; 
+            if (n==0) { 
+                if ($(this).attr("target")=="_blank") {
+                    window.open( $(this).attr("href") )
+                } else {
+                    document.location.href = $(this).attr("href");
+                 }  
+            } else { 
+            	try {
+	            	var s1 =$(this).parent().attr("class"); 
+					if(s1=="on"){
+						$(this).parent().attr("class","o1"); 
+					}else{
+						$(this).parent().attr("class","on"); 
+						
+						var index = $(this).parent().index(); 
+						var idxn = $(this).parent().parent().children("li").length;
+						for (var i=0;i<idxn;i++) {
+							if (i!=index) {
+								 //$(this).parent().parent().children("li:eq("+i+")").attr("class","o1");
+								 var obj = $(this).parent().parent().children("li:eq("+i+")");
+								 var s2 = obj.attr("class");
+								 if (s2=="on") {
+								 	obj.children("ul").toggle();
+								 }
+								 obj.attr("class","o1");
+							}
+						}
+					}
+				} catch(e) {
+					$(this).parent().attr("class","on");
+				}
+				
+				
+                $(this).parent().children("ul").slideToggle();
+                return false; 
+            }
+          });  
+          
+          
+          
+          
+});          
+        </script> 
+</head>
+<body> 
+<div id="wrap">
+
+<!-- skip_nav --> 
+        <div id="skip_nav">  
+            <a href="#nav">메인메뉴 바로가기</a>
+            <a href="#content">본문내용 바로가기</a>
+        </div>
+        <!-- //skip --> 
+        
+        <!-- header -->
+        <div id="header">
+        <header>
+            <a href="/" title="인천테크노파크 홈페이지 이동" class="home_logo">
+                <h1 class="home_logo"><img src="/user/images/common/logo.jpg" alt="인천테크노파크" /></h1>
+            </a>
+            <!-- mobile_gnb_area -->
+            <div id="gnb_mobile">
+                <a href="javascript:void(0)" title="전체매뉴 보기" class="gnb_mobile_menu" onclick="layer_popup('open')">
+                    <img src="/user/images/mobile/btn_mgnb.png" alt="전체메뉴 보기" />
+                </a>
+            </div>
+            <!-- //mobile_gnb_area --> 
+            <!-- hsection -->
+            <div class="hsection">
+                <div>
+                    <ul>
+                              
+                        <!--사이트맵 메뉴가 있었음, 로그인을 없애면서 사이트맵 메뉴를 위에 이동-->                  
+                    </ul>
+                     
+                </div>
+            </div>
+            <!--// hsection -->
+            <!-- nav -->
+            <div id="nav">
+                <div class="gnb">
+                <nav>
+                    <ul> 
+<li class="menu01">    <a href="/intro.asp?tmid=1" title="지원사업소개">        <span>지원사업소개</span>    </a>    <div class="sub_menu">                <ul>                    <li>                        <a href="/intro.asp?tmid=567" title="온라인 사업안내">                            <span>온라인 사업안내</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=9" title="모빌리티본부">                            <span>모빌리티본부</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=661" title="바이오탄소제로본부">                            <span>바이오탄소제로본부</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=7" title="기업지원본부">                            <span>기업지원본부</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=10" title="일자리본부">                            <span>일자리본부</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=11" title="디자인N콘텐츠본부">                            <span>디자인N콘텐츠본부</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=364" title="디지털벤처창업본부">                            <span>디지털벤처창업본부</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=362" title="발간자료">                            <span>발간자료</span>                        </a>                    </li>                 </ul>    </div></li>   <li class="menu02">    <a href="/intro.asp?tmid=2" title="ITP 뉴스">        <span>ITP 뉴스</span>    </a>    <div class="sub_menu">                <ul>                    <li>                        <a href="/intro.asp?tmid=13" title="지원사업">                            <span>지원사업</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=586" title="채용안내">                            <span>채용안내</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=14" title="기관공고">                            <span>기관공고</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=15" title="보도자료">                            <span>보도자료</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=16" title="유관사업">                            <span>유관사업</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=17" title="뉴스레터">                            <span>뉴스레터</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=19" title="홍보자료실">                            <span>홍보자료실</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=412" title="기고자료">                            <span>기고자료</span>                        </a>                    </li>                 </ul>    </div></li>   <li class="menu03">    <a href="/intro.asp?tmid=3" title="자원/시설안내">        <span>자원/시설안내</span>    </a>    <div class="sub_menu">                <ul>                    <li>                        <a href="/intro.asp?tmid=20" title="장비안내">                            <span>장비안내</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=21" title="대관안내">                            <span>대관안내</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=22" title="입주/입점안내">                            <span>입주/입점안내</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=337" title="단지안내">                            <span>단지안내</span>                        </a>                    </li>                 </ul>    </div></li>   <li class="menu04">    <a href="/intro.asp?tmid=4" title="기관소개">        <span>기관소개</span>    </a>    <div class="sub_menu">                <ul>                    <li>                        <a href="/intro.asp?tmid=455" title="비전('24~'28)">                            <span>비전('24~'28)</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=615" title="ESG 경영">                            <span>ESG 경영</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=708" title="안전보건방침">                            <span>안전보건방침</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=25" title="연혁">                            <span>연혁</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=24" title="기관상징 소개">                            <span>기관상징 소개</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=26" title="조직도">                            <span>조직도</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=27" title="ITP위치">                            <span>ITP위치</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=28" title="Q&A">                            <span>Q&A</span>                        </a>                    </li>                 </ul>    </div></li>   <li class="menu05">    <a href="/intro.asp?tmid=5" title="기관정보공개">        <span>기관정보공개</span>    </a>    <div class="sub_menu">                <ul>                    <li>                        <a href="/intro.asp?tmid=29" title="정보공개">                            <span>정보공개</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=30" title="경영공시">                            <span>경영공시</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=31" title="청렴ITP">                            <span>청렴ITP</span>                        </a>                    </li>                     <li>                        <a href="/intro.asp?tmid=651" title="개인정보처리방침">                            <span>개인정보처리방침</span>                        </a>                    </li>                 </ul>    </div></li>                                 
+                    </ul>
+                </nav>
+                </div>
+            </div>
+            <!--// nav -->
+        </header>
+        </div>
+         
+
+<hr class="hidden" />
+<div id="container">
+<article>
+ 
+ 
+<div class="location_area">
+	<div class="location_division">
+		<ul class="location">
+			<li>
+                <img src="/user/images/icon/img_home.png" alt="home" />
+            </li>
+<li onclick="location.href='/intro.asp?tmid=2'">ITP 뉴스</li><li onclick="location.href='/intro.asp?tmid=13'"><strong>지원사업</strong></li><li onclick="location.href='/intro.asp?tmid='"></li>
+		</ul>
+		<div class="sns_area">
+		
+            <a href="http://www.facebook.com/sharer/sharer.php?u=http://itp.or.kr/intro.asp?tmid=13" title="페이스북 공유하기" target="_blank">
+                <img src="/user/images/icon/icon_facebook.png" alt="페이스북" />
+            </a>
+            <a href="https://twitter.com/intent/tweet?text=ITP 뉴스 > 지원사업&url=http://itp.or.kr/intro.asp?tmid=13" title="트위터 공유하기" target="_blank">
+                <img src="/user/images/icon/icon_twitter.png" alt="트위터" />
+            </a>
+            <a href="javascript:window.print();" title="인쇄하기">
+                <img src="/user/images/icon/icon_print.png" alt="인쇄" />
+            </a>
+        </div>
+	</div>
+</div>
+
+
+<div id="left_mnav" name="left_mnav" class="m_left_menu">
+	<div class="gnb_area">
+		<div class="left_nav">
+			<div class="">
+			<nav>
+				<ul class="mobile_menu">
+					<li class="m_liMn">
+						<a href="#" title="사업 페이지로 이동" id="btag1" name="bTag">
+							<span>ITP 뉴스</span>
+						</a>
+						<ul class="m_Depth1_area" style="display:none;">
+						
+			
+<li>
+            <a href="/intro.asp?tmid=13" title="지원사업 페이지로 이동">
+    	<span>지원사업</span>
+    </a>
+    <ul>
+    
+    </ul>
+</li>
+			
+<li>
+            <a href="/intro.asp?tmid=586" title="채용안내 페이지로 이동">
+    	<span>채용안내</span>
+    </a>
+    <ul>
+    
+    </ul>
+</li>
+			
+<li>
+            <a href="/intro.asp?tmid=14" title="기관공고 페이지로 이동">
+    	<span>기관공고</span>
+    </a>
+    <ul>
+    
+    </ul>
+</li>
+			
+<li>
+            <a href="/intro.asp?tmid=15" title="보도자료 페이지로 이동">
+    	<span>보도자료</span>
+    </a>
+    <ul>
+    
+    </ul>
+</li>
+			
+<li>
+            <a href="/intro.asp?tmid=16" title="유관사업 페이지로 이동">
+    	<span>유관사업</span>
+    </a>
+    <ul>
+    
+    </ul>
+</li>
+			
+<li>
+            <a href="/intro.asp?tmid=17" title="뉴스레터 페이지로 이동">
+    	<span>뉴스레터</span>
+    </a>
+    <ul>
+                            <li >                  <a href="/intro.asp?tmid=51" title="뉴스레터 페이지로 이동">                                <span>뉴스레터</span>                            </a>                        </li>                          <li >                  <a href="/intro.asp?tmid=52" title="뉴스레터 구독  페이지로 이동">                                <span>뉴스레터 구독 </span>                            </a>                        </li>                          <li >                  <a href="/intro.asp?tmid=415" title="뉴스레터 개인정보보호방침 페이지로 이동">                                <span>뉴스레터 개인정보보호방침</span>                            </a>                        </li>  
+    </ul>
+</li>
+			
+<li>
+            <a href="/intro.asp?tmid=19" title="홍보자료실 페이지로 이동">
+    	<span>홍보자료실</span>
+    </a>
+    <ul>
+    
+    </ul>
+</li>
+			
+<li>
+            <a href="/intro.asp?tmid=412" title="기고자료 페이지로 이동">
+    	<span>기고자료</span>
+    </a>
+    <ul>
+    
+    </ul>
+</li>
+ 
+                            
+                            
+                            
+                        </ul>
+					</li>
+				</ul>
+			</nav>
+			</div>
+			<!--// nav_area -->
+		</div>
+	</div>
+</div>
+
+<div class="content_area">
+<div id="lnb">    <div class="lnb_area">        <div class="lnb_title_area">            <h2 class="title">ITP 뉴스</h2>        </div>        <div class="lnb_menu_area">            <ul class="lnb_menu">                <li class='on'>            <a href="/intro.asp?tmid=13" title="지원사업 페이지로 이동">                        <span>지원사업</span>                    </a>                </li>                  <li >            <a href="/intro.asp?tmid=586" title="채용안내 페이지로 이동">                        <span>채용안내</span>                    </a>                </li>                  <li >            <a href="/intro.asp?tmid=14" title="기관공고 페이지로 이동">                        <span>기관공고</span>                    </a>                </li>                  <li >            <a href="/intro.asp?tmid=15" title="보도자료 페이지로 이동">                        <span>보도자료</span>                    </a>                </li>                  <li >            <a href="/intro.asp?tmid=16" title="유관사업 페이지로 이동">                        <span>유관사업</span>                    </a>                </li>                  <li >            <a href="/intro.asp?tmid=17" title="뉴스레터 페이지로 이동">                        <span>뉴스레터</span>                    </a>                </li>                  <li >            <a href="/intro.asp?tmid=19" title="홍보자료실 페이지로 이동">                        <span>홍보자료실</span>                    </a>                </li>                  <li >            <a href="/intro.asp?tmid=412" title="기고자료 페이지로 이동">                        <span>기고자료</span>                    </a>                </li>              </ul>        </div>    </div></div>
+<div id="content" class="sub">
+	<div class="title_area">
+
+	    <h3 class="title">지원사업</h3>
+
+	</div>
+
+ 
+<script language="javascript" src="/script/tools_window.js"></script>   
+<script language="javascript">
+
+
+
+</script>   
+<form name="frm1" method=post>
+<input type=hidden name="tmid" value="13"> 
+<input type=hidden name="bid" value="1"> 
+<input type=hidden name="seq" value="11010"> 
+<input type=hidden name="_action" value="update"> 
+</form>
+ 
+ <div class="view_area">
+ 
+					<h5 class="view_title">
+						<span>
+[경영지원센터]2026년 인천광역시 중소기업육성자금 지원 공고(8차)							
+						</span>
+					</h5>
+	 
+                    <div class="dl_view viewdlpad">
+						<div class="dl_sub_view">
+						<!-- 						20260731 남철진 수정, 기관공고만 작성자 숨김  -->
+<!-- 							<dl class="sub_view"> -->
+<!--  -->
+<!--      -->
+<!-- 								<dt class="vdt"> -->
+<!-- 									<span>작성자</span> -->
+<!-- 								</dt> -->
+<!-- 								<dd class="vdd">김민정</dd> -->
+<!-- 	 -->
+<!-- 	 -->
+<!--  -->
+<!-- 								 -->
+<!-- 	 -->
+<!-- 								<dt class="vdt"> -->
+<!-- 									<span>작성일</span> -->
+<!-- 								</dt> -->
+<!-- 								<dd class="vdd">2026-07-31</dd> -->
+<!-- 								 -->
+<!-- 							</dl> -->
+
+    <dl class="sub_view">
+        
+                <dt class="vdt">
+                    <span>작성자</span>
+                </dt>
+                <dd class="vdd">김민정</dd>
+            
+            <dt class="vdt">
+                <span>작성일</span>
+            </dt>
+            <dd class="vdd">2026-07-31</dd>
+        
+    </dl>
+
+							<dl class="sub_view">
+								<dt class="vdt">
+									<span>부서</span>
+								</dt>
+								<dd class="vdd">경영지원센터</dd>
+							</dl> 
+	
+							<dl class="sub_view">
+								<dt class="vdt">
+									<span>진행상태</span>
+								</dt>
+								<dd class="vdd">
+								
+    <img src='/user/images/icon/icon_txt_01.png' alt='진행중' />
+									<dt class="vdt">
+										<span>마감일</span>
+									</dt>
+									<dd class="vdd">
+									2026-12-31
+									</dd>
+								
+							</dl>
+			
+                        </div>
+
+							<dl class="view">
+								<dt class="vdt">
+									<span>첨부파일</span>
+								</dt>
+								<dd class="vdd">
+ 
+	 
+			<a href="javascript:fncFileDownload('bbs','2607311446010169552028.pdf')" class="download"  title="[공고문] 2026년 인천광역시 중소기업육성자금 지원 공고(8차).pdf">
+				<img src="/user/images/icon/icon_pdf.png"  alt="[공고문] 2026년 인천광역시 중소기업육성자금 지원 공고(8차).pdf"/>[공고문] 2026년 인천광역시 중소기업육성자금 지원 공고(8차).pdf(937KB)
+			</a>
+									
+			 
+								</dd>
+							</dl>
+								
+						</div>
+						<!--// dl_view -->
+						<!-- editor -->
+						<div class="editor">
+<p class="0" apple="" sd="" gothic="" neo",="" sans-serif;="" font-size:="" 13px;"="" style="padding: 0px; line-height: 1.5em; font-family: " noto="" sans="" kr";="" 13.76px;="" color:="" #626262;"=""><span style="margin: 0px; padding: 0px; font-family: 휴먼명조; font-weight: bold; font-size: 13pt;">인천광역시 공고 제</span><span lang="EN-US" style="margin: 0px; padding: 0px; font-family: 휴먼명조; letter-spacing: 0pt; font-weight: bold; font-size: 13pt;">2026</span><span style="margin: 0px; padding: 0px; font-family: 휴먼명조; letter-spacing: 0pt; font-weight: bold; font-size: 13pt;">– 1631</span><span style="margin: 0px; padding: 0px; font-family: 휴먼명조; font-weight: bold; font-size: 13pt;">호</span></p>
+<p class="0" apple="" sd="" gothic="" neo",="" sans-serif;="" font-size:="" 13px;"="" style="padding: 0px; line-height: 1.5em; font-family: " noto="" sans="" kr";="" 13.76px;="" color:="" #626262;"=""><span style="margin: 0px; padding: 0px; font-family: 휴먼명조; font-weight: bold; font-size: 13pt;">&nbsp;</span></p>
+<p apple="" sd="" gothic="" neo",="" sans-serif;="" font-size:="" 13px;"="" style="padding: 0px; line-height: 1.5em; font-family: " noto="" sans="" kr";="" 13.76px;="" color:="" #626262;"="">&nbsp;</p>
+<div id="hwpEditorBoardContent" class="hwp_editor_board_content" data-hjsonver="1.0" data-jsonlen="8046" apple="" sd="" gothic="" neo",="" sans-serif;="" font-size:="" 13px;"="" style="margin: 0px; padding: 0px; font-family: " noto="" sans="" kr";="" 13.76px;="" color:="" #626262;"="">&nbsp;</div>
+<p apple="" sd="" gothic="" neo",="" sans-serif;="" font-size:="" 13px;"="" style="padding: 0px; line-height: 1.5em; font-family: " noto="" sans="" kr";="" 13.76px;="" color:="" #626262;"="">&nbsp;</p>
+<p class="0" malgun="" gothic";="" font-size:="" 13.76px;="" word-break:="" keep-all;"="" noto="" sans="" kr";="" 13.76px;"="" apple="" sd="" gothic="" neo",="" sans-serif;="" 13px;="" line-height:="" 1.15;="" text-align:="" center;"="" style="padding: 0px; line-height: 1.5em; text-align: center; font-family: " color:="" #626262;"=""><span style="font-size: 13.76px;">&nbsp;</span></p>
+<p class="0" malgun="" gothic";="" font-size:="" 13.76px;="" word-break:="" keep-all;"="" noto="" sans="" kr";="" 13.76px;"="" apple="" sd="" gothic="" neo",="" sans-serif;="" 13px;="" line-height:="" 1.5em;="" text-align:="" center;"="" style="padding: 0px; line-height: 1.5em; text-align: center; font-family: " color:="" #626262;"=""><font face="맑은 고딕, Malgun Gothic" style="margin: 0px; padding: 0px;"><span style="margin: 0px; padding: 0px; letter-spacing: -0.133333px; font-size: 28px;"><b style="margin: 0px; padding: 0px;">2026년 인천광역시 중소기업육성자금 지원 공고(8차)</b></span></font></p>
+<p noto="" sans="" kr";="" font-size:="" 13.76px;"="" apple="" sd="" gothic="" neo",="" sans-serif;="" line-height:="" 1.5em;"="" 13px;"="" style="padding: 0px; line-height: 1.5em; font-family: " 13.76px;="" color:="" #626262;"=""><span style="margin: 0px; padding: 0px; font-family: 바탕체; letter-spacing: -0.1pt; font-weight: bold; font-size: 21pt;"><br></span></p>
+<p class="0" noto="" sans="" kr";="" font-size:="" 13.76px;"="" apple="" sd="" gothic="" neo",="" sans-serif;="" 13px;="" line-height:="" 1.5em;"="" 13px;"="" style="padding: 0px; line-height: 1.5em; font-family: " 13.76px;="" color:="" #626262;"="">&nbsp;</p>
+<p class="0" noto="" sans="" kr";="" font-size:="" 13.76px;"="" apple="" sd="" gothic="" neo",="" sans-serif;="" 13px;="" line-height:="" 23.392px;"="" 13px;"="" style="padding: 0px; line-height: 1.5em; font-family: " 13.76px;="" color:="" #626262;"=""><span style="margin: 0px; padding: 0px; font-family: 휴먼명조; letter-spacing: -0.6pt; font-size: 15pt;"></span><span lang="EN-US" style="margin: 0px; padding: 0px; font-family: 휴먼명조; letter-spacing: -1.1pt; font-size: 15pt;"></span></p>
+<p class="0" apple="" sd="" gothic="" neo",="" sans-serif;="" font-size:="" 13px;="" line-height:="" 1.5;"="" 13px;"="" style="padding: 0px; line-height: 1.8;" noto="" sans="" kr";="" 13.76px;="" color:="" #626262;"=""><span style="margin: 0px; padding: 0px; font-family: 휴먼명조; letter-spacing: -0.6pt; font-size: 15pt;">「</span><span style="margin: 0px; padding: 0px; font-family: 휴먼명조; letter-spacing: -0.6pt; font-size: 15pt;">인천광역시 중소기업경영안정자금 지원 및&nbsp;</span><span style="margin: 0px; padding: 0px; font-family: 휴먼명조; letter-spacing: -1.1pt; font-size: 15pt;">운용조례</span><span style="margin: 0px; padding: 0px; font-family: 휴먼명조; letter-spacing: -1.1pt; font-size: 15pt;">」</span><span style="margin: 0px; padding: 0px; font-family: 휴먼명조; letter-spacing: -1.1pt; font-size: 15pt;">제</span><span lang="EN-US" style="margin: 0px; padding: 0px; font-family: 휴먼명조; letter-spacing: -1.1pt; font-size: 15pt;">6</span><span style="margin: 0px; padding: 0px; font-family: 휴먼명조; letter-spacing: -1.1pt; font-size: 15pt;">조&nbsp;</span><span style="margin: 0px; padding: 0px; font-family: 휴먼명조; font-size: 15pt; letter-spacing: -0.8px;">및 <span style="margin: 0px; padding: 0px; letter-spacing: -0.6pt; font-size: 15pt;">「</span><span style="margin: 0px; padding: 0px; letter-spacing: -0.6pt; font-size: 15pt;">인천광역시 중소기업 육성기금 설치 및 운용조례</span><span style="margin: 0px; padding: 0px; letter-spacing: -1.1pt; font-size: 15pt;">」</span><span style="margin: 0px; padding: 0px; letter-spacing: -1.1pt; font-size: 15pt;">제13</span><span style="margin: 0px; padding: 0px; letter-spacing: -1.1pt; font-size: 15pt;">조의 규정에 의거 ‘2</span>026년도 인천광역시 중소기업 육성자금 지원(8차)’을 다음과 같이 공고합니다.</span></p>
+<div id="hwpEditorBoardContent" class="hwp_editor_board_content" data-hjsonver="1.0" data-jsonlen="12901" apple="" sd="" gothic="" neo",="" sans-serif;="" font-size:="" 13px;"="" style="margin: 0px; padding: 0px; font-family: " noto="" sans="" kr";="" 13.76px;="" color:="" #626262;"="">&nbsp;</div>
+<p class="0" noto="" sans="" kr";="" font-size:="" 13.76px;="" letter-spacing:="" -1pt;"="" apple="" sd="" gothic="" neo",="" sans-serif;="" 13px;="" line-height:="" 23.392px;"="" 13px;"="" style="padding: 0px; line-height: 1.5em; font-family: " color:="" #626262;"="">&nbsp;<o:p></o:p></p>
+<p class="0" noto="" sans="" kr";="" word-break:="" keep-all;"="" apple="" sd="" gothic="" neo",="" sans-serif;="" font-size:="" 13px;="" line-height:="" 1.5em;="" text-align:="" center;"="" style="padding: 0px; line-height: 1.5em; text-align: right; font-family: " 13.76px;="" color:="" #626262;"=""><span lang="EN-US" style="margin: 0px; padding: 0px; font-family: 바탕체; letter-spacing: 0.2pt; font-size: 18px;">2026. 7. 27.</span></p>
+<p class="0" noto="" sans="" kr";="" word-break:="" keep-all;="" letter-spacing:="" -0.8pt;="" font-size:="" 13pt;"="" apple="" sd="" gothic="" neo",="" sans-serif;="" 13px;="" line-height:="" 1.5em;="" text-align:="" center;"="" 13px;"="" style="padding: 0px; line-height: 1.5em; font-family: " 13.76px;="" color:="" #626262;"="">&nbsp;<o:p></o:p></p>
+<p class="0" noto="" sans="" kr";="" font-size:="" 13.76px;"="" apple="" sd="" gothic="" neo",="" sans-serif;="" 13px;="" line-height:="" 1.5em;"="" 13px;"="" style="padding: 0px; line-height: 1.5em; text-align: right; font-family: " 13.76px;="" color:="" #626262;"=""><span style="margin: 0px; padding: 0px; font-family: 휴먼명조; font-size: 21pt; font-weight: bold;">인 천 광 역 시 장</span></p>
+						
+						</div>
+						<!--// editor -->
+						
+					</div>
+					<!--// division view_area -->
+ 
+
+
+
+
+            <div class="button_area">
+                <div class="alignr">
+                    <div class="m_btn_area">
+                    
+
+                     	 <!--  공공누리버튼 들어갈 장소 20171016_by_yong -->
+                        <a href="/intro.asp?tmid=13&bid=1" class="btn list" title="목록으로 이동 버튼">
+                            <span>목록</span>
+                        </a>
+                     
+                    </div>
+                </div>
+            </div>
+ 
+			 
+
+
+</div>
+
+
+
+</div>
+</article>
+</div>
+<div id="footer">
+        <footer>
+            <div class="footer_area">
+                <div class="footer_link_area">
+                    <ul>
+                        <li>
+                            <a href="/intro.asp?tmid=27" title="찾아오시는길 바로가기 페이지 이동">
+                                <span>찾아오시는길</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/intro.asp?tmid=651" title="개인정보처리방침 바로가기 페이지 이동">
+                                <span><font color='red'><b>개인정보처리방침</b></font></span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/intro.asp?tmid=254" title="사이트맵 바로가기 페이지 이동">
+                                <span>사이트맵</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/intro.asp?tmid=26" title="사이트맵 바로가기 페이지 이동">
+                                <span>업무별담당자연락처</span>
+                            </a>
+                        </li>                        
+                    </ul>
+                </div>
+                <div class="footer_addr_area">
+                    <address>
+                    주소 : 21999 인천광역시 연수구 갯벌로 12 (송도동)
+                    </address>
+                    <span> / FAX : 032-260-0800</span>
+                    <p>COPYRIGHT (C) 2016 INCHEON TECHNOPARK.   ALL RIGHTS RESERVED</p> 
+                   </div>
+            </div>
+        </footer>
+        </div>
+        
+         
+</div>
+<!--div id="mnav" name="mnav" style="position: absolute; top: -10000px; left: -10000px;" 20171016_by_yong-->
+<div id="mnav" style="position: absolute; top: -10000px; left: -10000px;">
+<div class="gnb_area">
+<div class="nav">
+	<div class="mobile_title_area">
+         <h2 class="title">전체메뉴</h2>
+    </div>
+	 
+		<div class="">
+		<nav>
+			<ul class="mobile_menu">
+			
+<li class="liMn"><a href="/intro.asp?tmid=1" id="atag1"  title="지원사업소개 페이지로 이동" name='aTag'>	<span>지원사업소개</span></a><ul class="Depth1_area" id="idMnu1">	<li >        <a href="/intro.asp?tmid=567" title="온라인 사업안내 페이지로 이동">			<span>온라인 사업안내 </span>		</a>		<ul>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=9" title="모빌리티본부 페이지로 이동">			<span>모빌리티본부 </span>		</a>		<ul>			<li >                <a href="/intro.asp?tmid=43"  title="미래차센터 페이지로 이동">					<span>미래차센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=381"  title="항공센터 페이지로 이동">					<span>항공센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=464"  title="로봇센터 페이지로 이동">					<span>로봇센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=668"  title="파브센터 페이지로 이동">					<span>파브센터</span>				</a>			</li>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=661" title="바이오탄소제로본부 페이지로 이동">			<span>바이오탄소제로본부 </span>		</a>		<ul>			<li >                <a href="/intro.asp?tmid=662"  title="바이오센터 페이지로 이동">					<span>바이오센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=663"  title="녹색반도체센터 페이지로 이동">					<span>녹색반도체센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=664"  title="미래에너지센터 페이지로 이동">					<span>미래에너지센터</span>				</a>			</li>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=7" title="기업지원본부 페이지로 이동">			<span>기업지원본부 </span>		</a>		<ul>			<li >                <a href="/intro.asp?tmid=653"  title="경영지원센터 페이지로 이동">					<span>경영지원센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=710"  title="수출지원센터 페이지로 이동">					<span>수출지원센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=36"  title="마케팅센터 페이지로 이동">					<span>마케팅센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=35"  title="제조혁신센터 페이지로 이동">					<span>제조혁신센터</span>				</a>			</li>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=10" title="일자리본부 페이지로 이동">			<span>일자리본부 </span>		</a>		<ul>			<li >                <a href="/intro.asp?tmid=386"  title="일자리센터 페이지로 이동">					<span>일자리센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=47"  title="고용안정센터 페이지로 이동">					<span>고용안정센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=48"  title="청년일자리센터 페이지로 이동">					<span>청년일자리센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=534"  title="뿌리산업일자리센터 페이지로 이동">					<span>뿌리산업일자리센터</span>				</a>			</li>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=11" title="디자인N콘텐츠본부 페이지로 이동">			<span>디자인N콘텐츠본부 </span>		</a>		<ul>			<li >                <a href="/intro.asp?tmid=49"  title="디자인지원센터 페이지로 이동">					<span>디자인지원센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=50"  title="환경디자인센터 페이지로 이동">					<span>환경디자인센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=709"  title="공공디자인센터 페이지로 이동">					<span>공공디자인센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=640"  title="디자인교육센터 페이지로 이동">					<span>디자인교육센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=669"  title="콘텐츠기업지원센터 페이지로 이동">					<span>콘텐츠기업지원센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=670"  title="문화콘텐츠센터 페이지로 이동">					<span>문화콘텐츠센터</span>				</a>			</li>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=364" title="디지털벤처창업본부 페이지로 이동">			<span>디지털벤처창업본부 </span>		</a>		<ul>			<li >                <a href="/intro.asp?tmid=671"  title="디지털기술융합센터 페이지로 이동">					<span>디지털기술융합센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=366"  title="AI혁신센터 페이지로 이동">					<span>AI혁신센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=467"  title="혁신창업센터 페이지로 이동">					<span>혁신창업센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=538"  title="스타트업파크센터 페이지로 이동">					<span>스타트업파크센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=647"  title="벤처투자지원센터 페이지로 이동">					<span>벤처투자지원센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=728"  title="혁신기술교육센터 페이지로 이동">					<span>혁신기술교육센터</span>				</a>			</li>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=362" title="발간자료 페이지로 이동">			<span>발간자료 </span>		</a>		<ul>		</ul>	</li>	  </ul></li><li class="liMn"><a href="/intro.asp?tmid=2" id="atag2"  title="ITP 뉴스 페이지로 이동" name='aTag'>	<span>ITP 뉴스</span></a><ul class="Depth1_area" id="idMnu2">	<li class='on'>        <a href="/intro.asp?tmid=13" title="지원사업 페이지로 이동">			<span>지원사업 </span>		</a>		<ul>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=586" title="채용안내 페이지로 이동">			<span>채용안내 </span>		</a>		<ul>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=14" title="기관공고 페이지로 이동">			<span>기관공고 </span>		</a>		<ul>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=15" title="보도자료 페이지로 이동">			<span>보도자료 </span>		</a>		<ul>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=16" title="유관사업 페이지로 이동">			<span>유관사업 </span>		</a>		<ul>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=17" title="뉴스레터 페이지로 이동">			<span>뉴스레터 </span>		</a>		<ul>			<li >                <a href="/intro.asp?tmid=51"  title="뉴스레터 페이지로 이동">					<span>뉴스레터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=52"  title="뉴스레터 구독  페이지로 이동">					<span>뉴스레터 구독 </span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=415"  title="뉴스레터 개인정보보호방침 페이지로 이동">					<span>뉴스레터 개인정보보호방침</span>				</a>			</li>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=19" title="홍보자료실 페이지로 이동">			<span>홍보자료실 </span>		</a>		<ul>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=412" title="기고자료 페이지로 이동">			<span>기고자료 </span>		</a>		<ul>		</ul>	</li>	  </ul></li><li class="liMn"><a href="/intro.asp?tmid=3" id="atag3"  title="자원/시설안내 페이지로 이동" name='aTag'>	<span>자원/시설안내</span></a><ul class="Depth1_area" id="idMnu3">	<li >        <a href="/intro.asp?tmid=20" title="장비안내 페이지로 이동">			<span>장비안내 </span>		</a>		<ul>			<li >                <a href="/intro.asp?tmid=53"  title="장비검색 페이지로 이동">					<span>장비검색</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=56"  title="자동차산업 페이지로 이동">					<span>자동차산업</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=54"  title="바이오산업 페이지로 이동">					<span>바이오산업</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=55"  title="녹색반도체 페이지로 이동">					<span>녹색반도체</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=57"  title="문화콘텐츠 페이지로 이동">					<span>문화콘텐츠</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=712"  title="디자인 페이지로 이동">					<span>디자인</span>				</a>			</li>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=21" title="대관안내 페이지로 이동">			<span>대관안내 </span>		</a>		<ul>			<li >                <a href="/intro.asp?tmid=61"  title="미추홀타워 페이지로 이동">					<span>미추홀타워</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=62"  title="갯벌타워 페이지로 이동">					<span>갯벌타워</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=64"  title="제물포스마트타운 페이지로 이동">					<span>제물포스마트타운</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=65"  title="틈 문화창작지대 페이지로 이동">					<span>틈 문화창작지대</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=544"  title="인천콘텐츠기업지원센터 페이지로 이동">					<span>인천콘텐츠기업지원센터</span>				</a>			</li>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=22" title="입주/입점안내 페이지로 이동">			<span>입주/입점안내 </span>		</a>		<ul>			<li >                <a href="/intro.asp?tmid=606"  title="ITP 소유건물(일반임대) 페이지로 이동">					<span>ITP 소유건물(일반임대)</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=609"  title="위탁건물(사업지원 임대 등) 페이지로 이동">					<span>위탁건물(사업지원 임대 등)</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=76"  title="인천직구 상설관 페이지로 이동">					<span>인천직구 상설관</span>				</a>			</li>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=337" title="단지안내 페이지로 이동">			<span>단지안내 </span>		</a>		<ul>			<li >                <a href="/intro.asp?tmid=357"  title="단지입주 안내 페이지로 이동">					<span>단지입주 안내</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=340"  title="1차 산업기술단지(기존단지) 현황 페이지로 이동">					<span>1차 산업기술단지(기존단지) 현황</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=341"  title="2차 산업기술단지(확대단지) 현황 페이지로 이동">					<span>2차 산업기술단지(확대단지) 현황</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=625"  title="단지안내 자료실 페이지로 이동">					<span>단지안내 자료실</span>				</a>			</li>		</ul>	</li>	  </ul></li><li class="liMn"><a href="/intro.asp?tmid=4" id="atag4"  title="기관소개 페이지로 이동" name='aTag'>	<span>기관소개</span></a><ul class="Depth1_area" id="idMnu4">	<li >        <a href="/intro.asp?tmid=455" title="비전('24~'28) 페이지로 이동">			<span>비전('24~'28) </span>		</a>		<ul>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=615" title="ESG 경영 페이지로 이동">			<span>ESG 경영 </span>		</a>		<ul>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=708" title="안전보건방침 페이지로 이동">			<span>안전보건방침 </span>		</a>		<ul>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=25" title="연혁 페이지로 이동">			<span>연혁 </span>		</a>		<ul>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=24" title="기관상징 소개 페이지로 이동">			<span>기관상징 소개 </span>		</a>		<ul>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=26" title="조직도 페이지로 이동">			<span>조직도 </span>		</a>		<ul>			<li >                <a href="/intro.asp?tmid=78"  title="조직도 페이지로 이동">					<span>조직도</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=79"  title="직원검색 페이지로 이동">					<span>직원검색</span>				</a>			</li>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=27" title="ITP위치 페이지로 이동">			<span>ITP위치 </span>		</a>		<ul>			<li >                <a href="/intro.asp?tmid=255"  title="전체건물보기 페이지로 이동">					<span>전체건물보기</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=80"  title="미추홀타워(본원) 페이지로 이동">					<span>미추홀타워(본원)</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=84"  title="갯벌타워 페이지로 이동">					<span>갯벌타워</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=85"  title="시험생산동 페이지로 이동">					<span>시험생산동</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=82"  title="글로벌스케일업캠퍼스 페이지로 이동">					<span>글로벌스케일업캠퍼스</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=86"  title="인천종합비즈니스센터 페이지로 이동">					<span>인천종합비즈니스센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=83"  title="틈 문화창작지대 페이지로 이동">					<span>틈 문화창작지대</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=81"  title="인천IT타워 페이지로 이동">					<span>인천IT타워</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=87"  title="제물포스마트타운 페이지로 이동">					<span>제물포스마트타운</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=405"  title="로봇타워 페이지로 이동">					<span>로봇타워</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=533"  title="인천스타트업파크 페이지로 이동">					<span>인천스타트업파크</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=536"  title="인천콘텐츠기업지원센터 페이지로 이동">					<span>인천콘텐츠기업지원센터</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=564"  title="연세대학교 국제캠퍼스  페이지로 이동">					<span>연세대학교 국제캠퍼스 </span>				</a>			</li>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=28" title="Q&A 페이지로 이동">			<span>Q&A </span>		</a>		<ul>		</ul>	</li>	  </ul></li><li class="liMn"><a href="/intro.asp?tmid=5" id="atag5"  title="기관정보공개 페이지로 이동" name='aTag'>	<span>기관정보공개</span></a><ul class="Depth1_area" id="idMnu5">	<li >        <a href="/intro.asp?tmid=29" title="정보공개 페이지로 이동">			<span>정보공개 </span>		</a>		<ul>			<li >                <a href="/intro.asp?tmid=89"  title="정보공개제도 페이지로 이동">					<span>정보공개제도</span>				</a>			</li>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=30" title="경영공시 페이지로 이동">			<span>경영공시 </span>		</a>		<ul>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=31" title="청렴ITP 페이지로 이동">			<span>청렴ITP </span>		</a>		<ul>			<li >                <a href="/intro.asp?tmid=92"  title="윤리헌장 페이지로 이동">					<span>윤리헌장</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=456"  title="인권선언문 페이지로 이동">					<span>인권선언문</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=344"  title="윤리규범 페이지로 이동">					<span>윤리규범</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=345"  title="청렴서약서 페이지로 이동">					<span>청렴서약서</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=616"  title="부패방지경영시스템(ISO37001) 페이지로 이동">					<span>부패방지경영시스템(ISO37001)</span>				</a>			</li>			<li >                <a href="/intro.asp?tmid=93"  title="클린신고센터 페이지로 이동">					<span>클린신고센터</span>				</a>			</li>			<li >                <a href="https://www.kbei.org/whistle/center/?code=itp"  title="익명신고센터(케이휘슬) 새창으로 이동" target='_blank'>					<span>익명신고센터(케이휘슬)</span>				</a>			</li>		</ul>	</li>	<li >        <a href="/intro.asp?tmid=651" title="개인정보처리방침 페이지로 이동">			<span>개인정보처리방침 </span>		</a>		<ul>		</ul>	</li>	  </ul></li>			
+
+
+
+
+			</ul>
+		</nav>
+		</div>
+	 
+	
+</div>
+            <div class="m_close_area">
+                <a href="#" onclick="layer_popup('close')" title="전체매뉴 닫기">
+                    <img src="/user/images/mobile/btn_close.png" alt="전체매뉴 닫기" />
+                </a>
+            </div>
+</div>
+</div>
+</html>

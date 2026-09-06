@@ -1,0 +1,3275 @@
+
+
+
+
+
+<!doctype html>
+<html lang="ko">
+<head>
+
+
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<title>포항테크노파크</title>
+<link rel="shortcut icon" href="/resources/homepage/main/img/favicon.ico">
+<script type="text/javascript" src="/resources/common/js/jquery-1.12.4.min.js"></script>
+<script type="text/javascript" src="/resources/common/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="/resources/common/js/wow.min.js"></script>
+<script type="text/javascript" src="/resources/common/js/jquery-ui-1.12.0.min.js"></script>
+<script type="text/javascript" src="/resources/common/js/jquery-ui-1.12.0-datepicker.min.js"></script>
+<script type="text/javascript" src="/resources/common/js/jquery.bxslider.min.js"></script>
+<script type="text/javascript" src="/resources/common/js/jquery.cycle2.js"></script>
+<script type="text/javascript" src="/resources/common/js/jquery.cycle2.carousel.js"></script>
+<script type="text/javascript" src="/resources/common/js/jquery.mmenu.min.js"></script>
+<script type="text/javascript" src="/resources/common/js/default.js"></script>
+<script type="text/javascript" src="/resources/common/js/common.js"></script>
+<script type="text/javascript" src="/resources/common/js/gnb.js"></script>
+<script type="text/javascript" src="/resources/board/js/common.js"></script>
+<!--[if lt IE 9]>
+<script src="/resources/js/respond.js"></script>
+<script src="/resources/js/html5shiv.min.js"></script>
+<![endif]-->
+<link rel="stylesheet" href="/resources/homepage/default/css/bootstrap.min.css" />
+<link rel="stylesheet" href="/resources/homepage/default/css/bootstrap-theme.min.css" />
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" >
+<link rel="stylesheet" href="/resources/homepage/default/css/jquery.mmenu.all.css" />
+<link rel="stylesheet" href="/resources/homepage/default/css/jquery-ui.min.css" />
+<link rel="stylesheet" href="/resources/homepage/default/css/2ver_ani.css" />
+<link rel="stylesheet" href="/resources/homepage/default/css/2ver_common.css" />
+<link rel="stylesheet" href="/resources/homepage/default/css/2ver_board.css" />
+<link rel="stylesheet" href="/resources/homepage/default/css/2ver_board_mo.css" />
+<link rel="stylesheet" href="/resources/homepage/default/css/page_set.css" />
+<link rel="stylesheet" href="/resources/common/css/toppopup.css" />
+<link rel="stylesheet" href="/resources/homepage/main/css/font.css" />
+<link rel="stylesheet" href="/resources/homepage/main/css/layout.css" />
+<link rel="stylesheet" href="/resources/homepage/main/css/main.css" />
+<link rel="stylesheet" href="/resources/homepage/main/css/content.css" />
+
+<script>
+<!-- 운영 -->
+// $(document).ready(function() {
+//     if(document.location.protocol == 'https:') {
+//     	if(document.location.href.indexOf('/main/login/') == -1) {
+//         	document.location.href = document.location.href.replace('https:', 'http:');
+//     	}
+//     } else {
+//     	if(document.location.href.indexOf('/main/login/') != -1) {
+// 			$('#member').attr('action', document.location.href.replace('http:', 'https:'));
+// 			$('#member').submit();
+//     	}
+//     }
+// });
+
+new WOW().init();
+var scrollTopMenuAt = true;
+var scrollBottomMenuAt = true;
+$(window).on("scroll", function() {
+	if ($(window).scrollTop() > 80) {
+		$("#top-banner").addClass("none");
+		$("#top-banner .ctrl").addClass("none");
+	} else {
+		$("#top-banner").removeClass("none");
+		$("#top-banner .ctrl").removeClass("none");
+	}
+});
+</script>
+<script>
+$(function() {
+  setTimeout(function(){
+	  $(".loading-wrap").fadeOut(1000);
+  },200);
+
+  
+  	$('title').html($('#body_head > div > h1').html() + " | 포항테크노파크");
+  
+});
+</script>
+<script>
+function linksite_tab(data)
+{
+	var show_ck = 0;
+	$(".linksite div.tab a").parent().removeClass("on");
+	$('.linksite div.cont').each(function(){
+		if($(this).css("display") != "none" ){
+			show_ck = 1;
+		}
+	});
+
+	$('.linksite div.cont').each(function(){
+		if($(this).attr('id') == data){
+			if($(this).css("display") != "none" ){
+				$(this).slideUp();
+			}else{
+				$("#"+data+"_tab").parent().addClass("on");
+				if(show_ck == 1){
+					$(this).show();
+				}else{
+					$(this).slideDown();
+				}
+			}
+		}else{
+			$(this).hide();
+		}
+	});
+}
+
+$(function(){
+	$("#btn-share").click(function(){
+		$("#share-view").fadeToggle("normal");
+	});
+});
+
+$(function() {
+  setTimeout(function(){
+	  $(".loading-wrap").fadeOut(1000);
+  },200);
+});
+
+$(window).on("scroll", function() {
+	
+	if ($(window).scrollTop() > 300) {
+		$("#header").addClass("fix");
+	} else {
+		$("#header").removeClass("fix");
+	} 
+	
+	/* if ($(window).scrollTop() > 300) {
+		$(".snb-wrap").addClass("fix");
+	} else {
+		$(".snb-wrap").removeClass("fix");
+	} */
+});
+
+$(function(){
+	$(".topmn .ico-search").click(function(){
+		$("#top-search").toggleClass("show");
+		$(this).toggleClass("active");
+	});
+});
+
+$('input#top_search_text').keyup(function(e) {
+	e.preventDefault();
+	if(e.keyCode == 13) {
+		topSearchGo();
+	}
+});
+
+function topSearchGo() {
+	$('#topSearch').submit();
+}
+
+function topSearchTypeChg(type, name){
+	if(type == 'TOTAL') {
+		$('#top_search_type').val('');
+		$('#topSearch').attr("action", "/main/search/index.do");
+	} else {
+		$('#top_search_type').val(type);
+		$('#topSearch').attr("action", "/main/search/search_detail.do");
+	}
+	$('#type_name_top').html(name);
+
+}
+
+$(function(){
+	$('#gnbmn .txt').html('AI 기반 전환성장으로 지방시대를<br>선도하는 혁신 플랫폼,<br>포항테크노파크');
+});
+</script>
+
+
+
+
+<script type="text/javascript">
+$(window).on("scroll", function() {
+	if ($(window).scrollTop() > 800) {
+		$(".equip-view .info").addClass("fix");
+	} else {
+		$(".equip-view .info").removeClass("fix");
+	}
+});
+
+
+$(document).ready(function(){
+	var loading = $('<div id="loading-bg"><div class="loading"></div></div>').appendTo(document.body).hide();
+
+	$(window).ajaxStart(function(){
+		loading.show();
+	}).ajaxStop(function(){
+		loading.hide();
+	});
+
+	$.ajaxSetup({cache:false});
+});
+
+function smartmap_toggle(id, check) {
+	  if(check=="1"){
+	    $(".smartmap-info").hide();
+	  }
+	  if($("#"+id).css("display") == "none"){
+	    $("#"+id).show();
+	  }else{
+	    $("#"+id).hide();
+	  }
+	}
+
+$(function() {
+	$('.smart-map .pin').on('click', function(){
+	    $('.smart-map .pin').removeClass('on');
+	    $(this).addClass('on');
+	});
+});
+
+</script>
+<style>
+/* 로딩 */
+#loading-bg {
+	height: 100%;
+	left: 0px;
+	position: fixed;
+	_position: absolute;
+	top: 0;
+	width: 100%;
+	background:#fff;
+	filter: alpha(opacity = 50);
+	-moz-opacity: 0.5;
+	opacity: 0.5;
+	z-index: 99999;
+}
+
+</style>
+</head>
+<body class="bbg">
+	<div id="wrap" class="sbg">
+		
+
+
+
+
+<header id="header">
+	<nav id="menu"></nav>
+	<nav id="gnb">
+		<div class="d_width">
+			<div id="logo">
+				<a href="/" title="포항테크노파크"><span class="n1"><img src="/resources/homepage/main/img/logo_w.png" alt="포항테크노파크"></span><span class="n2"><img src="/resources/homepage/main/img/logo.png" alt="포항테크노파크"></span></a>
+			</div>
+			<div id="gnbmn">
+				<ul class="depth1">
+<li class="List"><a href="/main/html.do?menu_idx=103"><span>기관소개</span></a>
+<ul class="depth2">
+<div class="title"><p class="tit"><span><span>기관소개</span></span></p><p class="txt">The Best! High-technology City<br>지방시대를 선도하는<br>지역혁신 거점기관, <br>포항테크노파크</p></div>
+<li><a href="/main/html.do?menu_idx=103">인사말</a>
+<ul class="depth3">
+<li><a href="/main/html.do?menu_idx=102">이사장</a></li>
+<li><a href="/main/html.do?menu_idx=103">원장</a></li></ul></li>
+<li><a href="/main/html.do?menu_idx=106">재단개요</a>
+<ul class="depth3">
+<li><a href="/main/html.do?menu_idx=106">재단개요</a></li>
+<li><a href="/main/html.do?menu_idx=108">비전</a></li>
+<li><a href="/main/html.do?menu_idx=240">인재상</a></li>
+<li><a href="/main/html.do?menu_idx=104">연혁</a></li>
+<li><a href="/main/html.do?menu_idx=125">기관 CI</a></li>
+<li><a href="/main/html.do?menu_idx=107">전국테크노파크</a></li></ul></li>
+<li><a href="/main/html.do?menu_idx=137">조직구성</a>
+<ul class="depth3">
+<li><a href="/main/html.do?menu_idx=137">조직도</a></li>
+<li><a href="/main/module/deptManager/index.do?menu_idx=138">직원안내</a></li>
+<li><a href="/main/html.do?menu_idx=179">부서소개</a></li>
+<li><a href="/main/html.do?menu_idx=227">제조혁신센터 </a></li></ul></li>
+<li><a href="/main/html.do?menu_idx=314">경영전략</a>
+<ul class="depth3">
+<li><a href="/main/html.do?menu_idx=314">ESG경영</a></li>
+<li><a href="/main/html.do?menu_idx=312">윤리경영</a></li>
+<li><a href="/main/html.do?menu_idx=316">인권경영</a></li></ul></li>
+<li><a href="/main/html.do?menu_idx=289">오시는 길</a>
+<ul class="depth3">
+<li><a href="/main/html.do?menu_idx=289">포항테크노파크</a></li>
+<li><a href="/main/html.do?menu_idx=290">지식산업센터</a></li>
+<li><a href="/main/html.do?menu_idx=291">그린백신실증지원센터</a></li>
+<li><a href="/main/html.do?menu_idx=292">첨단해양R&D센터</a></li>
+<li><a href="/main/html.do?menu_idx=293">에너지산업융복합단지</a></li></ul></li></ul></li>
+<li class="List"><a href="/main/html.do?menu_idx=262"><span>단지소개</span></a>
+<ul class="depth2">
+<div class="title"><p class="tit"><span><span>단지소개</span></span></p><p class="txt">The Best! High-technology City<br>지방시대를 선도하는<br>지역혁신 거점기관, <br>포항테크노파크</p></div>
+<li><a href="/main/html.do?menu_idx=262">단지현황</a>
+<ul class="depth3">
+<li><a href="/main/html.do?menu_idx=261">포항테크노파크 본원</a></li>
+<li><a href="/main/html.do?menu_idx=259">포항융합기술산업지구</a></li>
+<li><a href="/main/html.do?menu_idx=194">지역혁신기관(포항)</a></li></ul></li>
+<li><a href="/main/html.do?menu_idx=120">입주신청</a>
+<ul class="depth3">
+<li><a href="/main/html.do?menu_idx=120">입주신청안내</a></li>
+<li><a href="/main/module/movein/index.do?menu_idx=154">입주기업소개</a></li></ul></li>
+<li><a href="/main/html.do?menu_idx=301">관련 홈페이지</a>
+<ul class="depth3">
+<li><a href="http://www.pkic.kr" target="_blank"><span>포항지식산업센터</span></a></li>
+<li><a href="https://www.k-startup.go.kr" target="_blank"><span>1인창조기업비즈니스센터</span></a></li></ul></li></ul></li>
+<li class="List"><a href="/main/html.do?menu_idx=140"><span>회의실·공용장비</span></a>
+<ul class="depth2">
+<div class="title"><p class="tit"><span><span>회의실·공용장비</span></span></p><p class="txt">The Best! High-technology City<br>지방시대를 선도하는<br>지역혁신 거점기관, <br>포항테크노파크</p></div>
+<li><a href="/main/html.do?menu_idx=140">회의실</a>
+<ul class="depth3">
+<li><a href="/main/html.do?menu_idx=140">회의실 대관</a></li>
+<li><a href="/main/html.do?menu_idx=141">이용안내</a></li>
+<li><a href="/main/module/meetingRoom/index.do?menu_idx=142">대관신청</a></li></ul></li>
+<li><a href="/main/module/equipManage/index.do?menu_idx=144">공용장비</a>
+<ul class="depth3">
+<li><a href="/main/module/equipManage/index.do?menu_idx=144">장비현황</a></li>
+<li><a href="/main/html.do?menu_idx=145">이용안내</a></li>
+<li><a href="/main/module/equipApplyManage/index.do	?menu_idx=146">이용신청</a></li>
+<li><a href="/main/board/index.do?menu_idx=147&manage_idx=10">신청서식</a></li></ul></li>
+<li><a href="/main/html.do?menu_idx=304">수소연료전지인증센터</a>
+<ul class="depth3">
+<li><a href="/main/html.do?menu_idx=304">개요</a></li>
+<li><a href="/main/module/sampleTestEquip/index.do?menu_idx=305">보유장비</a></li>
+<li><a href="/main/module/sampleTest/edit.do?menu_idx=306">시험 신청</a></li></ul></li></ul></li>
+<li class="List"><a href="/main/html.do?menu_idx=276"><span>협의회·단체</span></a>
+<ul class="depth2">
+<div class="title"><p class="tit"><span><span>협의회·단체</span></span></p><p class="txt">The Best! High-technology City<br>지방시대를 선도하는<br>지역혁신 거점기관, <br>포항테크노파크</p></div>
+<li><a href="/main/html.do?menu_idx=275">포항R&BD기관협의회</a></li>
+<li><a href="/main/module/phEnterprise/index.do?menu_idx=247">포항시 유망강소기업</a></li>
+<li><a href="/main/html.do?menu_idx=271">포항기업연구소협의회</a></li></ul></li>
+<li class="List"><a href="/main/html.do?menu_idx=70"><span>홍보마당</span></a>
+<ul class="depth2">
+<div class="title"><p class="tit"><span><span>홍보마당</span></span></p><p class="txt">The Best! High-technology City<br>지방시대를 선도하는<br>지역혁신 거점기관, <br>포항테크노파크</p></div>
+<li><a href="/main/board/index.do?menu_idx=266&manage_idx=11">언론에 비친 PTP</a></li>
+<li><a href="/main/board/index.do?menu_idx=127&manage_idx=12">e-브로슈어</a></li>
+<li><a href="/main/board/index.do?menu_idx=214&manage_idx=16">뉴스레터</a></li>
+<li><a href="/main/board/index.do?menu_idx=148&manage_idx=13">홍보동영상</a></li></ul></li>
+<li class="List"><a href="/main/html.do?menu_idx=149"><span>소통마당</span></a>
+<ul class="depth2">
+<div class="title"><p class="tit"><span><span>소통마당</span></span></p><p class="txt">The Best! High-technology City<br>지방시대를 선도하는<br>지역혁신 거점기관, <br>포항테크노파크</p></div>
+<li><a href="/main/html.do?menu_idx=149">클린신고</a></li>
+<li><a href="/main/board/index.do?menu_idx=133&manage_idx=6">자유게시판</a></li>
+<li><a href="/main/board/index.do?menu_idx=134&manage_idx=7">고객제안</a></li>
+<li><a href="/main/board/index.do?menu_idx=135&manage_idx=8">자료실</a></li>
+<li><a href="/main/board/index.do?menu_idx=318&manage_idx=26">정책자료</a>
+<ul class="depth3">
+<li><a href="/main/board/index.do?menu_idx=318&manage_idx=26">주간정책동향</a></li>
+<li><a href="/main/board/index.do?menu_idx=225&manage_idx=17">POCUS Briefing</a></li>
+<li><a href="/main/board/index.do?menu_idx=224&manage_idx=18">발간자료</a></li></ul></li></ul></li>
+<li class="List"><a href="/main/board/index.do?menu_idx=113&manage_idx=2"><span>알림마당</span></a>
+<ul class="depth2">
+<div class="title"><p class="tit"><span><span>알림마당</span></span></p><p class="txt">The Best! High-technology City<br>지방시대를 선도하는<br>지역혁신 거점기관, <br>포항테크노파크</p></div>
+<li><a href="/main/board/index.do?menu_idx=113&manage_idx=2">공지사항</a></li>
+<li><a href="/main/board/index.do?menu_idx=116&manage_idx=15">사업공고</a></li>
+<li><a href="/main/board/index.do?menu_idx=114&manage_idx=3">입찰정보</a></li>
+<li><a href="/main/board/index.do?menu_idx=115&manage_idx=4">채용정보</a></li>
+<li><a href="/main/board/index.do?menu_idx=129&manage_idx=5">경영공시</a></li></ul></li></ul>
+
+				<div class="clear"></div>
+			</div>
+			<div class="topmn">
+				<div class="topmn-pc">
+				
+					
+					
+						<a href="/main/login/index.do?menu_idx=207">LOGIN</a>
+						<a href="/main/login/join.do?menu_idx=208">JOIN</a>
+					
+				
+				
+				
+					<a href="/data/brochure/12/7563/20241121_[포항테크노파크]브로슈어 영문.pdf" target="_blank">ENG</a>
+						
+				<a href="javascript:void(0);" class="ico-search"><i class="fas fa-search"></i></a>
+				<a href="https://www.instagram.com/pohangtp_official/" target="_blank" class="ico-instagram"><i class="fab fa-instagram"></i></a>
+				</div>
+				<div class="topmn-mo">
+				<a href="#menu" id="mobile-navicon"><i class="fas fa-bars"></i></a>
+				</div>					
+				
+			</div>
+			<div id="mo-menu">
+				
+					
+					
+						<a href="/main/login/index.do?menu_idx=207">LOGIN</a>
+						<a href="/main/login/join.do?menu_idx=208">JOIN</a>
+					
+				
+				
+					<a href="/data/brochure/12/7563/20241121_[포항테크노파크]브로슈어 영문.pdf" target="_blank" class="ico-eng">ENG</a>
+				
+			</div>
+		</div>
+		<div id="id_gnb_bg" class="gnb_bg"></div>
+	</nav>
+	<div id="top-search">
+		<div class="m_width">
+		<p class="tit"><span>SEARCH</span></p>
+		<p class="txt">포항테크노파크에 궁금한 정보를 빠르게 찾아보세요.</p>
+		<div class="input-area">
+			<div class="dropdown">
+				<button id="dLabelTop" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+				<span id="type_name_top">통합검색</span>
+				<i class="fas fa-angle-down"></i>
+				</button>
+				<ul class="dropdown-menu" role="menu" aria-labelledby="dLabelTop">
+					<li onclick="topSearchTypeChg('TOTAL','통합검색');">통합검색</li>
+					<li onclick="topSearchTypeChg('MENU','메뉴검색');">메뉴검색</li>
+					<li onclick="topSearchTypeChg('CONTENT','웹페이지');">웹페이지</li>
+					<li onclick="topSearchTypeChg('BOARD','게시물');">게시물</li>
+					<li onclick="topSearchTypeChg('EQUIP','공용장비');">공용장비</li>
+				</ul>
+			</div>
+			<form id="topSearch" name="topSearch" action="/main/search/index.do" method="post" enctype="application/x-www-form-urlencoded">
+			<input type="text" id="top_search_text"name="search_text" placeholder="검색어를 입력하세요."/>
+			<input type="hidden" id="top_search_type" name="search_type">
+			</form>
+			<a href="javascript:void(0);" onclick="topSearchGo();" class="go-search"><span></span></a>
+		</div>
+		</div>
+	</div>
+</header>
+		
+
+
+
+
+
+<script>
+var url_default_ks = "https://story.kakao.com/share?url=";
+var url_default_fb = "https://www.facebook.com/sharer/sharer.php?u=";
+var url_default_tw_txt = "https://twitter.com/intent/tweet?text=";
+var url_default_tw_url = "&url=";
+var url_default_naver = "http://share.naver.com/web/shareView.nhn?url=";
+var title_default_naver = "&title=";
+var url_this_page = location.href;
+var title_this_page = document.title;
+var url_combine_ks = url_default_ks + encodeURI(url_this_page);
+var url_combine_fb = url_default_fb + encodeURI(url_this_page);
+var url_combine_tw = url_default_tw_txt + document.title + url_default_tw_url + encodeURI(url_this_page);
+var url_combine_naver = url_default_naver + encodeURI(url_this_page) + title_default_naver + encodeURI(title_this_page);
+</script>
+<script src="//developers.kakao.com/sdk/js/kakao.min.js"></script>
+<script>
+Kakao.init('cfa96d5ab99174d262a399100fe02ed6');
+function shareKatalk(){
+    Kakao.Link.sendScrap({ requestUrl: location.href });
+}
+
+function shareKaStory(){
+	window.open(url_combine_ks, '', 'scrollbars=no, width=600,height=600');
+}
+
+function shareFacebook(){
+	window.open(url_combine_fb, '', 'scrollbars=no, width=600, height=600');
+}
+
+function shareTwitter(){
+	window.open(url_combine_tw, '', 'scrollbars=no, width=600,height=600');
+}
+
+function shareNaverBlog(){
+	window.open(url_combine_naver, '', 'scrollbars=no, width=600,height=600');
+}
+
+function urlClipCopy() {
+	$('#wrap').append('<input type="text" id="dataUrl">');
+	if(typeof(custom_url) == 'undefined'){
+		$("#dataUrl").val(url_this_page);
+	}else{
+		$("#dataUrl").val(custom_url);
+	}
+	$("#dataUrl").select();
+	document.execCommand("copy");
+	alert("클립보드로 URL이 복사되었습니다.");
+	$("#dataUrl").remove();
+}
+</script>
+<div id="sub-visual">
+	<div class="svbg svimg100"></div>
+	<div class="d_width">
+		<div class="title">
+			<span class="svtit"><em>알림마당 </em></span>
+			<p class="svtxt">The Best! High-technology City</p>
+			
+		</div>
+		<div class="clear"></div>
+	</div>
+	<div class="snb-wrap">
+	<div class="d_width">
+		<div id="snb">
+			<ul class="clearfix depth1">
+			<li class="home"><a href="/main/index.do"></a></li>
+			<li class="mobile_none">
+				<span>알림마당</span><ul>
+<li></li>
+<li><a href="/main/html.do?menu_idx=103">기관소개</a></li>
+<li><a href="/main/html.do?menu_idx=262">단지소개</a></li>
+<li><a href="/main/html.do?menu_idx=140">회의실·공용장비</a></li>
+<li><a href="/main/html.do?menu_idx=276">협의회·단체</a></li>
+<li><a href="/main/html.do?menu_idx=70">홍보마당</a></li>
+<li><a href="/main/html.do?menu_idx=149">소통마당</a></li>
+<li></li>
+<li class="on"><a href="/main/board/index.do?menu_idx=113&manage_idx=2">알림마당</a></li>
+<li></li>
+<li></li>
+<li></li></ul>
+
+			</li>
+			
+			<li>
+				
+					
+					
+					
+					
+						
+					
+				
+				<span>사업공고</span><ul>
+<li><a href="/main/board/index.do?menu_idx=113&manage_idx=2">공지사항</a></li>
+<li class="on"><a href="/main/board/index.do?menu_idx=116&manage_idx=15">사업공고</a></li>
+<li><a href="/main/board/index.do?menu_idx=114&manage_idx=3">입찰정보</a></li>
+<li><a href="/main/board/index.do?menu_idx=115&manage_idx=4">채용정보</a></li>
+<li><a href="/main/board/index.do?menu_idx=129&manage_idx=5">경영공시</a></li></ul>
+
+			</li>
+			
+			
+			</ul>
+		</div>
+
+		<div class="pnb">
+			<ul class="clearfix">
+				<li><a href="javascript:void(0);" onclick="updateZoom(0.1);" class="ico-font-up"><i class="fa fa-plus"></i></a></li>
+				<li><a href="javascript:void(0);" onclick="updateZoom(0);" class="ico-font-default">A</a></li>
+				<li><a href="javascript:void(0);" onclick="updateZoom(-0.1);" class="ico-font-down"><i class="fa fa-minus"></i></a></li>
+			</ul>
+			<a href="javascript:void(0);" onclick="contentPrint();" class="ico-print"></a>
+			<a href="javascript:void(0);" class="ico-share" id="btn-share"></a>
+			<div class="share clearfix" style="display:none;" id="share-view">
+				<a href="javascript:void(0);" onclick="shareKatalk(); return false;" class="kakao" title="카카오톡 공유"><span>카카오톡</span></a>
+				<a href="javascript:void(0);" onclick="shareKaStory(); return false;" class="kakaostory" title="카카오스토리 공유"><span>카카오스토리</span></a>
+<!-- 				<a href="javascript:void(0);" onclick="shareFacebook(); return false;" class="facebook" title="페이스북 공유"><span>페이스북</span></a> -->
+				<a href="javascript:void(0);" onclick="shareTwitter(); return false;" class="twitter" title="트위터 공유"><span>트위터</span></a>
+				<a href="javascript:void(0);" onclick="shareNaverBlog(); return false;" class="blog" title="블로그 공유"><span>블로그</span></a>
+				<a href="javascript:void(0);" onclick="urlClipCopy(); return false;" title="클립보드에 복사"><i class="fa fa-paperclip fa-2x"></i><span>클립보드에 복사</span></a>
+			</div>
+		</div>
+	</div>
+	</div>
+</div>
+		<div class="sub-section">
+			<div class="d_width">
+				<div id="sub-content">
+					<div id="body_head">
+						<div class="c_width">
+						
+						<h1>
+						
+						
+						
+							
+								
+								
+									사업공고
+								
+							
+						
+						
+						</h1>
+						</div>
+					</div>
+					<div id="body_content">
+						<div class="c_width">
+							
+							
+							
+							
+							
+						</div>
+						
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+var $form;
+
+$(document).ready(function() {
+	$form = $('#board');
+
+	$('select#search_category1, select#search_category2, select#search_category3').on('change', function() {
+		var url = 'index.do';
+		var formData = serializeCustom($form);
+		doGetLoad(url, formData);
+	});
+
+	$('button#btnSearch').on('click', function(e) {
+		e.preventDefault();
+		$('#viewPage').attr('value', '1');
+		var param = serializeCustom($form);
+		doGetLoad('index.do', param);
+	});
+
+	$('input#search_text').keyup(function(e) {
+		e.preventDefault();
+		if(e.keyCode == 13) {
+			$('#viewPage').attr('value', '1');
+			var param = serializeCustom($form);
+			doGetLoad('index.do', param);
+		}
+	});
+
+	$('select#rowCount').on('change', function() {
+		$('input#viewPage').val(1);
+		var url = 'index.do';
+		var formData = serializeCustom($form);
+		doGetLoad(url, formData);
+	});
+	
+	
+	$(document).ready(function() {
+		$('input#memo1').datepicker({
+			maxDate: $('input#memo2').val(),
+			onClose: function(selectedDate) {
+				$('input#memo2').datepicker('option', 'minDate', selectedDate);
+			}
+		});
+		
+		$('input#memo2').datepicker({
+			minDate: $('input#memo1').val(),
+			onClose: function(selectedDate) {
+				$('input#memo1').datepicker('option', 'maxDate', selectedDate);
+			}
+		});
+	});
+	
+	
+});
+
+function viewBoard(board_idx, category1) {
+	
+	
+	
+		$('#board_idx').val(board_idx);
+		var url = 'view.do';
+		var formData = serializeCustom($form);
+		doGetLoad(url, formData);
+	
+	
+}
+
+function editBoard() {
+	
+	
+	
+	
+		alert('로그인 후 사용 가능합니다.');
+		doGetLoad('/main/userLogin/index.do?login_type=personnal');
+	
+	
+}
+
+
+function editBrochure(board_idx) {
+	$('#board_idx').val(board_idx);
+	$('#editMode').val('MODIFY');
+
+
+
+	alert('관리자만 사용 가능합니다.');
+
+
+}
+
+
+
+
+
+function updateCategoryBoard() {
+	if($('#category1').val() == '') {
+		alert('구분을 선택하십시오.');
+		return false;
+	}
+	if(confirm('해당 규정 구분을 수정 처리 하시겠습니까?')) {
+		var param =
+		{
+			'manage_idx' : $('#manage_idx').val(),
+			'group_idx' : $('#parent_idx').val(),
+			'category1' : $('#category1').val(),
+			'title' : $('#title').val(),
+		};
+
+		$.ajax({
+			url : 'updateGroupCategory.do',
+			async : false,
+			data : param,
+			method : 'POST',
+			dataType : 'json',
+			success : function(response) {
+				response = eval(response);
+				if(response.valid) {
+					alert(response.message);
+
+					var tmpHref = location.href.split("&category1=");
+					var FrontUrl = tmpHref[0];
+					tmpHref = tmpHref[1].split("&");
+					tmpHref[0] = "";
+					var TailUrl = tmpHref.join("&");
+
+					location.replace(FrontUrl  + "&category1=" + $('#category1').val());
+				}
+			}
+		});
+	}
+}
+
+
+
+function searchMoreView(viewBool) {
+	if(viewBool) {
+		$("#detail_area").slideDown();
+	} else {
+		$("#detail_area").slideUp();
+	}
+	$('#dtl_opt_view').val(viewBool);
+}
+
+function promoMovieView(idx) {
+	$('#board_idx').val(idx);
+	var param = serializeCustom($('#board'));
+	doGetLoad('index.do', param);
+}
+
+function selOrder(type) {
+	switch (type) {
+	case '1' :
+		$('#order_name').val('add_date');
+		$('#order_type').val('DESC');
+		break;
+	case '2' :
+		$('#order_name').val('add_date');
+		$('#order_type').val('ASC');
+		break;
+	case '3' :
+		$('#order_name').val('title');
+		$('#order_type').val('ASC');
+		break;
+	case '4' :
+		$('#order_name').val('title');
+		$('#order_type').val('DESC');
+		break;
+	case '5' :
+		$('#order_name').val('memo4');
+		$('#order_type').val('DESC');
+		break;
+	case '6' :
+		$('#order_name').val('memo4');
+		$('#order_type').val('ASC');
+		break;
+	}
+
+	$('#viewPage').attr('value', '1');
+	var param = serializeCustom($form);
+	doGetLoad('index.do', param);
+
+}
+</script>
+<div class="c_width">
+
+	<div class="board-report">
+		<ul>
+			<li>
+				<div class="info">
+					<img src="/resources/homepage/main/img/231201_info-icon.png" alt="알림 아이콘">
+				</div>
+				<div class="txt">
+					<p class="subject">사업공고 카카오 알림 서비스</p>
+					<p class="desc">PTP 사업소식을 카카오 알림으로 받아보실 수 있습니다.	
+					</p>
+				</div>
+				<div class="btn_go">
+					<a href="https://pf.kakao.com/_xaqNnb" target="_blank">카카오 알림 서비스 신청<span></span></a>
+				</div>
+			</li>
+		</ul>	
+	</div>
+
+<form id="board" action="index.do" method="get" onsubmit="return false;">
+
+
+
+<input id="menu_idx" name="menu_idx" type="hidden" value="116"/>
+<input id="manage_idx" name="manage_idx" type="hidden" value="15"/>
+<input id="board_idx" name="board_idx" type="hidden" value="0"/>
+<input id="old_menu_idx" name="old_menu_idx" type="hidden" value="0"/>
+<input id="old_manage_idx" name="old_manage_idx" type="hidden" value="0"/>
+<input id="old_board_idx" name="old_board_idx" type="hidden" value="0"/>
+<input id="group_depth" name="group_depth" type="hidden" value="0"/>
+<input id="parent_idx" name="parent_idx" type="hidden" value="0"/>
+<input id="group_idx" name="group_idx" type="hidden" value="0"/>
+<input id="group_ord" name="group_ord" type="hidden" value="0"/>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="board-search clearfix">
+	<div class="form-inline left">
+		
+		<select id="search.category1" name="search.category1" class="form-control">
+			<option value="">== 전체 ==</option>
+			<option value="1">경북SW진흥본부</option><option value="2">기업지원실	</option><option value="3">첨단바이오융합센터</option><option value="4">정책연구소</option><option value="8">경영지원실</option><option value="9">전략사업본부</option><option value="10">에너지사업본부</option><option value="11">바이오사업본부</option><option value="5">원전산업육성지원단</option><option value="6">그린에너지센터</option><option value="7">경북디지털혁신본부</option><option value="12">감사팀</option>
+		</select>
+		
+		
+		
+			
+			
+			<select id="search_type" name="search_type" class="form-control">
+				<option value="title+content">제목+내용</option>
+				<option value="title">제목</option>
+				<option value="user_name">글작성자</option>
+			</select>
+			
+		
+		<input id="search_text" name="search_text" class="form-control" title="검색어" placeholder="검색어를 입력하세요" accesskey="s" type="text" value="" alt="검색어"/>
+		<button id="btnSearch" class="btn-d">검색</button>
+	</div>
+	
+	<div class="more-search left mlp20">
+		<a href="javascript:void(0);" onclick="var viewBool = $('#dtl_opt_view').val(); viewBool = (viewBool === 'true'); searchMoreView(!viewBool);" class="text-sm">상세검색 <i class="fas fa-angle-down"></i></a>
+	</div>
+	
+</div>
+<div class="board-search-more" id="detail_area" style="display:none;">
+	<div class="form-group row">
+		<label class="form-control-label">기간 선택 </label>
+		<div class="form-control-body form-inline">
+			<input id="memo1" name="memo1" class="form-control w100" type="text" value="" autocomplete="off"/>
+			<span class="mlp5 mrp5">~</span>
+			<input id="memo2" name="memo2" class="form-control w100" type="text" value="" autocomplete="off"/>
+		</div>
+	</div>
+	<div class="form-group row">
+		<label class="form-control-label">구분</label>
+		<div class="form-control-body form-inline">
+		<select id="bid_search" name="bid_search" class="form-control">
+			<option value="">선택하세요</option>
+			
+				
+					<option value="before">접수전</option>
+					<option value="ongoing">접수중</option>
+					<option value="after">접수마감</option>
+				
+				
+			
+		</select>
+		</div>
+	</div>
+	
+	<div class="form-group row">
+		<label class="form-control-label">담당부서</label>
+		<div class="form-control-body form-inline">
+		
+			<div class="tv-checkbox mrp20">
+			
+			<input id="code_id_arr1" name="code_id_arr" type="checkbox" value="1" >
+			<label for="code_id_arr1">경북SW진흥본부</label>
+			</div>
+		
+			<div class="tv-checkbox mrp20">
+			
+			<input id="code_id_arr2" name="code_id_arr" type="checkbox" value="2" >
+			<label for="code_id_arr2">기업지원실	</label>
+			</div>
+		
+			<div class="tv-checkbox mrp20">
+			
+			<input id="code_id_arr3" name="code_id_arr" type="checkbox" value="3" >
+			<label for="code_id_arr3">첨단바이오융합센터</label>
+			</div>
+		
+			<div class="tv-checkbox mrp20">
+			
+			<input id="code_id_arr4" name="code_id_arr" type="checkbox" value="4" >
+			<label for="code_id_arr4">정책연구소</label>
+			</div>
+		
+			<div class="tv-checkbox mrp20">
+			
+			<input id="code_id_arr5" name="code_id_arr" type="checkbox" value="8" >
+			<label for="code_id_arr5">경영지원실</label>
+			</div>
+		
+			<div class="tv-checkbox mrp20">
+			
+			<input id="code_id_arr6" name="code_id_arr" type="checkbox" value="9" >
+			<label for="code_id_arr6">전략사업본부</label>
+			</div>
+		
+			<div class="tv-checkbox mrp20">
+			
+			<input id="code_id_arr7" name="code_id_arr" type="checkbox" value="10" >
+			<label for="code_id_arr7">에너지사업본부</label>
+			</div>
+		
+			<div class="tv-checkbox mrp20">
+			
+			<input id="code_id_arr8" name="code_id_arr" type="checkbox" value="11" >
+			<label for="code_id_arr8">바이오사업본부</label>
+			</div>
+		
+			<div class="tv-checkbox mrp20">
+			
+			<input id="code_id_arr9" name="code_id_arr" type="checkbox" value="5" >
+			<label for="code_id_arr9">원전산업육성지원단</label>
+			</div>
+		
+			<div class="tv-checkbox mrp20">
+			
+			<input id="code_id_arr10" name="code_id_arr" type="checkbox" value="6" >
+			<label for="code_id_arr10">그린에너지센터</label>
+			</div>
+		
+			<div class="tv-checkbox mrp20">
+			
+			<input id="code_id_arr11" name="code_id_arr" type="checkbox" value="7" >
+			<label for="code_id_arr11">경북디지털혁신본부</label>
+			</div>
+		
+			<div class="tv-checkbox mrp20">
+			
+			<input id="code_id_arr12" name="code_id_arr" type="checkbox" value="12" >
+			<label for="code_id_arr12">감사팀</label>
+			</div>
+		
+			<input type="hidden" name="_code_id_arr" value="on">
+		</div>
+	</div>
+	
+</div>
+
+
+
+<div class="board-info clearfix">
+	<div class="left">
+	<p class="text-sm mtp10">총 <span class="point-blue">1,485</span>건</p>
+	</div>
+	
+	
+	
+	<div class="right tar">
+		<div class="form-inline">
+		<select class="form-control w150" onchange="selOrder(this.value)">
+			<option value="1">최근등록순</option>
+			<option value="2" >과거등록순</option>
+			<option value="3" >제목오름차순</option>
+			<option value="4" >제목내림차순</option>
+		</select>
+		<input id="order_name" name="order_name" type="hidden" value="add_date"/>
+		<input id="order_type" name="order_type" type="hidden" value="DESC"/>
+		<select id="rowCount" name="rowCount" class="form-control">
+		
+			<option value="10" selected="selected">10개씩 보기</option>
+		
+			<option value="20">20개씩 보기</option>
+		
+			<option value="30">30개씩 보기</option>
+		
+			<option value="40">40개씩 보기</option>
+		
+			<option value="50">50개씩 보기</option>
+		
+		</select>
+		</div>
+	</div>
+	
+	
+</div>
+
+<input id="dtl_opt_view" name="dtl_opt_view" type="hidden" value="false"/>
+
+<div class="board-list">
+	<table title="사업공고" style="table-layout:fixed;" class="table text-sm">
+		<thead>
+			<tr>
+				<th scope="col" abbr="번호" style="width:50px;">번호</th>
+				
+				
+					
+						<th scope="col" abbr="담당부서" style="width:140px;">담당부서</th>
+					
+					
+				
+				
+				<th scope="col" abbr="제목">제목</th>
+				
+				
+				<th scope="col" abbr="상태" style="width:80px;">상태</th>
+				<th scope="col" abbr="기간" style="width:230px;">접수기간</th>
+				
+				
+				<th scope="col" abbr="파일" style="width:50px;">파일</th>
+				
+				
+				<th scope="col" abbr="작성일" style="width:80px;">작성일</th>
+				
+				<th scope="col" abbr="조회" style="width:50px;">조회</th>
+				
+				
+			</tr>
+		</thead>
+		<tbody>
+		
+			<tr title="「2026년 산업혁신기반구축 사업」 제조 특화 온디바이스 AI 기반 자율제조 실증 기반 구축 기업지원 참여기업 모집">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						경북디지털혁신본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(8107);">
+						<span>「2026년 산업혁신기반구축 사업」 제조 특화 온디바이스 AI 기반 자율제조 실증 기반 구축 기업지원 참여기업 모집</span>
+						<em class="new">새글</em>
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+								<span class="tag-d tag-blue">접수전</span>
+							
+							
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-09-03 09시 ~ 2026-09-18 18시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2026.09.02</td>
+				
+				<td class="num">6</td>
+				
+				
+			</tr>
+		
+			<tr title="「지역 SW아웃소싱 개발기업 지원사업」 참여기업 모집 재공고">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						경북디지털혁신본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(8105);">
+						<span>「지역 SW아웃소싱 개발기업 지원사업」 참여기업 모집 재공고</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-09-01 09시 ~ 2026-10-02 18시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2026.09.01</td>
+				
+				<td class="num">108</td>
+				
+				
+			</tr>
+		
+			<tr title="2027년 지역디지털기초체력지원 지역선도기업사업화지원사업 신규과제 모집공고">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						경북디지털혁신본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(8098);">
+						<span>2027년 지역디지털기초체력지원 지역선도기업사업화지원사업 신규과제 모집공고</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-08-28 10시 ~ 2026-09-18 17시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2026.08.28</td>
+				
+				<td class="num">401</td>
+				
+				
+			</tr>
+		
+			<tr title="「2026년 구미 예비수소전문기업 육성지원사업」 수혜기업 모집 공고">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						에너지사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(8082);">
+						<span>「2026년 구미 예비수소전문기업 육성지원사업」 수혜기업 모집 공고</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-08-20 12시 ~ 2026-09-04 18시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2026.08.20</td>
+				
+				<td class="num">780</td>
+				
+				
+			</tr>
+		
+			<tr title="2026년 하반기 경북SW미래채움사업 수요기관 모집 공고">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						경북디지털혁신본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7997);">
+						<span>2026년 하반기 경북SW미래채움사업 수요기관 모집 공고</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-07-13 09시 ~ 2026-11-13 18시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2026.07.13</td>
+				
+				<td class="num">1868</td>
+				
+				
+			</tr>
+		
+			<tr title="2026년 그린바이오 소재 첨단분석시스템 활성화 지원사업(장비활용) 수혜기업 모집 공고">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						바이오사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7996);">
+						<span>2026년 그린바이오 소재 첨단분석시스템 활성화 지원사업(장비활용) 수혜기업 모집 공고</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+								
+								
+							
+							
+						
+						
+							
+								
+								
+							
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-07-10 ~ 2026-12-15
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2026.07.10</td>
+				
+				<td class="num">1886</td>
+				
+				
+			</tr>
+		
+			<tr title="「2026년 ICT이노베이션스퀘어 확산 사업」 스퀘어 마이크로 경진대회 참가자 모집 재공고(~09.11. 24:00까지)">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						경북디지털혁신본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7962);">
+						<span>「2026년 ICT이노베이션스퀘어 확산 사업」 스퀘어 마이크로 경진대회 참가자 모집 재공고(~09.11. 24:00까지)</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-06-25 13시 ~ 2026-09-11 24시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2026.06.25</td>
+				
+				<td class="num">1229</td>
+				
+				
+			</tr>
+		
+			<tr title="2026년 바이오프린팅 활용 첨단바이오 활성화 지원사업(시설장비활용) 수혜기업 모집 공고(정정)">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						바이오사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7938);">
+						<span>2026년 바이오프린팅 활용 첨단바이오 활성화 지원사업(시설장비활용) 수혜기업 모집 공고(정정)</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+								
+								
+							
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-06-11 ~ 2026-11-30 16시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2026.06.11</td>
+				
+				<td class="num">3409</td>
+				
+				
+			</tr>
+		
+			<tr title="「2026년 포항테크노파크 기술닥터 지원사업」현장맞춤형 애로컨설팅지원 참여기업 모집">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						전략사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7923);">
+						<span>「2026년 포항테크노파크 기술닥터 지원사업」현장맞춤형 애로컨설팅지원 참여기업 모집</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-06-08 09시 ~ 2026-11-30 18시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2026.06.05</td>
+				
+				<td class="num">2219</td>
+				
+				
+			</tr>
+		
+			<tr title="「2026년 포항시 수출기업 해외물류비 지원사업」 지원기업 모집">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						전략사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7910);">
+						<span>「2026년 포항시 수출기업 해외물류비 지원사업」 지원기업 모집</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+								
+								
+							
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							 ~ 2026-12-18 17시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2026.06.01</td>
+				
+				<td class="num">5477</td>
+				
+				
+			</tr>
+		
+			<tr title="「2026년 데이터센터 테스트베드 조성 지원」 경북AI데이터센터 테스트베드 실증지원 공고">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						경북디지털혁신본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7904);">
+						<span>「2026년 데이터센터 테스트베드 조성 지원」 경북AI데이터센터 테스트베드 실증지원 공고</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-05-28 17시 ~ 2026-12-31 18시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2026.05.28</td>
+				
+				<td class="num">3743</td>
+				
+				
+			</tr>
+		
+			<tr title="2026년 창업보육센터 졸업기업 육성 지원사업(전문가 자문 프로그램) 참여기업 모집 공고">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						전략사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7814);">
+						<span>2026년 창업보육센터 졸업기업 육성 지원사업(전문가 자문 프로그램) 참여기업 모집 공고</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+								
+								
+							
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-04-13 ~ 2026-11-30 18시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2026.04.13</td>
+				
+				<td class="num">4577</td>
+				
+				
+			</tr>
+		
+			<tr title="2026년 경북 포항시 지역산업위기대응 이차보전 지원사업 통합공고">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						전략사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7681);">
+						<span>2026년 경북 포항시 지역산업위기대응 이차보전 지원사업 통합공고</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+								
+								
+							
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-02-10 ~ 2026-11-13 18시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2026.02.10</td>
+				
+				<td class="num">6619</td>
+				
+				
+			</tr>
+		
+			<tr title="2026년 '블루바이오기업연구개발및산업화지원사업' 모집 공고 [마케팅 지원]">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						바이오사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7680);">
+						<span>2026년 '블루바이오기업연구개발및산업화지원사업' 모집 공고 [마케팅 지원]</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-02-10 09시 ~ 2026-11-20 18시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2026.02.10</td>
+				
+				<td class="num">6035</td>
+				
+				
+			</tr>
+		
+			<tr title="한국배터리아카데미 남부권캠퍼스 이론교육 강사 모집 공고">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						에너지사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7643);">
+						<span>한국배터리아카데미 남부권캠퍼스 이론교육 강사 모집 공고</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+								
+								
+							
+							
+						
+						
+							
+								
+								
+							
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-01-13 ~ 2026-12-31
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2026.01.13</td>
+				
+				<td class="num">5744</td>
+				
+				
+			</tr>
+		
+			<tr title="2026년 포항테크노파크 기업지원사업 평가위원(후보자)모집 공고 ">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						전략사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7635);">
+						<span>2026년 포항테크노파크 기업지원사업 평가위원(후보자)모집 공고 </span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+								
+								
+							
+							
+						
+						
+							
+								
+								
+							
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-01-01 ~ 2026-12-31
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2026.01.07</td>
+				
+				<td class="num">9114</td>
+				
+				
+			</tr>
+		
+			<tr title="2026년 스마트 제조혁신 지원사업 통합공고">
+				<td><span class="ico-notice">공지</span></td>
+				
+					<td class="point-blue">
+						전략사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7530);">
+						<span>2026년 스마트 제조혁신 지원사업 통합공고</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+								
+								
+							
+							
+						
+						
+							
+								
+								
+							
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							 ~ 2026-12-31
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></i></td>
+					
+					
+				
+				
+				<td class="date">2025.10.31</td>
+				
+				<td class="num">9426</td>
+				
+				
+			</tr>
+		
+		
+			<tr title="「2026년 산업혁신기반구축 사업」 제조 특화 온디바이스 AI 기반 자율제조 실증 기반 구축 기업지원 참여기업 모집">
+				<td class="num">1485</td>
+				
+					<td class="point-blue">
+						경북디지털혁신본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(8107);">
+					
+						<span>
+							
+								「2026년 산업혁신기반구축 사업」 제조 특화 온디바이스 AI 기반 자율제조 실증 기반 구축 기업지원 참여기업 모집
+						</span>
+						<em class="new">새글</em>
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+								<span class="tag-d tag-blue">접수전</span>
+							
+							
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-09-03 09시 ~ 2026-09-18 18시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></td>
+					
+					
+				
+				
+				
+				<td class="date">2026.09.02</td>
+				
+				<td class="num">6</td>
+				
+				
+			</tr>
+		
+			<tr title="「지역 SW아웃소싱 개발기업 지원사업」 참여기업 모집 재공고">
+				<td class="num">1484</td>
+				
+					<td class="point-blue">
+						경북디지털혁신본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(8105);">
+					
+						<span>
+							
+								「지역 SW아웃소싱 개발기업 지원사업」 참여기업 모집 재공고
+						</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-09-01 09시 ~ 2026-10-02 18시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></td>
+					
+					
+				
+				
+				
+				<td class="date">2026.09.01</td>
+				
+				<td class="num">108</td>
+				
+				
+			</tr>
+		
+			<tr title="2027년 지역디지털기초체력지원 지역선도기업사업화지원사업 신규과제 모집공고">
+				<td class="num">1483</td>
+				
+					<td class="point-blue">
+						경북디지털혁신본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(8098);">
+					
+						<span>
+							
+								2027년 지역디지털기초체력지원 지역선도기업사업화지원사업 신규과제 모집공고
+						</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-08-28 10시 ~ 2026-09-18 17시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></td>
+					
+					
+				
+				
+				
+				<td class="date">2026.08.28</td>
+				
+				<td class="num">401</td>
+				
+				
+			</tr>
+		
+			<tr title="2026년 포항 산업단지 기업 실태 조사 연구용역 제안서 평가위원(후보자) 모집공고">
+				<td class="num">1482</td>
+				
+					<td class="point-blue">
+						전략사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(8091);">
+					
+						<span>
+							
+								2026년 포항 산업단지 기업 실태 조사 연구용역 제안서 평가위원(후보자) 모집공고
+						</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+								
+								
+							
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-08-25 ~ 2026-09-03 14시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></td>
+					
+					
+				
+				
+				
+				<td class="date">2026.08.24</td>
+				
+				<td class="num">577</td>
+				
+				
+			</tr>
+		
+			<tr title="「2026년 구미 예비수소전문기업 육성지원사업」 수혜기업 모집 공고">
+				<td class="num">1481</td>
+				
+					<td class="point-blue">
+						에너지사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(8082);">
+					
+						<span>
+							
+								「2026년 구미 예비수소전문기업 육성지원사업」 수혜기업 모집 공고
+						</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-08-20 12시 ~ 2026-09-04 18시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></td>
+					
+					
+				
+				
+				
+				<td class="date">2026.08.20</td>
+				
+				<td class="num">780</td>
+				
+				
+			</tr>
+		
+			<tr title="2026년 하반기 경북SW미래채움사업 수요기관 모집 공고">
+				<td class="num">1480</td>
+				
+					<td class="point-blue">
+						경북디지털혁신본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7997);">
+					
+						<span>
+							
+								2026년 하반기 경북SW미래채움사업 수요기관 모집 공고
+						</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-07-13 09시 ~ 2026-11-13 18시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></td>
+					
+					
+				
+				
+				
+				<td class="date">2026.07.13</td>
+				
+				<td class="num">1868</td>
+				
+				
+			</tr>
+		
+			<tr title="2026년 그린바이오 소재 첨단분석시스템 활성화 지원사업(장비활용) 수혜기업 모집 공고">
+				<td class="num">1479</td>
+				
+					<td class="point-blue">
+						바이오사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7996);">
+					
+						<span>
+							
+								2026년 그린바이오 소재 첨단분석시스템 활성화 지원사업(장비활용) 수혜기업 모집 공고
+						</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+								
+								
+							
+							
+						
+						
+							
+								
+								
+							
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-07-10 ~ 2026-12-15
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></td>
+					
+					
+				
+				
+				
+				<td class="date">2026.07.10</td>
+				
+				<td class="num">1886</td>
+				
+				
+			</tr>
+		
+			<tr title="2026년 바이오프린팅 활용 첨단바이오 활성화 지원사업(시설장비활용) 수혜기업 모집 공고(정정)">
+				<td class="num">1478</td>
+				
+					<td class="point-blue">
+						바이오사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7938);">
+					
+						<span>
+							
+								2026년 바이오프린팅 활용 첨단바이오 활성화 지원사업(시설장비활용) 수혜기업 모집 공고(정정)
+						</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+								
+								
+							
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-06-11 ~ 2026-11-30 16시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></td>
+					
+					
+				
+				
+				
+				<td class="date">2026.06.11</td>
+				
+				<td class="num">3409</td>
+				
+				
+			</tr>
+		
+			<tr title="「2026년 포항테크노파크 기술닥터 지원사업」현장맞춤형 애로컨설팅지원 기술닥터 외부전문가 모집">
+				<td class="num">1477</td>
+				
+					<td class="point-blue">
+						전략사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7924);">
+					
+						<span>
+							
+								「2026년 포항테크노파크 기술닥터 지원사업」현장맞춤형 애로컨설팅지원 기술닥터 외부전문가 모집
+						</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+							
+								
+								
+							
+						
+						
+							
+								
+								
+							
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-06-05 09시 ~ 2026-12-31
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></td>
+					
+					
+				
+				
+				
+				<td class="date">2026.06.05</td>
+				
+				<td class="num">1501</td>
+				
+				
+			</tr>
+		
+			<tr title="「2026년 포항테크노파크 기술닥터 지원사업」현장맞춤형 애로컨설팅지원 참여기업 모집">
+				<td class="num">1476</td>
+				
+					<td class="point-blue">
+						전략사업본부
+
+					</td>
+				
+				<td class="subject">
+					<a href="javascript:void(0);" onclick="viewBoard(7923);">
+					
+						<span>
+							
+								「2026년 포항테크노파크 기술닥터 지원사업」현장맞춤형 애로컨설팅지원 참여기업 모집
+						</span>
+						
+					</a>
+					
+				</td>
+				
+				
+				<td>
+				
+					
+					
+					
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+								
+								
+							
+						
+						
+							
+							
+							
+								<span class="tag-d tag-orange">접수중</span>
+							
+						
+					
+				
+				</td>
+				<td>
+					
+						
+						
+							2026-06-08 09시 ~ 2026-11-30 18시
+						
+					
+				</td>
+				
+				
+				
+					
+						<td class="attach"><i class="fas fa-copy"></i></td>
+					
+					
+				
+				
+				
+				<td class="date">2026.06.05</td>
+				
+				<td class="num">2219</td>
+				
+				
+			</tr>
+		
+		</tbody>
+	</table>
+	
+</div>
+
+
+
+
+
+
+
+<input id="viewPage" name="viewPage" type="hidden" value="1"/> <!-- id=viewPage  -->
+<div class="board-control clearfix tac">
+	<div id="board_paging" class="board-paging">
+		<div class="va-pc">
+			
+			
+
+			
+				
+					
+						<a class="active" href="" keyValue="1">1</a>
+					
+					
+				
+			
+				
+					
+					
+						<a href="" keyValue="2">2</a>
+					
+				
+			
+				
+					
+					
+						<a href="" keyValue="3">3</a>
+					
+				
+			
+				
+					
+					
+						<a href="" keyValue="4">4</a>
+					
+				
+			
+				
+					
+					
+						<a href="" keyValue="5">5</a>
+					
+				
+			
+				
+					
+					
+						<a href="" keyValue="6">6</a>
+					
+				
+			
+				
+					
+					
+						<a href="" keyValue="7">7</a>
+					
+				
+			
+				
+					
+					
+						<a href="" keyValue="8">8</a>
+					
+				
+			
+				
+					
+					
+						<a href="" keyValue="9">9</a>
+					
+				
+			
+				
+					
+					
+						<a href="" keyValue="10">10</a>
+					
+				
+			
+
+			
+				<a href="" class="next" keyValue="11"></a>
+			
+			
+				<a href="" class="last" keyValue="149"></a>
+			
+		</div>
+
+		<div class="va-mo">
+
+			
+
+				<input id="jumpPage" type="text" value="1" placeholder="1" class="page">
+				<span>of 149page</span>
+				<button>GO</button>
+
+			
+				<a href="" class="next"></a>
+			
+
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript">
+
+
+$(document).ready(function() {
+
+	var CurrnetPage;
+	var param;
+
+	$('div#board_paging a').on('click', function(e) {
+		CurrnetPage = $('#viewPage').val();
+		  if($(this).parent().hasClass('va-mo')){
+			  if($(this).hasClass("prev"))
+				  CurrnetPage--;
+
+			  if($(this).hasClass("next"))
+				  CurrnetPage++;
+
+			  $('#viewPage').attr('value', CurrnetPage);
+		}
+		if($(this).parent().hasClass('va-pc')){
+			$('#viewPage').attr('value', $(this).attr('keyValue'));
+		}
+
+		param = serializeCustom($('#board'));
+		doGetLoad('index.do', param);
+		e.preventDefault();
+	});
+
+	$('div#board_paging button').on('click', function(e) {
+		if(!isNaN($("input#jumpPage").val())){
+			$('#viewPage').attr('value', $("input#jumpPage").val());
+			param = serializeCustom($('#board'));
+			doGetLoad('index.do', param);
+			e.preventDefault();
+		}else{
+			alert("숫자를 입력해 주십시오.")
+		}
+	});
+});
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="btnarea tar">
+
+
+
+
+</div>
+</form>
+
+
+</div>
+					</div>
+				</div>
+				<div class="clear"></div>
+			</div>
+		</div>
+	</div>
+	
+
+
+
+<div class="linksite">
+	<div class="tab">
+		<div class="d_width">
+			<ul class="clearfix">
+			<li><a href="" onclick="linksite_tab('site01');return false;" id="site01_tab"><span>참여기관</span></a></li>
+			<li><a href="" onclick="linksite_tab('site02');return false;" id="site02_tab"><span>유관기관</span></a></li>
+			<li><a href="" onclick="linksite_tab('site03');return false;" id="site03_tab"><span>포항<div class="va-mo"></div>테크노밸리</span></a></li>
+			<li><a href="" onclick="linksite_tab('site04');return false;" id="site04_tab"><span>지역창업<div class="va-mo"></div>보육센터</span></a></li>
+			<li><a href="" onclick="linksite_tab('site05');return false;" id="site05_tab"><span>전국테크노파크</span></a></li>
+			</ul>
+		</div>
+	</div>
+	<div class="cont" id="site01" style="display:none;">
+		<div class="d_width">
+			<ul class="clearfix">
+			<li><a href="http://www.mss.go.kr" target="_blank">중소벤처기업부</a></li>
+			<li><a href="http://www.gb.go.kr" target="_blank">경상북도</a></li>
+			<li><a href="http://www.ipohang.org" target="_blank">포항시</a></li>
+			<li><a href="https://www.mss.go.kr/site/daegu/main.do" target="_blank">대구경북지방중소벤처기업청</a></li>
+			<li><a href="http://www.kiat.or.kr/" target="_blank">한국산업기술진흥원</a></li>
+			<li><a href="http://www.pohangcci.or.kr" target="_blank">포항상공회의소</a></li>
+			<li><a href="http://www.postech.ac.kr" target="_blank">포항공과대학교</a></li>
+			<li><a href="http://www.rist.re.kr" target="_blank">포항산업과학연구원</a></li>
+			</ul>
+		</div>
+	</div>
+	<div class="cont" id="site02" style="display:none;">
+		<div class="d_width">
+			<ul class="clearfix">
+			<li><a href="http://www.motie.go.kr/" target="_blank">산업통상자원부</a></li>
+			<li><a href="https://www.msit.go.kr/" target="_blank">과학기술정보통신부</a></li>
+			<li><a href="http://www.mafra.go.kr/" target="_blank">농림축산식품부</a></li>
+			<li><a href="http://www.keit.re.kr" target="_blank">한국산업기술평가관리원</a></li>
+			<li><a href="https://www.nipa.kr/" target="_blank">정보통신산업진흥원</a></li>
+			<li><a href="https://www.kosmes.or.kr/" target="_blank">중소벤처기업진흥공단</a></li>
+			<li><a href="http://www.kibo.or.kr" target="_blank">기술보증기금</a></li>
+			<li><a href="https://www.kodit.co.kr/" target="_blank">신용보증기금</a></li>
+			<li><a href="http://www.neargov.org" target="_blank">동북아시아 지역자치단체연합</a></li>
+			</ul>
+		</div>
+	</div>
+	<div class="cont" id="site03" style="display:none;">
+		<div class="d_width">
+			<ul class="clearfix">
+			<li><a href="http://www.postech.ac.kr" target="_blank">포항공과대학교</a></li>
+			<li><a href="http://pal.postech.ac.kr" target="_blank">포항가속기연구소</a></li>
+			<li><a href="http://www.pomia.or.kr" target="_blank">포항금속소재산업진흥원</a></li>
+			<li><a href="http://www.rist.re.kr" target="_blank">포항산업과학연구원</a></li>
+			<li><a href="http://www.biotechcenter.org" target="_blank">생명공학연구센터</a></li>
+			<li><a href="http://www.nano.or.kr" target="_blank">나노융합기술원</a></li>
+			<li><a href="http://www.poscocapital.com/kr/" target="_blank">포스코기술투자</a></li>
+			<li><a href="http://www.kiro.re.kr/" target="_blank">한국로봇융합연구원</a></li>
+			</ul>
+		</div>
+	</div>
+	<div class="cont" id="site04" style="display:none;">
+		<div class="d_width">
+			<ul class="clearfix">
+			<li><a href="http://www.htbi.or.kr" target="_blank">한동대학교 창업보육센터</a></li>
+			<li><a href="http://ubic.uu.ac.kr/" target="_blank">위덕대학교 창업보육센터</a></li>
+			<li><a href="http://pcbi.pohang.ac.kr" target="_blank">포항대학교 창업보육센터</a></li>
+			<li><a href="http://shd.sunlin.ac.kr" target="_blank">선린대학교 창업보육센터</a></li>
+			<li><a href="https://dvic.dongguk.edu" target="_blank">동국대학교 창업보육센터</a></li>
+			<li><a href="http://job.gu.ac.kr" target="_blank">경주대학교 창업보육센터</a></li>
+			</ul>
+		</div>
+	</div>
+	<div class="cont" id="site05" style="display:none;">
+		<div class="d_width">
+			<ul class="clearfix">
+			<li><a href="http://seoultp.or.kr" target="_blank">서울테크노파크</a></li>
+			<li><a href="http://www.gtp.or.kr" target="_blank">경기테크노파크</a></li>
+			<li><a href="http://www.itp.or.kr" target="_blank">인천테크노파크</a></li>
+			<li><a href="http://www.ctp.or.kr" target="_blank">충남테크노파크</a></li>
+			<li><a href="http://www.ttp.org" target="_blank">대구테크노파크</a></li>
+			<li><a href="http://www.gbtp.or.kr/" target="_blank">경북테크노파크</a></li>
+			<li><a href="http://www.btp.or.kr" target="_blank">부산테크노파크</a></li>
+			<li><a href="http://www.gjtp.or.kr" target="_blank">광주테크노파크</a></li>
+			<li><a href="http://www.gwtp.or.kr" target="_blank">강원테크노파크</a></li>
+			<li><a href="http://www.cbtp.or.kr" target="_blank">충북테크노파크</a></li>
+			<li><a href="http://www.jbtp.or.kr" target="_blank">전북테크노파크</a></li>
+			<li><a href="http://www.jntp.or.kr" target="_blank">전남테크노파크</a></li>
+			<li><a href="http://www.utp.or.kr" target="_blank">울산테크노파크</a></li>
+			<li><a href="http://www.gntp.or.kr" target="_blank">경남테크노파크</a></li>
+			<li><a href="http://www.gdtp.or.kr" target="_blank">경기대진테크노파크</a></li>
+			<li><a href="https://www.djtp.or.kr/" target="_blank">대전테크노파크</a></li>
+			<li><a href="http://jejutp.or.kr" target="_blank">제주테크노파크</a></li>
+			<li><a href="http://sjtp.or.kr/" target="_blank">세종테크노파크</a></li>
+			<li><a href="http://www.technopark.kr/" target="_blank">한국테크노파크진흥회</a></li>
+			</ul>
+		</div>
+	</div>
+</div>
+<div id="footer">
+	<div class="d_width">
+		<div class="fmn">
+			<a href="/main/board/index.do?menu_idx=134&manage_idx=7">고객제안</a>
+			<a href="/main/html.do?menu_idx=109">오시는길</a>
+			<a href="/main/html.do?menu_idx=204">개인정보처리방침</a>
+		</div>
+		<address><span>(우)37668 경상북도 포항시 남구 지곡로 394 (재)포항테크노파크</span><span>TEL : 054-223-2114</span><span>FAX : 054-223-2220</span><span>E-mail : webmaster@ptp.or.kr</span></address>
+		<p id="copyright">COPYRIGHT (C) POHANGTP. ALL RIGHTS RESERVED.</p>
+	</div>
+</div>
+</body>
+</html>

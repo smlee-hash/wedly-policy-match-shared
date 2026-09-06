@@ -1,0 +1,1270 @@
+<!doctype html>
+<html class="no-js" lang="ko">
+<head>
+<link rel="shortcut icon" href="fa.ico" />
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/default.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="">
+<meta http-equiv="imagetoolbar" content="no">
+<meta http-equiv="X-UA-Compatible" content="IE=10,chrome=1">
+<title>기업지원사업 관리시스템</title>
+
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/default.css">
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/gnustrap.css">
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/default.css">
+
+<script>
+// 자바스크립트에서 사용하는 전역변수 선언
+var g5_url       = "https://platform.utp.or.kr";
+var g5_bbs_url   = "https://platform.utp.or.kr/bbs";
+var g5_is_member = "";
+var g5_is_admin  = "";
+var g5_is_mobile = "";
+var g5_bo_table  = "";
+var g5_sca       = "";
+var g5_editor    = "";
+var g5_cookie_domain = "";
+</script>
+<script src="https://platform.utp.or.kr/js/jquery-1.8.3.min.js"></script>
+<script src="https://platform.utp.or.kr/js/jquery.menu.js"></script>
+<script src="https://platform.utp.or.kr/js/common.js"></script>
+<script src="https://platform.utp.or.kr/js/wrest.js"></script>
+<script src='https://platform.utp.or.kr/usn/js/etc.js' type="text/javascript" charset="utf-8"></script>
+
+<!--animate 플래쉬 효과-->
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/animate.min.css" type="text/css" rel="stylesheet">
+
+<!--animation 플래쉬 효과-->
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/animation.css" type="text/css" rel="stylesheet">
+
+<!--텍사스 자동 반응형-->
+<script src="https://platform.utp.or.kr/js/jquery.expandable.js" type="text/javascript" charset="utf-8"></script>
+
+<!--폰트어썸-->
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/font-awesome.css" type="text/css" rel="stylesheet">
+<link rel="stylesheet" href="https://platform.utp.or.kr/css/font-awesome.min.css" type="text/css" rel="stylesheet">
+
+<!--부트스트랩-->
+<script src="https://platform.utp.or.kr/js/bootstrap.min.js"></script>
+
+<!--그누스트랩-->
+<script src="https://platform.utp.or.kr/js/gnustrap.js"></script>
+
+<!--다음주소-->
+<script src="//t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+<!--[if lt IE 9]>
+  <script src="https://platform.utp.or.kr/js/html5.js"></script>
+  <script src="https://platform.utp.or.kr/js/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body id="top" class="index" data-twttr-rendered="true" >
+
+
+<!-- 쪽지 팝업 테스트 -->
+
+<!--모달 팝업창 -->
+<div class="modal fade" id="Modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+<div class="modal-dialog" role="document">
+    <div class="modal-content" style="text-align:center">
+        <!-- remote ajax call이 되는영역 -->
+    </div>
+  </div>
+</div>
+<script>
+
+function funWinOpen(url,wd,ht,scl){
+	var option = "width="+wd+",height="+ht+",scrollbars="+scl;
+	window.open(url,"winopen",option);
+}
+
+
+function OpenWindow(url,intWidth,intHeight) { 
+      window.open(url, "_blank", "width="+intWidth+",height="+intHeight+",resizable=1,scrollbars=1") ; 
+} 
+
+function goGlobalSearch(){
+	if(document.searchform.searchGonggo.value == ""){
+		alert("검색어(키워드)를 입력하세요.");
+		document.searchform.searchGonggo.focus();
+		return false;	
+	}
+}
+</script>
+
+<!-- 상단 시작 { -->
+    
+    <!-- Navigation -->
+    <nav class="navbar navbar-default navbar-static-top" role="navigation" >
+
+    
+        <div class="container">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            
+
+			
+		<div class="collapse navbar-collapse navHeaderCollapse">
+            <ol class="breadcrumb list_styleGmenu" style="background:none;">
+				<li><a href="/">홈</a></li>
+	              	            	  
+	                  	<li><a href="/bbs/login.php">로그인</a></li>
+	                  	<li><a href="/bbs/register.php">회원가입</a></li>
+	                   
+					    
+						<li><a href="javascript:OpenWindow('/systemInfo/corporateManual.php','1000','800')">기업 매뉴얼</a></li>                
+						<li><a href="/systemInfo/systemInfo.php">시스템 소개</a></li>									    
+						<li>
+							<div class="search_wrap">
+								<div id="searchwrapper">
+								
+									<form name="searchform" method="post" action="/search/search_result.php" onsubmit="return goGlobalSearch()">
+									<input type="text" maxlength="20" value="" name="searchGonggo" id="header_search" style="width:220px;ime-mode:active" placeholder="키워드 1개이상 가능 ex)나노,교육 "/><input type="image" src="/images/main/btn_search.jpg" title="검색" alt="검색"  style="position: relative;top:12px;left:-3px;" />
+									</form>
+								</div>
+							</div>
+						</li>
+								</ol>
+        </div>
+				
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <div class="logo">
+                <a class="navbar-brand" href="https://platform.utp.or.kr">
+                    <!--  <img src="https://platform.utp.or.kr/img/logo.png" alt="사이트 로고"/> --><span class="logoTxt">U Biz Platform</span><br /><span class="logoTxt2">기업지원사업 관리시스템<span>
+                </a>
+                </div>
+            </div>
+            
+               
+			<div class="navbar-collapse collapse">
+                            <ul class="nav navbar-nav navbar-right">
+                                    <li  class='dropdown'  >
+                        <a  href='/'   class="dropdown-toggle" data-toggle="dropdown" >지원사업</a>                     <ul class='dropdown-menu multi-level'>                    	<li >
+                    		<a  href='/com/menupanel.php' >메뉴판</a>	                    
+	                   	</li>                
+                                        	<li >
+                    		<a  href='/com/biz_gonggo_all.php' >사업공고</a>	                    
+	                   	</li>                
+                    <li class='divider'></li>                    	<li >
+                    		<a  href='/bbs/board.php?bo_table=plan' >공지사항</a>	                    
+	                   	</li>                
+                    </ul>                    </li>                
+                                    <li  >
+                        <a  href='/com/biz_gonggo_all.php'  >사업검색</a>                                         </li>                
+                                    <li  class='dropdown'  >
+                        <a  href='/'   class="dropdown-toggle" data-toggle="dropdown" >입주기업신청</a>                     <ul class='dropdown-menu multi-level'>                    	<li >
+                    		<a  href='/bbs/board.php?bo_table=tenant_manage' >입주기업신청</a>	                    
+	                   	</li>                
+                    </ul>                    </li>                
+                                    <li  class='dropdown'  >
+                        <a  href='/'   class="dropdown-toggle" data-toggle="dropdown" >지역혁신정보</a>                     <ul class='dropdown-menu multi-level'>                    	<li >
+                    		<a  href='/com/work_list.php' >구인구직</a>	                    
+	                   	</li>                
+                                        	<li >
+                    		<a  href='/com/workerTrainLi.php' >직업훈련</a>	                    
+	                   	</li>                
+                    <li class='divider'></li>                    	<li >
+                    		<a  href='/com/ecos_stats.php' >장비검색</a>	                    
+	                   	</li>                
+                    </ul>                    </li>                
+                                    <li  class='dropdown'  >
+                        <a  href='/'   class="dropdown-toggle" data-toggle="dropdown" >관심지원사업</a>                     <ul class='dropdown-menu multi-level'>                    	<li >
+                    		<a  href='/com/gonggo_list_sort.php' >맞춤사업공고</a>	                    
+	                   	</li>                
+                                        	<li >
+                    		<a  href='/com/bookmark_gonggo_list.php' >관심사업공고</a>	                    
+	                   	</li>                
+                    </ul>                    </li>                
+                                    <li  >
+                        <a  href='/com/gonggo_application_list.php'  >나의 지원현황</a>                                         </li>                
+                                    <li  class='dropdown'  >
+                        <a  href='/'   class="dropdown-toggle" data-toggle="dropdown" >나의 기업정보</a>                     <ul class='dropdown-menu multi-level'>                    	<li >
+                    		<a  href='/com/com_info1.php' >기업정보</a>	                    
+	                   	</li>                
+                                        	<li >
+                    		<a  href='/com/message_list.php' >쪽지 보관함</a>	                    
+	                   	</li>                
+                    </ul>                    </li>                
+                                  
+                </ul>
+                <!-- 
+                <ul class="nav navbar-nav navbar-right">
+	              <li class="dropdown"><a href="../navbar-static-top/" class="dropdown-toggle" data-toggle="dropdown"><i class="glyphicon glyphicon-log-in"></i></a>
+	              	<ul class="dropdown-menu multi-level">	  
+	              	            	  
+	                  	<li><a href="/bbs/login.php">로그인</a></li>
+	                  	<li><a href="/bbs/register.php">회원가입</a></li>
+	                   	                 
+	               </ul> -->   
+	              </li>
+	            </ul>
+            </div>           
+        </div>
+        <!-- /.container -->
+    </nav>
+
+    
+		<div class="sTit_wrap">
+		<div class="container">
+			<div class="subTitle">
+				<div class="hidden-xs">
+					<i class="fa fa-home"></i> HOME > 사업검색					<span class="badgeTxt pull-right">
+																	</span>
+				</div>
+			</div>
+		</div>
+	</div>
+		<div class="container visible-lg visible-md"><h2 class="barH2">사업검색 </h2></div>
+		<div class="visible-xs visible-sm"><h2 class="barH2">사업검색<span class="badgeTxt pull-right"></span></h2></div>
+		<div class="subIn">
+		<div class="container" >
+		
+	
+   
+<script type="text/javascript">
+<!--
+var request = null;
+function createRequest(){
+	try{
+		request = new XMLHttpRequest(); // 요청객체를 XMLHttpRequest로 생성한다.
+		}catch(trymicrosoft){  //익스플로러 인가 여부를 판단해서 그에 맞는 객체를 생성한다.
+			try{
+				request = new ActiveXObject("Msxm12.XMLHTTP");
+			}catch(othermicrosoft){
+				try{
+					request=new ActiveXObject("Microsoft.XMLHTTP");
+				}catch(failed){
+					request = null;
+				}
+			}
+		}	   
+	   if(request == null) {alert(" request 객체 오류");}
+}
+
+/* ********************************************************
+ * 관심공고(bookmark) 등록/해제 처리
+ ******************************************************** */
+function setBookMark(gpcd){
+	urlstr = "../common/ajax_set_bookmark.php?gpcd="+gpcd;
+	createRequest();  
+	var url = urlstr; 
+	request.open("GET",url,true);
+	request.onreadystatechange = returnResult;		
+	request.send(null);
+}
+
+function returnResult(){   
+  if(request.readyState == 4){    
+	if(request.status == 200){   	       
+	  var tempResult = request.responseText;   //넘어오는 값
+	  var gbn=tempResult.substring(0,1);	   //앞1자리는 북마크 여부 (O:북마크 등록, X:북마크삭제)
+	  var img_idcd = tempResult.substring(1,tempResult.length);   	
+	  if(gbn == "O"){
+		  document.getElementById("star_"+img_idcd).src="/img/star-on.png"; 
+		  document.getElementById("star2_"+img_idcd).src="/img/star-on.png";
+	  }else{
+		  document.getElementById("star_"+img_idcd).src="/img/star-off.png";
+		  document.getElementById("star2_"+img_idcd).src="/img/star-off.png";
+	  }	  
+	}
+  }
+}
+
+/* ********************************************************
+ * 조회
+ ******************************************************** */
+function goSearch(){
+	var form = document.form;		
+	form.cmd.value = "search"; 	
+	form.submit();				
+}
+
+/* ********************************************************
+ * 검색초기화
+ ******************************************************** */
+function searchReset(){
+	var form = document.form;	
+	form.searchCase[0].selected = true;
+	form.searchPrgrm[0].selected = true;
+	form.searchGovNm.value = "";	
+	form.searchGonggo.value = "";	
+	form.searchState[0].selected = true;	
+	form.cmd.value = ""; 	
+	form.submit();			
+}
+
+/* ********************************************************
+ * 사업공고 뷰 페이지 이동
+ ******************************************************** */
+function goViewGonggo(gpcd){
+	var form = document.form;	
+	form.rq_gonggopgrm.value = gpcd;
+	form.cmd.value="detail";	
+	form.action = "/com/biz_gonggo_detail.php"; 	
+	form.submit();			
+}
+
+//-->
+</script>
+ 
+<form name="form" action="/com/biz_gonggo_all.php" method="post" enctype="multipart/form-data" onsubmit="return goBizSave()">
+<input type="hidden" name="cmd" value=""/>
+<input type="hidden" name="opnr" value="/com/biz_gonggo_all.php"/>
+<input type="hidden" name="rq_bizcode" value=""/>
+<input type="hidden" name="rq_prgmcode" value=""/>
+<input type="hidden" name="rq_gonggocode" value=""/>
+<input type="hidden" name="rq_gonggopgrm" value=""/>
+<input type="hidden" name="rq_gonggoreq" value=""/>
+
+
+ <!-- search area start-->
+	<div class="table-responsive hidden-xs">
+	<table class="table table-bordered"  summary="프로그램검색 테이블">
+	   	<caption>프로그램 검색</caption>
+	   	<colgroup>
+		<col width="10%" />
+		<col width="30%" />
+		<col width="10%" />
+		<col width="33%" />
+		<col  />
+		</colgroup>
+	   <tr >
+	   <th scope="row"  class="hidden-xs"><label for="searchGonggo">· 공고명</label></th>
+	    <td >	    	
+    		<div class="col-md-12">	
+    			<input id="searchGonggo" name="searchGonggo" type="text" value="" class="form-control" placeholder="최소 2자 이상 검색어"/>							
+			</div>	     	    	
+	    </td>
+	    <th scope="row"><label for="searchCase">· 지원유형</label></th>
+	    <td>	
+	    	<div class="col-md-12">	    	
+	    		<div class="btn-group">	
+	    			<select class='form-control3 col-md-6'  name='searchCase'  id='searchCase'  ><option value=''>= 지원유형 전체 =</option><option value='1D001' >기술지원</option><option value='1D002' >사업화지원</option><option value='1D003' >인력양성</option><option value='1D004' >지식서비스</option><option value='1D005' >기술이전사업화</option><option value='1D006' >R&D지원</option></select>	    			<select class='form-control3 col-md-6'  name='searchPrgrm'  id='searchPrgrm'  ><option value=''>= 프로그램 전체 =</option><option value='1E001' >시제품제작</option><option value='1E008' >기술지도</option><option value='1E002' >인증지원</option><option value='1E003' >특허지원</option><option value='1E004' >상품홍보</option><option value='1E007' >디자인</option><option value='1E009' >브랜드</option><option value='1E006' >컨설팅</option><option value='1E010' >마케팅</option><option value='1E005' >전시회</option><option value='1E011' >기술이전</option><option value='1E012' >창업인프라</option><option value='1E013' >기술경영</option><option value='1E014' >전문교육</option><option value='1E015' >패키지지원</option><option value='1E016' >장비활용</option><option value='1E017' >IT융합</option><option value='1E018' >채용지원</option><option value='1E019' >기술개발</option><option value='1E020' >시험평가</option></select>								
+				</div>
+			</div>    	    	
+	    </td>		    	   	      	 
+	    <td rowspan="2" align="center" style="padding-top:18px">
+	    	 <div class="btn-group">
+	    	 	<button type="submit" class="btn btn-default"><i class="glyphicon glyphicon-search"> 조회</i></button>
+	            <button type="button" class="btn btn-default" onclick="searchReset()"><i class="glyphicon glyphicon-refresh"> 초기화</i></button>	          
+     		</div>        		   			  
+	    </td>	    	
+	  </tr> 
+	  <tr>	  
+	    <th scope="row"  class="hidden-xs"><label for="searchGovNm">· 수행기관</label></th>
+	    <td >	    	
+    		<div class="col-md-10">	
+    			<input id="searchGovNm" name="searchGovNm" type="text" value="" class="form-control" placeholder="최소 2자 이상 검색어"/>							
+			</div>	 	    	    	
+	    </td>
+	    <th scope="row"><label for="searchState">· 진행상태</label></th>
+		  <td>	    	
+	    	<div class="col-md-5">	
+	    		<select name="searchState" id="searchState" class="form-control3">
+	    			<option value="">= 전체 =</option>
+	    			<option value="ING" > 접수중 </option>
+	    			<option value="YET" > 접수전 </option>
+	    			<option value="END" > 접수마감 </option>
+	    		</select>			
+			</div>	    	    	
+		  </td>	 	  	     	 
+	  </tr> 	 	 
+	</table>  				  
+	</div>
+	<!-- search area end -->
+	
+
+	
+<!-- board list start -->
+	<div class="table-responsive">	    
+	    <table class="table table-bordered media-table table-striped" summary="사업공고 목록 게시판으로 지원유형,프로그램,수행기관명 등으로 구성됩니다.">
+          <caption>사업공고 목록 게시판</caption>          
+          <colgroup>
+          	  <col width="4%" />	
+          	  <col width="8%" />
+          	  <col width="8%" />
+          	  <col width="4%" />
+          	  <col />
+          	  <col width="12%" />          	                        
+              <col width="12%" />          
+              <col width="13%" />                                
+              <col width="7%" />			 
+          </colgroup>          
+          <thead>
+          <tr>      
+		       <th scope="col" class="hidden-xs text-center">NO</th>
+		       <th scope="col" class="hidden-xs text-center">지원유형</th>
+		       <th scope="col" class="hidden-xs text-center">프로그램</th>
+		       <th scope="col" class="hidden-xs text-center">관심</th>
+		       <th scope="col" class="hidden-xs text-center">과제명(검정색)/공고명(파란색)</th>
+		       <th scope="col" class="hidden-xs text-center">공고지원내역</th>		       	       		       		       		       		      
+		       <th scope="col" class="hidden-xs text-center">수행기관/실무자</th>
+		       <th scope="col" class="hidden-xs text-center">접수기간</th>	
+		       <th scope="col" class="hidden-xs text-center">진행상태</th>		         		      
+		   </tr>
+	       </thead>
+	   	   <tbody>	
+	   			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1144	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           사업화지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           마케팅	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1461" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1461')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[마케팅] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1461')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+		         	<a href="#bookmark" onclick="setBookMark('1461');" title="관심공고로 등록/삭제처리"><img id="star2_1461" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 9 건 &nbsp; / 72,000 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>송승훈					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">9 건</div><br/>
+	         	<div class="col-md-12 text-right">72,000 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>송승훈	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 8월 26일  0시<br/>~<br/>2026년 9월 11일  23시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1143	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           시제품제작	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1454" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1454')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[시제품제작] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1454')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+		         	<a href="#bookmark" onclick="setBookMark('1454');" title="관심공고로 등록/삭제처리"><img id="star2_1454" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 4 건 &nbsp; / 200,000 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>송승훈					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">4 건</div><br/>
+	         	<div class="col-md-12 text-right">200,000 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>송승훈	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 8월 26일  0시<br/>~<br/>2026년 9월 11일  23시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1142	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           사업화지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           컨설팅	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1463" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1463')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[컨설팅] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1463')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+		         	<a href="#bookmark" onclick="setBookMark('1463');" title="관심공고로 등록/삭제처리"><img id="star2_1463" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 6 건 &nbsp; / 60,000 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>송승훈					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">6 건</div><br/>
+	         	<div class="col-md-12 text-right">60,000 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>송승훈	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 8월 26일  0시<br/>~<br/>2026년 9월 11일  23시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1141	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           인증지원	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1456" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1456')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[인증지원] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1456')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+		         	<a href="#bookmark" onclick="setBookMark('1456');" title="관심공고로 등록/삭제처리"><img id="star2_1456" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 23 건 &nbsp; / 69,000 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>송승훈					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">23 건</div><br/>
+	         	<div class="col-md-12 text-right">69,000 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>송승훈	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 8월 26일  0시<br/>~<br/>2026년 9월 11일  23시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1140	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           IT융합	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1458" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1458')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[IT융합] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1458')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+		         	<a href="#bookmark" onclick="setBookMark('1458');" title="관심공고로 등록/삭제처리"><img id="star2_1458" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 10 건 &nbsp; / 30,000 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>송승훈					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">10 건</div><br/>
+	         	<div class="col-md-12 text-right">30,000 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>송승훈	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 8월 26일  0시<br/>~<br/>2026년 9월 11일  23시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1139	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           사업화지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           전시회	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1460" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1460')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[전시회] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1460')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+		         	<a href="#bookmark" onclick="setBookMark('1460');" title="관심공고로 등록/삭제처리"><img id="star2_1460" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 3 건 &nbsp; / 30,000 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>송승훈					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">3 건</div><br/>
+	         	<div class="col-md-12 text-right">30,000 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>송승훈	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 8월 26일  0시<br/>~<br/>2026년 9월 11일  23시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1138	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           사업화지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           상품홍보	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1462" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1462')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[상품홍보] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1462')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+		         	<a href="#bookmark" onclick="setBookMark('1462');" title="관심공고로 등록/삭제처리"><img id="star2_1462" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 10 건 &nbsp; / 50,000 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>송승훈					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">10 건</div><br/>
+	         	<div class="col-md-12 text-right">50,000 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>송승훈	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 8월 26일  0시<br/>~<br/>2026년 9월 11일  23시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1137	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지도	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1455" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1455')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[기술지도] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1455')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+		         	<a href="#bookmark" onclick="setBookMark('1455');" title="관심공고로 등록/삭제처리"><img id="star2_1455" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 10 건 &nbsp; / 0 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>송승훈					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">10 건</div><br/>
+	         	<div class="col-md-12 text-right">0 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>송승훈	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 8월 26일  0시<br/>~<br/>2026년 9월 11일  23시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1136	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           특허지원	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1457" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1457')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[특허지원] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1457')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+		         	<a href="#bookmark" onclick="setBookMark('1457');" title="관심공고로 등록/삭제처리"><img id="star2_1457" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 4 건 &nbsp; / 10,000 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>송승훈					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">4 건</div><br/>
+	         	<div class="col-md-12 text-right">10,000 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>송승훈	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 8월 26일  0시<br/>~<br/>2026년 9월 11일  23시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1135	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술경영	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1459" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1459')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[기술경영] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1459')" style="color:blue;">2026년 (울산 남구) 지역산업위기대응 맞춤형 지원사업 수혜기업 모집 공고(1차)</a>
+		         	<a href="#bookmark" onclick="setBookMark('1459');" title="관심공고로 등록/삭제처리"><img id="star2_1459" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 2 건 &nbsp; / 50,000 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>송승훈					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">2 건</div><br/>
+	         	<div class="col-md-12 text-right">50,000 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>송승훈	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 8월 26일  0시<br/>~<br/>2026년 9월 11일  23시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1134	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지도	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1453" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 맞춤형 방폭안전관리 역량강화 사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1453')" style="color:blue;">2026년도 방폭안전관리 대상사업장 모집 2차 추가 공고</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[기술지도] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1453')" style="color:blue;">2026년도 방폭안전관리 대상사업장 모집 2차 추가 공고</a>
+		         	<a href="#bookmark" onclick="setBookMark('1453');" title="관심공고로 등록/삭제처리"><img id="star2_1453" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 17 건 &nbsp; / 0 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>김회준					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">17 건</div><br/>
+	         	<div class="col-md-12 text-right">0 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>김회준	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 8월 24일  15시<br/>~<br/>2026년 9월 4일  19시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1133	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           사업화지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           컨설팅	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1452" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		울산산업기술단지 거점기능강화사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1452')" style="color:blue;"><img src='/img/gonggo_2nd.gif' alt='재공고'/>2026년 기술투자촉진사업 지원기업 모집 공고</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[컨설팅] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1452')" style="color:blue;"><img src='/img/gonggo_2nd.gif' alt='재공고'/>2026년 기술투자촉진사업 지원기업 모집 공고</a>
+		         	<a href="#bookmark" onclick="setBookMark('1452');" title="관심공고로 등록/삭제처리"><img id="star2_1452" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 1 건 &nbsp; / 4,000 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>최명현					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">1 건</div><br/>
+	         	<div class="col-md-12 text-right">4,000 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>최명현	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 8월 18일  9시<br/>~<br/>2026년 8월 28일  18시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1132	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           장비활용	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1441" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 해오름동맹 첨단이차전지 연대협력사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1441')" style="color:blue;"><img src='/img/gonggo_3rd.gif' alt='3차공고'/>2026년도 해오름동맹 첨단이차전지 연대협력사업 기업지원 수혜기업 모집공고(상시)</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[장비활용] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1441')" style="color:blue;"><img src='/img/gonggo_3rd.gif' alt='3차공고'/>2026년도 해오름동맹 첨단이차전지 연대협력사업 기업지원 수혜기업 모집공고(상시)</a>
+		         	<a href="#bookmark" onclick="setBookMark('1441');" title="관심공고로 등록/삭제처리"><img id="star2_1441" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 3 건 &nbsp; / 45,000 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>홍태승					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">3 건</div><br/>
+	         	<div class="col-md-12 text-right">45,000 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>홍태승	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 7월 10일  18시<br/>~<br/>2026년 10월 30일  18시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1131	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           시험평가	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1442" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 해오름동맹 첨단이차전지 연대협력사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1442')" style="color:blue;"><img src='/img/gonggo_3rd.gif' alt='3차공고'/>2026년도 해오름동맹 첨단이차전지 연대협력사업 기업지원 수혜기업 모집공고(상시)</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[시험평가] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1442')" style="color:blue;"><img src='/img/gonggo_3rd.gif' alt='3차공고'/>2026년도 해오름동맹 첨단이차전지 연대협력사업 기업지원 수혜기업 모집공고(상시)</a>
+		         	<a href="#bookmark" onclick="setBookMark('1442');" title="관심공고로 등록/삭제처리"><img id="star2_1442" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 6 건 &nbsp; / 36,000 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>홍태승					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">6 건</div><br/>
+	         	<div class="col-md-12 text-right">36,000 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>홍태승	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 7월 10일  18시<br/>~<br/>2026년 10월 30일  18시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1130	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           사업화지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           시제품제작	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1440" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 화학산업경쟁력강화 지원사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1440')" style="color:blue;"><img src='/img/gonggo_2nd.gif' alt='재공고'/>2026년 화학산업경쟁력강화 지원사업(시생산 장비활용 기술지원) 상시지원</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[시제품제작] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1440')" style="color:blue;"><img src='/img/gonggo_2nd.gif' alt='재공고'/>2026년 화학산업경쟁력강화 지원사업(시생산 장비활용 기술지원) 상시지원</a>
+		         	<a href="#bookmark" onclick="setBookMark('1440');" title="관심공고로 등록/삭제처리"><img id="star2_1440" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 2 건 &nbsp; / 0 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>임봉수					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">2 건</div><br/>
+	         	<div class="col-md-12 text-right">0 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>임봉수	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 4월 27일  0시<br/>~<br/>2026년 10월 30일  18시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1129	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지도	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1437" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 화학산업경쟁력강화 지원사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1437')" style="color:blue;"><img src='/img/gonggo_2nd.gif' alt='재공고'/>2026년 화학산업경쟁력강화 지원사업(이물/공정불량/제품성능 개선 등) 상시지원  공고</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[기술지도] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1437')" style="color:blue;"><img src='/img/gonggo_2nd.gif' alt='재공고'/>2026년 화학산업경쟁력강화 지원사업(이물/공정불량/제품성능 개선 등) 상시지원  공고</a>
+		         	<a href="#bookmark" onclick="setBookMark('1437');" title="관심공고로 등록/삭제처리"><img id="star2_1437" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 1 건 &nbsp; / 0 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>장대익					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">1 건</div><br/>
+	         	<div class="col-md-12 text-right">0 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>장대익	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 4월 27일  9시<br/>~<br/>2026년 10월 30일  18시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1128	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           시제품제작	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1429" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		고출력 이차전지 소재·부품 대응용 성능검증 플랫폼 기반구축 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1429')" style="color:blue;">2026년도 산업혁신기반구축사업 기업지원 모집 공고</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[시제품제작] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1429')" style="color:blue;">2026년도 산업혁신기반구축사업 기업지원 모집 공고</a>
+		         	<a href="#bookmark" onclick="setBookMark('1429');" title="관심공고로 등록/삭제처리"><img id="star2_1429" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 3 건 &nbsp; / 0 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>김산서					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">3 건</div><br/>
+	         	<div class="col-md-12 text-right">0 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>김산서	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 6월 23일  9시<br/>~<br/>2026년 8월 31일  18시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1127	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           시험평가	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1430" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		고출력 이차전지 소재·부품 대응용 성능검증 플랫폼 기반구축 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1430')" style="color:blue;">2026년도 산업혁신기반구축사업 기업지원 모집 공고</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[시험평가] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1430')" style="color:blue;">2026년도 산업혁신기반구축사업 기업지원 모집 공고</a>
+		         	<a href="#bookmark" onclick="setBookMark('1430');" title="관심공고로 등록/삭제처리"><img id="star2_1430" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 6 건 &nbsp; / 0 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>김산서					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">6 건</div><br/>
+	         	<div class="col-md-12 text-right">0 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>김산서	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 6월 23일  9시<br/>~<br/>2026년 8월 31일  18시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_ing.gif' alt='접수중'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1126	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술이전사업화	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           패키지지원	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1449" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 원천기술 상용화 플랫폼 구축사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1449')" style="color:blue;"><img src='/img/gonggo_2nd.gif' alt='재공고'/>2026년 원천기술 상용화 플랫폼 구축사업  「기술상용화 촉진 프로그램」</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[패키지지원] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1449')" style="color:blue;"><img src='/img/gonggo_2nd.gif' alt='재공고'/>2026년 원천기술 상용화 플랫폼 구축사업  「기술상용화 촉진 프로그램」</a>
+		         	<a href="#bookmark" onclick="setBookMark('1449');" title="관심공고로 등록/삭제처리"><img id="star2_1449" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 2 건 &nbsp; / 20,000 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>전상민 주임					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">2 건</div><br/>
+	         	<div class="col-md-12 text-right">20,000 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>전상민 주임	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 8월 12일  0시<br/>~<br/>2026년 8월 18일  18시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_end.gif' alt='접수마감'/>		
+	         </td>	         
+	      </tr>    	
+	  			<tr>
+			 <td class="hidden-xs text-center">	         	
+	           1125	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지원	         </td>
+	         <td class="hidden-xs text-center">	         	
+	           기술지도	         </td>
+	         <td class="hidden-xs text-center">	         		 	                  
+	           <a href="#bookmark"  onclick="alert('기업체로 로그인하면 관심공고를 등록하실 수 있습니다.')"  title="관심공고로 등록/삭제처리"><img id="star_1448" src="/img/star-off.png" alt="관심공고"/></a>
+	         </td>		       
+			 <td >	
+			 	<div class="hidden-xs" >         	
+			 		2026년 맞춤형 방폭안전관리 역량강화 사업 <br/>
+	           		<a href="#gonggoView" onclick="goViewGonggo('1448')" style="color:blue;">2026년도 맞춤형 방폭안전강화사업 지원기업 추가모집 공고</a>
+	            </div> 
+	            <div class="visible-xs text-center">
+		         	[기술지도] &nbsp; <a href="#gonggoView" onclick="goViewGonggo('1448')" style="color:blue;">2026년도 맞춤형 방폭안전강화사업 지원기업 추가모집 공고</a>
+		         	<a href="#bookmark" onclick="setBookMark('1448');" title="관심공고로 등록/삭제처리"><img id="star2_1448" src="/img/star-off.png" alt="관심공고"/></a>
+		         	<br/>
+		         	지원내역 : 17 건 &nbsp; / 0 (천원) 
+	                <span class="visible-xs well well-sm clearfix"  >				 		
+						<img src="/img/btn_sh_s.gif" alt="수행"/>울산테크노파크 &nbsp; <img src="/img/btn_sh_e_s.gif" alt="실무자"/>김회준					</span>
+		         </div> 	
+	         </td>	        
+	         <td class="hidden-xs text-center">	  
+	         	<div class="col-md-12 text-right">17 건</div><br/>
+	         	<div class="col-md-12 text-right">0 (천원)</div>	         
+	         </td>	                              	             	       	                  	             
+	         <td class="hidden-xs text-center">	  
+	         	<span style="color:#524398;font-weight:bold">울산테크노파크</span><br/>김회준	         		         </td>	     
+	         <td class="hidden-xs text-center" >	         
+	              2026년 8월 5일  0시<br/>~<br/>2026년 8월 21일  18시  	   
+	         </td>		         	                  	         	      
+	         <td class="hidden-xs text-center" style="padding-top:15px">
+	         	<img src='/img/btn_state_end.gif' alt='접수마감'/>		
+	         </td>	         
+	      </tr>    	
+	  	  	   
+   		   </tbody>	               
+	    </table>
+	    
+	   
+	  </div>
+	 <!--  board list end -->
+	 <input type="hidden" name="rowCnt" value="20"/>
+	  <div class="pull-center">
+		<div class="panel-footer"><nav class="text-center"><ul class="pagination"><li><li class="active"><a href="#" class="tooltip-top" title="현재페이지">1</a></li>
+<li><a href="/com/biz_gonggo_all.php?searchGonggo=&cmd=&searchCase=&searchPrgrm=&searchGovNm=&searchState=&amp;page=2">2</a></li>
+<li><a href="/com/biz_gonggo_all.php?searchGonggo=&cmd=&searchCase=&searchPrgrm=&searchGovNm=&searchState=&amp;page=3">3</a></li>
+<li><a href="/com/biz_gonggo_all.php?searchGonggo=&cmd=&searchCase=&searchPrgrm=&searchGovNm=&searchState=&amp;page=4">4</a></li>
+<li><a href="/com/biz_gonggo_all.php?searchGonggo=&cmd=&searchCase=&searchPrgrm=&searchGovNm=&searchState=&amp;page=5">5</a></li>
+<li><a href="/com/biz_gonggo_all.php?searchGonggo=&cmd=&searchCase=&searchPrgrm=&searchGovNm=&searchState=&amp;page=6">6</a></li>
+<li><a href="/com/biz_gonggo_all.php?searchGonggo=&cmd=&searchCase=&searchPrgrm=&searchGovNm=&searchState=&amp;page=7">7</a></li>
+<li><a href="/com/biz_gonggo_all.php?searchGonggo=&cmd=&searchCase=&searchPrgrm=&searchGovNm=&searchState=&amp;page=8">8</a></li>
+<li><a href="/com/biz_gonggo_all.php?searchGonggo=&cmd=&searchCase=&searchPrgrm=&searchGovNm=&searchState=&amp;page=9">9</a></li>
+<li><a href="/com/biz_gonggo_all.php?searchGonggo=&cmd=&searchCase=&searchPrgrm=&searchGovNm=&searchState=&amp;page=10">10</a></li>
+<li><a href="/com/biz_gonggo_all.php?searchGonggo=&cmd=&searchCase=&searchPrgrm=&searchGovNm=&searchState=&amp;page=11" class="tooltip-top" title="다음"><i class="fa fa-angle-right"></i></a></li>
+<li><a href="/com/biz_gonggo_all.php?searchGonggo=&cmd=&searchCase=&searchPrgrm=&searchGovNm=&searchState=&amp;page=58" class="tooltip-top" title="맨끝"><i class="fa fa-angle-double-right"></i></a></li>
+</li></ul></nav></div>	 
+     </div>  
+     
+       
+</form>    	
+
+
+	<div class="clearfix"></div>
+	
+	<br/><br/>
+</div></div>
+
+<a href="#" class="btn btn-default back-to-top"><span class="glyphicon glyphicon-chevron-up"></span></a>
+<a href="#" class="btn btn-default go-to-bottom"><span class="glyphicon glyphicon-chevron-down"></span></a>
+
+<script type="text/javascript">
+$(document).ready(function() {
+    var offset1 = 300;    // 수직으로 어느정도 움직여야 버튼이 나올까?
+    var offset2 = 100;    // 수직으로 어느정도 움직여야 버튼이 나올까?
+    var duration = 0;     // top으로 이동할때까지의 animate 시간 (밀리세컨드, default는 400. 예제의 기본은 500)
+    var delay1 = 3000;    // 버튼이 사라질때까지의 시간 (3000 = 3초)
+
+    var timer;
+    $(window).bind('scroll',function () {
+        clearTimeout(timer);
+        timer = setTimeout( refresh , 150 );
+    });
+    var refresh = function () { 
+        if ($(this).scrollTop() > offset2) {
+            $('.go-to-bottom').fadeIn(duration);
+            setTimeout(function(){$('.go-to-bottom').hide();},2000);
+        } else {
+            $('.go-to-bottom').fadeOut(duration);
+        }
+
+        if ($(this).scrollTop() > offset1) {
+            $('.back-to-top').fadeIn(duration);
+            setTimeout(function(){$('.back-to-top').hide();},2000);
+        } else {
+            $('.back-to-top').fadeOut(duration);
+        }
+    };
+
+    $('.back-to-top').click(function(event) {
+        event.preventDefault();
+        $('html, body').animate({scrollTop: 0}, duration);
+        return false;
+    })
+    $('.go-to-bottom').click(function(event) {
+        event.preventDefault();
+        $('html, body').animate({ scrollTop: $(document).height() }, duration);
+        return false;
+    })
+});
+</script>
+
+
+<!-- 하단 시작 -->
+
+    <div id="footer">
+		     <p class="visible-lg visible-md">(44412) 울산광역시 중구 종가로 15(다운동) 울산테크노파크  &nbsp; &nbsp; uttc@utp.or.kr  &nbsp; &nbsp;  CopyrightⓒULSAN TECHNOPARK INSTITUTE. All rights reserved. </p>
+		     <p class="visible-xs visible-sm">(44412) 울산광역시 중구 종가로 15(다운동) 울산테크노파크<br />Copyrightⓒ울산테크노파크. All rights reserved. </p>
+    </div>
+
+<!--
+-->
+<!-- } 하단 끝 -->
+
+<script>
+$(function() {
+    // 폰트 리사이즈 쿠키있으면 실행
+    font_resize("container", get_cookie("ck_font_resize_rmv_class"), get_cookie("ck_font_resize_add_class"));
+});
+</script>
+
+
+
+<!-- ie6,7에서 사이드뷰가 게시판 목록에서 아래 사이드뷰에 가려지는 현상 수정 -->
+<!--[if lte IE 7]>
+<script>
+$(function() {
+    var $sv_use = $(".sv_use");
+    var count = $sv_use.length;
+
+    $sv_use.each(function() {
+        $(this).css("z-index", count);
+        $(this).css("position", "relative");
+        count = count - 1;
+    });
+});
+</script>
+<![endif]-->
+
+</body>
+</html>

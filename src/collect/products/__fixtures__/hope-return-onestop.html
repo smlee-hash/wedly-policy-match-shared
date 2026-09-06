@@ -1,0 +1,1626 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="ko" xml:lang="ko">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>희망리턴패키지</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="format-detection" content="telephone=no" />
+<meta name="title" content="희망리턴패키지"/>
+<meta name="description" content="소상공인 폐업부터 취업까지 희망리턴패키지로 준비하세요!"/>
+
+<link rel="shortcut icon" type="image/x-icon" href="/nhrp/favicon.ico">
+<link rel="apple-touch-icon-precomposed" href="/nhrp/favicon-152.png"/>
+<!-- <link rel="stylesheet" type="text/css" href="/nhrp/css/usr-common.css" /> -->
+<!-- <link rel="stylesheet" type="text/css" href="/nhrp/css/usr-font.css" /> -->
+
+<!-- 폰트 선언 -->
+<link rel="stylesheet" type="text/css" href="/nhrp/font/Pretendard/font.css">
+<link rel="stylesheet" type="text/css" href="/nhrp/font/Jalnan/font.css">
+
+<!-- 추가작업 -->
+<link rel="stylesheet" type="text/css" href="/nhrp/css/new-usr-common.css" />
+<link rel="stylesheet" type="text/css" href="/nhrp/css/new-usr-layout.css?20231117" />
+<link rel="stylesheet" type="text/css" href="/nhrp/css/new-usr-contents.css?20231117" />
+<link rel="stylesheet" type="text/css" href="/nhrp/css/new-usr-table.css?20231117" />
+<link rel="stylesheet" type="text/css" href="/nhrp/css/new-usr-button.css" />
+<link rel="stylesheet" type="text/css" href="/nhrp/css/new-usr-main.css?v=20260219"/> 
+
+<link rel="stylesheet" type="text/css" href="/nhrp/css/usr-xeicon.css" />
+<link rel="stylesheet" type="text/css" href="/nhrp/css/usr-fontawesome-all.css" />
+<link rel="stylesheet" type="text/css" href="/nhrp/css/usr-dist.css" />
+
+<!-- <link rel="stylesheet" type="text/css" href="/nhrp/css/usr-contents.css?v=20230524" /> -->
+<!-- <link rel="stylesheet" type="text/css" href="/nhrp/css/usr-layout.css" /> -->
+<link rel="stylesheet" type="text/css" href="/nhrp/css/usr-popup.css" />
+<!-- <link rel="stylesheet" type="text/css" href="/nhrp/css/usr-table.css" /> -->
+<!-- <link rel="stylesheet" type="text/css" href="/nhrp/css/usr-button.css" /> -->
+<link rel="stylesheet" type="text/css" href="/nhrp/css/usr-calendar.css" />
+<link rel="stylesheet" type="text/css" href="/nhrp/css/usr-carousel.css" />
+<!-- <link rel="stylesheet" type="text/css" href="/nhrp/css/usr-response.css" /> -->
+<link rel="stylesheet" type="text/css" href="/nhrp/css/usr-jquery-ui.css" />
+<link rel="stylesheet" type="text/css" href="/nhrp/css/owl/owl.carousel.css" />
+<!-- <link rel="stylesheet" type="text/css" href="/nhrp/css/owl/owl.animate.css" /> -->
+<!-- <link rel="stylesheet" type="text/css" href="/nhrp/css/usr-main.css" /> -->
+
+<!--[if lt IE 9]>
+	<script type="text/javascript" src="/js/usr-html5.js"></script>
+<![endif]-->
+
+<script type="text/javascript" src="/nhrp/js/usr-jquery-2.2.4.min.js"></script>
+<script type="text/javascript" src="/nhrp/js/new-usr-layout.js"></script>
+<script type="text/javascript" src="/nhrp/js/usr-jquery-easing.1.3.js"></script>
+<script type="text/javascript" src="/nhrp/js/usr-jquery-ui.js"></script>
+<script type="text/javascript" src="/nhrp/js/usr-jquery-ui-datepicker-ko.js"></script>
+<script type="text/javascript" src="/nhrp/js/usr-ui.js"></script>
+<script type="text/javascript" src="/nhrp/js/jui/core.min.js"></script>
+<script type="text/javascript" src="/nhrp/js/jui/ui.js?20231117"></script>
+
+<!-- 추가작업 -->
+
+<script type="text/javascript" src="/nhrp/js/owl/owl.carousel.js"></script>
+
+<!-- datepicker -->
+<script type="text/javascript">
+
+	$(document).ready(function() {
+		$(".datepicker").datepicker({
+		dateFormat : 'yy-mm-dd',
+		changeYear : true,
+		showOn : "both",
+		buttonText: "<span class='blind'>날짜</span>",
+		yearRange : 'c-10:c+10'
+		},
+		$.datepicker.regional['ko']
+		);
+		$("html, body").on("DOMMouseScroll MouseScrollEvent MozMousePixelScroll wheel scroll", function () {
+			   $(".datepicker").datepicker("hide");
+		});
+		$(".datepicker").attr("autocomplete","off");
+
+		//...
+
+
+	});
+
+
+
+</script>
+
+<script type="text/javascript">
+	//클릭시 상세화면이동시 사용되는 함수(각 업무페이지 에서 직접 구현 )
+	/* function go_movPage(url){
+		document.frm.action = url;
+		document.frm.submit();
+	} */
+	document.onkeydown =  function(e){
+		if(e.keyCode == 116 || e.ctrlKey == true &&(e.keyCode ==83)){
+			e.keyCode = 0;
+			e.cancelBubble = true;
+			e.returnValue = false;
+			if(typeof(document.frm.urlInfo) == 'undefined'){
+				fn_menuMove($("#pMenuNo").val(), $("#cMenuNo").val(), 'L');
+			}else{
+				fn_refreshMenuMove($("#pMenuNo").val(), $("#cMenuNo").val());
+			}
+		}
+	}
+
+	//페이지이동시 사용되는 함수
+	function fn_egov_select_page(pageNo) {
+		$(".screen_loading").fadeIn();
+		document.frm.pageIndex.value = pageNo;
+		document.frm.submit();
+	}
+	//메뉴클릭시 사용되는 함수
+	function fn_refreshMenuMove(pMenuNo, cMenuNo) {
+		document.frm.pMenuNo.value = pMenuNo;
+		document.frm.cMenuNo.value = cMenuNo;
+
+		var menuUrl = window.location.pathname;
+		document.frm.urlInfo.value = menuUrl;
+		//메뉴링크 이동
+		var url = '/menu/menuLink.do';
+		document.frm.action = url;
+		document.frm.submit();
+	}
+	//메뉴클릭시 사용되는 함수
+	function fn_menuMove(pMenuNo, cMenuNo) {
+		$(".screen_loading").fadeIn();
+		//메뉴 클릭이벤트 분류
+		/* if(clcDiv == 'H'){ */
+			/* var lvlDownCmenuNo = '';
+			var lvlDownPmenuNo = cMenuNo; */
+			/* 			$.ajax({
+					type : "POST",
+					url : '/cms/menu/menuInfoAjax.json',
+					data : {"menuNo": cMenuNo},
+					traditional : true,
+					async: false,
+					error : function(request, status, error) {
+						alert("code:" + request.status + "\n" + "message:" + request.responseText);
+					},
+					//ajax 성공
+					success : function(data) {
+						console.log(data.resultList)
+						//탑메뉴에 해당하는 하위메뉴의 첫번째 아이디를 가져온다.
+						lvlDownCmenuNo = data.resultList[0].menuNo;
+
+					}
+				}); */
+
+				/* document.frm.pMenuNo.value = lvlDownPmenuNo;
+				document.frm.cMenuNo.value = lvlDownCmenuNo; */
+
+		/* }else if(clcDiv == 'L'){ */
+			document.frm.pMenuNo.value = pMenuNo;
+			document.frm.cMenuNo.value = cMenuNo;
+
+		/* } */
+		if(cMenuNo=='101408' || cMenuNo=='101503' ){  // 이러닝교육 수강하기 
+			fn_edulogin(cMenuNo);
+			$(".screen_loading").fadeOut();
+		}else{
+			//메뉴링크 이동
+			var url = '/menu/menuLink.do';
+			document.frm.action = url;
+			document.frm.submit();
+		}
+	}
+	function goExcel(url) {
+		var frm = document.frm;
+		frm.action = url;
+		frm.submit();
+	}
+	function getCommonComboListAjax(p_groupNo, cmmnCode, p_areaName) {
+		var url = "/codeutil/codeAjax.json";
+		$.ajax({
+			type : "POST",
+			url : url,
+			data : {
+				"gCode" : groupNo,
+				"cCode" : cmmnCode
+			},
+			traditional : true,
+			error : function(request, status, error) {
+				alert("code:" + request.status + "\n" + "message:"
+						+ request.responseText);
+			},
+			//ajax 성공
+			success : function(data) {
+				$("#" + p_areaName + "").append(data.codeText);
+			}
+		});
+	}
+	$(function() {
+		dialog = $("#dialog").dialog({
+			autoOpen : false,
+			height : 0,
+			width : 0,
+			modal : true
+		});
+	})
+	$(window).load(function(){
+		$(".screen_loading").fadeOut();
+	})
+function ssoLogin() {
+	var form1 = document.nhrpLoginForm;
+	//form1.action = "https://sso.sbiz.or.kr/sso/subLoginAction.do";
+	form1.action = "https://sso.sbiz24.kr/#/login?returnUrl=https://www.sbiz.or.kr/nhrp/main.do";
+	form1.submit();
+}
+function ssoLogout() {
+	var form1 = document.nhrpLoginForm;
+	form1.action = "https://sso.sbiz.or.kr/sso/supLogoutAction.do";
+	form1.submit();
+}
+</script>
+</head>
+
+<body>
+	<!-- skipnavi -->
+	<div id="skip">
+		<strong class="blind">반복영역 건너뛰기</strong>
+		<a href="#gnb">주메뉴 바로가기</a>
+		<a href="#scontents">본문 바로가기</a>
+	</div>
+	<div id="wrap">
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+
+$(document).ready(function(){
+	var membnm = "";
+	var discrhash = "";
+	var uuid = "";
+	
+	if(membnm != ""){
+		if(discrhash == ""){
+			if (uuid && uuid.trim() !== "") {
+				alert("회원정보에 di가 없어 휴대폰 재인증을 해야합니다.\r\n새로 열리는 페이지 왼쪽 [소상공인24>회원정보관리>기본정보>수정]페이지에서 휴대폰 재인증을 해주세요.\r\n\r\n(재인증 후 다시 로그인 요함)");	
+	// 			window.open("https://www.sbiz24.kr/","_blank");
+				location.href= "https://www.sbiz24.kr/#/qSignSsoPrcs?return_uri=https%3A%2F%2Fsso.sbiz24.kr%2F%23%2Fmim%2F%3FreturnUrl=https://www.sbiz.or.kr/nhrp/main.do";
+				//history.back();
+			}
+		}
+	}
+	
+});
+
+if("100208" == '101008' || "100208" == '101302' || "100208" == '101504'){
+	
+	history.pushState(null, null, location.href);
+	
+	window.onpopstate = function(event){
+		history.go(1);
+	}
+}
+
+function go_logOut(){
+	location.href = '/login/logoutProc.do';
+}
+
+function fn_goNoLinkMove(p_url) {
+	//메뉴링크 이동
+	var url = p_url;
+	document.frm.action = url;
+	document.frm.submit();
+}
+
+function fn_goMypage(p_url) {
+	//메뉴링크 이동
+	var loginid = '';
+	if(loginid != '' && loginid != null){
+		fn_goNoLinkMove(p_url);
+	}else{
+		alert("로그인이 필요합니다.");
+	}
+}
+
+//e러닝 수강하기 로그인처리 
+function fn_edulogin(cMenuNo){
+
+	if($("#_eduLoginForm > sToken").val() == "" || $("#_eduLoginForm > sToken").val() == ""){
+		if(cMenuNo != "" &&  cMenuNo == '101408'){
+			alert("희망리턴패키지 홈페이지에서 기초교육을 신청하신 후 e러닝을 수강하셔야 수료처리됩니다.");
+		}
+		window.open("https://edu.sbiz.or.kr/edu/channel/hopejob/online/ch/onlineEduList.do?menuCode=CHU001002");
+	}else{
+		if(cMenuNo != "" &&  cMenuNo == '101408'){
+			alert("희망리턴패키지 홈페이지에서 기초교육을 신청하신 후 e러닝을 수강하셔야 수료처리됩니다.");
+		}
+		$("#_eduLoginForm").submit();
+	}
+}
+
+</script>
+<form id="_eduLoginForm" name="_eduLoginForm" action="https://edu.sbiz.or.kr/edu/common/loginGateEduopen.do" method="post" target="_blank">
+	<input type="hidden" name="sToken" value="null"/>
+	<input type="hidden" name="returnURL" value="/channel/hopejob/online/ch/onlineEduList.do?menuCode=CHU001002"/>
+	<input type="hidden" name="uuid" value="null"/>
+</form>
+<!-- header -->
+
+
+<div id="slide_map">
+	<div class="inner">
+		<div class="binds">
+			<div class="toputil">
+				
+					<p>로그인 하세요.</p>
+				
+				
+				<ul>
+					<li>
+						
+							<a href="#" onclick="javascript:ssoLogin();return false;"><span>로그인</span></a>
+						
+						
+					</li>
+					<li>
+						
+							<a href="#hope" onclick="javascript:ssoLoginTotal();return false;""><span>통합회원 로그인</span></a>
+						
+					</li>
+					<li>
+						
+							<a href="https://sso.sbiz24.kr/#/join?returnUrl=https%3A%2F%2Fwww.sbiz.or.kr%2Fsup%2Fmain.do" target="_blank"><span>회원가입</span></a>
+						
+						
+					</li>
+				</ul>
+			</div>
+			
+		</div>
+		<a href="#" class="close">닫기</a>
+	</div>
+</div>
+
+
+
+<header id="header">
+	<div class="js_mobile_check"></div>
+	<div class="header_top">
+		<div class="top_inner">
+			<h1 class="logo">
+				<a href="#" onclick="javascript:fn_goNoLinkMove('/nhrp/main.do');return false;"><span class="blind">희망리턴패키지</span></a>
+			</h1>
+			<!-- <a href="https://www.semas.or.kr/" target="_blank" class="alink_mb" title="새창열림">새출발 지원센터</a> -->
+			<!-- link -->
+			<div class="link">
+				<ul>
+					<li><a href="https://www.sbiz24.kr/#"  class="sup" title="새창열림"> <span class="blind">소상공인마당</span></a></li>
+					<li><a href="https://www.semas.or.kr/" target="_blank" class="sms" title="새창열림"><span class="blind">소상공인시장진흥공단</span></a></li>
+					<!-- <li><a href="https://www.semas.or.kr/web/ORG01/ORG0111/ORG011102.kmdc#tbl_info" target="_blank" class="alink" title="새창열림">새출발 지원센터</a></li> -->
+				</ul>
+			</div>
+
+			<!-- util -->
+			<div class="util">
+				<ul class="util_list">
+					
+					<li>
+						
+							<a href="#" onclick="javascript:ssoLogin();return false;"><span>로그인</span></a>
+						
+						
+					</li>
+					<li><a href="#hope" onclick="javascript:fn_goNoLinkMove('https://www.sbiz24.kr/#/cmmn/gnrl/bbs/4');return false;"><span>소식&amp;알림</span></a></li>
+					<li>
+						
+							<a href="#hope" onclick="javascript:ssoLoginTotal();return false;""><span>통합회원 로그인</span></a>
+						
+					</li>
+					
+					
+					
+				</ul>
+			</div>
+		</div>
+	</div>
+
+	<!-- header_sch -->
+	
+	<nav class="js_menu type_02" id="gnb">
+       <div id="blind">
+           <div class="blind_bg"></div>
+       </div>
+       
+       <ul class="gnb_menu col6">
+			
+				
+			
+				
+				<li>
+					<a href="#hope"><span>알림마당</span></a>
+					<ul class="depth2">
+					
+						
+					
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('100100', '100101');">희망리턴패키지란?</a></li>
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('100100', '100102');">사업공고(통합공고)</a></li>
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('100100', '100104');">자료실</a></li>
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('100100', '100103');">공지사항</a></li>
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('100100', '100105');">Q&A</a></li>
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('100100', '100109');">점포철거 부정행위 신고센터</a></li>
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+					</ul>
+				</li>
+				
+			
+				
+			
+				
+			
+				
+			
+				
+			
+				
+			
+				
+			
+				
+				<li>
+					<a href="#hope"><span>원스톱 폐업지원</span></a>
+					<ul class="depth2">
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('100200', '100208');">원스톱 폐업지원이란?</a></li>
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('100200', '100209');">원스톱 폐업지원 신청</a></li>
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+					</ul>
+				</li>
+				
+			
+				
+			
+				
+			
+				
+				<li>
+					<a href="#hope"><span>재기사업화(경영개선)</span></a>
+					<ul class="depth2">
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('101300', '101302');">재기사업화(경영개선) 신청</a></li>
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+					</ul>
+				</li>
+				
+			
+				
+			
+				
+			
+				
+			
+				
+				<li>
+					<a href="#hope"><span>특화취업지원</span></a>
+					<ul class="depth2">
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('101400', '101401');">취업지원이란?</a></li>
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('101400', '101411');">취업교육</a></li>
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('101400', '101412');">전직장려수당</a></li>
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('101400', '101404');">전직장려수당 신청</a></li>
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('101400', '101413');">국민취업지원제도연계</a></li>
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('101400', '101414');">심리회복지원</a></li>
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+					</ul>
+				</li>
+				
+			
+				
+			
+				
+			
+				
+			
+				
+			
+				
+			
+				
+			
+				
+			
+				
+			
+				
+			
+				
+			
+				
+			
+				
+			
+				
+				<li>
+					<a href="#hope"><span>재기사업화(재창업)</span></a>
+					<ul class="depth2">
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('101500', '101505');">재도전 교육이란?</a></li>
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('101500', '101502');">재도전교육 신청</a></li>
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('101500', '101504');">재기사업화(재창업) 신청</a></li>
+						
+					
+						
+					
+						
+					
+						
+					
+					</ul>
+				</li>
+				
+			
+				
+			
+				
+			
+				
+			
+				
+				<li>
+					<a href="#hope"><span>소상공인 고용보험료 지원</span></a>
+					<ul class="depth2">
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('101100', '101102');">소상공인 고용보험료 지원이란?</a></li>
+						
+					
+						
+							<li><a href="#hope" onclick="javascript:fn_menuMove('101100', '101101');">소상공인 고용보험료 지원신청</a></li>
+						
+					
+					</ul>
+				</li>
+				
+			
+				
+			
+				
+			
+		</ul>
+   </nav>
+   
+   <a href="#" class="allmenu_btn">
+       <span class="hidden">전체메뉴</span>
+   </a>
+   
+   <!-- PC 퀵메뉴 추가 작업  -->
+
+   <div class="allmenu_listBox">
+		<div class="service_list">
+			<ul>
+			<li><a href="https://edu.sbiz.or.kr/edu/main/main.do" target="_blank" title="소상공인지식배움터 새창이동">소상공인지식배움터</a></li>
+			<li><a href="https://www.sbiz.or.kr/cot/main.do" target="_blank" title="컨설팅 새창이동">컨설팅</a></li>
+			<li><a href="https://www.sbiz.or.kr/nhrp/main.do" target="_blank" title="희망리턴패키지 새창이동">희망리턴패키지</a></li>
+			<li><a href="https://www.sbiz.or.kr/cop/main/copMain.do" target="_blank" title="협업활성화 새창이동">협업활성화</a></li>
+			<!-- <li><a href="https://www.sbiz.or.kr/nas/main.do" target="_blank" title="나들가게 새창이동">나들가게</a></li> -->
+			<li><a href="https://www.sbiz.or.kr/fcs/main.do" target="_blank" title="프랜차이즈 새창이동">프랜차이즈</a></li>
+<!-- 			<li><a href="https://sg.sbiz.or.kr/godo/index.sg" target="_blank" title="상권정보 새창이동">상권정보</a></li> -->
+			<li><a href="https://bigdata.sbiz.or.kr/#/" target="_blank" title="상권정보 새창이동">소상공인365</a></li>
+<!-- 			<li><a href="https://www.sbiz.or.kr/nbs/main.do" target="_blank" title="신사업아이디어 새창이동">신사업아이디어</a></li> -->
+<!-- 			<li><a href="https://www.sbiz.or.kr/sijangtong/nation.do" target="_blank" title="전통시장 새창이동">전통시장</a></li> -->
+			</ul>
+		</div>
+   </div>
+
+
+   <!-- PC 퀵메뉴 추가 작업 // -->
+   
+   <script>
+	   setTimeout(function(){
+		   Tmenu_setting("0101");
+		},2000);
+       
+   </script>
+	
+	<form name="nhrpLoginForm" method="post">
+	  <input type="hidden" name="reqSite" value="https://www.sbiz.or.kr/ssotestHrp/ssomain.do"/>
+	  <input type="hidden" name="actionUrl" value="https://www.sbiz.or.kr/sup/supLogoutAction.do"/>
+	  <input type="hidden" name="uuid" value="null"/>
+	</form>
+</header>
+
+
+
+
+	<!-- logo -->
+	
+	<!-- //adaption -->
+<!-- //header -->
+	
+	<!-- sub_visual -->
+	
+	<div id="sub_visual" data-img="1">
+		<div class="vcontents_inner">
+			<h3 class="tit">원스톱 폐업지원이란?</h3>
+			<div class="current_location">
+				<a href="#hope" class="home"><span>홈</span></a>
+				<ul>
+					
+						
+						
+					
+						
+						
+					
+						
+							<li><span class="depth">원스톱 폐업지원</span></li>
+						
+						
+					
+						
+						
+							<li><p class="depth"><span class="blind">현재 위치</span>원스톱 폐업지원이란?</p></li>
+						
+					
+				</ul>
+			</div>
+		</div>
+	</div>
+	<!-- //sub_visual -->
+	
+	<div id="scontainer">
+		<!-- container -->
+			<div id="ncontents">
+				<div class="ncontents_inner">
+				
+					
+
+
+
+
+
+
+
+
+
+
+
+
+<div id="lnb">
+	<!-- lnb_normal -->
+	<div class="lnb_normal">
+		<!-- lnb_tit -->
+		<div class="lnb_tit">
+			<div class="tit_area">
+				<h2 class="tit">
+					<span>원스톱 폐업지원</span>
+				</h2>
+			</div>
+		</div>
+		<div class="lnb_nav">
+			<ul class="lnb_list">
+				
+					
+				
+					
+					
+					
+					
+						<li>
+						
+					</li>
+					
+					
+					
+				
+					
+					
+					
+						<li class="active" >
+						
+							<a href="#" onclick="javascript:fn_menuMove('100200', '100208')" title="원스톱 폐업지원이란?">원스톱 폐업지원이란?</a>
+						
+						</li>
+					
+					
+					
+					
+				
+					
+					
+					
+					
+						<li>
+						
+							<a href="#" onclick="javascript:fn_menuMove('100200', '100209')" title="원스톱 폐업지원 신청">원스톱 폐업지원 신청</a>
+						
+					</li>
+					
+					
+					
+				
+			</ul>
+		</div>
+	</div>
+	<!-- //lnb_normal -->
+</div>
+
+				
+				<div class="screen_loading">
+					<div class="screen_loader_wrap">
+						<div class="loader_circle"></div>
+					</div>
+				</div>
+				
+
+
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+	$(document).ready(function() {
+	});
+</script>
+
+<!-- scontents -->
+
+<script src="/nhrp/js/common.js"></script>
+
+<form name="frm" id="frmMng" method="post"
+	action="/nhrp/cnsl/bsnsArngCnslInfo.do">
+	<input type="hidden" id="pMenuNo" name="pMenuNo"
+		value="100200" /> <input type="hidden" id="cMenuNo"
+		name="cMenuNo" value="100208" /> <input type="hidden"
+		id="pageIndex" name="pageIndex"
+		value="1" /> <input
+		type="hidden" id="pageUrl" name="pageUrl" />
+	<div id="scontents">
+		<!-- scontents_inner -->
+		<div class="scontents_inner">
+			<!-- dev_contents -->
+			<div class="dev_contents">
+			
+				<!-- //콘텐츠/////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+
+				<div class="stit_area">
+					<h4 class="stit04">사업목적</h4>
+				</div>
+				<p class="info_txt03 bul mgb35">소상공인이 부득이 폐업에 이른 경우, 실패부담을 최소화하기 위해 폐업에 필요한 정보·비용·각종애로를 신속하게 지원</p>
+
+				<div class="stit_area">
+					<h4 class="stit04">지원규모</h4>
+				</div>
+				<p class="info_txt03 bul mgb35">193,200백만원 / 44,250건 내외</p>
+				
+				<div class="stit_area">
+					<h4 class="stit04">지원대상</h4>
+				</div>
+				<ul class="info_list02 bul mgb10">
+					<li>폐업(예정) 소상공인</li>
+				</ul>
+				<div class="info_box03" data-style="2">
+					<p class="info_txt03 txt_info" data-icon="arrow">
+						『소상공인기본법』 제2조에 따른 소상공인 중 공고일 기준 폐업을 하였거나 폐업 예정인 소상공인 
+					</p>
+					<ul class="info_list02 bul">
+						<li>(사업정리컨설팅·점포철거비지원·법률자문) 기폐업 소상공인의 경우, 폐업일이 ’23년1월1일 이후인 경우 지원 가능</li>
+						<li>(채무조정) 기폐업 소상공인의 경우, 폐업일 무관(법인제외)</li>
+					</ul>
+					<p class="info_txt03 txt_info" data-icon="arrow">
+						정책자금 지원제외 업종에 해당하지 않는 경우
+					</p>
+					<p class="info_txt03 txt_info" data-icon="arrow">
+						사업자등록증(또는 폐업사실증명원)상 사업개시일이 60일이 경과된 소상공인
+					</p>
+					<ul class="info_list02 bul">
+						<li>(점포철거) 임대차계약으로 사업장을 운영하여 임대차계약서 제출이 가능한 소상공인</li>
+						<li>(채무조정) 위 자격요건을 갖춘 소상공인의 배우자 (단, 사업관련 채무에 한함)</li>
+					</ul>
+				</div>
+				<div class="stit_area">
+					<h4 class="stit04">지원내용</h4>
+				</div>
+				<p class="info_txt03 bul mgb25">‘사업정리컨설팅+점포철거지원+법률자문+채무조정’ 패키지 지원</p>
+				<!-- tbd_normal -->
+				<div class="mgb15" data-type="table" data-table="normal" data-scroll="yes">
+				<div class="move">
+					<table class="">
+						<caption>지원내용</caption>
+						<colgroup>
+							<col style="width: 11.25em;">
+							<col style="width: auto">
+						</colgroup>
+						<thead>
+							<tr>
+								<th>구분</th>
+								<th>지원 세부사항</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>사업정리 컨설팅</td>
+								<td class="" style="text-align: left;">
+									<p class="info_txt03 mgb05">
+										지원방식 : 분야별 전문가를 통한 1:1 컨설팅 제공
+									</p>
+									<p class="info_txt03 mgb05">
+										지원분야 : 재기전략·세무·부동산 등 5개 분야에 대한 자문제공(최대 3개분야 신청 가능)
+									</p>
+									<div class="mgb15" data-type="table" data-table="normal">
+										<table class="">
+											<caption>사업정리 컨설팅 지원내용</caption>
+											<colgroup>
+												<col style="width: 20%;">
+												<col style="width: auto;">
+											</colgroup>
+											<thead>
+												<tr>
+													<th>분야</th>
+													<th>세부 지원 내용</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr>
+													<td>재기전략</td>
+													<td style="text-align: left;">
+														<ul class="info_list02 bul mgb05">
+															<li>폐업 절차, 신고사항 집기·시설 처분 등 정보 제공</li>
+														</ul>
+													</td>
+												</tr>
+												<tr>
+													<td>세무</td>
+													<td style="text-align: left;">
+														<ul class="info_list02 bul mgb05">
+															<li>폐업 시, 세무신고 안내, 절세방안, 세무 관련 컨설팅</li>
+															<li>폐업관련 세금 신고대행(종합소득세, 부가가치세 등)</li>
+														</ul>
+													</td>
+												</tr>
+												<tr>
+													<td>부동산</td>
+													<td style="text-align: left;">
+														<ul class="info_list02 bul mgb05">
+															<li>권리금·보증금 보호 관련 정보 제공</li>
+															<li>사업장 양수도, 자산 매각 및 원상회복, 직거래 방법</li>
+														</ul>
+													</td>
+												</tr>
+												<tr>
+													<td>직무·직능</td>
+													<td style="text-align: left;">
+														<ul class="info_list02 bul mgb05">
+															<li>직업탐색 및 개인맞춤형 직업적성·직능검사 실시·해석</li>
+															<li>직업정보(지자체 일자리사업 등), 유망직군 연계</li>
+														</ul>
+													</td>
+												</tr>
+												<tr>
+													<td>심리</td>
+													<td style="text-align: left;">
+														<ul class="info_list02 bul mgb05">
+															<li>폐업트라우마 극복, 자신감 회복, 재기마인드 함양 지원<br/>
+															 - 심리진단·상담, 치유 보조프로그램 등 심리회복 지원</li>
+														</ul>
+													</td>
+												</tr>
+												
+											</tbody>
+										</table>
+									</div>
+								</td>
+							</tr>
+							<tr>
+								<td>법률자문</td>
+								<td class="" style="text-align: left;">
+									<p class="info_txt03 bul mgb05">
+										지원방식 : 전담변호사 1:1 배정을 통한 방문, 서면, 전화 법률자문 지원
+									</p>
+									<p class="info_txt03 bul mgb05">
+										지원내용: 임대차, 신용, 노무, 가맹, 세무 등에 대한 법률자문
+									</p>
+								</td>
+							</tr>
+							<tr>
+								<td>채무조정
+								</td>
+								<td class="" style="text-align: left;">
+									<p class="info_txt03 bul mgb05">
+										지원방식 : 신용전문가의 채무조정 상담·솔루션 제공, 채무조정 지원
+									</p>
+									<p class="info_txt03 bul mgb05">
+										지원분야 : 개인파산·개인회생, 신용회복위원회, 새출발기금
+									</p>
+
+									<!-- <div class="tbd_normal mgb15" data-type="table" data-table="normal">
+										<table class="">
+											<caption>채무조정 신청지원 지원내용</caption>
+											<colgroup>
+												<col style="width: 20%;">
+												<col style="width: auto;">
+											</colgroup>
+											<thead>
+												<tr>
+													<th>분야</th>
+													<th>세부 지원 내용</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr>
+													<td>공적 채무조정</td>
+													<td style="text-align: left;">
+														<ul class="info_list02 bul mgb05">
+															<li>개인파산·개인회생 소송대리 전담변호사 지원</li>
+															<li>채무조정 절차 비용 지원(파산관재인 선임비용, 송달료, 인지대 등)</li>
+														</ul>
+													</td>
+												</tr>
+												<tr>
+													<td>사적 채무조정</td>
+													<td style="text-align: left;">
+														<ul class="info_list02 bul mgb05">
+															<li>신용회복위원회 등 연계 채무조정 관련 상담지원</li>
+															<li>채무 이자율 및 원금 조정 등 연계지원</li>
+														</ul>
+													</td>
+												</tr>
+											</tbody>
+										</table>
+									</div> -->
+
+								</td>
+							</tr>
+							<tr>
+								<td>점포철거비 지원</td>
+								<td class="" style="text-align: left;">
+									<p class="info_txt03 bul mgb05">
+										지원방식 : 전용면적(3.3m²)당 20만원 이내로 지원
+									</p>
+									<p class="info_txt03 bul mgb05">
+										지원내용 : 점포철거 및 원상복구 비용의 600만원 한도 내에서 지원 (부가세 제외) <br/>
+										<font size="3px;">* 지급한도는 폐업일('25년 7월 11일)에 따라 상이</font>
+									</p>
+									<ul class="info_list02 bul mgb05">
+										<li>전용면적(3.3m²)은 m²→평수로 환산 후, 소수점 첫째자리에서 올림처리(ex. 57m² → 17.2평 → 18평)</li>
+									</ul>
+									<p class="info_txt03 bul mgb05">
+										지원제외 : 아래 제외사항에 1개라도 해당되는 경우 지원 제외
+									</p>
+
+									<div class="mgb15" data-type="table" data-table="normal">
+										<table class="">
+											<caption>점포철거비 지원</caption>
+											<colgroup>
+												<col style="width: 20%;">
+													<col style="width: auto;">
+											</colgroup>
+											<thead>
+												<tr>
+													<th>구분</th>
+													<th>지원제외대상</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr>
+													<td style="text-align: left;">① 자가건물 및<br>무상임차</td>
+													<td style="text-align: left;">
+														<ul class="info_list02 bul mgb05">
+															<li>자가 소유건물(일부 지분 소유자 포함)에 사업장을 운영하는 경우</li>
+															<li>무상으로 임대차계약서를 작성한 경우<br/>※ 법인과 법인대표가 임대차 관계일 경우에도 지원 불가</li>
+														</ul>
+													</td>
+												</tr>
+												<tr>
+													<td style="text-align: left;">② 기 수혜자</td>
+													<td style="text-align: left;">
+														<ul class="info_list02 bul mgb05">
+															<li>점포철거비지원을 이미 받은 경우(주민등록번호 기준 1회만 신청 가능)<br/>
+															* 과거 수혜 후 공단으로 자진 반납한 자, 규정 위반에 의한 강제 환수자 포함</li>
+														</ul>
+													</td>
+												</tr>
+												<tr>
+													<td style="text-align: left;">③ 주거용도 건축물</td>
+													<td style="text-align: left;">
+														<ul class="info_list02 bul mgb05">
+															<li>건축물대장상 사업장소재지 용도가 ‘주택’, ‘아파트’ 등 주거 용도로 확인되는 경우(단, 숙박업 중 ‘민박’의 경우 지원 가능)<br/>
+															* 공단의 현장 확인 등을 통해 실제 상업시설로만 사용된 것이 확인되는 경우 지원 가능</li>
+															<li>가설건축물(건축물로서 구조·용도 등을 갖추지 못한 임시구조물) 및 무허가 건축물 불인정</li>
+														</ul>
+													</td>
+												</tr>
+												<tr>
+													<td style="text-align: left;">④ 유사 사업수혜자</td>
+													<td style="text-align: left;">
+														<ul class="info_list02 bul mgb05">
+															<li>점포철거 지원에 관한 유사 정부 및 지자체 사업의 수혜를 받은 경우<br/>
+															* 추후 중복수혜 적발 시 지원금을 환수할 수 있음</li>
+														</ul>
+													</td>
+												</tr>
+												<tr>
+													<td style="text-align: left;">⑤ 사업장 이전</td>
+													<td style="text-align: left;">
+														<ul class="info_list02 bul mgb05">
+															<li>폐업이 아닌, 단순 사업장 소재지를 이전하는 경우</li>
+															<li>폐업 후 동일 장소에 재창업한 경우<br/>
+															* 동일장소 재창업 제한 기간: 점포철거비 지원금 수혜일로부터 3년</li>
+														</ul>
+													</td>
+												</tr>
+												<tr>
+													<td style="text-align: left;">⑥ 제외업종</td>
+													<td style="text-align: left;">
+														<ul class="info_list02 bul mgb05">
+															<li>비영리사업자 및 비영리법인 제외(고유번호증 소지자)</li>
+															<li>희망리턴패키지 지원제외 업종([별첨2] 참조)<br/>
+															 - 하나의 기업이 2개 이상의 업종을 영위하는 경우*, 매출액 비중이 가장 큰 주된 업종을 기준으로 업종 판단<br/>
+															 * 부가가치세 확정신고서(최근1년) 제출필수(국세청 홈택스(www.hometax.go.kr)-조회/발급-세금신고납부-전자신고결과조회)</li>
+														</ul>
+													</td>
+												</tr>
+											</tbody>
+										</table>
+									</div>
+
+								</td>
+							</tr>
+						</tbody>
+					</table>
+					</div>
+				</div>
+				
+				<div class="stit_area">
+					<h4 class="stit04">신청·접수</h4>
+				</div>
+				<ul class="info_list02 bul mgb05">
+					<li>(사업정리컨설팅, 법률자문·채무조정) 희망리턴패키지(www.sbiz.or.kr)를 통한 온라인 신청</li>
+					<li><font color="red">(점포철거비지원) 소상공인24(www.sbiz24.kr)를 통한 온라인 신청</font></li>
+				</ul>
+				
+				
+				<div class="stit_area">
+					<h4 class="stit04">문의처</h4>
+				</div>
+				<ul class="info_list02 bul mgb05">
+					<li>대표전화 : <a data-color="gr" href="tel:1533-0100">1533-0100</a>(소상공인 통합콜센터), <a data-color="gr" href="tel:1357">1357</a>(중소기업 통합콜센터)</li>
+				</ul>
+				
+				<!-- //tbd_normal -->
+				<!-- <div data-box="1">
+					<ul>
+						<li>
+							<strong data-icon="call">문의처</strong>
+							<p>대표전화 : <a data-color="gr" href="tel:1357">1533-0100</a>(소상공인 통합콜센터), <a data-color="gr" href="tel:1357">1357</a>(중소기업 통합콜센터)</p>
+						</li>
+					</ul>
+				</div> -->
+				<!-- //콘텐츠/////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+			</div>
+			<!-- //dev_contents -->
+		</div>
+		<!-- //scontents_inner -->
+	</div>
+</form>
+<!-- //contents -->
+
+				</div>
+			</div>
+	</div>
+	
+
+<footer id="footer">
+<!-- S: Footer-chat -->
+<div class="fixed-area">
+<!--
+	<a href="https://www.sbiz24.kr/chat/ch/home.do" class="footer-chat" title="소상공인 지능형서비스 상담 챗봇 새창열림" target="_blank">
+		<img src="/nhrp/images/common/icon-chat_1.png" alt="소담봇">
+		<div class="tip">
+		안녕하세요. 소상공인 상담챗봇 소담봇입니다.<br> 공단 사업에 대해 궁금한 점이 있으시다면<br> 저를 클릭해주세요.
+		</div>
+	</a>
+-->
+	<!-- <a href="https://lawform.io/promotion/microbusiness" class="footer-chat" title="소상공인 계약관리 새창열림" target="_blank">
+		<img src="/nhrp/images/common/icon-chat_2.png" alt="소상공인 계약관리">
+		<div class="tip">
+		소상공인을 위한 쉽고 편리한<br> 법률문서 서비스를 이용하시려면<br> 저를 클릭해주세요.
+		</div>
+	</a>
+	<a href="https://chat.sbiz.or.kr/" class="footer-chat" title="인공지능 챗봇 새창열림" target="_blank">
+		<img src="/nhrp/images/common/icon-chat_3.png" alt="인공지능 챗봇">
+		<div class="tip">
+		안녕하세요. AI챗봇입니다.<br> 소상공인 지원정책 관련 궁금한 점이있으면<br> 저를 클릭해주세요.
+		</div>
+	</a> -->
+</div>
+<!-- E: Footer-chat -->
+	<!-- footer_link -->
+	<div class="footer_link">
+		<!-- link_inner -->
+		<div class="link_inner">
+			<!-- link_service -->
+			<ul class="link_service">
+				<li><a href="https://www.semas.or.kr/web/USE01/USE0101.kmdc">이용안내</a></li>
+				<li><a href="https://www.semas.or.kr/web/USE01/USE0102.kmdc">개인정보처리방침</a></li>
+				<li><a href="https://www.semas.or.kr/web/USE01/USE0103.kmdc">저작권정책</a></li>
+				<li><a href="https://www.semas.or.kr/web/USE01/USE0104.kmdc">책임의한계와법적고지</a></li>
+				<li><a href="https://www.semas.or.kr/web/USE01/USE0105.kmdc">이메일주소무단수집거부</a></li>
+				<li><a href="http://www.juso.go.kr/">도로명주소안내</a></li>
+				<li><a href="http://113366.com/seda">원격지원</a></li>
+				<!-- <li><a href="/nhrp/cmmrclz/unfairAbout.do?pMenuNo=101600&cMenuNo=101601&directCall=Y">불공정신고</a></li> -->
+			</ul>
+
+			<!-- link_site -->
+			<div class="link_site">
+				<!-- site_jump -->
+				<div class="site_jump">
+					<a href="#hope" class="jump_toggle"><span class="txt">유관기관
+							바로가기</span></a>
+					<div class="jump_list">
+						<ul>
+							<li><a href="https://www.bizinfo.go.kr/web/index.do" target="_blank" title="새창열림">기업마당</a></li>
+							<li><a href="https://www.osmb.go.kr/main.do" target="_blank" title="새창열림">중소기업옴부즈만</a></li>
+							<li><a href="https://www.mss.go.kr/site/smba/main.do" target="_blank" title="새창열림">중소벤처기업부</a></li>
+							<li><a href="https://www.kodit.or.kr/index.do" target="_blank" title="새창열림">신용보증기금</a></li>
+							<li><a href="http://www.kinfa.or.kr" target="_blank" title="새창열림">서민금융진흥원</a></li>
+							<li><a href="https://www.work24.go.kr" target="_blank" title="새창열림">고용24</a></li>
+							<li><a href="https://www.ipacademy.net/main.do" target="_blank" title="새창열림">국가지식재산교육포털</a></li>
+						</ul>
+					</div>
+				</div>
+			</div>
+			<!-- //link_site -->
+		</div>
+		<!-- //link_inner -->
+	</div>
+	<!-- //footer_link -->
+
+	<!-- footer_inner -->
+	<div class="footer_inner">
+		<!-- flogo -->
+		<strong class="flogo"> <span class="blind">소상공인진흥공단</span>
+		</strong>
+
+		<!-- addr_info -->
+		<ul class="addr_info">
+			<li>(우:34077) 대전광역시 유성구 지족로364번길 92, 2층 소상공인시장진흥공단</li>
+			<li>대표전화 : 1533-0100(소상공인 통합콜센터), 1357(중소기업 통합콜센터)</li>
+		</ul>
+
+		<!-- copyright -->
+		<p class="copyright">ⓒ2023 SEMAS. All Rights Reserved.</p>
+	</div>
+	<!-- //footer_inner -->
+</footer>
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-3180660-19"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-3180660-19');
+</script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-MTX8V132FY"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-MTX8V132FY');
+</script>
+
+	</div>
+</body>
+</html>
+
+
+

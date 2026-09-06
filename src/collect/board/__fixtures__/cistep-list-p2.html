@@ -1,0 +1,3171 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<!-- Title 설정 -->
+<title>천안과학산업진흥원</title>
+
+
+
+
+    <meta name="robots" content="index,follow">
+
+
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<meta http-equiv="imagetoolbar" content="no" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="expries" content="0" />
+<meta name="format-detection" content="telephone=no" />
+
+<!-- CSS -->
+<link rel="stylesheet" href="/css/bsite/css/style.css" />
+
+<!-- JS -->
+
+<script type="text/javascript" src="/js/bsite/js/jquery-1.12.2.min.js"></script>
+<script type="text/javascript" src="/js/bsite/js/swiper-bundle.min.js"></script>
+<script type="text/javascript" src="/js/loading/loadingoverlay.js"></script>
+<script type="text/javascript" src="/js/format.js"></script>
+<script type="text/javascript" src="/js/common.js"></script>
+
+<!-- ANIMATION -->
+<script type="text/javascript" src="/js/bsite/js/aos.js"></script>
+<link rel="stylesheet" href="/css/bsite/css/aos.css"/> 
+
+<!-- Mobal  -->
+<script type="text/javascript" src="/js/bsite/js/jquery.modal.min.js"></script>
+
+<!-- KENDO UI -->
+<link rel="stylesheet" type="text/css" href="/js/kendoui.jquery/styles/kendo.common.min.css" />
+<link rel="stylesheet" type="text/css" href="/js/kendoui.jquery/styles/kendo.default.min.css" />
+<link rel="stylesheet" type="text/css" href="/js/kendoui.jquery/styles/kendo.default.mobile.min.css" />
+
+<script type="text/javascript" src="/js/kendoui.jquery/js/kendo.all.min.js"></script>
+<script type="text/javascript" src="/js/kendoui.jquery/js/cultures/kendo.culture.ko-KR.min.js"></script>
+<!-- KENDO UI  --> 
+
+<!-- SYNAP VIERER -->
+<script type="text/javascript" src="/js/synapViewer/synap.js"></script>
+<!-- SYNAP VIERER -->
+
+<!-- 전자인증 모듈 설정 -->
+<link rel="stylesheet" type="text/css" href="/crossCret/unisignweb/rsrc/css/certcommon.css" />
+<script type="text/javascript" src="/crossCret/unisignweb/js/unisignwebclient.js"></script>
+<script type="text/javascript" src="/crossCret/UniSignWeb_Multi_Init_Nim.js"></script>
+<!-- 전자인증 모듈 설정  -->
+
+<script type="text/javascript">
+
+//<![CDATA[
+	$(document).ready(function() {
+		// kendo ui datepicker 설정
+		$(".kendoDatePicker").kendoDatePicker({
+			//value: new Date(),
+			format : "yyyy-MM-dd",
+			culture : "ko-KR",
+			weekNumber: false, // 주 수 표시
+			footer: "Today : #: kendo.toString(data, 'yyyy-MM-dd') #"
+		});
+		
+		$(".kendoTimePicker").kendoTimePicker({
+			format : "HH:mm",
+			culture : "ko-KR",
+			interval: 60 
+			/* ,componentType:"modern" */
+		});
+		// kendo ui datepicker 설정
+	});
+	
+	//submit 로딩바
+	function fn_frmSubmitLoding(frmId){
+		
+		if(frmId.substring(0, 1) != "#") frmId = "#"+ frmId;
+		$(frmId).submit(function(){
+			
+			$.LoadingOverlay("show", {
+				background       : "rgba(0, 0, 0, 0.5)",
+				image            : "",
+				maxSize          : 60,
+				fontawesome      : "fa fa-spinner fa-pulse fa-fw",
+				fontawesomeColor : "#FFFFFF",
+			});
+			
+			return true;
+		});
+	}
+	
+	// 로딩바
+	function fn_loding(gbn){
+		
+		if(gbn.toLowerCase() == "show"){
+			$.LoadingOverlay("show", {
+				background       : "rgba(0, 0, 0, 0.5)",
+				image            : "",
+				maxSize          : 60,
+				fontawesome      : "fa fa-spinner fa-pulse fa-fw",
+				fontawesomeColor : "#FFFFFF",
+			});
+			
+		} else {
+			$.LoadingOverlay("hide");
+		}
+			
+	}
+	
+//]]>
+</script>
+</head>
+
+<!-- Google tag (gtag.js) -->
+<!-- 
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XFCPCFM41C"></script>
+<script>
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+
+	gtag('config', 'G-XFCPCFM41C');
+</script>
+ -->
+ <!--
+ 	2025-10-01 3970 
+ 	Google cookies 수신 설정
+ 	기존 내용은 ga쿠키만 받아옴,gid쿠키 수신을 위해 내용 수정   
+-->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-XXXXXX-X"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-XXXXXX-X'); // UA 속성
+  gtag('config', 'G-XFCPCFM41C'); // GA4 속성
+</script>
+
+<body class="main-layout">
+	
+	<!-- 스킵네비케이션 -->
+	<div id="skipnavi">
+		<a href="#gnb_layout">대메뉴 바로가기</a>
+		<a href="#body_layout">본문 바로가기</a> 
+	</div>
+	<!-- //스킵네비케이션 -->
+	
+	
+	<!-- wrap -->
+	<div id="wrap" class="main">
+	
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" charset="utf-8">
+	// 통합검색
+	function fn_totlSearch(){
+		$("#totlSearchFrm").submit();
+		return false;
+	}
+</script>
+
+<!-- header -->
+    <header id="header">
+        <div class="top_gnb">
+            <div class="inner">
+                <div class="top_gnb_wrap">
+                    <ul>
+<!--                         <li class="active"><a href="/">E-Science 플랫폼</a></li> -->
+                        <li><a title="">천안과학산업진흥원</a></li>
+                        <li><a href="https://www.cheonan.go.kr/" target="_blank" title="새창으로열립니다">천안시청<img src="/css/bsite/images/common/link-blankM.png" alt=""></a></li>
+                    </ul>
+                    <div class="btn-member">
+                    	
+							<li><a href="/account/login.do" class="btn-login" title="로그인">로그인</a></li>
+							<li><a href="/account/join_type.do" class="btn-login" title="회원가입">회원가입</a></li>
+						
+						
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- GNB PC -->
+        <div class="pcmenu">
+            <div class="inner">
+                <h1 id="logo" class="logo_wrap wh">
+                    <a href="/" class="logo">
+                        <img src="/css/bsite/images/main/logo.svg" class="w_logo" alt="천안과학산업진흥원">
+                    </a>
+                </h1>
+                
+                <!--gnb-->	
+                <nav class="gnb" id="gnb">
+<!-- 				<nav id="gnb_layout"> -->
+<!--                 	<h2 class="blind">주메뉴</h2> -->
+<!--                 	<div id="gnb"> -->
+<!-- 						<div class="gnb_wrap inner"> -->
+							<ul id="gnb-nav" class="depth1">
+<!--                     <ul class="depth1"> -->
+								
+									
+										<li>
+											
+										
+											
+												
+												<a href="javascript:void(0);" target="_self" title="기관소개">
+													기관소개
+												</a>
+												<div class="item">
+													<div class="gnb-title"><strong>
+																			<!-- 2025-09-22 3970 
+																				 title이랑 중복으로 표기되므로 제거 
+																			-->
+
+																			</strong>
+														<p></p>
+													</div>
+												
+													<ul class="depth2">
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/contents/read.do?lmCode=content1&pd_pkid=1636" target="_self"
+																			 title="원장 인사말">
+																			원장 인사말
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/contents/read.do?lmCode=content1&pd_pkid=1637" target="_self"
+																			 title="미션·비전">
+																			미션·비전
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/contents/read.do?lmCode=content1&pd_pkid=1638" target="_self"
+																			 title="조직도">
+																			조직도
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/contents/read.do?lmCode=content1&pd_pkid=1639" target="_self"
+																			 title="진흥원 CI">
+																			진흥원 CI
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/contents/read.do?lmCode=content1&pd_pkid=1640" target="_self"
+																			 title="오시는 길">
+																			오시는 길
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+													</ul>
+												</div>	
+											
+										</li>
+									
+								
+									
+										<li>
+											
+										
+											
+												
+												<a href="javascript:void(0);" target="_self" title="사업신청">
+													사업신청
+												</a>
+												<div class="item">
+													<div class="gnb-title"><strong>
+																			<!-- 2025-09-22 3970 
+																				 title이랑 중복으로 표기되므로 제거 
+																			-->
+
+																			</strong>
+														<p></p>
+													</div>
+												
+													<ul class="depth2">
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/contents/read.do?lmCode=content1&pd_pkid=166" target="_self"
+																			 title="주요사업 안내">
+																			주요사업 안내
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/gnb01/lnb01/list.do" target="_self"
+																			 title="지원사업 신청">
+																			지원사업 신청
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/zboard/list.do?lmCode=chungspt" target="_self"
+																			 title="충청남도 지원사업">
+																			충청남도 지원사업
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/zboard/list.do?lmCode=othspt" target="_self"
+																			 title="중앙부처 지원사업">
+																			중앙부처 지원사업
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+													</ul>
+												</div>	
+											
+										</li>
+									
+								
+									
+										<li>
+											
+										
+											
+												
+												<a href="javascript:void(0);" target="_self" title="기업정보">
+													기업정보
+												</a>
+												<div class="item">
+													<div class="gnb-title"><strong>
+																			<!-- 2025-09-22 3970 
+																				 title이랑 중복으로 표기되므로 제거 
+																			-->
+
+																			</strong>
+														<p></p>
+													</div>
+												
+													<ul class="depth2">
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																
+																<!-- 신규 추가 -->
+																
+																
+																	<li>
+									                                    <a href="javascript:void(0);" target="_self" title="천안 기업현황" class="depth3-toggle">천안 기업현황 <span class="plus-btn">+</span></a>
+									                                    <ul class="depth3">
+									                                        <li><a href="/gnb02/lnb01/list.do" target="_self" title="천안기업">기술기반 기업현황</a></li>
+									                                        <li><a href="/gnb02/lnb02/list.do" target="_self" title="천안공장">천안 공장현황</a></li>
+									                                    </ul>
+									                                </li>
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																
+																<!-- 신규 추가 -->
+																
+																	<li>
+									                                    <a href="javascript:void(0);" target="_self" title="천안 연구장비 현황" class="depth3-toggle">천안 연구장비 현황 <span class="plus-btn">+</span></a>
+									                                    <ul class="depth3">
+									                                        <li><a href="/gnb02/lnb03/list.do" target="_self" title="천안과학산업진흥원 보유 장비">천안과학산업진흥원 보유 장비(본 홈페이지 예약)</a></li>
+									                                        <li><a href="/gnb02/lnb04/list.do" target="_self" title="타 기관 보유 장비">타 기관 보유 장비(ZEUR 예약)</a></li>
+									                                    </ul>
+									                                </li>
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/gnb04/lnb01/list.do" target="_self"
+																			 title="전문가 현황">
+																			전문가 현황
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/entPrmt/list.do" target="_self"
+																			 title="기업 홍보관">
+																			기업 홍보관
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+													</ul>
+												</div>	
+											
+										</li>
+									
+								
+									
+										<li>
+											
+										
+											
+												
+												<a href="javascript:void(0);" target="_self" title="알림마당">
+													알림마당
+												</a>
+												<div class="item">
+													<div class="gnb-title"><strong>
+																			<!-- 2025-09-22 3970 
+																				 title이랑 중복으로 표기되므로 제거 
+																			-->
+
+																			</strong>
+														<p></p>
+													</div>
+												
+													<ul class="depth2">
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																	<li>
+									                                    <a href="javascript:void(0);" target="_self" title="진흥원 채용정보" class="depth3-toggle">진흥원 채용정보<span class="plus-btn">+</span></a>
+									                                    <ul class="depth3">
+									                                        <li><a href="/gnb09/lnb01/list.do" target="_self" title="입사지원">입사지원</a></li>
+									                                        <li><a href="/zboard/list.do?lmCode=rsltanno" target="_self" title="결과발표">결과발표</a></li>
+									                                    </ul>
+									                                </li>
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/zboard/list.do?lmCode=notice" target="_self"
+																			 title="공지사항">
+																			공지사항
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/newsEvent/list.do" target="_self"
+																			 title="행사·소식">
+																			행사·소식
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/nwslt/sbsc/read.do?clsf=zboard" target="_self"
+																			 title="뉴스레터">
+																			뉴스레터
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																	<li>
+									                                    <a href="javascript:void(0);" target="_self" title="천안SB플라자 이용" class="depth3-toggle">천안SB플라자 이용 <span class="plus-btn">+</span></a>
+									                                    <ul class="depth3">
+									                                        <li><a href="/contents/read.do?lmCode=content1&pd_pkid=1633" target="_self" title="입주시설 소개">입주시설 소개</a></li>
+									                                        <li><a href="/mtg/gnb01/read_intro.do?bclsf=sb" target="_self" title="대관예약">대관예약</a></li>
+									                                    </ul>
+									                                </li>
+																
+																
+																
+																
+														
+													</ul>
+												</div>	
+											
+										</li>
+									
+								
+									
+										<li>
+											
+										
+											
+												
+												<a href="javascript:void(0);" target="_self" title="정보공개">
+													정보공개
+												</a>
+												<div class="item">
+													<div class="gnb-title"><strong>
+																			<!-- 2025-09-22 3970 
+																				 title이랑 중복으로 표기되므로 제거 
+																			-->
+
+																			</strong>
+														<p></p>
+													</div>
+												
+													<ul class="depth2">
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/zboard/list.do?lmCode=mngdis" target="_self"
+																			 title="경영공시">
+																			경영공시
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/zboard/list.do?lmCode=disadi" target="_self"
+																			 title="행정정보공개">
+																			행정정보공개
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																	<li>
+									                                    <a href="javascript:void(0);" target="_self" title="계약정보" class="depth3-toggle">계약정보<span class="plus-btn">+</span></a>
+									                                    <ul class="depth3">
+									                                        <li><a href="/zboard/list.do?lmCode=bidding" target="_self" title="입찰공고">입찰공고</a></li>
+									                                        <li><a href="/zboard/list.do?lmCode=disclosure" target="_self" title="계약공개">계약공개</a></li>
+									                                    </ul>
+									                                </li>
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/contents/read.do?lmCode=content1&pd_pkid=1647" target="_self"
+																			 title="ESG경영">
+																			ESG경영
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/contents/read.do?lmCode=content1&pd_pkid=1648" target="_self"
+																			 title="윤리경영">
+																			윤리경영
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="https://chenergy.cheonan.go.kr/" target="_blank"
+																			 title="천안 신재생에너지">
+																			천안 신재생에너지
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="https://www.ccnc.re.kr/" target="_blank"
+																			 title="천안시 탄소중립지원센터">
+																			천안시 탄소중립지원센터
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="https://forum.cistep.re.kr/" target="_blank"
+																			 title="디지털 융합 K-ESG 혁신 표준화 포럼">
+																			디지털 융합 K-ESG 혁신 표준화 포럼
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+													</ul>
+												</div>	
+											
+										</li>
+									
+								
+									
+										<li>
+											
+										
+											
+												
+												<a href="javascript:void(0);" target="_self" title="연구보고서">
+													연구보고서
+												</a>
+												<div class="item">
+													<div class="gnb-title"><strong>
+																			<!-- 2025-09-22 3970 
+																				 title이랑 중복으로 표기되므로 제거 
+																			-->
+
+																			</strong>
+														<p></p>
+													</div>
+												
+													<ul class="depth2">
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/zboard/list.do?lmCode=polre" target="_self"
+																			 title="정책·연구">
+																			정책·연구
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/zboard/list.do?lmCode=indet" target="_self"
+																			 title="산업·경제 동향">
+																			산업·경제 동향
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+															
+																<!--
+																	depth2에 하위메뉴(depth3 아님) 생성 요청에 따라
+																	기존 소스와 신규소스 구분 ( 일부 하드코딩 ) 
+																	# 방식을 바꾸려면 tbl_menu_manage 테이블의 menu_name컬럼에 
+																	스크립트 작성하는 방식이어야될거같은데, 컬럼size가 작음( 해당 방식도 그렇게 깔끔하지않음 )
+																 -->
+																 <!-- 
+																          제외 항목
+																 	1 천안 기업현황 - idx 534
+																 	2 인프라 - idx 533
+																 	3 천안SB플라자 이용 - idx 528
+																 	4 진흥원채용정보 - idx 435
+																  -->
+																  <!-- 기존 소스 -->
+																<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+																	<li>
+																		
+																			
+																		<a href="/zboard/list.do?lmCode=othrch" target="_self"
+																			 title="기타자료">
+																			기타자료
+																		</a>
+																	</li>
+																
+																<!-- 신규 추가 -->
+																
+																
+																
+																
+																
+																
+																
+														
+													</ul>
+												</div>	
+											
+										</li>
+									
+								
+		                    </ul>
+<!--                    		</div> -->
+<!-- 					</div> -->
+                </nav>
+                <!--//gnb-->
+
+                <div class="topMenu">
+<!--                     <a href="#" class="open-search" title="통합검색창 열기"><span class="sr-only">통합검색창 열기</span></a> -->
+                    <!-- <button class="btn-allmenu" title="사이트맵 열기" data-event="toggle" onclick="location.href='/contents/read.do?lmCode=content1&pd_pkid=156'">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button> -->
+<!--                     <a href="/sitemap.html" class="btn-allmenu"> -->
+                    <a class="btn-allmenu" title="사이트맵 열기" data-event="toggle" onclick="location.href='/contents/read.do?lmCode=content1&pd_pkid=156'">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </a>
+                </div>
+            </div>
+            <div class="gnb-bg"></div> 
+        </div>	
+        <!-- // GNB PC -->
+        
+        <!-- All Mobile -->
+        <div class="mobile_menu">        
+            <h1 id="mobileLogo" class="logo_wrap wh">
+                <a href="/" class="logo">
+                    <img src="/css/bsite/images/main/logo.svg"  class="w_logo" alt="천안과학산업진흥원">
+                </a>
+            </h1>
+            
+            <div class="gnbM">
+                <button class="gnbM-open-btn" title="메뉴 열기">
+                    <span class="nav-line"></span>
+                    <span class="nav-line"></span>
+                    <span class="nav-line"></span>
+                </button>
+            </div>
+            
+            <div class="gnbM-bg"></div>
+            <nav id="gnbM">
+                <h2 class="blind">주메뉴</h2>
+                <div class="gnbM-topMenu">
+                    <ul>
+                        
+							<li><a href="/account/login.do" title="로그인">로그인</a></li>
+							<li><a href="/account/join_type.do" title="회원가입">회원가입</a></li>
+						
+						
+                    </ul>
+                </div>
+                
+                <div class="gnbM_wrap">
+                    <div class="gnb-navigation-inner">
+                        <ul id="gnbM-nav">
+                        	
+								
+									<li class="has-2dep">
+										
+										
+											<a href="javascript:void(0);" target="_self" title="기관소개">
+												기관소개
+											</a>
+											
+											<ul class="depth2">
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/contents/read.do?lmCode=content1&pd_pkid=1636" target="_self"
+																	 title="원장 인사말">
+																	원장 인사말
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/contents/read.do?lmCode=content1&pd_pkid=1637" target="_self"
+																	 title="미션·비전">
+																	미션·비전
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/contents/read.do?lmCode=content1&pd_pkid=1638" target="_self"
+																	 title="조직도">
+																	조직도
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/contents/read.do?lmCode=content1&pd_pkid=1639" target="_self"
+																	 title="진흥원 CI">
+																	진흥원 CI
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/contents/read.do?lmCode=content1&pd_pkid=1640" target="_self"
+																	 title="오시는 길">
+																	오시는 길
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+											</ul>
+										
+									</li>
+								
+							
+								
+									<li class="has-2dep">
+										
+										
+											<a href="javascript:void(0);" target="_self" title="사업신청">
+												사업신청
+											</a>
+											
+											<ul class="depth2">
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/contents/read.do?lmCode=content1&pd_pkid=166" target="_self"
+																	 title="주요사업 안내">
+																	주요사업 안내
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/gnb01/lnb01/list.do" target="_self"
+																	 title="지원사업 신청">
+																	지원사업 신청
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/zboard/list.do?lmCode=chungspt" target="_self"
+																	 title="충청남도 지원사업">
+																	충청남도 지원사업
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/zboard/list.do?lmCode=othspt" target="_self"
+																	 title="중앙부처 지원사업">
+																	중앙부처 지원사업
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+											</ul>
+										
+									</li>
+								
+							
+								
+									<li class="has-2dep">
+										
+										
+											<a href="javascript:void(0);" target="_self" title="기업정보">
+												기업정보
+											</a>
+											
+											<ul class="depth2">
+												
+													
+													
+															
+														
+														
+															<li>
+							                                    <a href="javascript:void(0);" target="_self" title="천안 기업현황" class="depth3-toggle">천안 기업현황 <span class="plus-btn">+</span></a>
+							                                    <ul class="depth3">
+							                                        <li><a href="/gnb02/lnb01/list.do" target="_self" title="천안기업">기술기반 기업현황</a></li>
+							                                        <li><a href="/gnb02/lnb02/list.do" target="_self" title="천안공장">천안 공장현황</a></li>
+							                                    </ul>
+							                                </li>
+														
+														
+														
+															
+															
+														
+												
+													
+													
+															
+														
+															<li>
+							                                    <a href="javascript:void(0);" target="_self" title="천안 연구장비 현황" class="depth3-toggle">천안 연구장비 현황 <span class="plus-btn">+</span></a>
+							                                    <ul class="depth3">
+							                                        <li><a href="/gnb02/lnb03/list.do" target="_self" title="천안과학산업진흥원 보유 장비">천안과학산업진흥원 보유 장비(본 홈페이지 예약)</a></li>
+							                                        <li><a href="/gnb02/lnb04/list.do" target="_self" title="타 기관 보유 장비">타 기관 보유 장비(ZEUR 예약)</a></li>
+							                                    </ul>
+							                                </li>
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/gnb04/lnb01/list.do" target="_self"
+																	 title="전문가 현황">
+																	전문가 현황
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/entPrmt/list.do" target="_self"
+																	 title="기업 홍보관">
+																	기업 홍보관
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+											</ul>
+										
+									</li>
+								
+							
+								
+									<li class="has-2dep">
+										
+										
+											<a href="javascript:void(0);" target="_self" title="알림마당">
+												알림마당
+											</a>
+											
+											<ul class="depth2">
+												
+													
+													
+															
+														
+														
+														
+														
+														
+															<li>
+							                                    <a href="javascript:void(0);" target="_self" title="진흥원 채용정보" class="depth3-toggle">진흥원 채용정보<span class="plus-btn">+</span></a>
+							                                    <ul class="depth3">
+							                                        <li><a href="/gnb09/lnb01/list.do" target="_self" title="입사지원">입사지원</a></li>
+							                                        <li><a href="/zboard/list.do?lmCode=rsltanno" target="_self" title="결과발표">결과발표</a></li>
+							                                    </ul>
+							                                </li>
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/zboard/list.do?lmCode=notice" target="_self"
+																	 title="공지사항">
+																	공지사항
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/newsEvent/list.do" target="_self"
+																	 title="행사·소식">
+																	행사·소식
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/nwslt/sbsc/read.do?clsf=zboard" target="_self"
+																	 title="뉴스레터">
+																	뉴스레터
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+															
+														
+														
+														
+														
+															<li>
+							                                    <a href="javascript:void(0);" target="_self" title="천안SB플라자 이용" class="depth3-toggle">천안SB플라자 이용 <span class="plus-btn">+</span></a>
+							                                    <ul class="depth3">
+							                                        <li><a href="/contents/read.do?lmCode=content1&pd_pkid=1633" target="_self" title="입주시설 소개">입주시설 소개</a></li>
+							                                        <li><a href="/mtg/gnb01/read_intro.do?bclsf=sb" target="_self" title="대관예약">대관예약</a></li>
+							                                    </ul>
+							                                </li>
+														
+															
+															
+														
+												
+											</ul>
+										
+									</li>
+								
+							
+								
+									<li class="has-2dep">
+										
+										
+											<a href="javascript:void(0);" target="_self" title="정보공개">
+												정보공개
+											</a>
+											
+											<ul class="depth2">
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/zboard/list.do?lmCode=mngdis" target="_self"
+																	 title="경영공시">
+																	경영공시
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/zboard/list.do?lmCode=disadi" target="_self"
+																	 title="행정정보공개">
+																	행정정보공개
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+															
+														
+														
+														
+														
+															
+														
+															<li>
+							                                    <a href="javascript:void(0);" target="_self" title="계약정보" class="depth3-toggle">계약정보<span class="plus-btn">+</span></a>
+							                                    <ul class="depth3">
+							                                        <li><a href="/zboard/list.do?lmCode=bidding" target="_self" title="입찰공고">입찰공고</a></li>
+							                                        <li><a href="/zboard/list.do?lmCode=disclosure" target="_self" title="계약공개">계약공개</a></li>
+							                                    </ul>
+							                                </li>
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/contents/read.do?lmCode=content1&pd_pkid=1647" target="_self"
+																	 title="ESG경영">
+																	ESG경영
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/contents/read.do?lmCode=content1&pd_pkid=1648" target="_self"
+																	 title="윤리경영">
+																	윤리경영
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="https://chenergy.cheonan.go.kr/" target="_blank"
+																	 title="천안 신재생에너지">
+																	천안 신재생에너지
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="https://www.ccnc.re.kr/" target="_blank"
+																	 title="천안시 탄소중립지원센터">
+																	천안시 탄소중립지원센터
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="https://forum.cistep.re.kr/" target="_blank"
+																	 title="디지털 융합 K-ESG 혁신 표준화 포럼">
+																	디지털 융합 K-ESG 혁신 표준화 포럼
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+											</ul>
+										
+									</li>
+								
+							
+								
+									<li class="has-2dep">
+										
+										
+											<a href="javascript:void(0);" target="_self" title="연구보고서">
+												연구보고서
+											</a>
+											
+											<ul class="depth2">
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/zboard/list.do?lmCode=polre" target="_self"
+																	 title="정책·연구">
+																	정책·연구
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/zboard/list.do?lmCode=indet" target="_self"
+																	 title="산업·경제 동향">
+																	산업·경제 동향
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+													
+													
+														<!-- 운영은 진흥원 채용정보가 435/개발,로컬은 430  -->
+															<li>
+																
+																
+																<a href="/zboard/list.do?lmCode=othrch" target="_self"
+																	 title="기타자료">
+																	기타자료
+																</a>
+															</li>
+															
+														
+														
+														
+														
+															
+															
+														
+												
+											</ul>
+										
+									</li>
+								
+							
+						</ul>
+                    </div>
+                </div>
+            </nav>
+        
+        </div>
+        <!-- // Allmenu -->	
+
+        <!--통합검색-->
+        <!-- 
+        <div id="total-search-area" style="display:none;">
+            <div id="topSearch">
+                <form class="searchBox" name="totlSearchFrm" id="totlSearchFrm" method="post" action="/home/search.do">
+                    <input type="hidden" id="_token" name="_token" value="2f13b94f-439a-47a3-9604-f214bd33ac84">
+                    
+                    <fieldset>
+                        <legend class="skip">통합검색</legend>
+                        <div class="input_box_w clfix">
+                            <strong>통합검색</strong>
+                            <div class="input_box">
+                                <div class="search_input">
+                                    <input class="keyword" type="search" id="qt" name="qt" title="검색어를 입력하세요." placeholder="검색어를 입력하세요." autocomplete="off">
+                                </div>
+                                <a href="javascript:void(0);" onclick="fn_totlSearch(); return false;" class="btn1" target="_blank" title="검색페이지 새창으로 열림">검색</a>
+                                <div class="btn2"><a href="#" title="검색창 닫기"><span class="sr-only">검색창 닫기</span></a></div>
+                            </div>
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
+        </div>
+         -->
+        <!--통합검색-->
+        <div class="gnb_bg"></div>	
+
+    </header>
+    <!-- //header -->
+	
+		<!-- 	
+		<div class="scroll-top">
+			<button><i class="fas fa-angle-up"></i>TOP</button>
+		</div>
+	 -->
+		<!-- contents-warp -->
+		<main id="contents-warp" class="sub-layout">
+			<div class="inner">
+				
+
+
+
+
+
+
+
+<script type="text/javascript">
+	$(function(){
+		
+		$(".sub_menu ul.lm_1d li > ul.lm_2d > li").each(function(){
+			if($(this).hasClass("on")) $(this).parent("ul").parent("li").addClass("on");
+		});
+		
+	});
+</script>
+
+<nav class="sub_menu">
+	<div class="title_wrap lnb__title">
+		<strong>공지사항</strong>
+	</div>
+
+	<ul class="lm_1d lm_style">
+		
+			
+		
+			
+		
+			
+		
+			
+				
+				
+					
+						<li class="">
+							
+							
+							<a href="/gnb09/lnb01/list.do" target="_self"
+								 title="진흥원 채용정보">
+								진흥원 채용정보
+							</a>
+						
+							
+								
+								<ul class="lm_2d">
+									
+										
+											<li class="">
+												
+												
+												<a href="/gnb09/lnb01/list.do" target="_self"
+													 title="입사지원">
+													입사지원
+												</a>
+											</li>
+										
+									
+										
+											<li class="">
+												
+												
+												<a href="/zboard/list.do?lmCode=rsltanno" target="_self"
+													 title="결과발표">
+													결과발표
+												</a>
+											</li>
+										
+									
+								</ul>	
+								
+						</li>
+					
+				
+					
+						<li class="on">
+							
+							
+							<a href="/zboard/list.do?lmCode=notice" target="_self"
+								 title="공지사항">
+								공지사항
+							</a>
+						
+								
+						</li>
+					
+				
+					
+						<li class="">
+							
+							
+							<a href="/newsEvent/list.do" target="_self"
+								 title="행사·소식">
+								행사·소식
+							</a>
+						
+								
+						</li>
+					
+				
+					
+						<li class="">
+							
+							
+							<a href="/nwslt/sbsc/read.do?clsf=zboard" target="_self"
+								 title="뉴스레터">
+								뉴스레터
+							</a>
+						
+							
+								
+								<ul class="lm_2d">
+									
+										
+											<li class="">
+												
+												
+												<a href="/zboard/list.do?lmCode=newsletter" target="_self"
+													 title="정기 자료">
+													정기 자료
+												</a>
+											</li>
+										
+									
+								</ul>	
+								
+						</li>
+					
+				
+					
+						<li class="">
+							
+							
+							<a href="/contents/read.do?lmCode=content1&pd_pkid=1633" target="_self"
+								 title="천안SB플라자 이용">
+								천안SB플라자 이용
+							</a>
+						
+							
+								
+								<ul class="lm_2d">
+									
+										
+											<li class="">
+												
+												
+												<a href="/contents/read.do?lmCode=content1&pd_pkid=1633" target="_self"
+													 title="입주시설 소개">
+													입주시설 소개
+												</a>
+											</li>
+										
+									
+										
+											<li class="">
+												
+												
+												<a href="/mtg/gnb01/read_intro.do?bclsf=sb" target="_self"
+													 title="대관예약">
+													대관예약
+												</a>
+											</li>
+										
+									
+								</ul>	
+								
+						</li>
+					
+				
+				
+			
+		
+			
+		
+			
+		
+		<!-- 
+		<li class="on"><a href="">주요 사업 & 교육 안내</a></li>
+		<li class=""><a href="">지원사업</a></li>
+		<li class=""><a href="">지원교육</a></li> -->
+	</ul>
+</nav>
+<!--//좌측메뉴-->
+
+				
+				<div class="inner_container">
+					
+
+
+
+
+
+
+
+	
+<!--타이틀 및 네비게이션-->
+<div class="title_w">
+	<h2 class="title" id="_navi_title">공지사항</h2>
+
+	<div class="location_w">
+	
+		<div class="location">
+			<a href="/" ><span class="home">홈<em class="arr"></em></span></a>
+			
+			
+				
+				
+				<a href="javascript:void(0);" target="_self"
+					 title="알림마당">
+					<span>알림마당</span>
+				</a>
+			
+				
+				
+				<a href="/zboard/list.do?lmCode=notice" target="_self"
+					 title="공지사항">
+					<span>공지사항</span>
+				</a>
+			
+		</div>
+		
+		<!--sns-->
+		<ul class="share">
+			<li class="sns">
+				<button type="button"><span class="sr-only">sns 공유하기</span></button>
+				<div class="sns_list" style="display: none;">
+					<a href="#n" onclick="fn_snsShare('facebook');return false;" target="_self" title="페이스북 새창열림" class="facebook"><span class="sr-only">페이스북</span></a> 
+					<a href="#n" onclick="fn_snsShare('twitter');return false;"  target="_self" title="트위터 새창열림" class="twitter"><span class="sr-only">트위터</span></a>
+					<a href="#n" onclick="fn_snsShare('band');return false;" target="_self" title="네이버밴드 새창열림" class="band"><span class="sr-only">네이버밴드</span></a>
+					<a href="#n" onclick="fn_snsShare('kstory');return false;" target="_self" title="카카오스토리 새창열림" class="kstory"><span class="sr-only">카카오스토리</span></a>
+					<button type="button" class="close">
+						<span class="sr-only">sns 공유 목록 닫기</span>
+					</button>
+				</div>
+			</li>
+			<li class="link">
+				<a href="#n" id="btnCopyUrl" data-clipboard-action="copy"><span class="sr-only">링크 복사하기</span></a>
+			</li>
+			<li class="print"><a href="/common/print.jsp" onclick="window.open(this.href,'print','toolbars=no, scrollbars=yes, width=1010, height=800'); return false;" target="_blank" title="인쇄하기 새창열림"><span class="sr-only">인쇄하기</span></a></li>
+		</ul>
+		<!--//sns-->
+	</div>						
+</div>
+<!--//타이틀 및 네비게이션-->
+
+<script type="text/javascript" src="/js/clipboard.min.js"></script> <!-- 클립보드 복사 -->
+<script>
+	function fn_snsShare(sns) {
+		var method = "popup";
+		var thisUrl = document.URL;
+		var snsTitle = "";
+		
+		if( sns == 'facebook' ) {
+			var url = "http://www.facebook.com/sharer/sharer.php?u="+encodeURIComponent(thisUrl);
+			window.open(url, "", "width=486, height=286");
+		} else if( sns == 'twitter' ) {
+			var url = "http://twitter.com/share?url="+encodeURIComponent(thisUrl)+"&text="+encodeURIComponent(snsTitle);
+			window.open(url, "tweetPop", "width=486, height=286,scrollbars=yes");
+		} else if( sns == 'band' ) {
+			var url = "http://www.band.us/plugin/share?body="+encodeURIComponent(snsTitle)+"&route="+encodeURIComponent(thisUrl);
+			window.open(url, "shareBand", "width=400, height=500, resizable=yes");
+		} else if( sns == 'kstory' ) {
+			var url = "https://story.kakao.com/share?url="+encodeURIComponent(thisUrl);
+			window.open(url, "shareKakao", "width=400, height=500, resizable=yes");
+		}
+	}
+	
+	$(function() { 
+		// 링크 복사
+		$('#btnCopyUrl').attr('data-clipboard-text', document.location.href); 
+		// callback 설정
+		var clipboard = new Clipboard('#btnCopyUrl');
+		clipboard.on('success', function(e) {
+				alert("주소가 복사되었습니다.");
+		});
+		clipboard.on('error', function(e) {
+				alert("접속중인 기기 및 브라우저에서는\n클립보드 복사를 지원하지 않습니다.");
+		});
+		
+	});	
+</script>	
+					
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+//<![CDATA[
+    var path = "";       
+    
+    //페이징
+    function fn_go_page(page_no){
+    	$("#pageIndex").val(page_no);
+    	$("#searchVO").submit();
+       	return false;
+    }
+    
+  
+ 
+//]]>
+</script>
+
+
+<!-- 내용 -->   
+
+	<form id="searchVO" name="listForm" action="/zboard/list.do" method="get">
+	<input id="lmCode" name="lmCode" type="hidden" value="notice"/>
+	<input type="hidden" id="_token" name="_token" value="5a5929c8-9ffc-4aae-a4e8-74706bb0d162" />
+	
+        <fieldset>
+	        <legend>게시물 검색</legend>
+	        <div class="bbs_search">	
+	        	<div class="fieldset">
+		        	
+		            <!-- 카테고리 선택 -->
+		            <div class="search-select">
+			            <span>
+
+				            <select name="searchCnd" class="select" title="검색조건선택">
+							
+								
+									<option value="0" >제목+내용</option>
+								
+								
+							
+
+								<!--
+								<option value="1">내용</option>
+				                <option value="2">작성자</option> 
+				                -->
+				            </select>
+			            </span>
+		            </div>
+		
+					<div class="search-text">
+						<span><input id="searchWrd" name="searchWrd" title="검색어 입력" placeholder="검색어를 입력하세요." class="schText" type="text" value=""/></span>
+					</div>  
+		            <!-- <input class="schText" type="text" title="검색어 입력" name="strSearchWord" value="" />  --> 
+		            <!-- <button type="button" class="rbutton black large" style="padding:10px 30px; border-radius:0;">검색</button> -->
+
+		            <div class="search-btn">
+						<span class="btn-submit"><button type="button" title="검색" onclick="fn_go_page(1); return false;">검색</button></span>
+					</div> 
+				</div> 
+			</div>     	
+		</fieldset>
+
+	<!-- 게시판 total -->
+    <div class=bbs_count>
+		<div class="list-count">
+			<span>총 게시물 <strong> 313</strong></span>, <span class="ui program--division-line">페이지 <strong>2</strong>/ 32</span>
+		</div>
+	</div>
+    
+    <!-- //게시판 total -->
+
+	<div class="bbs_list">
+	<table class="list_1" width="100%" cellspacing="0" summary="">
+		<caption></caption>
+		<colgroup>
+			 
+			<col width="70px" />
+			
+			<col />
+			
+			
+				<col width="110px"/>
+				<col width="140px"/>
+				<col width="50px"/>
+
+			
+
+		</colgroup>
+		<thead>
+			<tr>
+				
+				<th class="num">번호</th>
+				
+				<th class="subject">제목</th>
+				
+				
+					<th class="name">작성자</th>
+					<th class="date">작성일</th>
+					<th>파일</th>
+<!-- 					<th class="last hit">조회수</th> -->
+				
+			</tr>
+		</thead>
+		<!-- 슈퍼관리자 List -->
+		
+		<!-- 슈퍼관리자 List -->
+
+
+		<!-- 일반 List -->
+		
+		
+		
+			 
+			<td  data-cell-header="번호 : " class="num">
+				
+					303
+				
+				
+			</td>
+			
+			<td data-cell-header="제목 : " class="subject" style="text-align:left;">
+				
+				
+				
+					
+					
+						<a href="/zboard/read.do?searchWrd=&searchCond=&pageIndex=2&ordrCond=&lmCode=notice&amp;pd_pkid=14038" >
+							
+
+
+
+
+									2026년 C-Star Awards 투자 IR 경진대회 참여기업 모집 안내(6월 15일 ~ 7월 12일(23:59까지)
+
+							
+						</a>
+					
+				
+
+					
+			</td>
+			
+			
+				<td data-cell-header="작성자 : " class="name">운영관리자</td>
+				<td data-cell-header="작성일 : " class="date">2026-06-30</td>
+				<td data-cell-header="첨부파일 : ">
+					
+					
+					
+						<img src="/img/file_extention/pdf.gif" width="16px" height="16px" alt="pdf 파일 확장자 이미지입니다." />
+					
+				</td>
+
+			
+		</tr>
+		
+		
+		
+			 
+			<td  data-cell-header="번호 : " class="num">
+				
+					302
+				
+				
+			</td>
+			
+			<td data-cell-header="제목 : " class="subject" style="text-align:left;">
+				
+				
+				
+					
+					
+						<a href="/zboard/read.do?searchWrd=&searchCond=&pageIndex=2&ordrCond=&lmCode=notice&amp;pd_pkid=14024" >
+							
+
+
+
+
+									「천안시 거점형 스마트도시 조성사업 인재양성 교육 운영 용역」 제안서 평가 결과 공고
+
+							
+						</a>
+					
+				
+
+					
+			</td>
+			
+			
+				<td data-cell-header="작성자 : " class="name">운영관리자</td>
+				<td data-cell-header="작성일 : " class="date">2026-06-29</td>
+				<td data-cell-header="첨부파일 : ">
+					
+					
+					
+						<img src="/img/file_extention/hwp.gif" width="16px" height="16px" alt="hwp 파일 확장자 이미지입니다." />
+					
+				</td>
+
+			
+		</tr>
+		
+		
+		
+			 
+			<td  data-cell-header="번호 : " class="num">
+				
+					301
+				
+				
+			</td>
+			
+			<td data-cell-header="제목 : " class="subject" style="text-align:left;">
+				
+				
+				
+					
+					
+						<a href="/zboard/read.do?searchWrd=&searchCond=&pageIndex=2&ordrCond=&lmCode=notice&amp;pd_pkid=14015" >
+							
+
+
+
+
+									천안시 거점형 스마트도시 조성사업 클라우드 인프라 구축 용역 제안서 평가위원 후보자 모집 공고
+
+							
+						</a>
+					
+				
+
+					
+			</td>
+			
+			
+				<td data-cell-header="작성자 : " class="name">운영관리자</td>
+				<td data-cell-header="작성일 : " class="date">2026-06-26</td>
+				<td data-cell-header="첨부파일 : ">
+					
+					
+						
+					
+					
+						<img src="/img/file_extention/hwp.gif" width="16px" height="16px" alt="hwpx 파일 확장자 이미지입니다." />
+					
+				</td>
+
+			
+		</tr>
+		
+		
+		
+			 
+			<td  data-cell-header="번호 : " class="num">
+				
+					300
+				
+				
+			</td>
+			
+			<td data-cell-header="제목 : " class="subject" style="text-align:left;">
+				
+				
+				
+					
+					
+						<a href="/zboard/read.do?searchWrd=&searchCond=&pageIndex=2&ordrCond=&lmCode=notice&amp;pd_pkid=14014" >
+							
+
+
+
+
+									「2026년 천안 투자 생태계(AC·VC) 조성」 투자 활동 지원 투자사 모집공고
+
+							
+						</a>
+					
+				
+
+					
+			</td>
+			
+			
+				<td data-cell-header="작성자 : " class="name">운영관리자</td>
+				<td data-cell-header="작성일 : " class="date">2026-06-26</td>
+				<td data-cell-header="첨부파일 : ">
+					
+					
+					
+						<img src="/img/file_extention/pdf.gif" width="16px" height="16px" alt="pdf 파일 확장자 이미지입니다." />
+					
+				</td>
+
+			
+		</tr>
+		
+		
+		
+			 
+			<td  data-cell-header="번호 : " class="num">
+				
+					299
+				
+				
+			</td>
+			
+			<td data-cell-header="제목 : " class="subject" style="text-align:left;">
+				
+				
+				
+					
+					
+						<a href="/zboard/read.do?searchWrd=&searchCond=&pageIndex=2&ordrCond=&lmCode=notice&amp;pd_pkid=13952" >
+							
+
+
+
+
+									「천안 전략산업 클러스터 운영사업」 참여기업 모집 재공고
+
+							
+						</a>
+					
+				
+
+					
+			</td>
+			
+			
+				<td data-cell-header="작성자 : " class="name">운영관리자</td>
+				<td data-cell-header="작성일 : " class="date">2026-06-16</td>
+				<td data-cell-header="첨부파일 : ">
+					
+					
+						
+					
+					
+						<img src="/img/file_extention/hwp.gif" width="16px" height="16px" alt="hwpx 파일 확장자 이미지입니다." />
+					
+				</td>
+
+			
+		</tr>
+		
+		
+		
+			 
+			<td  data-cell-header="번호 : " class="num">
+				
+					298
+				
+				
+			</td>
+			
+			<td data-cell-header="제목 : " class="subject" style="text-align:left;">
+				
+				
+				
+					
+					
+						<a href="/zboard/read.do?searchWrd=&searchCond=&pageIndex=2&ordrCond=&lmCode=notice&amp;pd_pkid=13953" >
+							
+
+
+
+
+									천안시 거점형 스마트도시 조성사업 인재양성 교육 운영 용역 평가위원 모집 공고
+
+							
+						</a>
+					
+				
+
+					
+			</td>
+			
+			
+				<td data-cell-header="작성자 : " class="name">운영관리자</td>
+				<td data-cell-header="작성일 : " class="date">2026-06-16</td>
+				<td data-cell-header="첨부파일 : ">
+					
+					
+					
+						<img src="/img/file_extention/hwp.gif" width="16px" height="16px" alt="hwp 파일 확장자 이미지입니다." />
+					
+				</td>
+
+			
+		</tr>
+		
+		
+		
+			 
+			<td  data-cell-header="번호 : " class="num">
+				
+					297
+				
+				
+			</td>
+			
+			<td data-cell-header="제목 : " class="subject" style="text-align:left;">
+				
+				
+				
+					
+					
+						<a href="/zboard/read.do?searchWrd=&searchCond=&pageIndex=2&ordrCond=&lmCode=notice&amp;pd_pkid=13844" >
+							
+
+
+
+
+									「Smart City Expo World Congress 2026」 천안관 참가기업 모집 공고
+
+							
+						</a>
+					
+				
+
+					
+			</td>
+			
+			
+				<td data-cell-header="작성자 : " class="name">운영관리자</td>
+				<td data-cell-header="작성일 : " class="date">2026-06-04</td>
+				<td data-cell-header="첨부파일 : ">
+					
+					
+					
+						<img src="/img/file_extention/hwp.gif" width="16px" height="16px" alt="hwp 파일 확장자 이미지입니다." />
+					
+				</td>
+
+			
+		</tr>
+		
+		
+		
+			 
+			<td  data-cell-header="번호 : " class="num">
+				
+					296
+				
+				
+			</td>
+			
+			<td data-cell-header="제목 : " class="subject" style="text-align:left;">
+				
+				
+				
+					
+					
+						<a href="/zboard/read.do?searchWrd=&searchCond=&pageIndex=2&ordrCond=&lmCode=notice&amp;pd_pkid=13823" >
+							
+
+
+
+
+									충남 천안  AX 실증기업 모집 공고
+
+							
+						</a>
+					
+				
+
+					
+			</td>
+			
+			
+				<td data-cell-header="작성자 : " class="name">운영관리자</td>
+				<td data-cell-header="작성일 : " class="date">2026-06-04</td>
+				<td data-cell-header="첨부파일 : ">
+					
+					
+					
+						<img src="/img/file_extention/pdf.gif" width="16px" height="16px" alt="pdf 파일 확장자 이미지입니다." />
+					
+				</td>
+
+			
+		</tr>
+		
+		
+		
+			 
+			<td  data-cell-header="번호 : " class="num">
+				
+					295
+				
+				
+			</td>
+			
+			<td data-cell-header="제목 : " class="subject" style="text-align:left;">
+				
+				
+				
+					
+					
+						<a href="/zboard/read.do?searchWrd=&searchCond=&pageIndex=2&ordrCond=&lmCode=notice&amp;pd_pkid=13854" >
+							
+
+
+
+
+									「2026년 천안 글로벌 액셀러레이팅 지원사업」 싱가포르 SWITCH 참여기업 모집공고
+
+							
+						</a>
+					
+				
+
+					
+			</td>
+			
+			
+				<td data-cell-header="작성자 : " class="name">운영관리자</td>
+				<td data-cell-header="작성일 : " class="date">2026-06-04</td>
+				<td data-cell-header="첨부파일 : ">
+					
+					
+					
+						<img src="/img/file_extention/pdf.gif" width="16px" height="16px" alt="pdf 파일 확장자 이미지입니다." />
+					
+				</td>
+
+			
+		</tr>
+		
+		
+		
+			 
+			<td  data-cell-header="번호 : " class="num">
+				
+					294
+				
+				
+			</td>
+			
+			<td data-cell-header="제목 : " class="subject" style="text-align:left;">
+				
+				
+				
+					
+					
+						<a href="/zboard/read.do?searchWrd=&searchCond=&pageIndex=2&ordrCond=&lmCode=notice&amp;pd_pkid=13743" >
+							
+
+
+
+
+									⌜2026년 천안 기술이전·가치평가 지원사업⌟ 참여기업 모집공고
+
+							
+						</a>
+					
+				
+
+					
+			</td>
+			
+			
+				<td data-cell-header="작성자 : " class="name">운영관리자</td>
+				<td data-cell-header="작성일 : " class="date">2026-05-26</td>
+				<td data-cell-header="첨부파일 : ">
+					
+					
+						
+					
+					
+						<img src="/img/file_extention/hwp.gif" width="16px" height="16px" alt="hwpx 파일 확장자 이미지입니다." />
+					
+				</td>
+
+			
+		</tr>
+		
+		
+		<!-- 일반 List -->
+
+
+		
+
+
+	</table>
+	</div>
+
+	<div class="list-pagination">
+		<input id="pageIndex" name="pageIndex" type="hidden" value="2"/>
+		<ol class="page-control" id="pagination">
+			<li><a href="javascript:void(0)" class="page-link prev-end" onclick="fn_go_page(1); return false;"><span class="sr-only">처음 페이지</span></a></li><li><a href="javascript:void(0)" class="page-link prev" onclick="fn_go_page(1); return false;"><span class="sr-only">이전 페이지</span></a></li><li><a href="javascript:void(0)" onclick="fn_go_page(1); return false;" class="num">1</a></li><li class="active"><a href="javascript:void(0)">2</a></li>	 <li><a href="javascript:void(0)" onclick="fn_go_page(3); return false;" class="num">3</a></li><li><a href="javascript:void(0)" onclick="fn_go_page(4); return false;" class="num">4</a></li><li><a href="javascript:void(0)" onclick="fn_go_page(5); return false;" class="num">5</a></li><li><a href="javascript:void(0)" onclick="fn_go_page(6); return false;" class="num">6</a></li><li><a href="javascript:void(0)" onclick="fn_go_page(7); return false;" class="num">7</a></li><li><a href="javascript:void(0)" onclick="fn_go_page(8); return false;" class="num">8</a></li><li><a href="javascript:void(0)" onclick="fn_go_page(9); return false;" class="num">9</a></li><li><a href="javascript:void(0)" onclick="fn_go_page(10); return false;" class="num">10</a></li><li><a href="javascript:void(0)" class="page-link next" onclick="fn_go_page(11); return false;"><span class="sr-only">다음 페이지</span></a></li><li><a href="javascript:void(0)" class="page-link next-end" onclick="fn_go_page(32); return false;"><span class="sr-only">끝 페이지</span></a></li>
+
+		</ol>
+	</div>
+
+	<div class="btn_w">
+		
+		
+		
+	</div>
+</form>
+<!-- //내용 -->
+
+<script type="text/javascript">
+function toggleAll(source) {
+	const checkboxes = document.getElementsByName('chk_delete');
+	for (let i = 0; i < checkboxes.length; i++) {
+		checkboxes[i].checked = source.checked;
+	}
+}
+
+function deleteSelected() {
+	const checked = Array.from(document.getElementsByName('chk_delete')).filter(cb => cb.checked);
+	if (checked.length === 0) {
+		alert('삭제할 항목을 선택하세요.');
+		return;
+	}
+	if (!confirm('선택한 항목을 삭제하시겠습니까?')) return;
+	const ids = checked.map(cb => cb.value).join(',');
+	$.ajax({
+		url: '/zboard/deleteSelected.do',
+		type: 'POST',
+		data: { ids: ids },
+		dataType: 'json',
+		success: function(res) {
+			alert(res.msg);
+			location.reload();
+		},
+		error: function(xhr, status, err) {
+			alert('삭제 중 오류가 발생했습니다.');
+		}
+	});
+}
+</script>
+				</div>
+			</div>
+		</main>
+		
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" charset="utf-8">
+
+$(function(){
+	var pkid = "";
+	
+	$("footer div.footer-link > div ul li").each(function(){
+		var href = $(this).find("a").attr("href");
+		
+		if(pkid != "" && typeof href != "undefined"){
+			if(href.includes(pkid)) {
+				var txt = $(this).find("a").text();
+				$(this).find("a").html("<span class='fc-mint'>"+ txt + "</span>");
+			};
+		}
+	});
+});
+
+</script>
+
+	<!-- //footer -->
+    <footer id="footer">    
+<!--     	<div class="footer-link"> -->
+	        <div class="inner">	
+	            <div class="f-top">
+	                <strong><span class="sr-only">천안과학산업진흥원</span></strong>
+	                <ul class="f-link">
+	                    <li><a href="/contents/read.do?lmCode=content1&pd_pkid=3224">이용약관</a></li>
+	                    <li><a href="/contents/read.do?lmCode=content1&pd_pkid=3225" class="blue">개인정보처리방침</a></li>
+	                    <li><a href="/contents/read.do?lmCode=content1&pd_pkid=3226">이메일집단수집거부</a></li>
+	                    <li><a href="/contents/read.do?lmCode=content1&pd_pkid=156">사이트맵</a></li>
+	                </ul>
+	        </div>
+<!-- 		</div> -->
+<!-- 			<div class="inner"> -->
+	            <div class="f-bottom">
+<!--                     <div class="footer-info"> -->
+		                <address class="f-info">
+		                    <p>주소 : (우) 31035, 충청남도 천안시 서북구 직산읍 직산로 110,3층(에스비플라자) </p>
+							<div>
+		                        <p>전화 : <a href="tel:041-588-9118">041-588-0377</a></p>
+		                        <p>팩스 : 041-588-8825</p>
+							</div>
+		                </address>
+<!--                     </div> -->
+	                	<p class="copyright">COPYRIGHT© 천안과학산업진흥원. ALL RIGHTS RESERVED.</p>
+	            </div>
+	        </div>
+    </footer>
+    <!-- footer -->
+
+	</div>
+	<!-- wrap -->
+	
+	<!-- 공통 JS -->
+	<script type="text/javascript" src="/js/bsite/js/script.js"></script>
+	<script type="text/javascript" src="/js/bsite/js/main.js"></script>
+	<script type="text/javascript" src="/js/bsite/js/common.js"></script>
+	<script type="text/javascript" src="/js/bsite/js/slick.js"></script>
+	<script type="text/javascript" src="/js/bsite/js/slick.extensions.min.js"></script>
+	<script type="text/javascript" src="/js/bsite/js/slick.slider.js"></script>
+	
+	<script type="text/javascript">
+		//PC버전 메뉴
+		(function(){
+			var param = "#gnb_layout",
+				obj = ".depth1>li>div",
+				btn = ".depth1>li>a",
+				wrap = "#header",
+				dur = 300,
+				meth = "easeOutCubic";
+			gnb(param,obj,btn,wrap,dur,meth);
+			gnb_open();
+		}());
+	</script>
+</body>
+</html>
+
+

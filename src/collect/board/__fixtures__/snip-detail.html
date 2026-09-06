@@ -1,0 +1,659 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--%@page import="com.saltware.enview.om.portlet.PortletDefinition"%-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--portlet:defineObjects/-->
+
+
+
+
+
+
+
+
+
+
+
+<html>
+<head>
+<title>사업신청</title>
+<meta http-equiv="Content-type" content="text/html; charset=UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+<meta http-equiv="Content-style-type" content="text/css" />
+<meta name="version" content="3.2.5" />
+<meta name="keywords" content="" />
+<meta name="description" content="사업신청" />
+
+<!-- Naver Analytics -->
+<script type="text/javascript" src="https://wcs.naver.net/wcslog.js"></script>
+<script type="text/javascript">
+if(!wcs_add) var wcs_add = {};
+wcs_add["wa"] = "9b1348fb5497a8";
+if(window.wcs) {
+wcs_do();
+}
+</script>
+
+	<script>
+		var cp = '';
+	</script>
+	<link rel="stylesheet" href="/snip/css/sub.css">
+	<link rel="stylesheet" href="/snip/css/main.css">
+	<script type="text/javascript" src="/snip/js/jquery.js"></script>
+	<script type="text/javascript" src="/snip/js/jquery-3.5.1.min.js"></script>
+	<script type="text/javascript" src="/snip/js/sub.js"></script>
+	<script type="text/javascript" src="/javascript/iframe-resizer/iframeResizer.js"></script>	
+	<script type="text/javascript" src="/javascript/message/mrbun_ko_mm.js"></script>
+	<script type="text/javascript" src="/javascript/message/mrbun_ko_ev.js"></script>
+	<script type="text/javascript" src="/javascript/message/mrbun_ko_eb.js"></script>
+	<script type="text/javascript" src="/javascript/common_new.js"></script>
+	<script type="text/javascript" src="/javascript/portal_new.js"></script>
+	<script type="text/javascript" src="/javascript/utility.js"></script>
+	<script type="text/javascript" src="/javascript/validator.js"></script>
+	<script type="text/javascript" src="/admin/javascript/portlet.js"></script>
+	<style>
+		#bodyBack {background:url(/snip/images/main/bg.jpg) repeat-x top center #595959;}
+
+	</style>	 
+	<script type="text/javascript">
+	
+		$(document).ready(function(){
+			// HTTPS 변환
+				if (document.location.protocol == 'http:') {
+					document.location.href = document.location.href.replace('http:', 'https:');
+				}
+			
+			document.title = "성남기업지원포털" ;
+			console.log("");
+			console.log("");
+			console.log("");
+			
+			
+		});
+		
+		function snipLogout(){
+			 $.ajax({
+	                type : "POST",            // HTTP method type(GET, POST) 형식이다.
+	                url : "/user/snipLogout.face",      // 컨트롤러에서 대기중인 URL 주소이다.
+	                data : "",            // Json 형식의 데이터이다.
+	                success : function(){ // 비동기통신의 성공일경우 success콜백으로 들어옵니다. 'res'는 응답받은 데이터이다.
+                        location.href="https://www.snip.or.kr/SNIP/contents/snipLogin.do?code=out";
+	                },
+	                error : function(XMLHttpRequest, textStatus, errorThrown){ // 비동기 통신이 실패할경우 error 콜백으로 들어옵니다.
+	                    alert("통신 실패.")
+	                }
+	            });
+		}
+		
+		function goPopUp(){
+			window.open("https://www.snip.or.kr/SNIP/contents/snipLogin.do?code=out");
+		}
+		
+		function iframe_autoresize(arg) {
+			try {
+				var ht = arg.contentWindow.document.documentElement.scrollHeight;
+				arg.height = 0;
+				arg.height = ht;
+		
+				$("#EnviewContentArea iframe").height(ht);
+			} catch(e) {
+				
+			}
+		}
+		
+		function getTickerMessage() {
+			return tickerMessage;
+		}
+		
+		function changeUser(obj) {
+			var userId = obj.options[obj.selectedIndex].value;
+			location.href = "/login/changeuser?username=" + userId;
+		}
+		
+		function initEnview() {
+			var pageInfo = eval({"id": "8689", "path": "/snip/MainMenu/businessManagement/application", "title": "사업신청", "targetUrl": "/user/snip/busin/businList.face?homeYn=Y&portlet=2026-0246&portlet2=4100", "useIframe": "true", "contextPath": "", "servletPath": "/portal", "theme": "tile", "evalTheme": "null", "themePath": "/decorations/layout/snip/", "admContextPath": "null", "layout": "enview-layouts::VelocityOneColumn" ,"pageInfo01": "" });
+				var decorations = eval({"layouts": [{"name" : "1열 레이아웃", "value" : "enview-layouts::VelocityOneColumn"} , {"name" : "2열 레이아웃 (50%/50%)", "value" : "enview-layouts::VelocityTwoColumns"} , {"name" : "2열 레이아웃 (25%/75%)", "value" : "enview-layouts::VelocityTwoColumns2575"} , {"name" : "2열 레이아웃 (15%/85%)", "value" : "enview-layouts::VelocityTwoColumnsSmallLeft"} , {"name" : "3열 레이아웃 (33%/33%/34%)", "value" : "enview-layouts::VelocityThreeColumns"} , {"name" : "4열 레이아웃 (20%/30%/30%/20%)", "value" : "enview-layouts::VelocityFourColumns"} , {"name" : "그리드(4열)", "value" : "enview-layouts::Gridster"} , {"name" : "그리드(3열)", "value" : "enview-layouts::Gridster3"} , {"name" : "그리드(5열)", "value" : "enview-layouts::Gridster5"} , {"name" : "그리드(6열)", "value" : "enview-layouts::Gridster6"} , {"name" : "그리드(7열)", "value" : "enview-layouts::Gridster7"} , {"name" : "그리드(8열)", "value" : "enview-layouts::Gridster8"} ],"pages": [{"name" : "admin", "value" : "admin"} , {"name" : "default", "value" : "default"} , {"name" : "empty", "value" : "empty"} , {"name" : "encafe", "value" : "encafe"} , {"name" : "enview", "value" : "enview"} , {"name" : "kbig", "value" : "kbig"} , {"name" : "snip", "value" : "snip"} , {"name" : "standard", "value" : "standard"} , {"name" : "standard2", "value" : "standard2"} , {"name" : "tile", "value" : "tile"} ],"mypages": []});
+				portalPageInitialize("3.2.5 (M20190130-1121)", false, "null", pageInfo, decorations, "ko", "4");
+				tabInitialize();
+				noticeInitialize("8689");
+
+			
+			
+	        var pwdChgReqMsg = "";
+	        
+	        if( pwdChgReqMsg != "null" && pwdChgReqMsg.length > 0 ) {
+	            $.blockUI({ 
+	                message:"<iframe src='/statics/password/passwordChange.jsp' frameborder='0' scrolling='no' style='width:1280px;height:410px;'>"
+	               ,css:{width:'1280px', height:'410px', top:($(window).height()-499) /2 + 'px', left:($(window).width()-1280) /2 + 'px'}
+	           });
+	       }				
+		}	
+		
+		function getAction()
+		{
+			return 
+		}
+		
+		function resize()
+		{
+			var menu = document.getElementById("Enview.LeftMenu");
+			menu.style.display = "none";
+		}
+		
+		function print(arg) {
+			eval(arg.name).focus();
+			eval(arg.name).print();
+		}
+		
+		function checkModified() {
+			portalPage.checkModified();
+		}
+		
+		// Attach to the onload event
+		if (window.attachEvent)
+		{
+			//window.attachEvent ( "onload", initEnview );
+			window.attachEvent ( "onunload", checkModified );
+		}
+		else if (window.addEventListener )
+		{
+			//window.addEventListener ( "load", initEnview, false );
+			window.addEventListener ( "unload", checkModified, false );
+		}
+		else
+		{
+			//window.onload = initEnview;
+			window.onunload = checkModified;
+		}
+		
+		function chBack(){
+			var ruleCheck = true;
+        	var obj = $("#body").find("a");
+        	
+			$(obj).each(function (){ 
+        		if(ruleCheck){
+        			var notdReq = $(this).hasClass("b");
+
+        			if(notdReq){
+        				$(this).css("background","#fff no-repeat 95% center");
+        			}
+        		}
+        	});
+		}
+		
+		function fn_logoutView(re,pg){
+			$("#parentId").val(re);
+			$("#pageId").val(pg);
+			$("#searchForm").submit();
+		}
+		function fn_roleCheck(){
+			if (confirm("로그인 후 신청이 가능합니다.로그인 하시겠습니까?") == true){    //확인
+				window.parent.location.href="https://www.snip.or.kr/SNIP/contents/snipLogin.do?destination=/portal";
+			}
+		}
+		
+		// 회원가입 메뉴 표시 및 링크 이동
+		function chMenu(dep1, dep2, menu) {
+			var dep1 = dep1;
+			var dep2 = dep2;
+			var viText, dep1Text, dep2Text, pn4Text; 
+
+			if(($('#liJoin').attr('class') == "on") && (dep1 == "join") && (menu == "menu")){
+				$("#lnb li").removeClass("on");
+				$("#liJoin").addClass("on");
+				return;
+			} else {
+				$("#lnb li").removeClass("on");
+			}
+			
+			//document.getElementById("IframePortlet_8672").style.display="none";
+			//document.getElementById("userContentArea").style.display="block";
+			$("#aLogin").css('background', '#fff no-repeat 95% center');
+			if(dep2 == "ent"){
+				dep2Text = "(기업회원)"
+			} else if(dep2 == "ind") {
+				dep2Text = "(개인회원)"
+			} else if(dep2 == "exp"){
+				dep2Text = "(전문가회원)"
+			} else{
+				dep2Text = "(회원선택)"
+			}
+			
+			if(dep1 == "join"){
+				
+				dep1Text = "회원가입";
+				viText = dep1Text + dep2Text;
+				if(menu != "menu"){
+					document.getElementById("liJoin").className += "on";
+				}
+				IframePortlet_8672.location.href="/user/viewJoin.face?joinType=" + dep2;
+			} else if(dep1 == "findId") {
+				dep1Text = "아이디 찾기";
+				viText = "아이디 찾기" + dep2Text;
+				if(menu != "menu"){
+					document.getElementById("lifindId").className += "on";
+				}
+				IframePortlet_8672.location.href="/user/findId.face?joinType=" + dep2;
+			} else if(dep1 == "findPw"){
+				dep1Text = "비밀번호 찾기";
+				viText = "비밀번호 찾기" + dep2Text;
+				if(menu != "menu"){
+					document.getElementById("lifindPw").className += "on";
+				}
+				IframePortlet_8672.location.href="/user/findPw.face?joinType=" + dep2;
+			} else if(dep1 == "joinAll"){
+				dep1Text = "회원가입";
+				viText = dep1Text + dep2Text;
+				if(menu != "menu"){
+					document.getElementById("liJoin").className += "on";
+				}
+				if(dep2 == "nmenu"){
+					document.getElementById("liJoin").className += "on";
+				}
+				//IframePortlet_8672.location.href="/user/joinSelect.face";
+			} else {
+				location.href = "https://www.snip.or.kr/SNIP/contents/snipLogin.do?destination=/portal";
+			}
+			$("#viName").text(viText);
+			pn4Text = "<img src=\"/snip/images/sub/icon_next.png\" alt=\"다음\"><span><a href=\"javascript:void(0);\" id=\"pn4\"> " + viText +" </a></span>";
+			$("#pn3").text(dep1Text);
+			$("#pn4Area").html(pn4Text);
+		}
+		
+		// 아이디 찾기, 비밀번호 찾기 링크
+		function snipLink(findDiv, mem) {
+			if (findDiv == "id") {
+				if(mem == "ent"){
+					window.parent.location.href="https://www.snip.or.kr/SNIP/contents/find.do?memType=C";
+				} else if(mem == "ind"){
+					window.parent.location.href="https://www.snip.or.kr/SNIP/contents/find.do?memType=N";
+				} else {
+					window.parent.location.href="https://www.snip.or.kr/SNIP/contents/find.do";
+				}
+			} else if (findDiv == "pw"){
+				if(mem == "ent"){
+					window.parent.location.href="https://www.snip.or.kr/SNIP/contents/find-pass.do";
+				} else if(mem == "ind"){
+					window.parent.location.href="https://www.snip.or.kr/SNIP/contents/find-pass.do?memType=C";
+				} else {
+					window.parent.location.href="https://www.snip.or.kr/SNIP/contents/find-pass.do?memType=N";
+				}
+			}
+		}
+		
+		
+		//아이디 찾기, 비밀번호 찾기 메뉴 표시
+		function chMenuFind(findDiv) {
+			$("#lnb li").removeClass("on");
+			$("#aLogin").css('background', '#fff no-repeat 95% center');
+		}
+		
+		// 푸터 준비중 알림
+		function preMenu() {
+			alert("해당 메뉴는 준비중입니다.");
+		}
+		function fn_roleCheck(){
+			alert("개인회원만 이용이 가능합니다");
+		}
+		function fn_loginCheck(){
+			if(confirm('로그인 후에 이용이 가능합니다. 로그인화면으로 이동하시겠습니까?')) { 	
+		    	$.ajax({
+		    		url : "/user/snipComm/destiAjax.face",
+		    		type : "POST",
+		    		dataType : "json",
+		    		data : {"des" : "/portal"},
+		    		success : function(data){
+		    			if(data.status  == "SUCCESS"){
+		    				window.parent.location.href='https://www.snip.or.kr/SNIP/contents/snipLogin.do?destination=/portal?destination=/portal';
+		    			}
+		    		},
+		    		error:function(request,status,error){
+		    			alert("처리 중 에러가 발생하였습니다.");
+		    			alert("code:"+request.status+"\n"+"message:"+request.responseText+"\n"+"error:"+error);
+		    		}
+		    	});
+			} else {
+				return;
+			}
+		
+
+		}
+		
+		  function svyEntPopup(){//사업만족도조사 팝업 띄우기
+	            var url = "/snip/svy/svyEntList.face";
+	            var name = "사업만족도조사";
+	        	var w = 1000;
+	        	var h = 800;
+	        	var LeftPosition = ((screen.width-w)/2);
+	        	var TopPosition = ((screen.height-h)/2);
+	        	var option = "width="+w+", height="+h+",top="+TopPosition+",left="+LeftPosition+",scrollbars=yes";
+	            //window.open(url, name, option);
+	        }
+		  function svyIndPopup(){//멘토만족도조사 팝업 띄우기
+	            var url = "/snip/svy/svyIndList.face";
+	            var name = "멘토만족도조사";
+	        	var w = 1000;
+	        	var h = 800;
+	        	var LeftPosition = ((screen.width-w)/2);
+	        	var TopPosition = ((screen.height-h)/2);
+	        	var option = "width="+w+", height="+h+",top="+TopPosition+",left="+LeftPosition+",scrollbars=yes";
+	            //window.open(url, name, option);
+	        }
+	
+	</script>
+</head>
+	
+
+<body id="body">
+	
+	<!-- header -->
+	<header id="header">	
+	<div class="topmenuArea">
+  		<div class="linkArea">
+            <div class="link_inner">
+                <a title="성남산업진흥원 홈페이지" href="https://www.snip.or.kr/SNIP/main/index.do" target="_blank">성남산업진흥원 홈페이지<img src="/snip/images/main/icon_link_snip.png" alt="바로가기"></a>
+            </div>
+        </div>
+		<div class="top_inner">
+			<h1 class="logo"><a title="로고" href="/portal"><img src="/snip/images/sub/logo.png" alt="logo"></a></h1>
+			<h1 class="logo"><a href="javascript:void(0);"></a></h1>
+			<ul class="topmenu">
+				
+				    <li><a title="로그인" href="javascript:window.top.location.href='https://www.snip.or.kr/SNIP/contents/snipLogin.do?destination=/portal'">로그인</a></li>
+                    <li><a title="회원가입" href="javascript:window.top.location.href='https://www.snip.or.kr/SNIP/contents/registration.do'">회원가입</a></li>
+                    <li><a title="아이디찾기" href="javascript:window.top.location.href='https://www.snip.or.kr/SNIP/contents/find.do'">아이디찾기</a></li>
+                    <li><a title="비밀번호찾기" href="javascript:window.top.location.href='https://www.snip.or.kr/SNIP/contents/find-pass.do'">비밀번호찾기</a></li>
+                    <!--<li><a href="/portal/snip/FOOTER/allNotice.page">전체공지</a></li>-->
+				
+				
+			</ul>
+		</div>
+	</div>
+	<!-- GNB 영역 -->
+	<nav class="gnbWrap">
+            <div class="gnb_inner">
+                <ul class="gnb">            
+	                
+						
+							<li> 
+								
+								
+									
+									
+									
+									    <a href="/portal/snip/MainMenu/businessManagement.page" target="_self" title="사업신청">
+										사업신청
+									    </a>
+									
+								
+							</li>
+						
+					
+						
+					
+						
+							<li> 
+								
+								
+									
+									
+									
+									    <a href="/portal/snip/MainMenu/expertPool.page" target="_self" title="전문가POOL">
+										전문가POOL
+									    </a>
+									
+								
+							</li>
+						
+					
+						
+							<li> 
+								
+								
+									
+									    <a href="https://www.snip.or.kr/SNIP/contents/Business36.do" target="_blank" title="시설예약">
+										시설예약
+									    </a>
+									
+									
+									
+								
+							</li>
+						
+					
+						
+					
+						
+					
+						
+							<li> 
+								
+								
+									
+									
+									    <a href="https://portal.snip.or.kr:8443/portal/snip/MainMenu/businessManagement/application.page?searchType=goTitle&searchValue=%EA%B5%90%EC%9C%A1" title="교육관리">
+										교육관리
+									    </a>
+									
+									
+								
+							</li>
+						
+					
+                </ul>
+
+            </div>
+        </nav>
+	 <!-- GNB 영역 //--> <!-- 시스템 더보기 영역 --> 
+</header>
+<form id="searchForm" action="/user/snip/log/logoutView.face" method="post">
+    <input type="hidden" name="pageId" id ="pageId" value="" style="display: none;" />
+	<input type="hidden" name="parentId" id="parentId"value="" style="display: none;" />
+</form>
+
+	<!-- body -->
+		
+	
+		<div id="subbody">
+			<!-- body_wrap -->
+			<div id="body_wrap">
+		        
+				<div id="contentsArea" class="sub" style="margin-top:45px">
+				<div class="visual">
+		            <h3>사업신청</h3>
+		        </div>
+					<!-- lnbArea -->
+					<div id="NavArea">
+					
+					
+					<div id="lnb">
+						<h1>사업신청</h1>
+						<ul class="dep01">
+						
+						
+						
+						
+						
+						
+						
+							
+							
+							
+							
+							
+							
+								
+								
+								
+								
+									
+									
+									
+								
+								
+							
+							
+							
+							
+							
+								
+								
+									<li class='on' ><a class='b' style='background:#898989 no-repeat 95% center;' href='/portal/snip/MainMenu/businessManagement/application.page' target="_self" title="사업신청"> 사업신청</a>
+								
+							
+                            
+							
+							</li>
+						
+						
+						
+						
+						</ul>
+					</div>
+					
+					
+					<div class="contents_warp">
+		               <div class="titleArea">
+		                    <div class="pageNav">
+		                        <span><a title="홈" href="/portal"><img src="/snip/images/sub/icon_home.png" alt="home" class="home2"></a><img src="/snip/images/sub/icon_next.png" alt="다음"></span>
+								
+		                        <span><a href="/portal/snip/MainMenu/businessManagement.page" title="사업신청">사업신청</a><img src="/snip/images/sub/icon_next.png" alt="다음"> </span>
+		                        
+		                        <span><a href="/portal/snip/MainMenu/businessManagement/application.page" title="사업신청">사업신청</a></span>
+		                        
+		                    </div>
+		                </div>
+		                <!-- 게시판 리스트 iframe 영역입니다 -->
+		                <div id="EnviewContentArea" width="100%;" height="1500px;">
+		                <!-- 게시판 리스트 iframe 영역입니다 //-->
+		            </div>
+		            
+					
+
+					
+		            <!-- container-->
+		            
+					
+
+						
+
+
+
+
+
+
+
+
+		</div><!-- NavArea //-->
+		</div>
+		<!-- contentsArea //-->
+		</div>
+		<!-- footerArea -->
+		<footer id="footer">
+	    	<ul>
+	    		    
+                    
+                    	<li><a title="개인정보보호처리방침" href="javascript:window.top.location.href='https://www.snip.or.kr/SNIP/contents/notice214.do'" style="color:#ED6D51">개인정보보호처리방침</a></li>
+			    		<li><a title="공공비리센터" href="javascript:void(0);" onclick=" fn_loginCheck();">공공비리센터</a></li>
+
+                    
+    			
+	    	</ul>
+	    	<div>
+	    		<img src="/snip/images/sub/logo_footer.png" alt="로고">
+	    		<p>
+	    			(우.13558)경기도 성남시 분당구 성남대로 331번길 8, 7층(정자동)
+	    			TEL. 1588-4130, 031-782-3000 FAX.031.782.3030<br>
+	    			© SeongNam Industry Promotion Agency. All rights reserved.
+	    		</p>
+	    	</div>
+	    </footer>
+		<!-- footerArea //-->
+	</div>
+	<!-- body_wrap //-->
+</div>
+<!-- body //-->
+</body>
+
+<script>
+		initEnview();
+</script>
+
+</html>
+
+
+

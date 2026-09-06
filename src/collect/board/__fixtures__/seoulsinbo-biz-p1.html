@@ -1,0 +1,3133 @@
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ko">
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta charset="utf-8" >
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" >
+		<meta name="naver-site-verification" content="3ff791ba19b1c9b0fed8ed0109550b7c87441d5d" >
+		<!-- 페이지 설명 -->
+		<meta name="description" content="" >
+
+		<meta property="og:type" content="website" >
+		<meta property="og:title" content="서울신용보증재단" >
+		<meta property="og:description" content="서울신용보증재단 유튜브" >
+		<meta property="og:url" content="https://www.youtube.com/channel/UCbmCcV29GaIrMKwOLNtSlNQ" >
+		
+		<!-- 불법 사이트 검색X -->
+		<meta property="robots" content="noindex, follow" >
+		<link rel="shortcut icon" href="/images/common/favicon.ico">
+		<link rel="canonical" href="https://www.seoulshinbo.co.kr">
+
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+			<title>알림광장 > 새소식 > 사업공고 </title>
+		
+		
+		
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		<!--
+		<script type="text/javascript" src="/js/cyber_common.js"></script>
+		-->
+
+		<link rel="shortcut icon" href="/images/ico/favicon.ico">
+		<link rel="canonical" href="https://www.seoulshinbo.co.kr">
+
+		<link rel="stylesheet" href="/css/index.css?v=20260903">
+
+		<script src="/js/common/jquery-3.1.1.min.js"></script>
+		<script src="/js/utility/spin.js"></script>
+		<script src="/js/common/common.js"></script>
+
+		<script src="/js/common/jquery.cookie.js"></script>
+		<script src="/js/common/TLE.js"></script>
+
+		<script src="/js/utility/swiper-bundle.min.js"></script>
+
+		<!--외부망에서만 처리1-->
+		
+			<!-- 서울시 누리집 이용현황분석시스템 -->
+			<script src="https://weblog.eseoul.go.kr/wlo/js/install.js"></script>
+			<!-- 서울 GNB 스크립트 -->
+			<script src="https://www.seoul.go.kr/seoulgnb/gnb.js"></script>
+		
+
+	</head>
+
+	<body>
+		
+		<noscript>스크립트가 작동하지 않으면 메뉴가 정상적으로 보이지 않습니다.</noscript>
+		
+		
+			<script async src="https://www.googletagmanager.com/gtag/js?id=UA-140665011-1"></script>
+			<script>
+				window.dataLayer = window.dataLayer || [];
+				function gtag(){dataLayer.push(arguments);}
+				gtag('js', new Date());
+				
+				gtag('config', 'UA-140665011-1');
+			</script>
+		
+		
+		<script>
+			document.addEventListener('contextmenu', function(event) {
+				event.preventDefault();
+			});
+
+			var __profile = "prod";
+			var mng_cd = "STRY0006";
+			var mobileyn = "Y";  // 모바일페이지 지원 여부
+			var mng_font_size;
+			var print_body;
+
+			function filterUrl(murl) {
+				return murl.replace('/m\./', '');
+			}
+			
+			function adjustPopupPosition() {
+				const popups = document.querySelectorAll('.layer_popup_mobile');
+			    let lastTopPosition = 200;
+			    
+			    popups.forEach((popup,index) => {
+			    	
+			    	setTimeout(() => {
+			    		popup.style.display = 'block'
+	                    popup.style.visibility = 'visible';
+                    	popup.style.top = lastTopPosition +'px';
+                    	
+                   	  lastTopPosition += 50;
+			    	},0)
+			    })
+			}
+			
+			$(document).ready(function() {
+				
+				// 모바일일 경우 팝업 사이즈 재조정
+				adjustPopupPosition();
+				
+				$(".common_noti_layer_close").on('click', function() {
+			         var chk = $(this).parent().find("input[type=checkbox]")[0];
+			         if(chk.checked) {
+			            $.cookie(chk.id, "done", { expires: 1, path: "/" });
+			         }
+			         $(this).parent().fadeOut();
+			      });
+			      
+			      $("#popup_btn_x").on('click', function() {
+			         $(this).parent().fadeOut();
+			      });
+				/* 서울 GNB 로딩 스크립트 START */
+				if('prod' == 'prod') {
+					Yjs.Gnb.init('P006', 'seoul-common-gnb');
+				}
+				/* 서울 GNB 로딩 스크립트 END */
+				/*let murl = window.location.href;
+				if(murl === 'https://m.seoulshinbo.co.kr/'){
+					let safeUrl = filterUrl(murl);
+					window.location.replace(safeUrl);
+				}*/
+
+				/**숫자만 입력*/
+				var onlyCheck = {
+					keyDown: function(e, type) {
+						var key;
+						if(window.event) {
+							key = window.event.keyCode; //IE
+						} else {
+							key = e.which;
+						}
+						var event;
+						
+						if(key == 0 || key == 8 || key == 46 || key == 9) {
+							event = e || window.event;
+							if(typeof event.stopPropagation != "undefined") {
+								event.stopPropagation();								
+							} else {
+								event.cancelBubble = true;
+							}
+							return;
+						}
+						
+						var isSkip = false;
+						if(type=="number" && (key < 48 || (key > 57 && key < 96) || key > 105 || e.shiftKey)) {							
+							isSkip = true;
+						} else if(type=="han" && (key >= 48 && key <= 105) || e.shiftKey) {
+							
+							isSkip = true;
+						}
+						if(isSkip) {							
+							e.preventDefault ? e.preventDefault() : e.returnValue = false;
+						}
+					},
+					keyUp: function(e, type) {
+						if(window.event) {
+							key = window.event.keyCode; //IE
+						} else {
+							key = e.which;
+						}
+						var event;
+
+						event = e || window.event;
+						
+						if(key == 8 || key == 46 || key == 37 || key == 39) {							
+							return;
+						} else {
+							if(type=="number") {
+								event.target.value = event.target.value.replace(/[^0-9]/gi,"");
+							} else if(type=="han") {
+								event.target.value = event.target.value.replace(/[0-9]/gi,"");
+							}							
+						}
+					},
+					focusOut: function(ele, type) {
+						if(type=="number") {
+							ele.val(ele.val().replace(/[^0-9]/gi,""));
+						} else if(type=="han") {
+							ele.val(ele.val().replace(/[0-9]/gi,""));
+						}
+					}
+				}
+				
+				/*
+				$("input[numberHan]").keydown(function(e){
+					onlyCheck.keyDown(e, "han");
+				}).keyup(function(e){
+					onlyCheck.keyUp(e, "han");
+				}).focusout(function(){
+					onlyCheck.focusOut($(this), "han");
+				});
+				*/
+				
+				/********************************************************************
+				 * 2019-05-24 edge : 한글만 입력가능한 input script 수정 ( 기존 소스 IE issue )
+				 *******************************************************************/
+				$("input[numberHan]").keyup(function(e){
+					var val = $(this).val();
+					var regexp = /[a-z0-9]|[\[\]{}()<>?|`~!@#$%^&*-_+=,.;:\"'\\]/g;
+					
+					if(regexp.test(val)){
+						$(this).val(val.replace(regexp,''));
+					}
+				}).keyup(function(e){
+					var val = $(this).val();
+					var regexp = /[a-z0-9]|[\[\]{}()<>?|`~!@#$%^&*-_+=,.;:\"'\\]/g;
+					
+					if(regexp.test(val)){
+						$(this).val(val.replace(regexp,''));
+					}
+				}).focusout(function(){
+					var val = $(this).val();
+					var regexp = /[a-z0-9]|[\[\]{}()<>?|`~!@#$%^&*-_+=,.;:\"'\\]/g;
+					
+					if(regexp.test(val)){
+						$(this).val(val.replace(regexp,''));
+					}
+				});
+				
+				$("input[numberOnly]").css("ime-mode", "disabled").keydown(function(e){
+					onlyCheck.keyDown(e, "number");
+				}).keyup(function(e){
+					onlyCheck.keyUp(e, "number");
+				}).focusout(function(){
+					onlyCheck.focusOut($(this), "number");
+				});
+
+				if($.cookie("mng_font_size")) {
+					mng_font_size = +$.cookie("mng_font_size");
+					$("html").css("font-size", mng_font_size +"px");
+				} else {
+					mng_font_size = 18;
+				}
+
+				/**클릭통계*/
+				$("a").click(function(){
+					var href = $(this).attr("href");
+					if((href.indexOf("/cyber") > -1 || href.indexOf("/wbase") > -1) && href.indexOf("javascript:")==-1 && $(this).data("blank") == undefined) {
+						/**클릭통계*/
+						location.href=href;
+						return false;
+					} else {
+						return true;
+					}					
+				});
+				
+				/* $(window).on("keyup", function(e) {
+					var key = e.keyCode;
+					if (key == "107") {
+						if (mng_font_size < 18) {
+							mng_font_size += 1;
+							$("html").css("font-size", mng_font_size +"px");
+							$.cookie("mng_font_size", mng_font_size);
+						}
+					} else if (key == "109") {
+						if (mng_font_size > 14) {
+							mng_font_size -= 1;
+							$("html").css("font-size", mng_font_size +"px");
+							$.cookie("mng_font_size", mng_font_size);
+						}
+					}
+				}); */
+				$(".txt_zoom .in").on("click", function(e) {
+					e.preventDefault();
+					if (mng_font_size < 19) {
+						mng_font_size += 1;
+						$("html").css("font-size", mng_font_size +"px");
+						$.cookie("mng_font_size", mng_font_size);
+					}
+				});
+				
+				$(".txt_zoom .out").on("click", function(e) {
+					e.preventDefault();
+					if (mng_font_size > 15) {
+						mng_font_size -= 1;
+						$("html").css("font-size", mng_font_size +"px");
+						$.cookie("mng_font_size", mng_font_size);
+					}
+					
+				});
+				
+				$(".btn_print a").on("click", function(e) {
+					e.preventDefault();
+					window.onbeforeprint = beforePrint;
+					window.onafterprint = afterPrint;
+					window.print();
+				});
+				
+				// /* 페이지 만족도 평가 */
+				// $('.btn_satis_cross').on('click', function(){
+				// 	// 만족도 평가 닫기
+				// 	if ($(this).hasClass('close')) {
+				// 		$(this).removeClass('close');
+				// 		$(this).text('펼치기');
+				// 		$('.page_satif_inner').stop().slideUp();
+				// 	}
+				// 	// 만족도 평가 열기
+				// 	else {
+				// 		$(this).addClass('close');
+				// 		$(this).text('닫기');
+				// 		$('.page_satif_inner').stop().slideDown();
+				// 	}
+				// });
+				//
+				// $(".page_satif_wrap .star_rate_wrap button").click(function(){
+				// 	$(this).parent().find("button").removeClass("srat_selected")
+				// 	$(this).addClass("srat_selected");
+				// });
+				//
+				// $(".page_satif_wrap button.submit").click(function(){
+				// 	var selObj = $(".page_satif_wrap .star_rate_wrap button.srat_selected");
+				// 	if(selObj.length==0) {
+				// 		alert("평점을 선택해 주세요");
+				// 		return;
+				// 	}
+				//
+				// 	var po = [];
+				// 		po.push("star="+selObj.attr("id"));
+				// 		po.push("mng_cd="+mng_cd);
+				// 		po.push("comment="+$(".page_satif_wrap textarea").val());
+				//
+				// 	common.blockpage();
+				// 	common.getObjectList("/wbase/contents/pagestatisfy/add.do", "post", po.join("&"), function(responseData) {
+				// 		common.unblockpage()
+				// 		if(responseData==1) {
+				// 			alert("평가해주셔서 감사합니다.");
+				// 		} else {
+				// 			alert("잠시 뒤 다시 시도해주세요");
+				// 		}
+				// 	});
+				// });
+
+				jQuery('.nav_select_link').keydown(function(e) {
+					if(e.key === 'Enter') {
+						$(this).click();
+					}
+				});
+			});
+			
+			/**web 페이징 모바일 복사*/
+			setTimeout(function(){
+				$(".mobile_tbl_pagination").empty();
+				$(".mobile_tbl_pagination").append($(".tbl_pagination a.first").clone());
+				$(".mobile_tbl_pagination").append($(".tbl_pagination a.prev").clone());
+				$(".mobile_tbl_pagination").append("<div><ol class='swiper-wrapper'></div>");
+				$(".mobile_tbl_pagination").append($(".tbl_pagination a.next").clone());
+				$(".mobile_tbl_pagination").append($(".tbl_pagination a.last").clone());
+
+				$.each($(".tbl_pagination a.nomal"), function(){
+					$(".mobile_tbl_pagination ol.swiper-wrapper").append("<li class='swiper-slide'>"+$(this)[0].outerHTML+"</li>");
+				});
+				
+				var mobPagination = new Swiper('.mobile_tbl_pagination > div', {
+					slidesPerView: 'auto',
+					spaceBetween: 0
+				});
+			}, 700);
+
+			function beforePrint() {
+				print_body = $("body").html();
+				$("#content .sub_navi_wrap, #content .bnr_btn_wrap").hide();
+				$("body").html($("#content").html());
+			}	
+			
+			function afterPrint() {
+				$("body").html(print_body);
+				$("#content .sub_navi_wrap, #content .bnr_btn_wrap").show();
+			}
+		</script>
+
+		<script src="/js/common/cyber_common.js"></script>
+
+		<!-- 공지팝업 -->
+		
+		<!-- 공지팝업 end --> 
+
+		<!-- 스킵메뉴 -->
+		<div class="skip_menu">
+			<a href="#nav">내비게이션 바로가기</a>
+			<a href="#content">본문 바로가기</a>
+			<a href="#footer">푸터 바로가기</a>
+		</div>
+		<!-- 스킵메뉴 end -->
+
+		<!-- 서울 GNB -->
+		<div class="seoul-common-gnb" id="seoul-common-gnb"></div>
+
+		<div id="wrap">
+			<!-- 팝업 레이어 -->
+			<div class="layer_dimm"></div>
+
+			<!-- 퀵버튼 -->
+			<div class="q_btns" onclick="topFunction()">
+				<div class="q_btns_img_wrap">
+					<img src="/images/ico/ico_topbtn.png" alt="탑">
+				</div>
+			</div>
+			<!-- 퀵버튼 end-->
+
+			<!--인증센터-->
+			<a href="javascript:window.open('https://app.seoulshinbo.co.kr/MagicMRS/MagicMRSWeb/authExport.jsp')" class="auth_center_wrap">
+				<div class="auth_center_img"></div>
+				<span class="auth_center_text">인증센터</span>
+			</a>
+			<!--인증센터 end-->
+
+			<!-- header 영역 -->
+			
+			
+
+			
+
+
+
+
+
+
+
+
+<!-- header -->
+<header class="header " id="header">
+
+	<!-- 홈페이지/디지털 지점 -->
+	<div class="top_util_wrap">
+		<div class="common_inner">
+			<div class="tab_menu top_util_tab_menu">
+				<ul class="top_util_tab_list">
+					<li class="tab_item  active">
+						<a href="/wbase">홈페이지</a>
+					</li>
+					<li class="tab_item  tab_wide">
+						<a href="/cyber">디지털 종합지원센터</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+	<!-- 홈페이지/디지털 지점 end -->
+
+	<div class="common_inner">
+		<!-- header left -->
+		<div class="header_left">
+			<!-- 로고 -->
+			<h1 class="header_logo">
+				
+				
+					
+					
+						<a href="/wbase">
+							<img src="/images/logo/logo_main.png" alt="서울특별시 서울신용보증재단">
+						</a>
+					
+				
+			</h1>
+			<!-- 로고 end -->
+			<!-- GNB : for web -->
+			<nav class="gnb_nav" id="nav" tabindex="0">
+				
+					
+					 <!-- 홈페이지 -->
+						<ul class="gnb_dep1_list">
+							<!-- 재단스토리 -->
+							<!--해당 메뉴의 하위메뉴에 접속 했을 시 gnb_dep1_item + active-->
+							<li class="gnb_dep1_item">
+								<a href="/wbase/contents.do?mng_cd=STRY0005" class="gnb_dep1_link">재단스토리</a>
+								<div class="gnb_sub_wrap gnb_dep2_list">
+									<div class="gnb_sub_inner story gnb_dep2_wrap">
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">CEO</strong>
+											<ul class="gnb_dep2_sub">
+												<!--하위 메뉴 접속시 gnb_dep2_sub_item + active-->
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=STRY0933">CEO 인사말</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=STRY0005">역대이사장</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">재단안내</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=STRY9237">연혁</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=STRY0349">임원소개</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=STRY0480">조직 및 인원</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=STRY6026">CI 소개</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=CSTM5346">찾아오시는 길</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">경영전략</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=STRY9209">설립목적</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=STRY6014">미션 및 비전</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=STRY9548">경영목표</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">채용정보</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=STRY9052">인재상</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=STRY3325">인재채용</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=STRY5010">서류반환 및 편의제공 신청</a></li>
+											</ul>
+										</div>
+									</div>
+								</div>
+							</li>
+							<!-- 재단스토리 end -->
+							<!-- 주요업무 -->
+							<li class="gnb_dep1_item">
+								<a href="/wbase/contents.do?mng_cd=BUSI0007" class="gnb_dep1_link">주요업무</a>
+								<div class="gnb_sub_wrap gnb_dep2_list">
+									<div class="gnb_sub_inner story gnb_dep2_wrap">
+									   <div class="gnb_sub_each gnb_dep2_menu">
+                                            <strong class="gnb_dep2_title">종합상담</strong>
+                                            <ul class="gnb_dep2_sub">
+                                                <li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI9504">업무소개</a></li>
+                                                <li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI9505">지원절차</a></li>
+                                                <li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI9506">이용방법</a></li>
+                                            </ul>
+                                        </div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">신용보증</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI0007">업무소개</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI7915">보증 대상</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI7446">보증 절차</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI2346">보증 상품</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI0384">보증기업 필독사항</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">중소기업 육성자금</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI0008">업무소개</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI0443">융자제한업종</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI2101">자금지원 절차</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI3319">자금지원 종류</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI9503">자금지원 현황</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI5069">협약대출기관</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">소상공인 종합지원 프로그램</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI0009">업무소개</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI2517">소상공인 교육</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI7538">현장 멘토링</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI6771">창업 컨설팅</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI8160">자영업 클리닉</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI7358">중장년 소상공인 디지털 전환 지원</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI2383">위기 소상공인 조기발굴 및 선제지원</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI2384">새 길 여는 폐업지원</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI2385">다시서기 프로젝트</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">상권활성화 지원 프로그램</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI0010">업무소개</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI0011">로컬브랜드 상권 육성사업</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI0012">골목상권 구획화 및 육성지원 사업</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI0013">청년골목창업지원사업(프렙 아카데미)</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">재기지원</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI6400">업무소개</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI5455">채권회수절차 안내</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI6654">재기지원 제도</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI6401">개인채무조정 안내</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI4044">불법추심 대응요령</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI6402">추심 관련 유의사항</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=BUSI6403">매각/경매 통지</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">소상공인 정책연구</strong>
+											<ul class="gnb_dep2_sub">
+
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI0014">업무소개</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI0015">발간자료 소개</a></li>
+
+
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=BUSI0018">플랫폼 소개</a></li>
+											</ul>
+										</div>
+									</div>
+								</div>
+							</li>
+							<!-- 주요업무 end -->
+							<!-- 소통참여 -->
+							<li class="gnb_dep1_item">
+								<a href="/wbase/contents/bbs/list.do?mng_cd=CSTM2716" class="gnb_dep1_link">소통참여</a>
+								<div class="gnb_sub_wrap gnb_dep2_list">
+									<div class="gnb_sub_inner story gnb_dep2_wrap">
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">고객의 소리</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=CSTM2716&chooseFlag=P1">칭찬합니다</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=CSTM2522&chooseFlag=Q1">질문합니다</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=CSTM4827&chooseFlag=C1">불편합니다</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=CSTM7362&chooseFlag=S1">규제혁신 제안합니다</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">자주하는 질문</strong>
+											<ul class="gnb_dep2_sub">
+
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=CSTM5837">보증관련</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=CSTM5838">융자관련</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=CSTM5839">재기관련</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=CSTM5840">청렴관련</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">CS 경영</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=CSTM2860">CS 경영</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">클린신고센터</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=CSTM0618">클린신고센터</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">담당직원 찾기</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=CSTM4732">담당직원 찾기</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">대관문의</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO2762">대관안내</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO4211">대관비용</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO5900">예약절차</a></li>
+											</ul>
+										</div>
+									</div>
+								</div>
+							</li>
+							<!-- 소통참여 end -->
+							<!-- 알림광장 -->
+							<li class="gnb_dep1_item">
+								<a href="/wbase/contents/bbs/list.do?mng_cd=STRY9788" class="gnb_dep1_link">알림광장</a>
+								<div class="gnb_sub_wrap gnb_dep2_list">
+									<div class="gnb_sub_inner story gnb_dep2_wrap">
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">새소식</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=STRY9788">공지사항</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=STRY0006">사업공고</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=STRY2795">보도자료</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=STRY0430">재단관련기사</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">홍보자료</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=STRY8635">인쇄홍보물</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=STRY2442">사보</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=STRY7202">홍보동영상</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=STRY0252">사회공헌활동</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=STRY3473">대외포상</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">발간자료</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=BUSI3408">연구보고서</a></li>
+												<!-- <li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=BUSI2568">정기간행물</a></li> -->
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">주요서식</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=CSTM6718">보증업무</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=CSTM2199">융자업무</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=CSTM9629">금융회사용</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">편리한 서류접수</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=CSTM5389">편리한 서류접수</a></li>
+											</ul>
+										</div>
+									</div>
+								</div>
+							</li>
+							<!-- 알림광장 end -->
+							<!-- 정보공개 -->
+							<li class="gnb_dep1_item">
+								<a href="/wbase/contents.do?mng_cd=INFO0462" class="gnb_dep1_link">정보공개</a>
+								<div class="gnb_sub_wrap gnb_dep2_list">
+									<div class="gnb_sub_inner story gnb_dep2_wrap">
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">정보공개안내</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO0462">정보공개제도</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO2564">정보공개절차</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO6436">정보공개 목록 및 현황</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">사전정보 공표</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO2103">사전정보공표 목록</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO2973">회의록 공개</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO9737" data-value="INFO0513">결재문서(21년 4월 이전)</a></li>
+												<li class="gnb_dep2_sub_item"><a href="https://opendocs.seoulshinbo.co.kr/opendocLst.do" target="_blank" title="새창 열림">결재문서(21년 5월 이후)</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">공공데이터 개방</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO4494">공공데이터 제공 목록 검색/신청</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">경영정보</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO7258">사업계획</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO6346" data-value="INFO2909 INFO6366">재무정보</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO7347">이사회 의결사항</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO2295">복리후생비 현황</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO5814" data-value="INFO0410">계약현황</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO3237">대지급채무 현황</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO4406" data-value="INFO6606">제규정</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO1033" data-value="INFO3735 INFO3263">교육연수</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO4675" data-value="INFO1453">노사상생</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO4394" data-value="INFO6371">기록관리</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">재단리포트</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO1459" data-value="INFO6903">대내외 평가</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO5542" data-value="INFO4886 INFO9865">부패방지 및 청렴 결과</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO1520" data-value="INFO0570">감사 및 검사</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO4304" data-value="INFO5367 INFO1593">기타 문서</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">주요통계</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=STRY8656">보증 및 자금지원 현황</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=STRY5267">소상공인 종합지원현황</a></li>
+											</ul>
+										</div>
+									</div>
+								</div>
+							</li>
+							<!-- 정보공개 end -->
+							<!-- 열린경영 -->
+							<li class="gnb_dep1_item">
+								<a href="/wbase/contents.do?mng_cd=INFO6679" class="gnb_dep1_link">열린경영</a>
+								<div class="gnb_sub_wrap gnb_dep2_list">
+									<div class="gnb_sub_inner story gnb_dep2_wrap">
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">ESG경영</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO6679">개괄</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO6680">환경(E)</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO6681">사회(S)</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO6682">지배구조(G)</a></li>
+												
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">윤리경영</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO6722">윤리헌장</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO7908">윤리강령</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO5914">행동강령</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO1361">공익신고제도</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">인권경영</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO7454">인권경영헌장</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=INFO7874">인권경영 추진실적</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO7654">인권침해 신고센터</a></li>
+											</ul>
+										</div>
+										<div class="gnb_sub_each gnb_dep2_menu">
+											<strong class="gnb_dep2_title">안전경영</strong>
+											<ul class="gnb_dep2_sub">
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO7001">안전보건 경영방침</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO7002">안전보건 조직</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO7003">안전보건 전략체계</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO7004">작업중지요청제 안내</a></li>
+												<li class="gnb_dep2_sub_item"><a href="/wbase/contents.do?mng_cd=INFO7005">안전보건경영시스템(KOSHA-MS) 인증</a></li>
+											</ul>
+										</div>
+									</div>
+								</div>
+							</li>
+							<!-- 열린경영 end -->
+						</ul>
+					
+				
+
+			</nav>
+			<!-- GNB : for web end -->
+		</div>
+		<!-- header left end -->
+		<!--header util wrap : for web -->
+		<div class="header_util_wrap">
+			
+			
+
+			<a class="search_open_btn" href="javascript:void(0);" title="검색창">
+				<img src="/images/ico/ico_main_search_blue.svg" alt="검색창 열기">
+			</a>
+			<form id="webHeaderTotalSearchForm" name="webHeaderTotalSearchForm" action="/wbase/contents/dynamic/SECH7015.do?mng_cd=SECH7015" method="post">
+				<input type="hidden" name="ord" value="accu">
+				<div class="web_total_search_input">
+					<div class="web_total_search_inner">
+						<input id="webSearchKeyword_h" name="searchKeyword" type="text" title="검색어" placeholder="검색어를 입력해 주세요.">
+						<button class="search_btn">
+							<img src="/images/ico/ico_search_gray.svg" alt="검색">
+						</button>
+						<button class="close_btn">
+							<img src="/images/ico/ico_close.svg" alt="검색창 닫기">
+						</button>
+					</div>
+				</div>
+			</form>
+			
+				
+				
+					<a class="gnb_berger" href="/wbase/contents.do?mng_cd=INFO8096" title="사이트맵">
+						<img src="/images/ico/ico_hamburger.svg" alt="사이트맵">
+					</a>
+				
+			
+		</div>
+		<!--header util wrap : for web end -->
+
+		<!-- btn_mob_berger : for mob -->
+		<a class="btn_mob_berger" href="javascript:void(0);">
+			<img src="/images/ico/ico_hamburger.svg" alt="모바일 메뉴 열기">
+		</a>
+		<!-- btn_mob_berger : for mob end -->
+	</div>
+
+	<!-- 모바일 메뉴 -->
+	<nav class="mob_gnb_nav">
+		<!-- 모바일 메뉴 헤더 -->
+		<div class="mob_header">
+			<h1 class="header_logo">
+				
+				
+					
+					
+						<a href="/wbase">
+							<img src="/images/logo/logo_main.png" alt="서울특별시 서울신용보증재단">
+						</a>
+					
+				
+			</h1>
+			<button class="close_btn">
+				<img src="/images/ico/ico_close.svg" alt="모바일 메뉴 닫기">
+			</button>
+		</div>
+		<!-- 모바일 메뉴 헤더 end -->
+		<!-- 모바일 메뉴 홈페이지/디지털 지점 -->
+		<div class="mob_top_util_wrap">
+			<div class="tab_menu top_util_tab_menu ">
+				<ul class="top_util_tab_list">
+					<li class="tab_item  active">
+						<a href="/wbase">홈페이지</a>
+					</li>
+					<li class="tab_item ">
+						<a href="/cyber" target="_blank">
+							디지털 지점
+							<!--
+							<img src="/images/ico/ico_move_page.svg" alt="새창열림">
+							-->
+						</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+		<!-- 모바일 메뉴 홈페이지/디지털 지점 end -->
+		<!-- 모바일 검색창 -->
+		<form id="mobHeaderTotalSearchForm" name="mobHeaderTotalSearchForm" action="/wbase/contents/dynamic/SECH7015.do?mng_cd=SECH7015" method="post">
+			<input type="hidden" name="ord" value="accu">
+			<div class="mob_total_search_input">
+				<div class="mob_total_search_inner">
+					<input id="mobSearchKeyword_h" name="searchKeyword" type="text" title="검색어" placeholder="검색어를 입력해 주세요.">
+					<button class="search_btn">
+						<img src="/images/ico/ico_search_gray.svg" alt="검색">
+					</button>
+				</div>
+			</div>
+		</form>
+		<!-- 모바일 검색창 end -->
+		<!-- 모바일 메뉴 -->
+		
+			
+			 <!-- 홈페이지 -->
+				<ul class="mob_gnb_menu">
+					<li>
+						<a href="javascript:void(0);">
+							재단스토리
+							<span class="btn_arr">펼치기</span>
+						</a>
+						<ul>
+							<li><a href="/wbase/contents.do?mng_cd=STRY0933"><span></span>CEO</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=STRY9237"><span></span>재단안내</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=STRY9209"><span></span>경영전략</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=STRY9052"><span></span>채용정보</a></li>
+						</ul>
+					</li>
+					<li>
+						<a href="javascript:void(0);">
+							주요업무
+							<span class="btn_arr">펼치기</span>
+						</a>
+						<ul>
+						    <li><a href="/wbase/contents.do?mng_cd=BUSI9504"><span></span>종합상담</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=BUSI0007"><span></span>신용보증</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=BUSI0008"><span></span>중소기업 육성자금</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=BUSI0009"><span></span>소상공인 종합지원 프로그램</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=BUSI0010"><span></span>상권활성화 지원 프로그램</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=BUSI6400"><span></span>재기지원</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=BUSI0014"><span></span>소상공인 정책연구</a></li>
+						</ul>
+					</li>
+					<li>
+						<a href="javascript:void(0);">
+							소통참여
+							<span class="btn_arr">펼치기</span>
+						</a>
+						<ul>
+							<li><a href="/wbase/contents/bbs/list.do?mng_cd=CSTM2716"><span></span>고객의 소리</a></li>
+							<li class="mob_gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=CSTM2716&chooseFlag=P1"><span></span>칭찬합니다</a></li>
+							<li class="mob_gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=CSTM2522&chooseFlag=Q1"><span></span>질문합니다</a></li>
+							<li class="mob_gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=CSTM4827&chooseFlag=C1"><span></span>불편합니다</a></li>
+							<li class="mob_gnb_dep2_sub_item"><a href="/wbase/contents/bbs/list.do?mng_cd=CSTM7362&chooseFlag=S1"><span></span>규제혁신 제안합니다</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=CSTM5836"><span></span>자주하는 질문</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=CSTM2860"><span></span>CS 경영</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=CSTM0618"><span></span>클린신고센터</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=CSTM4732"><span></span>담당직원 찾기</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=INFO2762"><span></span>대관문의</a></li>
+						</ul>
+					</li>
+					<li>
+						<a href="javascript:void(0);">
+							알림광장
+							<span class="btn_arr">펼치기</span>
+						</a>
+						<ul>
+							<li><a href="/wbase/contents/bbs/list.do?mng_cd=STRY9788"><span></span>새소식</a></li>
+							<li><a href="/wbase/contents/bbs/list.do?mng_cd=STRY8635"><span></span>홍보자료</a></li>
+							<li><a href="/wbase/contents/bbs/list.do?mng_cd=BUSI3408"><span></span>발간자료</a></li>
+							<li><a href="/wbase/contents/bbs/list.do?mng_cd=CSTM6718"><span></span>주요서식</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=CSTM5389"><span></span>편리한 서류접수</a></li>
+						</ul>
+					</li>
+					<li>
+						<a href="javascript:void(0);">
+							정보공개
+							<span class="btn_arr">펼치기</span>
+						</a>
+						<ul>
+							<li><a href="/wbase/contents.do?mng_cd=INFO0462"><span></span>정보공개안내</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=INFO2103"><span></span>사전정보 공표</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=INFO4494"><span></span>공공데이터 개방</a></li>
+							<li><a href="/wbase/contents/bbs/list.do?mng_cd=INFO7258"><span></span>경영정보</a></li>
+							<li><a href="/wbase/contents/bbs/list.do?mng_cd=INFO1459"><span></span>재단리포트</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=STRY8656"><span></span>주요통계</a></li>
+						</ul>
+					</li>
+					<li>
+						<a href="javascript:void(0);">
+							열린경영
+							<span class="btn_arr">펼치기</span>
+						</a>
+						<ul>
+							<li><a href="/wbase/contents.do?mng_cd=INFO6679"><span></span>ESG경영</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=INFO6722"><span></span>윤리경영</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=INFO7454"><span></span>인권경영</a></li>
+							<li><a href="/wbase/contents.do?mng_cd=INFO7001"><span></span>안전경영</a></li>
+						</ul>
+					</li>
+				</ul>
+			
+		
+		<!-- 모바일 메뉴 end -->
+	</nav>
+
+	<!-- GNB 레이어 -->
+	<div class="gnb_dimm"></div>
+</header>
+<!-- header end -->
+
+<!-- 현재 메뉴 active 처리 -->
+<script>
+	$(document).ready(function() {
+		var header = document.getElementById("header");
+		var aList = header.querySelectorAll('a');
+
+		aList.forEach(function (a) {
+			// list.jsp에 탭이 존재하는경우 해당 a링크에 data-value 이름으로 mng_cd 값을 설정해두면 동일하게 active 활성화
+			if("STRY0006" != "" && (a.href.includes("STRY0006") || (a.dataset.value && a.dataset.value.includes("STRY0006")))) {
+				if(a.parentNode.className === "gnb_dep2_sub_item"){ // dep2인 경우
+					var dep1 = a.parentNode.closest(".gnb_dep1_item");
+					dep1.className += " active";
+					a.parentNode.className += " active";
+				}
+				if(a.className === "gnb_dep2_title") { // 디지털지점 dep2인 경우
+					var dep1 = a.closest(".gnb_dep1_item");
+					dep1.className += " active";
+					a.className += " active";
+				}
+			}
+		});
+	})
+</script>
+			<!-- header 영역 end -->
+			
+
+
+			<!-- 내용 영역 -->
+			<div class="common_content" id="content" tabindex="0">
+
+				<!-- 서브 top 배너 -->
+				
+				
+				
+
+				
+					
+						
+						
+						
+						 
+							
+							<link rel="stylesheet" type="text/css" href="/css/pages/plaza.css">
+						
+						
+						
+						
+						
+						
+						
+						
+						
+					
+				
+
+				
+
+					
+
+					
+
+						<!-- 서브 top배너 -->
+							<div class="sub_top_bnr plaza">
+								<div class="common_inner">
+									<div class="submain_ttl_wrap">
+										<h2 class="submain_ttl">사업공고</h2>
+									</div>
+								</div>
+							</div>
+							<!-- 서브 top 배너 end -->
+							<!-- 서브 네비게이션 -->
+							
+								<div class="sub_navi_wrap">
+									<div class="sub_navi_inner">
+										<nav>
+											<ul>
+												<li class="home" title="메인으로 가기"><a href="/wbase">메인으로</a></li>
+												
+													 
+														
+													
+													
+												
+												
+													
+														
+													
+														
+													
+														
+													
+														
+													
+														
+													
+														
+													
+												
+													
+														
+													
+														
+													
+														
+													
+														
+													
+														
+													
+												
+													
+														
+													
+														
+													
+														
+													
+														
+													
+												
+												
+													<li class="nav_select">
+														<a href="javascript:;">
+															<span>알림광장</span>
+															<img src="/images/arr/arr_down_white.svg" alt="">
+														</a>
+
+														<ul class="nav_select_list">
+															
+																<li class="nav_select_item" data-name="재단스토리">
+																	<a class="nav_select_link" href="/wbase/contents.do?mng_cd=STRY0933" target="_self">재단스토리</a>
+																</li>
+															
+																<li class="nav_select_item" data-name="주요업무">
+																	<a class="nav_select_link" href="/wbase/contents.do?mng_cd=BUSI0007" target="_self">주요업무</a>
+																</li>
+															
+																<li class="nav_select_item" data-name="소통참여">
+																	<a class="nav_select_link" href="/wbase/contents/bbs/list.do?mng_cd=CSTM2716" target="_self">소통참여</a>
+																</li>
+															
+																<li class="nav_select_item" data-name="알림광장">
+																	<a class="nav_select_link" href="/wbase/contents/bbs/list.do?mng_cd=STRY9788" target="_self">알림광장</a>
+																</li>
+															
+																<li class="nav_select_item" data-name="정보공개">
+																	<a class="nav_select_link" href="/wbase/contents.do?mng_cd=INFO0462" target="_self">정보공개</a>
+																</li>
+															
+																<li class="nav_select_item" data-name="열린경영">
+																	<a class="nav_select_link" href="/wbase/contents.do?mng_cd=INFO6679" target="_self">열린경영</a>
+																</li>
+															
+														</ul>
+													</li>
+												
+													<li class="nav_select">
+														<a href="javascript:;">
+															<span>새소식</span>
+															<img src="/images/arr/arr_down_white.svg" alt="">
+														</a>
+
+														<ul class="nav_select_list">
+															
+																<li class="nav_select_item" data-name="새소식">
+																	<a class="nav_select_link" href="/wbase/contents/bbs/list.do?mng_cd=STRY9788" target="_self">새소식</a>
+																</li>
+															
+																<li class="nav_select_item" data-name="홍보자료">
+																	<a class="nav_select_link" href="/wbase/contents/bbs/list.do?mng_cd=STRY8635" target="_self">홍보자료</a>
+																</li>
+															
+																<li class="nav_select_item" data-name="발간자료">
+																	<a class="nav_select_link" href="/wbase/contents/bbs/list.do?mng_cd=BUSI3408" target="_self">발간자료</a>
+																</li>
+															
+																<li class="nav_select_item" data-name="주요서식">
+																	<a class="nav_select_link" href="/wbase/contents/bbs/list.do?mng_cd=CSTM6718" target="_self">주요서식</a>
+																</li>
+															
+																<li class="nav_select_item" data-name="편리한 서류접수">
+																	<a class="nav_select_link" href="/wbase/contents.do?mng_cd=CSTM5389" target="_self">편리한 서류접수</a>
+																</li>
+															
+														</ul>
+													</li>
+												
+													<li class="nav_select">
+														<a href="javascript:;">
+															<span>사업공고</span>
+															<img src="/images/arr/arr_down_white.svg" alt="">
+														</a>
+
+														<ul class="nav_select_list">
+															
+																<li class="nav_select_item" data-name="공지사항">
+																	<a class="nav_select_link" href="/wbase/contents/bbs/list.do?mng_cd=STRY9788" target="_self">공지사항</a>
+																</li>
+															
+																<li class="nav_select_item" data-name="사업공고">
+																	<a class="nav_select_link" href="/wbase/contents/bbs/list.do?mng_cd=STRY0006" target="_self">사업공고</a>
+																</li>
+															
+																<li class="nav_select_item" data-name="보도자료">
+																	<a class="nav_select_link" href="/wbase/contents/bbs/list.do?mng_cd=STRY2795" target="_self">보도자료</a>
+																</li>
+															
+																<li class="nav_select_item" data-name="재단관련기사">
+																	<a class="nav_select_link" href="/wbase/contents/bbs/list.do?mng_cd=STRY0430" target="_self">재단관련기사</a>
+																</li>
+															
+														</ul>
+													</li>
+												
+											</ul>
+										</nav>
+										<div class="page_opts_wrap">
+											<div class="txt_zoom">
+												<span>글자크기</span>
+												<div class="btn_wrap">
+													<button class="in" title="글자 확대">글자 확대 </button>
+													<button class="out" title="글자 축소">글자 축소</button>
+												</div>
+											</div>
+											<div class="btn_print">
+												<a href="javascript:void(0);" title="프린트 출력">프린트</a>
+											</div>
+										</div>
+									</div>
+								</div>
+							
+
+						
+
+
+
+
+
+
+<link rel="stylesheet" href="/css/popup/popup.css">
+<script src="/js/contents.bbs.js"></script>
+
+	<script src="/pluginfree/jsp/nppfs.script-1.9.0.jsp"></script>
+	<script src="/pluginfree/js/nppfs-1.9.0.js"></script>
+
+
+
+<script>
+	$(document).ready(function() {
+		// 팝업열기 클릭 시 팝업 열기
+		$(".btn_show_popup").on("click", function() {
+			$(".popup_wrap").fadeIn();
+		});
+
+		// 팝업 닫기 버튼 클릭 시 팝업 닫기
+		$(".btn_close").on("click", function() {
+			$(".popup_wrap").fadeOut();
+		});
+
+		$(".popup .popup_footer .btn_group .btn").on("click", function(e) {
+			let clickedButton = jQuery(this);
+			clickedButton.prop('disabled', true);
+			e.preventDefault();
+			var id = $('input[name="agree_chk"]:checked').attr('id');
+			if (id == null) {
+				alert('동의 여부를 선택해 주세요.');
+				clickedButton.prop('disabled', false);
+				return false;
+			}
+
+			if (id==='disagree') {
+				alert('미동의 시 게시물을 작성할 수 없습니다.');
+				clickedButton.prop('disabled', false);
+				$(".popup_wrap").fadeOut();
+				$('a.btn_show_popup').focus();
+			}
+
+			if(id === 'agree') {
+				clickedButton.prop('disabled', false);
+				navigateToWritePage();
+			}
+		});
+	});
+
+	function navigateToWritePage() {
+		$(".popup_wrap").fadeOut();
+		location.href = "/wbase/contents/bbs/form.do?mng_cd=STRY0006";
+	}
+
+	function _searchForm() {
+	if($("#searchKeywordInput") && $("#searchKeywordInput").val() != '') {
+			$("#searchKeyword").val($("#searchKeywordInput").val());
+			bbs.formSearch();
+		}
+	}
+</script>
+
+
+
+
+<div class="sub_cont_wrap">
+	
+	
+	
+		<!-- 클린신고센터 개인정보수집이용동의서 팝업 start -->
+		<div class="popup_wrap">
+			<div class="popup w1100">
+				<div class="popup_header">
+					<div class="popup_tit">개인정보 수집·이용 동의서</div>
+					<a class="btn_close" href="javascript:;" title="팝업닫기">닫기</a>
+				</div>
+				<div class="popup_content scroll">
+					<div class="popup_inner_section">
+						<p class="agree_exp">서울신용보증재단(이하 "재단"이라 함)은
+							
+								
+								클린신고 
+							
+							접수 및 처리를 위한 개인정보 수집·이용을 위하여 「개인정보보호법 제15조 및 제22조」에 따라 귀하의 동의를 받고자 합니다.</p>
+						<table class="agree_tbl">
+							<caption class="hide">개인정보 수집 및 이용</caption>
+							<colgroup>
+								<col style="width:20%">
+								<col style="width:10%">
+								<col style="width:70%">
+							</colgroup>
+							<thead>
+							<tr>
+								<th scope="row" colspan="3">
+									<strong>개인정보 수집 및 이용</strong>
+								</th>
+							</tr>
+							</thead>
+							<tbody>
+							<tr>
+								<th scope="row" colspan="2">
+									개인정보의 수집 및 이용 목적
+								</th>
+								<td>
+									
+										
+										<span class="clean_agree_txt">클린신고에</span>
+									
+									포함된 개인정보는
+									
+										
+										<span class="clean_agree_txt">클린신고</span>
+									
+									접수 처리 등 소관 업무 수행을 위해 재단에서 이용합니다.
+								</td>
+							</tr>
+							<tr>
+								<th scope="row" rowspan="2">
+									수집하는 개인정보 항목
+								</th>
+								<th scope="row">
+									필수정보
+								</th>
+								<td>
+								<span class="clean_essential">
+								
+									
+									이름, 휴대전화번호
+								
+								</span>
+								</td>
+							</tr>
+							<tr>
+								<th scope="row">
+									선택정보
+								</th>
+								<td>
+									-
+								</td>
+							</tr>
+							<tr>
+								<th scope="row" colspan="2">
+									개인정보의 보유 및 이용기간
+								</th>
+								<td>
+									<strong>10년</strong>
+								</td>
+							</tr>
+							<tr>
+								<th scope="row" colspan="2">
+									동의 거부 권리 및 동의 거부에 따른 불이익 내용 또는 제한사항
+								</th>
+								<td>
+									귀하는 개인정보 수집 및 이용에 대해 동의를 거부할 권리가 있습니다. 개인정보 필수정보에 대한 수집 및 이용에 대한 동의 거부 시
+									
+										
+										클린신고 
+									
+									접수가 제한됨을 알려드립니다.
+								</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="agree_chk color_change">
+							<div class="left">
+								<strong>(필수)개인정보 수집 및 이용에</strong>
+							</div>
+							<div class="right">
+								<div class="input_radio">
+									<input id="agree" name="agree_chk" type="radio" value="Y">
+									<label for="agree">
+										<strong>동의함</strong>
+									</label>
+								</div>
+								<div class="input_radio">
+									<input id="disagree" name="agree_chk" type="radio" value="N">
+									<label for="disagree">
+										<strong>동의하지 않음</strong>
+									</label>
+								</div>
+							</div>
+						</div>
+						<p class="agree_etc">
+							※ 귀하가 동의한 내용 외의 다른 목적으로 활용하지 않으며, 제공된 개인정보의 이용을 거부하고자 할 때에는 개인정보 보호 책임자를 통해 열람, 정정, 삭제를 요구할 수 있음
+						</p>
+					</div>
+				</div>
+				<div class="popup_footer">
+					<div class="btn_group">
+						<a class="btn" href="javascript:void(0);" title="확인">확인</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- 개인정보수집이용동의서 팝업 end -->
+	
+	
+
+	<div class="common_inner">
+		<!-- 게시판 탭 추가 -->
+		
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		
+
+		<form id="bbsSearchForm" name="listForm" action="/wbase/contents/bbs/list.do;jsessionid=eytjng5TVck9ug3iy75dJiajzz-EH0pLTnijo15G6BG6qxBbd7cK!-951456437?mng_cd=STRY0006&amp;pageIndex=1" method="post">
+			<input id="pageIndex" name="pageIndex" type="hidden" value="1"/>
+			<input type="hidden" name="mng_cd" value="STRY0006">
+			
+			
+				
+					<input type="hidden" name="searchCondition" id="searchCondition" value="subject">
+				
+				
+			
+			<input type="hidden" id="searchKeyword" name="searchKeyword" value="">
+		</form>
+
+		<!-- 검색 -->
+		<div class="board_search_wrap ">
+			<div class="sitemap_mob dropdown" id="dropdown1">
+				<div class="selected">
+					<input class="selected_input" readonly
+							
+								
+								
+								
+								
+								
+								
+								
+								
+								
+								
+								
+								
+									
+										
+										
+										title="제목" value="제목" placeholder="제목"
+									
+								
+							
+					>
+					<button class="btn_arr">
+						<span class="btn_txt">펼치기</span>
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+							<path fill-rule="evenodd" clip-rule="evenodd"
+								  d="M18.3536 8.64645C18.5488 8.84171 18.5488 9.15829 18.3536 9.35355L12.3536 15.3536C12.2598 15.4473 12.1326 15.5 12 15.5C11.8674 15.5 11.7402 15.4473 11.6464 15.3536L5.64645 9.35355C5.45118 9.15829 5.45118 8.84171 5.64645 8.64645C5.84171 8.45118 6.15829 8.45118 6.35355 8.64645L12 14.2929L17.6464 8.64645C17.8417 8.45118 18.1583 8.45118 18.3536 8.64645Z"
+								  fill="black"/>
+						</svg>
+					</button>
+				</div>
+				<div class="select_lst_wrap">
+					<ul class="select_lst">
+						
+							
+							
+							
+							
+							
+								
+								
+								
+								<li class="lst">
+										<button class="btn_lst" name="subject">제목</button>
+									</li>
+									 <!-- 상세 페이지 있는 경우에만 노출 -->
+										<li class="lst">
+											<button class="btn_lst" name="content">내용</button>
+										</li>
+									
+								
+							
+								
+							
+						
+					</ul>
+
+				</div>
+			</div>
+			<div class="board_search_input">
+				<input placeholder="검색어를 입력해 주세요." title="검색어를 입력해 주세요." type="text" id="searchKeywordInput" name="searchKeywordInput" value="" onkeyup="if(event.keyCode==13) {_searchForm(); return false;}">
+			</div>
+			<button class="btn" onclick="_searchForm()">검색</button>
+		</div>
+
+		<!-- 검색 end -->
+		<!-- 내용 -->
+		<div class="info_submit_wrap">
+			<!-- PC start -->
+			<div class="pre_info_list_tbl for_web">
+				<div class="tbl_stat_txt">
+					<p class="left">총 <span class="number">185개</span>의 게시물이 있습니다.</p>
+					
+				</div>
+				<table>
+					<caption class="hide">사업공고 목록</caption>
+					<colgroup>
+						<col style="width:120px"> <!-- 번호 -->
+						<col style="width:auto"> <!-- 제목 -->
+						
+							
+							
+							
+							
+							 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 / 열린경영 -->
+								 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+									<col style="width:140px"> <!-- 작성자 -->
+								
+								<col style="width:140px"> <!-- 작성일 -->
+							
+						
+						
+						
+							<col style="width:120px"> <!-- 첨부파일 -->
+						
+					</colgroup>
+					<thead>
+					<tr>
+						<th scope="col">번호</th>
+						<th scope="col">제목</th>
+						
+							
+							
+							
+							
+							 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+								 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+									<th scope="col">작성자</th>
+								
+								<th scope="col">작성일</th>
+							
+						
+						
+						
+							<th scope="col">첨부파일</th>
+						
+					</tr>
+					</thead>
+					<tbody>
+					<!-- 공지 -->
+					
+						<tr>
+							<td class="notice"><p class="notice_text">공지</p></td>
+							
+								
+									<td class="t_left"><a href="javascript:bbs.goView('1', '23037')"><span class="ellipsis">[상권지원부] 2026년 골목형상점가 육성 지원 사업 공고(2차)</span></a></td>
+								
+								
+							
+							
+								
+								
+								
+								 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+									 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+										<td>상권기획팀</td>
+									
+									<td>2026-08-05</td>
+								
+							
+							
+							
+								<td class="file_add">
+									
+										
+										
+										
+											
+												
+													
+														
+													
+												
+											
+										
+											
+												
+													
+													
+														
+													
+												
+											
+										
+										<div class="file_down_wrap" onclick="common.downloadAll(23037, '1d78eb6d-e042-438a-a11a-631c52aab036|3282437d-d8da-4436-a632-64ca62b21613')">
+											<span class="file_number">2</span>
+										</div>
+										<div class="file_hover_wrap">
+											<div class="file_hover">
+												
+													
+														<div onclick="common.download(23037, '1d78eb6d-e042-438a-a11a-631c52aab036')" style="cursor: pointer;">
+															<img src="/images/common/ico_clip.png" alt=""> 붙임1. 2026년 골목형상점가 육성 지원 사업 공고문(2차).pdf
+														</div>
+													
+												
+													
+														<div onclick="common.download(23037, '3282437d-d8da-4436-a632-64ca62b21613')" style="cursor: pointer;">
+															<img src="/images/common/ico_clip.png" alt=""> 붙임2. 2026년 골목형상점가 육성 지원 사업 신청 서식(2차).hwpx
+														</div>
+													
+												
+											</div>
+										</div>
+									
+								</td>
+							
+						</tr>
+					
+						<tr>
+							<td class="notice"><p class="notice_text">공지</p></td>
+							
+								
+									<td class="t_left"><a href="javascript:bbs.goView('1', '17507')"><span class="ellipsis">[재무팀] 계약관련서식(표준계약서식)</span></a></td>
+								
+								
+							
+							
+								
+								
+								
+								 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+									 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+										<td>재무팀</td>
+									
+									<td>2024-08-21</td>
+								
+							
+							
+							
+								<td class="file_add">
+									
+										
+										
+										
+											
+												
+													
+														
+													
+												
+											
+										
+										<div class="file_down_wrap" onclick="common.downloadAll(17507, 'cc020845-e2b2-444a-b985-3e0e4dd98713')">
+											<span class="file_number">1</span>
+										</div>
+										<div class="file_hover_wrap">
+											<div class="file_hover">
+												
+													
+														<div onclick="common.download(17507, 'cc020845-e2b2-444a-b985-3e0e4dd98713')" style="cursor: pointer;">
+															<img src="/images/common/ico_clip.png" alt=""> 계약관련서식(표준계약서식).zip
+														</div>
+													
+												
+											</div>
+										</div>
+									
+								</td>
+							
+						</tr>
+					
+					<!-- 목록 -->
+					
+					
+						
+						
+							
+								<tr>
+									<td>185</td>
+									
+										
+											<td class="t_left"><a href="javascript:bbs.goView('1', '23391')"><span class="ellipsis">[제2026재무팀-65호]제안평가결과(직급·역량별 통합 교육 설계 및 운영 용역)</span></a></td>
+										
+										
+									
+									
+										
+										
+										
+										
+										
+										 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+											 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+												<td>재무*</td>
+											
+											
+											
+												<td>2026-09-02</td>
+											
+										
+									
+									
+									
+										<td class="file_add">
+											
+												
+												
+												
+													
+														
+															
+																
+															
+														
+													
+												
+
+
+												
+													<div class="file_preview_wrap" alt="사보 미리보기">
+														<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-richtext" viewBox="0 0 16 16">
+															<path d="M7 4.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m-.861 1.542 1.33.886 1.854-1.855a.25.25 0 0 1 .289-.047l1.888.974V7.5a.5.5 0 0 1-.5.5H5a.5.5 0 0 1-.5-.5V7s1.54-1.274 1.639-1.208M5 9a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1z"/>
+															<path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1"/>
+														</svg>
+													</div>
+												
+
+												<div class="file_down_wrap" onclick="common.downloadAll(23391, '0b4dd12e-557b-4cb5-b1aa-5e7eefa6ac65')">
+													<span class="file_number">1</span>
+												</div>
+												<div class="file_hover_wrap">
+													<div class="file_hover">
+														
+															
+																<div onclick="common.download(23391, '0b4dd12e-557b-4cb5-b1aa-5e7eefa6ac65')" style="cursor: pointer;">
+																	<img src="/images/common/ico_clip.png" alt=""> 제안서 평가위원회 개최결과.pdf
+																</div>
+															
+														
+													</div>
+												</div>
+											
+										</td>
+									
+								</tr>
+								
+							
+								<tr>
+									<td>184</td>
+									
+										
+											<td class="t_left"><a href="javascript:bbs.goView('1', '23389')"><span class="ellipsis">[제2026재무팀-64호]입찰공고(2026년 중구 로컬브랜드 상권 로컬 축제 운영 용역)</span></a></td>
+										
+										
+									
+									
+										
+										
+										
+										
+										
+										 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+											 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+												<td>재무*</td>
+											
+											
+											
+												<td>2026-09-02</td>
+											
+										
+									
+									
+									
+										<td class="file_add">
+											
+										</td>
+									
+								</tr>
+								
+							
+								<tr>
+									<td>183</td>
+									
+										
+											<td class="t_left"><a href="javascript:bbs.goView('1', '23263')"><span class="ellipsis">[제2026재무팀-63호]제안평가결과(로컬브랜드 핵심점포 네트워킹 및 홍보)</span></a></td>
+										
+										
+									
+									
+										
+										
+										
+										
+										
+										 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+											 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+												<td>재무*</td>
+											
+											
+											
+												<td>2026-08-21</td>
+											
+										
+									
+									
+									
+										<td class="file_add">
+											
+												
+												
+												
+													
+														
+															
+																
+															
+														
+													
+												
+
+
+												
+													<div class="file_preview_wrap" alt="사보 미리보기">
+														<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-richtext" viewBox="0 0 16 16">
+															<path d="M7 4.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m-.861 1.542 1.33.886 1.854-1.855a.25.25 0 0 1 .289-.047l1.888.974V7.5a.5.5 0 0 1-.5.5H5a.5.5 0 0 1-.5-.5V7s1.54-1.274 1.639-1.208M5 9a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1z"/>
+															<path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1"/>
+														</svg>
+													</div>
+												
+
+												<div class="file_down_wrap" onclick="common.downloadAll(23263, '5af8c3ba-d181-42d0-936f-1f86a49173e8')">
+													<span class="file_number">1</span>
+												</div>
+												<div class="file_hover_wrap">
+													<div class="file_hover">
+														
+															
+																<div onclick="common.download(23263, '5af8c3ba-d181-42d0-936f-1f86a49173e8')" style="cursor: pointer;">
+																	<img src="/images/common/ico_clip.png" alt=""> 제안서평가결과 공개_로컬브랜드 핵심점포 네트워킹 및 홍보.hwp
+																</div>
+															
+														
+													</div>
+												</div>
+											
+										</td>
+									
+								</tr>
+								
+							
+								<tr>
+									<td>182</td>
+									
+										
+											<td class="t_left"><a href="javascript:bbs.goView('1', '23262')"><span class="ellipsis">[제2026재무팀-62호]제안평가결과(2026년 성북동길 로컬브랜드 축제 운영)</span></a></td>
+										
+										
+									
+									
+										
+										
+										
+										
+										
+										 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+											 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+												<td>재무*</td>
+											
+											
+											
+												<td>2026-08-21</td>
+											
+										
+									
+									
+									
+										<td class="file_add">
+											
+												
+												
+												
+													
+														
+															
+																
+															
+														
+													
+												
+
+
+												
+													<div class="file_preview_wrap" alt="사보 미리보기">
+														<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-richtext" viewBox="0 0 16 16">
+															<path d="M7 4.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m-.861 1.542 1.33.886 1.854-1.855a.25.25 0 0 1 .289-.047l1.888.974V7.5a.5.5 0 0 1-.5.5H5a.5.5 0 0 1-.5-.5V7s1.54-1.274 1.639-1.208M5 9a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1z"/>
+															<path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1"/>
+														</svg>
+													</div>
+												
+
+												<div class="file_down_wrap" onclick="common.downloadAll(23262, '64da89ff-a2c3-4825-b4ab-c0d2905912ef')">
+													<span class="file_number">1</span>
+												</div>
+												<div class="file_hover_wrap">
+													<div class="file_hover">
+														
+															
+																<div onclick="common.download(23262, '64da89ff-a2c3-4825-b4ab-c0d2905912ef')" style="cursor: pointer;">
+																	<img src="/images/common/ico_clip.png" alt=""> 제안서평가결과 공개_2026년 성북동길 로컬브랜드 축제 운영.hwp
+																</div>
+															
+														
+													</div>
+												</div>
+											
+										</td>
+									
+								</tr>
+								
+							
+								<tr>
+									<td>181</td>
+									
+										
+											<td class="t_left"><a href="javascript:bbs.goView('1', '23199')"><span class="ellipsis">[제2026재무팀-61호]제안평가결과(본점사옥 건물관리 및 유지보수 용역)</span></a></td>
+										
+										
+									
+									
+										
+										
+										
+										
+										
+										 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+											 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+												<td>재무*</td>
+											
+											
+											
+												<td>2026-08-20</td>
+											
+										
+									
+									
+									
+										<td class="file_add">
+											
+												
+												
+												
+													
+														
+															
+																
+															
+														
+													
+												
+
+
+												
+													<div class="file_preview_wrap" alt="사보 미리보기">
+														<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-richtext" viewBox="0 0 16 16">
+															<path d="M7 4.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m-.861 1.542 1.33.886 1.854-1.855a.25.25 0 0 1 .289-.047l1.888.974V7.5a.5.5 0 0 1-.5.5H5a.5.5 0 0 1-.5-.5V7s1.54-1.274 1.639-1.208M5 9a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1z"/>
+															<path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1"/>
+														</svg>
+													</div>
+												
+
+												<div class="file_down_wrap" onclick="common.downloadAll(23199, '197fa2f6-eaa8-495f-9bc3-def00ec2e28c')">
+													<span class="file_number">1</span>
+												</div>
+												<div class="file_hover_wrap">
+													<div class="file_hover">
+														
+															
+																<div onclick="common.download(23199, '197fa2f6-eaa8-495f-9bc3-def00ec2e28c')" style="cursor: pointer;">
+																	<img src="/images/common/ico_clip.png" alt=""> 제안서평가결과 공개_본점사옥 건물관리 및 유지보수 용역.hwp
+																</div>
+															
+														
+													</div>
+												</div>
+											
+										</td>
+									
+								</tr>
+								
+							
+								<tr>
+									<td>180</td>
+									
+										
+											<td class="t_left"><a href="javascript:bbs.goView('1', '23198')"><span class="ellipsis">[제2026재무팀-60호]제안평가결과(2026년 강북구 사일구로 로컬브랜드 축제)</span></a></td>
+										
+										
+									
+									
+										
+										
+										
+										
+										
+										 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+											 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+												<td>재무*</td>
+											
+											
+											
+												<td>2026-08-20</td>
+											
+										
+									
+									
+									
+										<td class="file_add">
+											
+												
+												
+												
+													
+														
+															
+																
+															
+														
+													
+												
+
+
+												
+													<div class="file_preview_wrap" alt="사보 미리보기">
+														<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-richtext" viewBox="0 0 16 16">
+															<path d="M7 4.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m-.861 1.542 1.33.886 1.854-1.855a.25.25 0 0 1 .289-.047l1.888.974V7.5a.5.5 0 0 1-.5.5H5a.5.5 0 0 1-.5-.5V7s1.54-1.274 1.639-1.208M5 9a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1z"/>
+															<path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1"/>
+														</svg>
+													</div>
+												
+
+												<div class="file_down_wrap" onclick="common.downloadAll(23198, '5a4e5c10-27b2-40a0-819a-9ae44d43a44c')">
+													<span class="file_number">1</span>
+												</div>
+												<div class="file_hover_wrap">
+													<div class="file_hover">
+														
+															
+																<div onclick="common.download(23198, '5a4e5c10-27b2-40a0-819a-9ae44d43a44c')" style="cursor: pointer;">
+																	<img src="/images/common/ico_clip.png" alt=""> 제안서평가결과 공개_2026년 강북구 사일구로 로컬브랜드 축제.hwp
+																</div>
+															
+														
+													</div>
+												</div>
+											
+										</td>
+									
+								</tr>
+								
+							
+								<tr>
+									<td>179</td>
+									
+										
+											<td class="t_left"><a href="javascript:bbs.goView('1', '23037')"><span class="ellipsis">[상권지원부] 2026년 골목형상점가 육성 지원 사업 공고(2차)</span></a></td>
+										
+										
+									
+									
+										
+										
+										
+										
+										
+										 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+											 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+												<td>상권기획*</td>
+											
+											
+											
+												<td>2026-08-05</td>
+											
+										
+									
+									
+									
+										<td class="file_add">
+											
+												
+												
+												
+													
+														
+															
+																
+															
+														
+													
+												
+													
+														
+															
+															
+																
+															
+														
+													
+												
+
+
+												
+													<div class="file_preview_wrap" alt="사보 미리보기">
+														<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-richtext" viewBox="0 0 16 16">
+															<path d="M7 4.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m-.861 1.542 1.33.886 1.854-1.855a.25.25 0 0 1 .289-.047l1.888.974V7.5a.5.5 0 0 1-.5.5H5a.5.5 0 0 1-.5-.5V7s1.54-1.274 1.639-1.208M5 9a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1z"/>
+															<path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1"/>
+														</svg>
+													</div>
+												
+
+												<div class="file_down_wrap" onclick="common.downloadAll(23037, '1d78eb6d-e042-438a-a11a-631c52aab036|3282437d-d8da-4436-a632-64ca62b21613')">
+													<span class="file_number">2</span>
+												</div>
+												<div class="file_hover_wrap">
+													<div class="file_hover">
+														
+															
+																<div onclick="common.download(23037, '1d78eb6d-e042-438a-a11a-631c52aab036')" style="cursor: pointer;">
+																	<img src="/images/common/ico_clip.png" alt=""> 붙임1. 2026년 골목형상점가 육성 지원 사업 공고문(2차).pdf
+																</div>
+															
+														
+															
+																<div onclick="common.download(23037, '3282437d-d8da-4436-a632-64ca62b21613')" style="cursor: pointer;">
+																	<img src="/images/common/ico_clip.png" alt=""> 붙임2. 2026년 골목형상점가 육성 지원 사업 신청 서식(2차).hwpx
+																</div>
+															
+														
+													</div>
+												</div>
+											
+										</td>
+									
+								</tr>
+								
+							
+								<tr>
+									<td>178</td>
+									
+										
+											<td class="t_left"><a href="javascript:bbs.goView('1', '23029')"><span class="ellipsis">[제2026재무팀-59호]입찰공고(서울신용보증재단 직급·역량별 통합 교육 설계 및 운영)</span></a></td>
+										
+										
+									
+									
+										
+										
+										
+										
+										
+										 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+											 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+												<td>재무*</td>
+											
+											
+											
+												<td>2026-08-04</td>
+											
+										
+									
+									
+									
+										<td class="file_add">
+											
+										</td>
+									
+								</tr>
+								
+							
+								<tr>
+									<td>177</td>
+									
+										
+											<td class="t_left"><a href="javascript:bbs.goView('1', '23021')"><span class="ellipsis">[제2026재무팀-57호]전자공개 수의계약 공고(2026년 오! 헬시데이(찾아가는 1:1 근골격계 맞춤관리) 용역)</span></a></td>
+										
+										
+									
+									
+										
+										
+										
+										
+										
+										 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+											 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+												<td>재무*</td>
+											
+											
+											
+												<td>2026-08-03</td>
+											
+										
+									
+									
+									
+										<td class="file_add">
+											
+										</td>
+									
+								</tr>
+								
+							
+								<tr>
+									<td>176</td>
+									
+										
+											<td class="t_left"><a href="javascript:bbs.goView('1', '23020')"><span class="ellipsis">[제2026재무팀-56호]전자공개 수의계약 공고(서초종합지원센터 인테리어 공사)</span></a></td>
+										
+										
+									
+									
+										
+										
+										
+										
+										
+										 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+											 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+												<td>재무*</td>
+											
+											
+											
+												<td>2026-08-03</td>
+											
+										
+									
+									
+									
+										<td class="file_add">
+											
+										</td>
+									
+								</tr>
+								
+							
+						
+					
+					</tbody>
+				</table>
+			</div>
+			<!-- PC end -->
+
+			<!-- MO start -->
+			<div class="pre_info_list_tbl for_mob">
+				<div class="tbl_stat_txt">
+					<p class="left">총 <span class="number">185개</span>의 게시물이 있습니다.</p>
+				</div>
+				<div class="mob_manag_tbl mo_num">
+					<ul>
+						<!-- 공지 -->
+						
+							<li>
+								<span class="notice"></span>
+								<strong class="list_ttl">
+									
+										
+											<a href="javascript:bbs.goView('1', '23037')"><span class="ellipsis">[상권지원부] 2026년 골목형상점가 육성 지원 사업 공고(2차)</span></a>
+										
+										
+									
+								</strong>
+								<div class="list_sub">
+									
+										
+										
+										
+										 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+											<p>
+												 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+													<i class="writer">상권기획팀</i>
+												
+												<i class="date">2026-08-05</i>
+											</p>
+											
+										
+									
+									
+										
+											
+											
+											
+												
+													
+														
+															
+														
+													
+												
+											
+												
+													
+														
+														
+															
+														
+													
+												
+											
+											<div class="mob_download_wrap" onclick="common.downloadAll(23037, '1d78eb6d-e042-438a-a11a-631c52aab036|3282437d-d8da-4436-a632-64ca62b21613')"></div>
+										
+									
+								</div>
+							</li>
+						
+							<li>
+								<span class="notice"></span>
+								<strong class="list_ttl">
+									
+										
+											<a href="javascript:bbs.goView('1', '17507')"><span class="ellipsis">[재무팀] 계약관련서식(표준계약서식)</span></a>
+										
+										
+									
+								</strong>
+								<div class="list_sub">
+									
+										
+										
+										
+										 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+											<p>
+												 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+													<i class="writer">재무팀</i>
+												
+												<i class="date">2024-08-21</i>
+											</p>
+											
+										
+									
+									
+										
+											
+											
+											
+												
+													
+														
+															
+														
+													
+												
+											
+											<div class="mob_download_wrap" onclick="common.downloadAll(17507, 'cc020845-e2b2-444a-b985-3e0e4dd98713')"></div>
+										
+									
+								</div>
+							</li>
+						
+						<!-- 목록 -->
+						
+							
+							
+								
+								
+									<li>
+										<span>185</span>
+										<strong class="list_ttl">
+											
+												
+													<a href="javascript:bbs.goView('1', '23391')"><span class="ellipsis">[제2026재무팀-65호]제안평가결과(직급·역량별 통합 교육 설계 및 운영 용역)</span></a>
+												
+												
+											
+										</strong>
+										<div class="list_sub">
+											
+												
+												
+												
+												 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+													<p>
+														 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+															<i class="writer">재무*</i>
+														
+														<i class="date">2026-09-02</i>
+													</p>
+												
+											
+											
+											
+												
+													
+													
+													
+														
+															
+																
+																	
+																
+															
+														
+													
+													<div class="mob_download_wrap" onclick="common.downloadAll(23391, '0b4dd12e-557b-4cb5-b1aa-5e7eefa6ac65')"></div>
+												
+											
+										</div>
+									</li>
+									
+								
+									<li>
+										<span>184</span>
+										<strong class="list_ttl">
+											
+												
+													<a href="javascript:bbs.goView('1', '23389')"><span class="ellipsis">[제2026재무팀-64호]입찰공고(2026년 중구 로컬브랜드 상권 로컬 축제 운영 용역)</span></a>
+												
+												
+											
+										</strong>
+										<div class="list_sub">
+											
+												
+												
+												
+												 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+													<p>
+														 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+															<i class="writer">재무*</i>
+														
+														<i class="date">2026-09-02</i>
+													</p>
+												
+											
+											
+											
+												
+											
+										</div>
+									</li>
+									
+								
+									<li>
+										<span>183</span>
+										<strong class="list_ttl">
+											
+												
+													<a href="javascript:bbs.goView('1', '23263')"><span class="ellipsis">[제2026재무팀-63호]제안평가결과(로컬브랜드 핵심점포 네트워킹 및 홍보)</span></a>
+												
+												
+											
+										</strong>
+										<div class="list_sub">
+											
+												
+												
+												
+												 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+													<p>
+														 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+															<i class="writer">재무*</i>
+														
+														<i class="date">2026-08-21</i>
+													</p>
+												
+											
+											
+											
+												
+													
+													
+													
+														
+															
+																
+																	
+																
+															
+														
+													
+													<div class="mob_download_wrap" onclick="common.downloadAll(23263, '5af8c3ba-d181-42d0-936f-1f86a49173e8')"></div>
+												
+											
+										</div>
+									</li>
+									
+								
+									<li>
+										<span>182</span>
+										<strong class="list_ttl">
+											
+												
+													<a href="javascript:bbs.goView('1', '23262')"><span class="ellipsis">[제2026재무팀-62호]제안평가결과(2026년 성북동길 로컬브랜드 축제 운영)</span></a>
+												
+												
+											
+										</strong>
+										<div class="list_sub">
+											
+												
+												
+												
+												 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+													<p>
+														 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+															<i class="writer">재무*</i>
+														
+														<i class="date">2026-08-21</i>
+													</p>
+												
+											
+											
+											
+												
+													
+													
+													
+														
+															
+																
+																	
+																
+															
+														
+													
+													<div class="mob_download_wrap" onclick="common.downloadAll(23262, '64da89ff-a2c3-4825-b4ab-c0d2905912ef')"></div>
+												
+											
+										</div>
+									</li>
+									
+								
+									<li>
+										<span>181</span>
+										<strong class="list_ttl">
+											
+												
+													<a href="javascript:bbs.goView('1', '23199')"><span class="ellipsis">[제2026재무팀-61호]제안평가결과(본점사옥 건물관리 및 유지보수 용역)</span></a>
+												
+												
+											
+										</strong>
+										<div class="list_sub">
+											
+												
+												
+												
+												 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+													<p>
+														 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+															<i class="writer">재무*</i>
+														
+														<i class="date">2026-08-20</i>
+													</p>
+												
+											
+											
+											
+												
+													
+													
+													
+														
+															
+																
+																	
+																
+															
+														
+													
+													<div class="mob_download_wrap" onclick="common.downloadAll(23199, '197fa2f6-eaa8-495f-9bc3-def00ec2e28c')"></div>
+												
+											
+										</div>
+									</li>
+									
+								
+									<li>
+										<span>180</span>
+										<strong class="list_ttl">
+											
+												
+													<a href="javascript:bbs.goView('1', '23198')"><span class="ellipsis">[제2026재무팀-60호]제안평가결과(2026년 강북구 사일구로 로컬브랜드 축제)</span></a>
+												
+												
+											
+										</strong>
+										<div class="list_sub">
+											
+												
+												
+												
+												 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+													<p>
+														 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+															<i class="writer">재무*</i>
+														
+														<i class="date">2026-08-20</i>
+													</p>
+												
+											
+											
+											
+												
+													
+													
+													
+														
+															
+																
+																	
+																
+															
+														
+													
+													<div class="mob_download_wrap" onclick="common.downloadAll(23198, '5a4e5c10-27b2-40a0-819a-9ae44d43a44c')"></div>
+												
+											
+										</div>
+									</li>
+									
+								
+									<li>
+										<span>179</span>
+										<strong class="list_ttl">
+											
+												
+													<a href="javascript:bbs.goView('1', '23037')"><span class="ellipsis">[상권지원부] 2026년 골목형상점가 육성 지원 사업 공고(2차)</span></a>
+												
+												
+											
+										</strong>
+										<div class="list_sub">
+											
+												
+												
+												
+												 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+													<p>
+														 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+															<i class="writer">상권기획*</i>
+														
+														<i class="date">2026-08-05</i>
+													</p>
+												
+											
+											
+											
+												
+													
+													
+													
+														
+															
+																
+																	
+																
+															
+														
+													
+														
+															
+																
+																
+																	
+																
+															
+														
+													
+													<div class="mob_download_wrap" onclick="common.downloadAll(23037, '1d78eb6d-e042-438a-a11a-631c52aab036|3282437d-d8da-4436-a632-64ca62b21613')"></div>
+												
+											
+										</div>
+									</li>
+									
+								
+									<li>
+										<span>178</span>
+										<strong class="list_ttl">
+											
+												
+													<a href="javascript:bbs.goView('1', '23029')"><span class="ellipsis">[제2026재무팀-59호]입찰공고(서울신용보증재단 직급·역량별 통합 교육 설계 및 운영)</span></a>
+												
+												
+											
+										</strong>
+										<div class="list_sub">
+											
+												
+												
+												
+												 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+													<p>
+														 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+															<i class="writer">재무*</i>
+														
+														<i class="date">2026-08-04</i>
+													</p>
+												
+											
+											
+											
+												
+											
+										</div>
+									</li>
+									
+								
+									<li>
+										<span>177</span>
+										<strong class="list_ttl">
+											
+												
+													<a href="javascript:bbs.goView('1', '23021')"><span class="ellipsis">[제2026재무팀-57호]전자공개 수의계약 공고(2026년 오! 헬시데이(찾아가는 1:1 근골격계 맞춤관리) 용역)</span></a>
+												
+												
+											
+										</strong>
+										<div class="list_sub">
+											
+												
+												
+												
+												 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+													<p>
+														 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+															<i class="writer">재무*</i>
+														
+														<i class="date">2026-08-03</i>
+													</p>
+												
+											
+											
+											
+												
+											
+										</div>
+									</li>
+									
+								
+									<li>
+										<span>176</span>
+										<strong class="list_ttl">
+											
+												
+													<a href="javascript:bbs.goView('1', '23020')"><span class="ellipsis">[제2026재무팀-56호]전자공개 수의계약 공고(서초종합지원센터 인테리어 공사)</span></a>
+												
+												
+											
+										</strong>
+										<div class="list_sub">
+											
+												
+												
+												
+												 <!-- 소통참여 / 알림광장 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+													<p>
+														 <!-- 알림광장 > 새소식 > 보도자료 / 알림광장 > 주요서식 / 정보공개 > 경영정보 > 재무정보 > 업무추진비 집행내역 -->
+															<i class="writer">재무*</i>
+														
+														<i class="date">2026-08-03</i>
+													</p>
+												
+											
+											
+											
+												
+											
+										</div>
+									</li>
+									
+								
+							
+						
+					</ul>
+				</div>
+			</div>
+			<!-- MO end -->
+
+			<!-- pagination -->
+			<div class="tbl_pagination">
+				<a href="javascript:;" onclick="bbs.goList(1); return false;" class="first"></a><a href="javascript:;" onclick="bbs.goList(1); return false;" class="prev"></a><span><a href="javascript:;" class="nomal on">1</a></span><span><a href="javascript:;" class="nomal" onclick="bbs.goList(2); return false;">2</a></span><span><a href="javascript:;" class="nomal" onclick="bbs.goList(3); return false;">3</a></span><span><a href="javascript:;" class="nomal" onclick="bbs.goList(4); return false;">4</a></span><span><a href="javascript:;" class="nomal" onclick="bbs.goList(5); return false;">5</a></span><span><a href="javascript:;" class="nomal" onclick="bbs.goList(6); return false;">6</a></span><span><a href="javascript:;" class="nomal" onclick="bbs.goList(7); return false;">7</a></span><span><a href="javascript:;" class="nomal" onclick="bbs.goList(8); return false;">8</a></span><span><a href="javascript:;" class="nomal" onclick="bbs.goList(9); return false;">9</a></span><span><a href="javascript:;" class="nomal" onclick="bbs.goList(10); return false;">10</a></span><a href="javascript:;" onclick="bbs.goList(11); return false;" class="next"></a><a href="javascript:;" onclick="bbs.goList(19); return false;" class="last"></a>
+
+			</div>
+			<!-- pagination end -->
+			<!-- mob pagination -->
+			<div class="mobile_tbl_pagination"></div>
+			<!-- mob pagination end -->
+
+			
+			
+
+
+
+
+
+	<form name="pagestatisfy" action="/wbase/contents/pagestatisfy/add.do" method="post">
+	<!-- 페이지 만족도 평가 -->
+	<div class="page_satif_wrap" id="pageSatif">
+		<div class="page_satif_ttl">
+			<strong>페이지 만족도 평가</strong>
+			<button class="btn_satis_cross" type="button">페이지 만족도 평가 입력 영역 펼쳐보기</button>
+		</div>
+		<div class="page_satif_inner">
+			<fieldset>
+				<legend class="hide">페이지 만족도 입력 필드</legend>
+				<strong>이 페이지에서 제공하는 정보에 만족하십니까?</strong>
+				<div class="star_rate_wrap">
+					<button type="button" id="1" class="one">
+						<span class="ico"></span>
+						<span class="btn_title">매우불만족</span>
+					</button>
+					<button type="button" id="2" class="two">
+						<span class="ico"></span>
+						<span class="btn_title">불만족</span>
+					</button>
+					<button type="button" id="3" class="three">
+						<span class="ico"></span>
+						<span class="btn_title">보통</span>
+					</button>
+					<button type="button" id="4" class="four">
+						<span class="ico"></span>
+						<span class="btn_title">만족</span>
+					</button>
+					<button type="button" id="5" class="five">
+						<span class="ico"></span>
+						<span class="btn_title">매우만족</span>
+					</button>
+				</div>
+				<div class="writer_wrap">
+					<textarea name="comment" placeholder="페이지 관련 기타 건의 내용이 있으시면 입력해 주세요." title="페이지 관련 기타 건의 내용이 있으시면 입력해 주세요."></textarea>
+					<button type="button" class="btn submit">평가 완료</button>
+				</div>
+			</fieldset>
+			<div class="page_satif_top">
+				<dl>
+					<dt>담당부서</dt>
+					<dd>홍보비서팀</dd>
+				</dl>
+				<dl>
+					<dt>담당자</dt>
+					<dd>정훈영 대리</dd>
+				</dl>
+				<dl>
+					<dt>전화번호</dt>
+					<dd>1577-6119</dd>
+				</dl>
+			</div>
+		</div>
+	</div>
+	<!-- 페이지 만족도 평가 end -->
+	</form>
+
+	<script type="text/javascript" src="/js/components/satisfaction.js"></script>
+
+
+
+
+		</div>
+		<!-- 리스트 end -->
+	</div>
+</div>
+<!-- 칭찬합니다 end -->
+
+					
+				
+			</div>
+			<!-- 내용 영역 end -->
+
+			<div class="error_wrap_cyber" style="display:none;">
+				<div class="common_inner">
+					<div class="error_inner">
+						<div class="error_txt no_mob">
+							<strong>해당 서비스는 모바일에서 불가하니 <br>브라우저 크기를 늘려 이용해 주시기 바랍니다.</strong>
+							<p>[지점방문 예약]을 제외한 모든 신청하기 페이지는 <br>현재 브라우저 사이즈에서 지원하지 않습니다.</p>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- footer -->
+			
+
+
+
+
+<!-- footer -->
+<footer id="footer">
+	<!-- 패밀리사이트 -->
+	<div class="fam_sites_wrap">
+		<div class="fam_sites_inner">
+			<div class="fam_sites_slide_inner">
+				<div class="swiper-wrapper">
+					<div class="swiper-slide fam_site01">
+						<a href="http://www.seoul.go.kr/main/index.jsp" target="_blank" title="새창 열림">
+							<img src="/images/logo/logo_fam01.png" alt="서울특별시 로고">
+						</a>
+					</div>
+					<div class="swiper-slide fam_site02">
+						<a href="http://www.bizinfo.go.kr" target="_blank" title="새창 열림">
+							<img src="/images/logo/logo_fam02.png" alt="기업마당 로고">
+						</a>
+					</div>
+					<div class="swiper-slide fam_site03">
+						<a href="https://www.koreg.or.kr/intro/main.do" target="_blank" title="새창 열림">
+							<img src="/images/logo/logo_fam03.png" alt="신용보증재단중앙회 로고">
+						</a>
+					</div>
+					<div class="swiper-slide fam_site04">
+						<a href="http://www.seoulsbdc.or.kr/main.do" target="_blank" title="새창 열림">
+							<img src="/images/logo/logo_fam04.png" alt="서울시자영업지원센터 로고">
+						</a>
+					</div>
+					<div class="swiper-slide fam_site05">
+						<a href="http://job.seoul.go.kr/Main.do?method=getMain" target="_blank" title="새창 열림">
+							<img src="/images/logo/logo_fam05.png" alt="서울일자리포털 로고">
+						</a>
+					</div>
+					<div class="swiper-slide fam_site06">
+						<a href="https://edu.seoulsbdc.or.kr/" target="_blank" title="새창 열림">
+							<img src="/images/logo/logo_fam06.png" alt="소상공인 아카데미 로고">
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- 패밀리사이트 end -->
+	<!-- 푸터 콘텐츠 -->
+	<div class="footer_cont">
+		<div class="common_inner">
+			<div class="footer_info">
+				<!-- left -->
+				<div class="left">
+					<h2 class="footer_logo">
+						<a href="/" target="_self" id="footer_link">
+							<img src="/images/logo/logo_main_footer.png" alt="서울신용보증재단 로고">
+						</a>
+					</h2>
+					<div class="footer_logo-2">
+						<a href="https://wa.or.kr/board/list.asp?search=total&SearchString=%BC%AD%BF%EF%BD%C5%BF%EB%BA%B8%C1%F5%C0%E7%B4%DC&BoardID=0006" target="_self">
+							<img src="/images/logo/logo_wa.png" alt="웹접근성 인증 로고">
+						</a>
+					</div>
+					<div class="footer_logo-2">
+						<a href="/images/main/eprivacy_plus.pdf" target="_blank" title="새창 열림">
+							<!-- <img src="/images/main/img_footer_mark_eprivacyplus.png" alt="개인정보보호 인증 로고"> -->
+							<img src="https://www.eprivacy.or.kr/images/mng/sub/mark1_eprivacy_plus.png" style="cursor:pointer;"onclick="window.open('https://www.eprivacy.or.kr/front/certifiedSiteMark/certifiedSiteMarkPopup.do?certCmd=EP&certNum=2026-EP-R002,'seal','width=527,height=720,location=no,status=no,scrollbars=no')" />
+						</a>
+					</div>
+					<div class="footer_list corp">
+						<address class="address">04130 서울시 마포구 마포대로 163 서울신용보증재단</address>
+						<p class="footer_info_text">대표전화 : 1577-6119</p>
+						<p class="footer_info_text">사업자등록번호 : 220-82-03946</p>
+						<p class="footer_info_text">통신판매업신고번호 : 제2014-서울마포-0437호</p>
+					</div>
+					<ul class="footer_list sitemap">
+						<li class="footer_item">
+							<a href='/wbase/contents.do?mng_cd=INFO8096' class="footer_text">사이트 맵</a>
+						</li>
+						<li class="footer_item">
+							<a href='/wbase/contents/bbs/list.do?mng_cd=INFO6436' class="footer_text">정보 공개 목록</a>
+						</li>
+						<li class="footer_item">
+							<a title="새 창 열림" href="javascript:window.open('http://www.hc119.com/scc/')" class="footer_text">원격지원요청</a>
+						</li>
+					</ul>
+					<ul class="footer_list protect">
+						<li>
+							<div class="footer_item">
+								<a href='/wbase/contents.do?mng_cd=INFO5929' class="footer_text">개인정보보호 정책</a>
+							</div>
+							<div class="footer_item">
+								<a href='/wbase/contents.do?mng_cd=INFO5476' class="footer_text emphasis_bold">개인정보 처리방침</a>
+							</div>
+						</li>
+						<!-- <li class="footer_item">
+							<a href='/wbase/contents/bbs/list.do?mng_cd=INFO4886' class="footer_text">국민권익위원회 청렴도 측정결과</a>
+						</li>
+						<li class="footer_item">
+							<a href='/wbase/contents/bbs/list.do?mng_cd=INFO9865' class="footer_text">국민권익위원회 부패방지 시책평가</a>
+						</li> -->
+					</ul>
+					<p class="copyright"><span>Copyright</span>ⓒ2019 Seoul Credit Guarantee Foundation, All Rights Reserved.</p>
+
+				</div>
+				<!-- left end -->
+				<!-- right -->
+				<div class="right">
+					<ul>
+						<li>
+							<div>
+								
+								<script src="/js/components/footer_banner.js"></script>
+								<noscript>
+									<a href='https://delivery.dighty.com/www/delivery/ck.php?n=bdb106a0&amp;cb=INSERT_RANDOM_NUMBER_HERE' target='_blank' rel='noopener noreferrer'>
+										<img src='https://delivery.dighty.com/www/delivery/avw.php?zoneid=1034&amp;cb=INSERT_RANDOM_NUMBER_HERE&amp;n=bdb106a0' alt='풋터 배너' >
+									</a>
+								</noscript>
+								
+							</div>
+						</li>
+						<li>
+							<div class="cs_center_call">
+								<p class="footer_cs_title">고객센터</p>
+								<strong class="footer_cs_number">1577-6119</strong>
+							</div>
+						</li>
+					</ul>
+				</div>
+				<!-- right end -->
+			</div>
+		</div>
+	</div>
+	<!-- 푸터 콘텐츠 end -->
+</footer>
+
+
+		</div>
+
+		<!-- document.ready -->
+
+
+		<!-- tabMenu -->
+		<script src="/js/utility/tabMenu.js"></script>
+
+		<!-- swiper -->
+		<script src="/js/utility/swiper.js"></script>
+
+		<!-- quick button(top button)-->
+		<script src="/js/units/quickBtn.js"></script>
+
+		<!-- sub nav -->
+		<script src="/js/utility/slideDown.js"></script>
+		<script src="/js/utility/zoom.js"></script>
+		<script src="/js/utility/print.js"></script>
+
+		<!-- table and pagination -->
+		<script src="/js/common/contents.bbs.js"></script>
+
+		<!-- dropdown -->
+		<script src="/js/units/dropdown.js"></script>
+
+		<!-- toggle -->
+		<script src="/js/utility/toggleAll.js"></script>
+
+		<!-- cross btn toggle -->
+		<script src="/js/components/service.js"></script>
+
+		<!-- content dropdown -->
+		<script src="/js/utility/digitalMainDropdown.js"></script>
+
+	</body>
+</html>

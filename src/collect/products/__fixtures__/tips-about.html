@@ -1,0 +1,931 @@
+    <script>
+    (function() {
+        // 이미 v2 청소를 완료했다면 중단 (무한 새로고침 방지)
+        if (localStorage.getItem('security_clean_v2')) return;
+
+        console.log("🔒 강력 보안 청소(v2) 시작...");
+
+        // [함수] 쿠키 삭제를 위한 강력한 삭제기 (모든 경로/도메인 조합 시도)
+        function eraseCookie(name) {
+            var hostname = window.location.hostname;
+            var pathSegments = window.location.pathname.split('/');
+            var paths = ['/']; // 기본 루트 경로
+
+            // 현재 경로의 상위 경로들을 모두 배열에 담음 (예: /bbs/board/ -> /, /bbs/, /bbs/board/)
+            var currentPath = '';
+            for (var i = 0; i < pathSegments.length; i++) {
+                if (pathSegments[i] !== '') {
+                    currentPath += '/' + pathSegments[i];
+                    paths.push(currentPath);
+                    paths.push(currentPath + '/');
+                }
+            }
+
+            // 모든 경로 + 모든 도메인 조합으로 삭제 시도
+            paths.forEach(function(path) {
+                // 1. 현재 도메인에서 삭제
+                document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=' + path;
+                // 2. 메인 도메인(.domain.com)에서 삭제
+                document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=' + path + '; domain=.' + hostname;
+                // 3. www 없는 도메인에서 삭제 (서브도메인 고려)
+                var nakedDomain = hostname.replace('www.', '');
+                if (nakedDomain !== hostname) {
+                    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=' + path + '; domain=.' + nakedDomain;
+                }
+            });
+        }
+
+        // 1. 존재하는 모든 쿠키를 가져와서 삭제 함수 실행
+        var cookies = document.cookie.split(";");
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i];
+            var eqPos = cookie.indexOf("=");
+            var name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+            eraseCookie(name.trim());
+        }
+
+        // 2. 로컬/세션 스토리지 삭제
+        localStorage.clear();
+        sessionStorage.clear();
+
+        // 3. 악성 서비스 워커 제거 (가장 중요)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+
+        // 4. 실행 완료 표시 (v2로 업데이트)
+        localStorage.setItem('security_clean_v2', 'true');
+        // PHP에서도 체크하도록 쿠키 설정 (1년 유지)
+        document.cookie = 'security_clean_v2_done=true; path=/; max-age=31536000';
+
+        // 5. 강력 새로고침 (캐시 무시 + 타임스탬프로 새 파일 강제 로드)
+        var newUrl = window.location.href.split('?')[0] + '?t=' + new Date().getTime();
+        window.location.replace(newUrl);
+    })();
+    </script>
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="imagetoolbar" content="no">
+<meta http-equiv="X-UA-Compatible" content="IE=10,chrome=1">
+<title>TIPS</title>
+<link rel="stylesheet" href="https://www.jointips.or.kr/css/default.css">
+<!--[if lte IE 8]>
+<script src="https://www.jointips.or.kr/js/html5.js"></script>
+<![endif]-->
+<script>
+// 자바스크립트에서 사용하는 전역변수 선언
+var g5_url       = "https://www.jointips.or.kr";
+var g5_bbs_url   = "https://www.jointips.or.kr/bbs";
+var g5_is_member = "";
+var g5_is_admin  = "";
+var g5_is_mobile = "";
+var g5_bo_table  = "";
+var g5_sca       = "";
+var g5_editor    = "";
+var g5_cookie_domain = "";
+</script>
+<script src="https://www.jointips.or.kr/js/jquery-1.8.3.min.js"></script>
+<script src="https://www.jointips.or.kr/js/jquery.menu.js"></script>
+<!--<script src="https://www.jointips.or.kr/js/common.js"></script>-->
+<script src="https://www.jointips.or.kr/js/common.js?v=G5_JS_VER_emergency"></script>
+<script src="https://www.jointips.or.kr/js/wrest.js"></script>
+
+
+
+
+
+
+</head>
+<body>
+
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TIPS 프로그램 - Tech Incubator Program for startup Korea</title>
+     
+    
+    <!-- <link rel="stylesheet" href="/css/tips-style_2015.css"> -->
+    <!-- link rel="stylesheet" href="/css/tips-style.css?2026-09-03093503" -->
+	<link rel="stylesheet" href="/css/tips-style.css">
+	<link rel="stylesheet" href="/css/venobox.css">
+	<link rel="stylesheet" href="/css/normalize.css">
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+    <script src="/js/packery.pkgd.min.js"></script> 
+	<script src="/js/jquery.videobackground.js"></script> 
+<script src="https://use.fontawesome.com/e282281659.js"></script>
+
+    <script src="/js/venobox.js"></script>  
+    <script src="/js/tips-script.js"></script>
+	<!--<script src="https://ssl.daumcdn.net/dmaps/map_js_init/postcode.v2.js?autoload=false"></script>-->
+	<script src="//t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+	<!--<script src="https://www.jointips.or.kr/js/common.js"></script>-->
+	<script src="https://www.jointips.or.kr/js/common.js?v=G5_JS_VER_emergency2"></script>
+	
+	<!--<script>
+		(function(j,ennifer) {
+			j['dmndata']=[];j['jenniferFront']=function(args){window.dmndata.push(args)};
+			j['dmnaid']=ennifer;j['dmnatime']=new Date();j['dmnanocookie']=false;j['dmnajennifer']='JENNIFER_FRONT@INTG';
+		}(window, 'b1a50d80'));
+	</script>-->
+	<script async src="https://d-collect.jennifersoft.com/b1a50d80/demian.js"></script>
+
+	<script src="/js/jquery.ellipsis.js"></script>
+	<script>
+	$(function(){
+		$('.ellipsis').ellipsis({
+                row: 1
+        }); 
+		$('.multiple').ellipsis({
+                row: 2
+        }); 
+        $('.triple').ellipsis({
+            row: 3
+        });  
+        $('.quater').ellipsis({
+            row: 4
+        }); 
+	});
+
+	// 자바스크립트에서 사용하는 전역변수 선언
+	var g5_url       = "https://www.jointips.or.kr";
+	var g5_bbs_url   = "https://www.jointips.or.kr/bbs";
+	var g5_is_member = "";
+	var g5_is_admin  = "";
+	var g5_is_mobile = "";
+	var g5_bo_table  = "";
+	var g5_sca       = "";
+	var g5_editor    = "";
+	var g5_cookie_domain = "";
+	
+
+$.scrollWindow = function() {
+
+    if ($(window).scrollTop() > 10) {
+      $('.navbar').addClass('move')
+    } else {
+      $('.navbar').removeClass('move')
+    };
+};
+$(document).ready(function() {
+    setTimeout(function(){
+            $("body").addClass("move");
+    }, 0);
+
+
+	$.scrollWindow();
+
+
+});
+$(window).scroll(function() {
+	//20251218
+	$.scrollWindow();
+});
+
+	</script>
+
+
+<!--  20251218 -->
+
+</head>
+
+
+
+<body  style="background-image:url();">
+
+
+    <style>
+        .page-header-new {
+            background: url('/images/bg_about.jpg') #000;
+            background-size: cover;
+        }
+    </style>
+	<script>
+	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	  ga('create', 'UA-85660265-1', 'auto');
+	  ga('send', 'pageview');
+	</script>
+<!-- wrapper -->
+
+
+
+
+<div class="wrapper" >
+
+
+	<nav id="navbar-sign" class="navbar navbar-inverse" role="navigation">
+		<div class="container-fluid">
+		<div class="row">
+
+			<ul class="nav navbar-nav navbar-right navbar-top navbar-lang">
+				<li><a href="https://www.jointips.or.kr">한국어</a></li>
+				<li><a href="/global">English</a></li>  
+			</ul>
+
+						<ul class="nav navbar-nav navbar-right navbar-top navbar-sign">
+				<li><a href="https://www.jointips.or.kr/bbs/login.php?url=%2Fabout.php%3F">Login</a></li>
+				<li><a href="https://www.jointips.or.kr/bbs/register.php">Signup</a></li>  
+			</ul>
+			
+
+
+		</div>
+		</div>
+	</nav>
+
+
+    <nav id="navbar" class="navbar navbar-default" role="navigation" >
+      	<div class="container-fluid">
+		    <div class="row" >
+		    
+		    	<div class="navwrapper">
+			        <!-- Brand and toggle get grouped for better mobile display -->
+			        <div class="navbar-header">
+			          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapse">
+			            <span class="sr-only">Toggle navigation</span>
+			            <span class="icon-bar"></span>
+			            <span class="icon-bar"></span>
+			            <span class="icon-bar"></span>
+			          </button>
+			          <a class="navbar-brand" href="/"><img src="../images/logo-footer@2x.png"><span class="sr-only">TIPS</span></a>
+			        </div> 
+
+			        <div class="collapse navbar-collapse" id="navbar-collapse">
+						<ul class="nav navbar-nav navbar-right navbar-bottom" id="ulNav2">
+							<li class="dropdown">
+								<a href="/about.php" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><span>About TIPS <i class="fa fa-caret-down" aria-hidden="true"></i></span></a>
+								<ul class="dropdown-menu" role="menu">
+									<li><a href="/about.php">TIPS Program</a></li>
+									<li><a href="/bbs/apply.php">Apply</a></li>
+									<li><a href="/bbs/board.php?bo_table=partner">Partners</a></li>
+									<li><a href="/bbs/board.php?bo_table=team">Teams</a></li> 
+									<li><a href="/bbs/board.php?bo_table=recruit_info&closestx=%EC%B1%84%EC%9A%A9%EC%A4%91">Recruit</a></li> 
+								</ul>
+							</li>
+
+
+
+							<!-- li class=""><a href="/bbs/board.php?bo_table=campus_bldg">TIPS TOWN</a></li --> 
+
+
+							<li class="dropdown ">
+								<a href="/bbs/board.php?bo_table=campus_bldg" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><span>TIPS TOWN <i class="fa fa-caret-down" aria-hidden="true"></i></span></a>
+								<ul class="dropdown-menu" role="menu">
+									<li><a href="/bbs/board.php?bo_table=campus_bldg">About Town</a></li>
+									<li><a href='/bbs/board.php?bo_table=campus_bldg&wr_id=2'>해성빌딩</a></li><li><a href='/bbs/board.php?bo_table=campus_bldg&wr_id=1'>명우빌딩</a></li><li><a href='/bbs/board.php?bo_table=campus_bldg&wr_id=3'>현승빌딩</a></li><li><a href='/bbs/board.php?bo_table=campus_bldg&wr_id=4'>회성빌딩</a></li>								</ul>
+							</li> 
+
+
+							<li class=""><a href="/bbs/board.php?bo_table=event"><span>Event</span></a></li>
+
+							<li class=""><a href="/bbs/board.php?bo_table=contents"><span>News</span></a></li>
+
+
+							<li class="dropdown">
+								<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><span>Resources <i class="fa fa-caret-down" aria-hidden="true"></i></span></a>
+								<ul class="dropdown-menu" role="menu">
+									<li><a href="/bbs/board.php?bo_table=videos">Videos</a></li>
+									<li><a href="/bbs/board.php?bo_table=archive">archive</a></li> 
+								</ul>
+							</li> 
+							<li class="dropdown">
+								<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><span>INFO <i class="fa fa-caret-down" aria-hidden="true"></i></span></a>
+								<ul class="dropdown-menu" role="menu">
+									<li><a href="/bbs/board.php?bo_table=qna">Q&A</a></li>
+									<li><a href="/shinmungo.php">신문고</a></li> 
+									<li><a href="/contact.php">CONTACT</a></li> 
+								</ul>
+							</li>
+						</ul> 
+			        </div> 
+
+		        </div>
+		    </div> 
+      	</div>
+    </nav>
+    <!-- /navbar -->
+
+    <!-- /navbar -->
+
+
+	<script>
+		$(function(){
+			var pBo_table = "";
+
+			if (location.href.indexOf("news.php") > -1) pBo_table = "contents";
+			if (location.href.indexOf("about.php") > -1) pBo_table = "partner";
+			if (location.href.indexOf("apply.php") > -1) pBo_table = "partner";
+			if (location.href.indexOf("apply_step2.php") > -1) pBo_table = "partner";
+			if (location.href.indexOf("apply_step4.php") > -1) pBo_table = "partner";
+			
+			switch (pBo_table)
+			{
+				case "partner":
+				case "team":
+				case "recruit":
+				case "startup":
+					$("#ulNav2 > li:eq(0)").attr("class", "active");
+					break;
+				case "campus_bldg":
+					$("#ulNav2 > li:eq(1)").attr("class", "active");
+					break;
+				case "event":
+					$("#ulNav2 > li:eq(2)").attr("class", "active");
+					break;
+				case "contents":
+					$("#ulNav2 > li:eq(3)").attr("class", "active");
+					break;
+				case "archive":
+				case "videos":
+					$("#ulNav2 > li:eq(4)").attr("class", "active");
+					break;
+				case "qna":
+					$("#ulNav2 > li:eq(5)").attr("class", "active");
+					break;
+			}
+
+
+			//$('#navbar').affix();
+			if ($('[data-toggle="tooltip"]').length)
+			{
+				$('[data-toggle="tooltip"]').tooltip();
+			}
+			
+
+			
+		});
+	</script>
+    <div id="about" class="content-wrapper">
+       
+        <!-- Start Contents -->
+            
+<!--         <section class="page-header">
+	        <div class="container"> 
+		        <div class="row">
+		            <div class="col-xs-12 col-sm-12 col-md-8 left"> 
+		                <p>TIPS 프로그램은 국내유망<br> 기술인력의 글로벌 창업을 지원합니다</p>
+		            </div> 
+	            </div>
+            </div>
+        </section> -->
+
+ 		
+
+        <div class="page-header-new"> 
+            <div class="title-box">
+                <h2>About</h2><br>
+                <span>TIPS 프로그램은 국내유망<br> 기술인력의 글로벌 창업을 지원합니다</span>
+            </div>
+        </div>
+        <br><br>
+
+        <!-- mainContents -->
+        <section class="mainContents"> 
+
+			<section class="about-desc"> 
+				<div class="container contentbox">
+					<p>
+					TIPS프로그램(민간투자주도형 기술창업지원, 이스라엘式)은 세계시장을 선도할 <br>
+					기술아이템을 보유한 창업팀을 민간주도로 선발하여 미래유망 창업기업을 집중 육성하는 프로그램입니다. <br>
+					글로벌시장을 지향하는 기술력을 갖춘 유망한 창업팀에게 과감한 창업 도전 기회를 제공하기 위하여 <br>
+					성공벤처인 중심의 엔젤투자社, 초기전문  VC, 기술대기업 등을 운영사로 지정하여 <br>
+					엔젤투자·보육·멘토링과 함께 R&D자금 등을 매칭하여 일괄 지원합니다.
+					</p>
+
+					<div class="text-center">
+						<img src="../images/about-flow-2017.png" style="max-width:523px;">
+					</div> 
+				</div>
+			</section> 
+			<!-- /section --> 
+
+			
+			<section class="about-program "> 
+				<div class="container">
+					<div class="row">
+						<div id="program-01" class="col-xs-12 col-sm-4 col-md-4 item">
+	                        <div class="inner">
+								<h3 class="sr-only">엔젤투자社의 투자 및 인큐베이팅</h3>
+	                            <img src="../images/program_support_1.png" class="img-responsive">
+								<div class="view-txt">
+	                            성공한 벤처기업인의 엔젤투자, 보육능력이 검증된 전문인력의 멘토링으로 성공 가능성을 함께 높여갑니다.
+	                            </div>
+	                        </div>
+						</div> 
+						<div id="program-02" class="col-xs-12 col-sm-4 col-md-4  item">
+	                        <div class="inner">
+								<h3 class="sr-only">보육공간과 정부 R&D 및 추가 지원 연계</h3>
+	                            <img src="../images/program_support_2.png" class="img-responsive">
+								<div class="view-txt">대학 및 연구기관 등과의 컨소시엄을 통해 창업팀에 보육공간을 제공하며, 운영사의 단계별 엔젤투자에 매칭방식으로 창업팀당 최장 3년간 투자 1억원, R&D 5억원 및 추가투자 최대 2억원을 지원합니다. <br>
+								(창업자금 1억원, 해외마케팅 1억원)
+								</div>
+	                        </div>
+						</div>
+					 
+						<div id="program-03" class="col-xs-12 col-sm-4 col-md-4  item">
+	                        <div class="inner">
+								<h3 class="sr-only">창업도전의 활성화</h3>
+	                            <img src="../images/program_support_3.png" class="img-responsive">
+								<div class="view-txt">TIPS 프로그램은 창업자금 부족 및 낮은 기술창업 성공률 등으로 선뜻 창업에 나서기를 주저했던 우수한 고급기술인력의 기술창업 도전을 근본적으로 활성화 시키고자 합니다.</div>
+	                        </div>
+						</div> 
+					</div>
+				</div>
+			</section>
+            <!-- /section -->
+
+				<script>
+				    $(document).ready(function() {
+				        
+				        // animated restart
+
+				        $("#program-01 img").hover(
+				            function()
+				            {
+				                $(this).attr("src", "../images/program_support_1.png");
+				            },
+				            function()
+				            {
+				                $(this).attr("src", "../images/program_support_1.png");
+				        });  
+				        
+				        $("#program-02 img").hover(
+				            function()
+				            {
+				                $(this).attr("src", "../images/program_support_2.png");
+				            },
+				            function()
+				            {
+				                $(this).attr("src", "../images/program_support_2.png");
+				        }); 
+
+				        $("#program-03 img").hover(
+				            function()
+				            {
+				                $(this).attr("src", "../images/program_support_3.png");
+				            },
+				            function()
+				            {
+				                $(this).attr("src", "../images/program_support_3.png");
+				        });  
+
+				    });        
+				</script> 
+				
+
+			<section class="about-support">
+				<div class="container">
+					<header>
+						<h2>Support & Process</h2>
+					</header>
+				</div>
+				<div class="container contentbox">
+						<section class="support-content row">
+							<div class="col-xs-12 col-sm-12 col-md-2 left">
+								<header><h3>지원내용</h3></header>
+							</div>
+							<div class="col-xs-12 col-sm-12 col-md-10 right">
+								<dl class="dl-horizontal">
+									<dt>지원조건</dt>
+									<dd>창업팀당 최대 8억원 내외(최장 3년 이내)</dd>
+									<dt>지원내용</dt>
+									<dd>엔젤투자(1억원) + 성공벤처인의 보육&middot;멘토링 + R&D(5억) + 추가지원 2억(창업자금 1억원, 해외마케팅 1억원)</dd>
+								</dl> 
+
+								<div class="table-wrapper">
+									<div class="table-responsive"> 
+										<table class="table table-bordered">
+											<thead>
+												<tr class="thead-title">
+													<th colspan="2"></th>
+													<th colspan="5">
+														<strong>총사업비</strong>
+														<div class="limit"></div>
+													</th>
+												</tr>
+												<tr>
+													<th rowspan="3" width="58">구분</th>
+													<th rowspan="3" width="37">보육<br>기간</th>
+													<th width="82">창업사업화자금</th>
+													<th colspan="3">기술개발자금(R&D)</th>
+													<th rowspan="3" width="108">추가연계지원</th>
+												</tr>
+												<tr>
+													<th rowspan="2">엔젤투자금<br><small>(운영사)</small></th>
+													<th rowspan="2" width="85">정부출연금</th>
+													<th colspan="2" >민간부담금</th>
+												</tr>
+												<tr>
+													<th width="85">현금</th> 
+													<th width="85">현물</th> 
+												</tr>
+											</thead>
+											<tbody> 
+										        <tr>
+										            <td rowspan="2">창업팀 <br><small>(1팀 기준)</small></td>
+										            <td rowspan="2">2~3년</td>
+										            <td rowspan="2">1억원 내외 <br><small>(정부출연금 <br>20%이상)</small></td>
+										            <td>최대 5억원</td>
+										            <td>민간부담금의 50%이상</td>
+										            <td>해당금액</td>
+										            <td rowspan="2" style="text-align:left;">
+										            	<ul class="dot-list" style="list-style:none; padding-left:0;">
+										            		<li>창업자금 연계지원 1억원</li>
+										            		<li>해외마케팅 1억원</li>
+										            	</ul>
+										            </td>
+										        </tr>
+										        <tr>
+										            <td>기술개발자금의 <br>80%이내</td>
+										            <td colspan="2">기술개발자금의 20%이상</td> 
+										        </tr>
+									        </tbody>
+										</table> 
+									</div>
+								</div>
+							</div>
+						</section> 
+						<!-- /support-content -->
+
+						<section class="support-step row">  
+							<div class="col-xs-12 col-sm-12 col-md-2 left">
+								<header><h3>추진절차</h3></header>
+							</div>
+							<div class="col-xs-12 col-sm-12 col-md-10 right">
+								<dl class="step dl-horizontal">
+									<dt>
+										<strong class="num">1</strong><span class="title">창업팀 신청&middot;접수</span>
+									</dt>
+									<dd>
+										<dl class="dl-horizontal  dot-list">
+											<dt>창업팀</dt>
+											<dd>수시모집</dd>
+											<dd>투자분야별 운영사를 지정하여 사업제안(E-mail등) 및 투자 심사</dd>
+										</dl>
+									</dd>
+								</dl>
+
+								<dl class="step dl-horizontal">
+									<dt>
+										<strong class="num">2</strong><span class="title">투자심사</span>
+									</dt>
+									<dd>
+										<dl class="dl-horizontal dot-list">
+											<dt>운영사<small>(Partner)</small></dt>
+											<dd>운영사별 자체심사를 통한 투자대상 창업팀 선정(1.2배수)</dd>
+										</dl>
+									</dd>
+								</dl>
+
+								<dl class="step  dl-horizontal">
+									<dt>
+										<strong class="num">3</strong><span class="title">창업팀 추천</span>
+									</dt>
+									<dd>
+										<dl class="dl-horizontal dot-list">
+											<dt>운영사</dt>
+											<dd>관리기관에 투자를 확약한 창업팀 추천(연간 T/O 범위내)</dd>
+										</dl>
+									</dd>
+								</dl>
+
+								<dl class="step dl-horizontal">
+									<dt>
+										 <strong class="num">4</strong><span class="title">창업팀 선정평가</span> 
+									</dt>
+									<dd>
+										<dl class="dl-horizontal dot-list">
+											<dt>관리기관</dt>
+											<dd>창업팀 역량, 기술아이템 전문성, 운영사 투자 및 지원계획 등 심사</dd>
+											<dt>전문기관</dt>
+											<dd>(격월 평가실시) 서면평가 → 사업계획서 보완 → 대면평가</dd> 
+										</dl>
+									</dd>
+								</dl>
+
+								<dl class="step dl-horizontal">
+									<dt>
+										<strong class="num">5</strong><span class="title">사업수행</span>
+									</dt>
+									<dd>
+										<dl class="dl-horizontal dot-list">
+											<dt>운영사</dt>
+											<dd>(운영사) 투자, 멘토링, 보육 등 성공창업 지원</dd>
+											
+											<dt>관리기관</dt>
+											<dd>(관리기관) 기술개발 지원</dd>
+										</dl>
+									</dd>
+								</dl>
+
+								<dl class="step dl-horizontal">
+									<dt>
+										<strong class="num">6</strong><span class="title">졸업 및 후속투자</span>
+									</dt>
+									<dd>
+										<dl class="dl-horizontal dot-list">
+											<dt>운영사</dt>
+											<dd>후속투자(VC), M&A, IPO 등 실시</dd>
+											<dt>관리기관</dt>
+											<dd>성공 시 출연금의 10% 기술료 납부</dd>
+										</dl>
+									</dd>
+								</dl>
+
+							</div>	 
+						</section> 
+						<!-- /support-step -->
+
+				<section class="support-content faq-section"  style="margin-top:75px;">
+					<div class="row">
+						<div class="col-xs-12 col-sm-12 col-md-2 left">
+							<header>
+                                <h3>자주 묻는 질문</h3>
+                            </header>
+						</div>
+						<div class="col-xs-12 col-sm-12 col-md-10 content">
+                            <!-- panel-group -->
+							<div class="panel-group" id="accordion-faq" role="tablist" aria-multiselectable="true" style="border:none;">
+															    <div class="panel panel-default" style="padding-bottom: 5px;">
+    							    <div class="panel-heading" role="tab" id="faq-hd-0">
+    							      <h4 class="panel-title">
+    							        <a data-toggle="collapse" data-parent="#accordion-faq" href="#faq-0" aria-expanded="true" aria-controls="faq-01">
+    							          <span class="label label-default" style="background-color:#da1b5e">Q.</span> 
+    							          <span class="question" style="font-size: 16px; font-weight: normal;">팁스 지원대상은 어떻게 되나요?</span>
+    							        </a>
+    							      </h4>
+    							    </div>
+    							    <div id="faq-0" class="panel-collapse collapse" role="tabpane" aria-labelledby="faq-hd-0">
+    							      <div class="panel-body">
+    							        <strong class="label label-info">A.</strong>
+    							        <p>「중소기업창업 지원법」 제2조에 따른 창업기업 또는 예비창업자로, 팁스 운영사로부터 투자(확약) 및 추천을 받은 창업기업을 지원하고 있습니다.
+
+상세 신청자격은 홈페이지 상단의 NEWS 메뉴에서 "팁스(TIPS) 창업기업 지원계획 통합공고" 게시물을 참고 부탁드립니다.</p>
+    							      </div>
+    							    </div>
+							    </div>
+															    <div class="panel panel-default" style="padding-bottom: 5px;">
+    							    <div class="panel-heading" role="tab" id="faq-hd-1">
+    							      <h4 class="panel-title">
+    							        <a data-toggle="collapse" data-parent="#accordion-faq" href="#faq-1" aria-expanded="true" aria-controls="faq-01">
+    							          <span class="label label-default" style="background-color:#da1b5e">Q.</span> 
+    							          <span class="question" style="font-size: 16px; font-weight: normal;">팁스 운영사에게 사업신청(투자심사)은 어떻게 하나요?</span>
+    							        </a>
+    							      </h4>
+    							    </div>
+    							    <div id="faq-1" class="panel-collapse collapse" role="tabpane" aria-labelledby="faq-hd-1">
+    							      <div class="panel-body">
+    							        <strong class="label label-info">A.</strong>
+    							        <p>팁스에 신청하기 위해서는, 팁스 운영사로부터 투자(확약) 후 추천을 받으셔야 합니다.
+
+팁스 운영사의 투자심사는 365일 상시 접수하며, 신청방법은 운영사(Partner)별 담당자 이메일 또는 온라인 홈페이지 회원가입을 통해 운영사(Partner)를 지정하여 사업제안서 및 운영사 외부행사 네트워킹을 통한 투자심사가 진행됩니다.
+
+팁스 운영사 정보는 1) 홈페이지 상단 메뉴 ABOUT TIPS - PARTNERS, 및 2) NEW 메뉴에서 "팁스(TIPS) 운영사 접수처 현황" 게시물을 참고하실 수 있습니다.</p>
+    							      </div>
+    							    </div>
+							    </div>
+															    <div class="panel panel-default" style="padding-bottom: 5px;">
+    							    <div class="panel-heading" role="tab" id="faq-hd-2">
+    							      <h4 class="panel-title">
+    							        <a data-toggle="collapse" data-parent="#accordion-faq" href="#faq-2" aria-expanded="true" aria-controls="faq-01">
+    							          <span class="label label-default" style="background-color:#da1b5e">Q.</span> 
+    							          <span class="question" style="font-size: 16px; font-weight: normal;">팁스 추천(운영사 투자요청)을 위한 사업계획서 양식은 어디서 받을 수 있나요?</span>
+    							        </a>
+    							      </h4>
+    							    </div>
+    							    <div id="faq-2" class="panel-collapse collapse" role="tabpane" aria-labelledby="faq-hd-2">
+    							      <div class="panel-body">
+    							        <strong class="label label-info">A.</strong>
+    							        <p>운영사 투자를 받기 위한 사업계획서는 일정한 양식이 존재하지 않으며,
+계획하고 계신 사업 아이템을 가장 잘 설명할 수 있는 방법으로 사업계획서를 작성하시면 됩니다.
+
+사업계획서 작성 후에는 
+홈페이지 상단 메뉴 "ABOUT TIPS - APPLY - 투자제안서 제출하기"를 통하여 해당 운영사로 사업계획서를 제출하는 방법 또는 "NEWS - 팁스 운영사 접수처 현황"을 통해 운영사로 직접 연락 등을 진행하실 수 있습니다.</p>
+    							      </div>
+    							    </div>
+							    </div>
+															    <div class="panel panel-default" style="padding-bottom: 5px;">
+    							    <div class="panel-heading" role="tab" id="faq-hd-3">
+    							      <h4 class="panel-title">
+    							        <a data-toggle="collapse" data-parent="#accordion-faq" href="#faq-3" aria-expanded="true" aria-controls="faq-01">
+    							          <span class="label label-default" style="background-color:#da1b5e">Q.</span> 
+    							          <span class="question" style="font-size: 16px; font-weight: normal;">투자 및 추천요청은 1개 운영사에만 신청할 수 있나요?</span>
+    							        </a>
+    							      </h4>
+    							    </div>
+    							    <div id="faq-3" class="panel-collapse collapse" role="tabpane" aria-labelledby="faq-hd-3">
+    							      <div class="panel-body">
+    							        <strong class="label label-info">A.</strong>
+    							        <p>창업기업은 복수의 팁스 운영사에 투자 제안이 가능하나, 팁스에 지원하기 위한 추천은 하나의 운영사에서 받아야 합니다.</p>
+    							      </div>
+    							    </div>
+							    </div>
+															    <div class="panel panel-default" style="padding-bottom: 5px;">
+    							    <div class="panel-heading" role="tab" id="faq-hd-4">
+    							      <h4 class="panel-title">
+    							        <a data-toggle="collapse" data-parent="#accordion-faq" href="#faq-4" aria-expanded="true" aria-controls="faq-01">
+    							          <span class="label label-default" style="background-color:#da1b5e">Q.</span> 
+    							          <span class="question" style="font-size: 16px; font-weight: normal;">다른 R&D사업과 중복으로 신청 또는 수행이 가능한가요?</span>
+    							        </a>
+    							      </h4>
+    							    </div>
+    							    <div id="faq-4" class="panel-collapse collapse" role="tabpane" aria-labelledby="faq-hd-4">
+    							      <div class="panel-body">
+    							        <strong class="label label-info">A.</strong>
+    							        <p>졸업제 과제(R&D)와는 동시 수행이 불가능합니다. 다만 기존 수행 중인 졸업제 사업의 잔여 수행기간이 6개월 미만일 경우, 신청 가능합니다.
+
+팁스 신청기업은 팁스를 포함하여 최대 2개 과제(졸업제 1개 + 비졸업제 1개)까지 동시에 수행 가능합니다.
+
+자세한 내용은 홈페이지 상단의 NEWS 메뉴에서 "팁스(TIPS) 총괄 운영지침" 게시물을 참고 부탁드립니다.</p>
+    							      </div>
+    							    </div>
+							    </div>
+															    <div class="panel panel-default" style="padding-bottom: 5px;">
+    							    <div class="panel-heading" role="tab" id="faq-hd-5">
+    							      <h4 class="panel-title">
+    							        <a data-toggle="collapse" data-parent="#accordion-faq" href="#faq-5" aria-expanded="true" aria-controls="faq-01">
+    							          <span class="label label-default" style="background-color:#da1b5e">Q.</span> 
+    							          <span class="question" style="font-size: 16px; font-weight: normal;">엔젤투자금 이외 기술개발자금에 대해서 지분확보를 하는지요?</span>
+    							        </a>
+    							      </h4>
+    							    </div>
+    							    <div id="faq-5" class="panel-collapse collapse" role="tabpane" aria-labelledby="faq-hd-5">
+    							      <div class="panel-body">
+    							        <strong class="label label-info">A.</strong>
+    							        <p>기술개발자금(정부지원연구개발비)은 정부출연금으로서, 창업기업의 지분을 요구하지 않습니다. 
+(다만, 창업기업이 과제종료 후 최종평가에서 '우수' 또는 '보통'으로 판정될 시, 향후 5년간 발생한 과제 매출액에 따라 최대 R&D자금의 20%를 기술료로 납부하며, 
+만약 과제 수행에 실패한 경우, 평가를 통해 '성실수행'으로 판정받으시면, 기술개발자금에 대한 상환부담은 없습니다.)</p>
+    							      </div>
+    							    </div>
+							    </div>
+															    <div class="panel panel-default" style="padding-bottom: 5px;">
+    							    <div class="panel-heading" role="tab" id="faq-hd-6">
+    							      <h4 class="panel-title">
+    							        <a data-toggle="collapse" data-parent="#accordion-faq" href="#faq-6" aria-expanded="true" aria-controls="faq-01">
+    							          <span class="label label-default" style="background-color:#da1b5e">Q.</span> 
+    							          <span class="question" style="font-size: 16px; font-weight: normal;">연구개발기간(수행기간)은 어느 정도 인가요?</span>
+    							        </a>
+    							      </h4>
+    							    </div>
+    							    <div id="faq-6" class="panel-collapse collapse" role="tabpane" aria-labelledby="faq-hd-6">
+    							      <div class="panel-body">
+    							        <strong class="label label-info">A.</strong>
+    							        <p>팁스(R&D)는 24개월 동안 기술과제 개발을 수행하게 되며, 연계사업(창업사업화, 해외마케팅)으로 최대 10개월을 포함하여 최대 3년 간 지원할 수 있습니다.</p>
+    							      </div>
+    							    </div>
+							    </div>
+															    <div class="panel panel-default" style="padding-bottom: 5px;">
+    							    <div class="panel-heading" role="tab" id="faq-hd-7">
+    							      <h4 class="panel-title">
+    							        <a data-toggle="collapse" data-parent="#accordion-faq" href="#faq-7" aria-expanded="true" aria-controls="faq-01">
+    							          <span class="label label-default" style="background-color:#da1b5e">Q.</span> 
+    							          <span class="question" style="font-size: 16px; font-weight: normal;">창업기업 선정은 언제 하나요?</span>
+    							        </a>
+    							      </h4>
+    							    </div>
+    							    <div id="faq-7" class="panel-collapse collapse" role="tabpane" aria-labelledby="faq-hd-7">
+    							      <div class="panel-body">
+    							        <strong class="label label-info">A.</strong>
+    							        <p>팁스 운영사는 투자(확약)한 창업기업을 팁스에 상시 추천할 수 있으며, 운영기관(한국엔젤투자협회)은 추천된 창업기업에 대해 사전 요건검토 후 선정평가를 실시하여 최종 선정합니다.</p>
+    							      </div>
+    							    </div>
+							    </div>
+															    <div class="panel panel-default" style="padding-bottom: 5px;">
+    							    <div class="panel-heading" role="tab" id="faq-hd-8">
+    							      <h4 class="panel-title">
+    							        <a data-toggle="collapse" data-parent="#accordion-faq" href="#faq-8" aria-expanded="true" aria-controls="faq-01">
+    							          <span class="label label-default" style="background-color:#da1b5e">Q.</span> 
+    							          <span class="question" style="font-size: 16px; font-weight: normal;">파트너십(제휴)을 원하는 경우 어떻게 하면 되나요?</span>
+    							        </a>
+    							      </h4>
+    							    </div>
+    							    <div id="faq-8" class="panel-collapse collapse" role="tabpane" aria-labelledby="faq-hd-8">
+    							      <div class="panel-body">
+    							        <strong class="label label-info">A.</strong>
+    							        <p>내부적인 검토를 거쳐 제휴 승인 여부가 결정되기 때문에 팁스타운 메일로 해당 내용을 송부해 주시면 검토 후 회신 드리도록 하겠습니다.</p>
+    							      </div>
+    							    </div>
+							    </div>
+															    <div class="panel panel-default" style="padding-bottom: 5px;">
+    							    <div class="panel-heading" role="tab" id="faq-hd-9">
+    							      <h4 class="panel-title">
+    							        <a data-toggle="collapse" data-parent="#accordion-faq" href="#faq-9" aria-expanded="true" aria-controls="faq-01">
+    							          <span class="label label-default" style="background-color:#da1b5e">Q.</span> 
+    							          <span class="question" style="font-size: 16px; font-weight: normal;">제휴 프로그램 참가 신청자격이 어떻게 되나요?</span>
+    							        </a>
+    							      </h4>
+    							    </div>
+    							    <div id="faq-9" class="panel-collapse collapse" role="tabpane" aria-labelledby="faq-hd-9">
+    							      <div class="panel-body">
+    							        <strong class="label label-info">A.</strong>
+    							        <p>제휴 프로그램마다 입주사/팁스 창업팀/ 일반 대상 등의 자격이 부여되어 있습니다.
+각 등급에 해당하는지는 회원정보 관리 페이지에서 확인 하실 수 있습니다.</p>
+    							      </div>
+    							    </div>
+							    </div>
+								                                <!-- /panel -->
+						   
+							</div>
+                            <!-- /panel-group -->
+						</div>
+					</div>
+				</section> 
+				<!-- /section -->
+
+					</div>
+				</div>
+			</section>
+
+
+
+
+        </section>  
+        <!-- /mainContents --> 
+
+        <!-- /End Contents -->
+        </div>
+    </div>
+    <!-- /content-wrapper -->
+
+	<script>
+		$(function(){
+			$("#ulNav > li:eq(0)").attr("class", "active");
+		});
+	</script>
+
+
+
+
+    </div>
+    <!-- /wrapper -->
+
+	
+
+    <!-- #footer -->
+    <footer id="footer">
+        <div class="container">
+            <div class="row">
+
+                <section class="col-xs-12 col-sm-12 col-md-6 left"> 
+                    <img src="../images/logo-footer.png" srcset="../images/logo-footer@2x.png 2x" alt="TIPS">
+                </section>
+                <!-- /left -->
+
+                <section class="col-xs-12 col-sm-12 col-md-6 right pull-right">
+                    <div class="row">
+                        <section class="footernav col-sm-12" style="margin-bottom: 10px;">
+                            <h4 style="margin-bottom: 0;">CONNECT</h4>
+                            서울시 강남구 역삼로 165 해성빌딩 2층
+                        </section>
+                    </div>
+                    <div class="row">
+                        <section class="townlist col-xs-12 col-sm-4" style="font-weight: normal !important">
+                            <strong>팁스R&D : 선발문의</strong><br>
+                            T. 02-3440-7421~5<br>E. rnd@kban.or.kr
+                        </section>
+                        <!-- /footernav -->
+
+                        <section class="townlist col-xs-12 col-sm-4" style="font-weight: normal !important">
+                            <strong>팁스타운 : 입주/서포팅 문의</strong><br>
+                            T. 02-3440-7421~6<br>E. town@kban.or.kr
+                        </section>
+                        <!-- /address -->
+
+                        <section class="connect col-xs-12 col-sm-4" style="font-weight: normal !important">
+                            <strong>대관운영 : 대관문의</strong><br>
+                            T. 02-3440-7421<br>E. town@kban.or.kr
+                        </section>
+                        <!-- /connect -->
+                    </div>
+                </section>
+                <!-- /right -->
+            </div>
+            <!-- /row -->
+
+            <p class="copyright">Copyright 2015 &copy; TIPS. All rights Reserved.</p>
+
+        </div>
+    </footer>
+    <!-- /#footer -->
+
+</body>
+</html>

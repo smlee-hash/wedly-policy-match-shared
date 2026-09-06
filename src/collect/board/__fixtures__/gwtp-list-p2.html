@@ -1,0 +1,1178 @@
+<!DOCTYPE HTML>
+<html lang="ko">
+<head>
+<meta name="Keywords" content="강원테크노파크 홈페이지">
+<meta name="Description" content="강원테크노파크 홈페이지">
+<meta property="og:type" content="강원테크노파크 홈페이지">
+<meta property="og:title" content="강원테크노파크 홈페이지">
+<meta property="og:description" content="강원테크노파크 홈페이지">
+<meta property="og:image" content="http://www.gwtp.or.kr/gwtp/img/logo.png">
+<meta property="og:url" content="http://gwtp.gwtp.or.kr/gwtp">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>강원테크노파크</title>
+<!-- <link rel="stylesheet" href="/css/bootstrap.min.css"> -->
+<link href="./css/bootstrap533/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="/gwtp/css/reset.css">
+<link rel="stylesheet" type="text/css" href="/gwtp/css/base.css">
+<link rel="stylesheet" href="./css/bootstrapicons1113/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<link rel="stylesheet" href="../admsec/bower_components/Ionicons/css/ionicons.min.css">
+<!-- DataTables -->
+<!--<link rel="stylesheet" href="../admsec/bower_components/datatables.net-bs/css/dataTables.bootstrap.min.css">-->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
+<!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+<!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>-->
+<!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>-->
+
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script> -->
+<!--<script src="https://unpkg.com/@popperjs/core@2.10.2/dist/umd/popper.js"></script>-->
+<!-- <script src="/js/bootstrap.min.js"></script> -->
+<!--<script type="text/javascript" src="/js/jquery.easing.1.3.js"></script>-->
+<!--<script type="text/javascript" src="/js/jquery.animate-colors.js"></script>-->
+<!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- 부트스트랩 5 및 DataTables JavaScript -->
+  <script src="./css/bootstrap533/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
+<script type="text/javascript" src="/gwtp/js/TweenMax.min.js"></script>
+<script type="text/javascript" src="/gwtp/js/dView.js"></script>
+<!--<script src="../admsec/plugins/jQueryUI/jquery-ui.min.js"></script>-->
+<script src="https://code.jquery.com/ui/1.12.0/jquery-ui.js"></script>
+
+<script type="text/javascript">
+$(function() {
+	$('.a_hover').hover(function(){
+			$(".img_hover" , this).animate({opacity:'0.85'},{queue:false,duration:500});
+		}, function() {
+			$(".img_hover" , this).animate({opacity:'1'},{queue:false,duration:500});
+		});
+//multi start
+$('.multi-item-carousel').carousel({
+  //interval: false
+  interval: 5000
+});
+// for every slide in carousel, copy the next slide's item in the slide.
+// Do the same for the next, next item.
+$('.multi-item-carousel .item').each(function(){
+  var next = $(this).next();
+  if (!next.length) {
+    next = $(this).siblings(':first');
+  }
+  next.children(':first-child').clone().appendTo($(this));
+  
+  if (next.next().length>0) {
+    next.next().children(':first-child').clone().appendTo($(this));
+  } else {
+  	$(this).siblings(':first').children(':first-child').clone().appendTo($(this));
+  }
+});
+// multi end
+});
+</script>
+<script>
+if(window.location.protocol != "https:"){
+	window.location.protocol = "https:";
+}
+</script>
+
+ </head>
+ <body><link href="/gwtp/css/lightbox/lightbox.css" media="screen" rel="stylesheet" type="text/css" />
+
+<script language="javascript">
+	function searchtoSendit(){
+		if(fsearch.search_order.value=="")	{
+			alert("검색어를 입력해 주십시오.");
+			fsearch.search_order.focus();
+		} else {
+			fsearch.submit();
+		}
+	}
+</script>
+<style>
+.dropdown-toggle::after {display:none!important;}
+.navbar-nav>li{padding-top:20px;padding-bottom:20px;}
+.navbar-nav>li>a{padding:0;}
+</style>
+<div class="container-fluid dView" data-d="1" style="padding-left: 0; padding-right: 0;">	
+	<div class="row hidden-sm hidden-xs">
+		<div class="container-fluid hd_cont">
+			<hr style="margin-top: 0; margin-bottom: 0; opacity: .10;">
+			<div class="container">
+				<div class="row">
+					<div class="col-sm-3 text-center ht-lh_80">
+						<a class="text-center" href="https://www.gwtp.or.kr/gwtp/index.php"><img src="../data/designImages/BANNER_1785380046gwtp2026.png" alt="logo" class="img-responsive2"></a>
+					</div>
+					<div class="col-sm-7 text-center ht-lh_80 ht_80 d-flex align-items-center justify-content-center">
+						<form name="fsearch" method="get" action="search_to_view.php?url=sub08a&keyvalue=sub08">
+							<input type="hidden" name="url" value="sub08a">
+							<input type="hidden" name="keyvalue" value="sub08">
+							<div class="form-group d-flex align-items-center">
+								<div class="input-group">
+																		<input name="search_order" type="text" class="form-control" placeholder="검색어를 입력하세요." style="width:400px;">
+																		<a href="javascript:searchtoSendit();" class="btn btn-sm btn-secondary input-group-text pt-2"><i class="fa-solid fa-magnifying-glass fa-fw"></i> 검색</a>
+								</div>
+							</div>
+						</form>
+					</div>
+					<div class="col-sm-2 ht-lh_80" style="text-align: right;">
+						<!-- 언어위젯 -->
+						<div class="gtranslate_wrapper"></div>
+						<script>window.gtranslateSettings = {"default_language":"ko","languages":["ko","en","ja","zh-CN","es"],"wrapper_selector":".gtranslate_wrapper"}</script>
+						<script src="https://cdn.gtranslate.net/widgets/latest/dropdown.js" defer></script>
+						<!--
+						<a class="text-center fw-bolder" href="https://mybiz.gwtp.or.kr/" target="_blank">입주기업종합지원시스템</a>&nbsp;&nbsp;
+						<a href="index.php" class="ped-l_5 ped-r_5 f14"><img src="./images/main/ko(30x30).png"></a>&nbsp;&nbsp;&nbsp;
+						<a href="en/index.php" class="ped-l_5 ped-r_5 f14"><img src="./images/main/en(30x30).png"></a>
+						<a href="http://eng.gwtp.or.kr/" class="ped-l_5 ped-r_5 f14"><img src="./images/main/en(30x30).png"></a>
+						-->
+					</div>
+				</div>
+			</div>
+			<hr style="margin-top: 0; margin-bottom: 0; opacity: .10;">
+		</div>
+	</div>
+	
+<div class="row">
+<nav class="navbar navbar-expand-sm">	
+  <div class="container ">
+	<div class="col">
+    <!-- Brand and toggle get grouped for better mobile display -->
+		<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mynavbar" style="margin-left: 15px;">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+		
+
+		<!-- <div class="navbar-header visible-xs-inline">
+		  <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapse-1">
+			<span class="sr-only">Toggle navigation</span>
+			<span class="glyphicon fa fa-fw fa-bars"></span>
+		  </button>
+		
+		  <a class="mt10" href="" style="float:left;display:inline-block;"><img src="../data/designImages/" alt="logo" class="img-responsive2"></a>
+		</div> -->		
+
+		<!-- Collect the nav links, forms, and other content for toggling -->
+		<div class="collapse navbar-collapse nav-mo" id="mynavbar" style="background-color: #fff;">
+		
+		  <ul class="navbar-nav me-auto pull-center">
+		  <li class="hidden-xs drp d-none d-lg-block"><a href="index.php"><i class="bi bi-house-door ft_18"></i></a></li>
+		 
+		  			<li class="nav-item dropdown ">
+				<a class="nav-link dropdown-toggle" href="bbsNew_list.php?code=sub01a&keyvalue=sub01" target='_self' id="navbarDropdown" role="button" aria-expanded="false"  style="color:#21305B;">공고안내</a>
+								<div class="d-lg-none mt10"></div><!-- mobile 간격 -->
+				<ul class="dropdown-menu dropdown-menu-end" style="margin-top:20px;">
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="bbsNew_list.php?code=sub01a&keyvalue=sub01" target='_self'>공지사항</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="bbsNew_list.php?code=sub01b&keyvalue=sub01" target='_self'>모집공고</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="bbsNew_list.php?code=sub01c&keyvalue=sub01" target='_self'>계약공고</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="bbsNew_list.php?code=sub01d&keyvalue=sub01" target='_self'>채용공고</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="bbsNew_list.php?code=sub01g&keyvalue=sub01" target='_self'>타기관소식</a></li>
+									</ul>
+							</li>
+		   			<li class="nav-item dropdown ">
+				<a class="nav-link dropdown-toggle" href="pageview.php?url=sub02a&keyvalue=sub02" target='_self' id="navbarDropdown" role="button" aria-expanded="false"  style="color:#21305B;">사업안내</a>
+								<div class="d-lg-none mt10"></div><!-- mobile 간격 -->
+				<ul class="dropdown-menu dropdown-menu-end" style="margin-top:20px;">
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="pageview.php?url=sub02a&keyvalue=sub02" target='_self'>지역사업안내</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="pageview.php?url=sub02b&keyvalue=sub02" target='_self'>부서별사업안내</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="pageview.php?url=sub02c&keyvalue=sub02" target='_self'>장비지원</a></li>
+									</ul>
+							</li>
+		   			<li class="nav-item dropdown ">
+				<a class="nav-link dropdown-toggle" href="pageview.php?url=sub04a&keyvalue=sub04" target='_self' id="navbarDropdown" role="button" aria-expanded="false"  style="color:#21305B;">입주안내</a>
+								<div class="d-lg-none mt10"></div><!-- mobile 간격 -->
+				<ul class="dropdown-menu dropdown-menu-end" style="margin-top:20px;">
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="pageview.php?url=sub04a&keyvalue=sub04" target='_self'>입주안내</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="pageview.php?url=sub04b&keyvalue=sub04" target='_self'>입주기업소개</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="pageview.php?url=sub04c&keyvalue=sub04" target='_self'>시설현황</a></li>
+									</ul>
+							</li>
+		   			<li class="nav-item dropdown ">
+				<a class="nav-link dropdown-toggle" href="bbsNew_list.php?code=sub05a&keyvalue=sub05" target='_self' id="navbarDropdown" role="button" aria-expanded="false"  style="color:#21305B;">경영공시</a>
+								<div class="d-lg-none mt10"></div><!-- mobile 간격 -->
+				<ul class="dropdown-menu dropdown-menu-end" style="margin-top:20px;">
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="bbsNew_list.php?code=sub05b&keyvalue=sub05" target='_self'>운영계획 및 결과</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="bbsNew_list.php?code=sub05a&keyvalue=sub05" target='_self'>재무정보</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="bbsNew_list.php?code=sub05c&keyvalue=sub05" target='_self'>임직원현황</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="bbsNew_list.php?code=sub05f&keyvalue=sub05" target='_self'>강원TP규정</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="bbsNew_list.php?code=sub05d&keyvalue=sub05" target='_self'>회의록</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="bbsNew_list.php?code=sub05e&keyvalue=sub05" target='_self'>감사결과</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="bbsNew_list.php?code=sub05g&keyvalue=sub05" target='_self'>기부금 모금 및 실적</a></li>
+									</ul>
+							</li>
+		   			<li class="nav-item dropdown ">
+				<a class="nav-link dropdown-toggle" href="bbsNew_list.php?code=sub06a&keyvalue=sub06" target='_self' id="navbarDropdown" role="button" aria-expanded="false"  style="color:#21305B;">TP NOW</a>
+								<div class="d-lg-none mt10"></div><!-- mobile 간격 -->
+				<ul class="dropdown-menu dropdown-menu-end" style="margin-top:20px;">
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="bbsNew_list.php?code=sub06b&keyvalue=sub06" target='_self'>언론보도</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="bbsNew_list.php?code=sub06c&keyvalue=sub06" target='_self'>홍보자료</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="bbsNew_list.php?code=sub06d&keyvalue=sub06" target='_self'>지역정보</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="bbsNew_list.php?code=sub06g&keyvalue=sub06" target='_self'>뉴스레터</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="pageview.php?url=sub06h&keyvalue=sub06" target='_self'>뉴스레터신청</a></li>
+									</ul>
+							</li>
+		   			<li class="nav-item dropdown ">
+				<a class="nav-link dropdown-toggle" href="pageview.php?url=sub07a&keyvalue=sub07" target='_self' id="navbarDropdown" role="button" aria-expanded="false"  style="color:#21305B;">TP소개</a>
+								<div class="d-lg-none mt10"></div><!-- mobile 간격 -->
+				<ul class="dropdown-menu dropdown-menu-end" style="margin-top:20px;">
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="pageview.php?url=sub07a&keyvalue=sub07" target='_self'>일반현황</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="pageview.php?url=sub07d&keyvalue=sub07" target='_self'>연혁</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="pageview.php?url=sub07b&keyvalue=sub07" target='_self'>인사말</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="pageview.php?url=sub07c&keyvalue=sub07" target='_self'>비전 및 목표</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="pageview.php?url=sub07e&keyvalue=sub07" target='_self'>조직안내</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="pageview.php?url=sub07f&keyvalue=sub07" target='_self'>ESG경영</a></li>
+											<li class="f16 fw400 mt10 mb10"><a class="dropdown-item" href="pageview.php?url=sub07g&keyvalue=sub07" target='_self'>찾아오시는 길</a></li>
+									</ul>
+							</li>
+		   		  </ul>
+
+		</div><!-- /.navbar-collapse -->
+	</div>
+
+  </div>
+	</nav>
+	<hr style="margin-top: 0; margin-bottom: 0; opacity: .10;">
+</div>
+  
+	
+<!-- 서브 메뉴 bg 판 
+<div class="container-fluid drDmenu" style="background-color: #fff;">
+	&nbsp;
+</div> -->
+<script>
+  // JavaScript 코드
+  $(document).ready(function() {
+    $('.dropdown').mouseenter(function() {
+      $('.dropdown-menu').addClass('open');
+	  $('.drDmenu').addClass('open');
+    });
+    $('.dropdown').mouseleave(function() {
+      $('.dropdown-menu').removeClass('open');
+	  $('.drDmenu').removeClass('open');
+    });
+	$('.drp').mouseenter(function() {
+      $('.dropdown-menu').addClass('open');
+	  $('.drDmenu').addClass('open');
+    });
+    $('.drp').mouseleave(function() {
+      $('.dropdown-menu').removeClass('open');
+	  $('.drDmenu').removeClass('open');
+    });
+  });
+
+</script>
+</div>
+<div class="container-fluid dView bg_a8a8a8">
+	<div class="row" style="position:relative;">
+				
+		<div class="col-sm-12 col-xs-12 flr text-center">
+			<img src="../data/designImages/BANNER_1696300267sub01_top(1920x180).png" class="img-responsive mx-auto">
+			<div class="position-absolute top-50 start-50 ft_fff f24 fw-bolder" style="transform: translate(-50%, -50%);">공고안내</div>
+		</div>
+		
+	</div>
+</div>
+
+<div class="container-fluid dView">
+	<div class="container">
+		<div class="row">
+			<div class="">
+				<div class="sub_menu ft_12">
+					<span class="home-span mt20 ped-l_10"> >&nbsp;모집공고&nbsp;</span>
+					<span class="home-span mt20 ped-l_10"> > <a href="bbsNew_list.php?code=sub01a&keyvalue=sub01">&nbsp;공고안내</a></span> 
+					<span class="home-span mt20 ped-l_10"><a href="index.php">홈</a></span>
+					<span class="home-span mt20 ped-l_10"><i class="bi bi-house-door ft_12"></i></span>
+					<!--<h3 style="font-size:32px;font-weight:600;padding-top:50px;padding-bottom:20px;text-align:center;"></h3>-->
+				</div>			
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="container-fluid dView mt30">
+	<div class="container">
+		<div class="row" style="position:relative;">
+			<div class="col-sm-12 text-center" style="line-height:34px;"><ul class="nav" style="text-align:center;display:inline-block!important;">
+		<li class="rase01 f14 nav-item" style="margin:0 auto;" >
+			<a class="nav-linka" href="bbsNew_list.php?code=sub01a&keyvalue=sub01" target='_self'><span class="rase_sp">공지사항</span></a></li>
+		<li class="rase01a f14 nav-item" style="margin:0 auto;" >
+			<a class="nav-linka" href="bbsNew_list.php?code=sub01b&keyvalue=sub01" target='_self'><span class="rase_spa">모집공고</span></a></li>
+		<li class="rase01 f14 nav-item" style="margin:0 auto;" >
+			<a class="nav-linka" href="bbsNew_list.php?code=sub01c&keyvalue=sub01" target='_self'><span class="rase_sp">계약공고</span></a></li>
+		<li class="rase01 f14 nav-item" style="margin:0 auto;" >
+			<a class="nav-linka" href="bbsNew_list.php?code=sub01d&keyvalue=sub01" target='_self'><span class="rase_sp">채용공고</span></a></li>
+		<li class="rase01 f14 nav-item" style="margin:0 auto;" >
+			<a class="nav-linka" href="bbsNew_list.php?code=sub01g&keyvalue=sub01" target='_self'><span class="rase_sp">타기관소식</span></a></li>
+</ul>
+</div>
+		</div>
+	</div>
+</div>
+
+<div class="container dView ">
+		<div class="mt80"></div><!-- pc 간격 -->
+		<div class="row">	
+		<div class="col-sm-12 col-xs-12 sp-lh_22">
+			<h1 class="text-center text-uppercase mb30 f28">모집공고</h1>
+		</div>
+	</div>
+</div>
+
+
+<div class="container dView">
+	<div class="row">
+		<!-- 내용 출력 시작-->
+						
+		<div class="col-sm-12 col-md-12 mt-3 mb-3">
+		<!-- 내용 출력 -->
+		<div class="table-responsive">
+	<table class="table table-hover">
+		<thead>
+            <tr class="text-center flex-md-row">
+                <th scope="col" class="pt-3 pb-3">번호</th>
+                                <th scope="col" class="pt-3 pb-3">제목</th>
+                <th scope="col" class="pt-3 pb-3 d-none d-sm-table-cell">작성자</th>
+                <th scope="col" class="pt-3 pb-3">등록일</th>
+                <th scope="col" class="pt-3 pb-3 d-none d-sm-table-cell">조회수</th>
+				<th scope="col" class="pt-3 pb-3 d-none d-sm-table-cell">첨부</th>            </tr>
+        </thead>
+        <tbody>
+<!-- 공지사항 -->
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTM0NTkmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-warning btn-sm'>모집중</button><span class="ellipsis" style="color:#333333;">(2026-188호) 2026년 합성데이터 생성·활용 실무 교육 모집 공고</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">강원디지털혁신센터 데이터기반팀</td>
+                <td class="pt-3 pb-3">2026-09-02</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">76</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTM0MzImc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-warning btn-sm'>모집중</button><span class="ellipsis" style="color:#333333;">(2026-184호)LNG 냉열산업 산․학․연․관 협의체 회원사 모집공고</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">글로벌사업단 에너지센터</td>
+                <td class="pt-3 pb-3">2026-08-25</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">20908</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTM0Mjgmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-danger btn-sm'>완료</button><span class="ellipsis" style="color:#333333;">(제2026 – 183호)속초시 장사동 수소충전소 운영 관리 민간위탁사업자 모집공고</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">글로벌사업단 에너지센터</td>
+                <td class="pt-3 pb-3">2026-08-25</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">21727</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTM0MjMmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-warning btn-sm'>모집중</button><span class="ellipsis" style="color:#333333;">(2026년-182호) 2028년 초광역프로젝트(R&D) 지원을 위한  기술수요조사 공고</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">정책기획단 정책기획팀</td>
+                <td class="pt-3 pb-3">2026-08-24</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">22886</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTM0MDImc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-danger btn-sm'>완료</button><span class="ellipsis" style="color:#333333;">(2026-173호) 2026 제1회 평창 그린바이오인의 밤 연계 「그린바이오 연구협력 아이디어 발굴」 모..</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">미래사업단 바이오융합팀</td>
+                <td class="pt-3 pb-3">2026-08-11</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">68708</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTMzNjkmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-warning btn-sm'>모집중</button><span class="ellipsis" style="color:#333333;">(2026-170호)「2026년 중소기업 밀집지역 위기대응 체계 구축사업」 Stand-up 맞춤지원 모집 공고(..</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">기업지원단 지역산업위기지원팀</td>
+                <td class="pt-3 pb-3">2026-08-05</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">73426</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTMzNjgmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-danger btn-sm'>완료</button><span class="ellipsis" style="color:#333333;">2026년 방산 특화창업중심대학 창업기업 모집 공고 및 사업설명회</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">정책기획단 산업규제혁신팀</td>
+                <td class="pt-3 pb-3">2026-08-04</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">65328</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTMzMzkmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-danger btn-sm'>완료</button><span class="ellipsis" style="color:#333333;">(2026-168호) 평창군 그린바이오 기업지원사업 위탁정산 회계법인 모집 재공고</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">미래사업단 바이오융합팀</td>
+                <td class="pt-3 pb-3">2026-07-29</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">71153</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTMzMzAmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-danger btn-sm'>완료</button><span class="ellipsis" style="color:#333333;">(2026-166호)(※재공고)2026년도 강원 지역특화형(바이오헬스·식품) 스마트공장 구축사업 2차 ..</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">미래사업단 스마트모빌리티팀</td>
+                <td class="pt-3 pb-3">2026-07-27</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">74004</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTMzNDYmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-danger btn-sm'>완료</button><span class="ellipsis" style="color:#333333;">(2026-165호) 「중소형 CDMO육성 항원 항체소재 뱅크 구축」 사업 2026년도 바이오소재 (항원 · 항체) ..</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">미래사업단 바이오융합팀</td>
+                <td class="pt-3 pb-3">2026-07-24</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">70684</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTMzMDgmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-danger btn-sm'>완료</button><span class="ellipsis" style="color:#333333;">(2026-161호) 2026년도 지역주력산업육성(지역특화 프로젝트 레전드 50+) 지원모집 3차 공고 (강원 1..</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">글로벌사업단 신소재센터</td>
+                <td class="pt-3 pb-3">2026-07-21</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">74493</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTMzMTAmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-danger btn-sm'>완료</button><span class="ellipsis" style="color:#333333;">(2026-163호) 강원 바이오·헬스케어 AI 대전환 실증기업 추가 모집 공고</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">강원디지털혁신센터 DX지원팀</td>
+                <td class="pt-3 pb-3">2026-07-21</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">74228</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTMzMDkmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-danger btn-sm'>완료</button><span class="ellipsis" style="color:#333333;">(2026-162호) 실무중심의 테스트 기초 KSTQB-CTBL 교육 참가자 모집 재공고</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">강원디지털혁신센터 DX지원팀</td>
+                <td class="pt-3 pb-3">2026-07-21</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">73793</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTMzMDAmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-danger btn-sm'>완료</button><span class="ellipsis" style="color:#333333;">(2026-158호) 2026년 강원연구개발특구 지역혁신 실증 프로젝트 수요조사 공고</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">정책기획단 산업규제혁신팀</td>
+                <td class="pt-3 pb-3">2026-07-16</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">76766</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTMyOTMmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-danger btn-sm'>완료</button><span class="ellipsis" style="color:#333333;">(2026-157호) 2026년 강원특별자치도 탄소중립 청정에너지 기술공유대학사업 기업지원 모집 재공..</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">글로벌사업단 에너지센터</td>
+                <td class="pt-3 pb-3">2026-07-16</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">76857</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTMyNzImc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-danger btn-sm'>완료</button><span class="ellipsis" style="color:#333333;">(2026-153호) 2026 강원 미래모빌리티 기업지원 프로그램 지원 공고(2차)</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">미래사업단 스마트모빌리티팀</td>
+                <td class="pt-3 pb-3">2026-07-10</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">79055</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTMyNTgmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-warning btn-sm'>모집중</button><span class="ellipsis" style="color:#333333;">(2026-145호) 2026년 강원 ICT 중소기업 정보보호 지원사업 수요기업 모집공고</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">강원디지털혁신센터 데이터기반팀</td>
+                <td class="pt-3 pb-3">2026-07-07</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">77444</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTI5MTkmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-warning btn-sm'>모집중</button><span class="ellipsis" style="color:#333333;">(2026-69호) 2026년 디지털트윈 플랫폼 활용 수요기업 모집 수정공고 (싱가포르 지원 삭제)</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">강원디지털혁신센터 DX지원팀</td>
+                <td class="pt-3 pb-3">2026-04-15</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">141391</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTI5MDkmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-warning btn-sm'>모집중</button><span class="ellipsis" style="color:#333333;">(2026-67호) 강원테크노파크 원주벤처공장 입주기업 모집 공고</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">경영지원실 경영전략팀</td>
+                <td class="pt-3 pb-3">2026-04-14</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">142203</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTI4OTkmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-warning btn-sm'>모집중</button><span class="ellipsis" style="color:#333333;">(2026-65호) 2026년 강원 디지털헬스케어 분야 VC·AC 투자 전문가 Pool 모집 공고</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">미래사업단 디지털헬스팀</td>
+                <td class="pt-3 pb-3">2026-04-09</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">142906</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTI4OTcmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-warning btn-sm'>모집중</button><span class="ellipsis" style="color:#333333;">(2026-64호) 2026년 제1차 홍천 도시첨단산업단지 바이오 전문인력양성 공고 (재직자)</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">미래사업단 바이오융합팀</td>
+                <td class="pt-3 pb-3">2026-04-08</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">144479</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTI4NjImc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-warning btn-sm'>모집중</button><span class="ellipsis" style="color:#333333;">(2026-57호) 강원 지역 디지털 품질역량강화사업 컨설팅 및 테스팅 지원기업 모집 공고</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">강원디지털혁신센터 DX지원팀</td>
+                <td class="pt-3 pb-3">2026-04-01</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">144914</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTI4NTcmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-warning btn-sm'>모집중</button><span class="ellipsis" style="color:#333333;">(2026-55호) 2026년 전기·수소차 분야 수요기술 발굴 및 기술멘토링 지원사업 모집 공고</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">기업지원단 위기지원팀</td>
+                <td class="pt-3 pb-3">2026-03-31</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">145454</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTI3Mzgmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-warning btn-sm'>모집중</button><span class="ellipsis" style="color:#333333;">(2026-27호) 2026년 반도체 소모품 실증센터 구축사업 실증 지원 공고</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">글로벌사업단 반도체육성팀</td>
+                <td class="pt-3 pb-3">2026-02-27</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">172004</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+			<tr class="text-center">
+                <td class="pt-3 pb-3"><button type="button" class="btn btn-success btn-sm">공지</button></td>
+                                <td class="pt-3 pb-3 text-start">
+					<a href="bbsNew_view.php?bbs_data=aWR4PTI2MjQmc3RhcnRQYWdlPTE1Jmxpc3RObz0mdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||"><button class='btn btn-warning btn-sm'>모집중</button><span class="ellipsis" style="color:#333333;">(제2026-2호) 강원 지역 중소·벤처기업 투자이음 강화 프로그램 참여기업 연중 상시모집 공고</span></a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">기업지원단 위기지원팀</td>
+                <td class="pt-3 pb-3">2026-01-19</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">201345</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;"></td>			</tr>
+	
+<!-- 공지사항 -->
+
+<!-- bbs loop start -->
+			<tr class="text-center">
+                <td class="pt-3 pb-3 align-middle">482</td>
+                                <td class="pt-3 pb-3 text-start">
+					<button type='button' class='btn btn-danger btn-sm'>완료</button> <img src='./images/hit3.gif' align='absmiddle'><a href="bbsNew_view.php?bbs_data=aWR4PTMxOTQmc3RhcnRQYWdlPTE1Jmxpc3RObz00ODImdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||">(2026-136호)2026년 수소 전주기 분야 R&D과제 지원사업 기업지원 4차 공고(재공고)</a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">글로벌사업단 에너지센터</td>
+                <td class="pt-3 pb-3">2026-06-24</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">48060</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;">&nbsp;</td>			</tr>
+			<tr class="text-center">
+                <td class="pt-3 pb-3 align-middle">481</td>
+                                <td class="pt-3 pb-3 text-start">
+					<button type='button' class='btn btn-danger btn-sm'>완료</button> <img src='./images/hit3.gif' align='absmiddle'><a href="bbsNew_view.php?bbs_data=aWR4PTMxOTAmc3RhcnRQYWdlPTE1Jmxpc3RObz00ODEmdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||">(2026-135호) 「기회발전특구 수요맞춤형 지원사업(인력양성)」 2026년 제3차 홍천 도시첨단산업단지 바이..</a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">미래사업단 바이오융합팀</td>
+                <td class="pt-3 pb-3">2026-06-23</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">51701</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;">&nbsp;</td>			</tr>
+			<tr class="text-center">
+                <td class="pt-3 pb-3 align-middle">480</td>
+                                <td class="pt-3 pb-3 text-start">
+					<button type='button' class='btn btn-danger btn-sm'>완료</button> <img src='./images/hit3.gif' align='absmiddle'><a href="bbsNew_view.php?bbs_data=aWR4PTMxNzkmc3RhcnRQYWdlPTE1Jmxpc3RObz00ODAmdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||">(2026-134호) 2026 해외 중국시장 수출상담회 참여기업 모집공고</a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">기업지원단 산업지원팀</td>
+                <td class="pt-3 pb-3">2026-06-22</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">50552</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;">&nbsp;</td>			</tr>
+			<tr class="text-center">
+                <td class="pt-3 pb-3 align-middle">479</td>
+                                <td class="pt-3 pb-3 text-start">
+					<button type='button' class='btn btn-danger btn-sm'>완료</button> <img src='./images/hit3.gif' align='absmiddle'><a href="bbsNew_view.php?bbs_data=aWR4PTMxNzUmc3RhcnRQYWdlPTE1Jmxpc3RObz00NzkmdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||">(2026-133호) 2026년 시군구연고산업육성사업 부처협업 프로젝트(횡성군) 참여기업 모집공고(3..</a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">기업지원단 산업지원팀</td>
+                <td class="pt-3 pb-3">2026-06-22</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">23597</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;">&nbsp;</td>			</tr>
+			<tr class="text-center">
+                <td class="pt-3 pb-3 align-middle">478</td>
+                                <td class="pt-3 pb-3 text-start">
+					<button type='button' class='btn btn-danger btn-sm'>완료</button> <img src='./images/hit3.gif' align='absmiddle'><a href="bbsNew_view.php?bbs_data=aWR4PTMxNjgmc3RhcnRQYWdlPTE1Jmxpc3RObz00NzgmdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||">(2026-130호) 2026년도 지역주력산업육성(지역특화 프로젝트 레전드 50+) 지원모집 2차 공고 (강원 ..</a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">기업지원단 기업지원팀</td>
+                <td class="pt-3 pb-3">2026-06-18</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">56986</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;">&nbsp;</td>			</tr>
+			<tr class="text-center">
+                <td class="pt-3 pb-3 align-middle">477</td>
+                                <td class="pt-3 pb-3 text-start">
+					<button type='button' class='btn btn-danger btn-sm'>완료</button> <img src='./images/hit3.gif' align='absmiddle'><a href="bbsNew_view.php?bbs_data=aWR4PTMxNjImc3RhcnRQYWdlPTE1Jmxpc3RObz00NzcmdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||">(2026-131호)「26년도 시군구 연고산업 육성사업 2차 모집 공고」 지역 광물 자원 활용 기반산업 경..</a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">글로벌사업단 원료산업팀</td>
+                <td class="pt-3 pb-3">2026-06-17</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">37869</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;">&nbsp;</td>			</tr>
+			<tr class="text-center">
+                <td class="pt-3 pb-3 align-middle">476</td>
+                                <td class="pt-3 pb-3 text-start">
+					<button type='button' class='btn btn-danger btn-sm'>완료</button> <img src='./images/hit3.gif' align='absmiddle'><a href="bbsNew_view.php?bbs_data=aWR4PTMxNjAmc3RhcnRQYWdlPTE1Jmxpc3RObz00NzYmdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||">(2026-129호) 「수요맞춤형 전기구동 경형 PBV 개발 지원기반 구축사업」 2026년 기업지원 프로그램 기술..</a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">미래사업단 스마트모빌리티팀</td>
+                <td class="pt-3 pb-3">2026-06-16</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">1661</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;">&nbsp;</td>			</tr>
+			<tr class="text-center">
+                <td class="pt-3 pb-3 align-middle">475</td>
+                                <td class="pt-3 pb-3 text-start">
+					<button type='button' class='btn btn-danger btn-sm'>완료</button> <img src='./images/hit3.gif' align='absmiddle'><a href="bbsNew_view.php?bbs_data=aWR4PTMxNTMmc3RhcnRQYWdlPTE1Jmxpc3RObz00NzUmdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||">(2026-127호) 2026년 강원지역연구장비 서비스 활성화 지원사업 참여기관 모집 공고</a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">기업지원단 산업지원팀</td>
+                <td class="pt-3 pb-3">2026-06-15</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">59379</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;">&nbsp;</td>			</tr>
+			<tr class="text-center">
+                <td class="pt-3 pb-3 align-middle">474</td>
+                                <td class="pt-3 pb-3 text-start">
+					<button type='button' class='btn btn-danger btn-sm'>완료</button> <img src='./images/hit3.gif' align='absmiddle'><a href="bbsNew_view.php?bbs_data=aWR4PTMxNDYmc3RhcnRQYWdlPTE1Jmxpc3RObz00NzQmdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||">(2026-127호)2026년 강원특별자치도 수소 전문기업 육성지원사업 재공고</a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">글로벌사업단 에너지센터</td>
+                <td class="pt-3 pb-3">2026-06-12</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">34097</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;">&nbsp;</td>			</tr>
+			<tr class="text-center">
+                <td class="pt-3 pb-3 align-middle">473</td>
+                                <td class="pt-3 pb-3 text-start">
+					<button type='button' class='btn btn-danger btn-sm'>완료</button> <img src='./images/hit3.gif' align='absmiddle'><a href="bbsNew_view.php?bbs_data=aWR4PTMxMjYmc3RhcnRQYWdlPTE1Jmxpc3RObz00NzMmdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||">(2026-124호) 2026 강원 미래모빌리티 기업지원 프로그램 통합 공고</a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">미래사업단 스마트모빌리티팀</td>
+                <td class="pt-3 pb-3">2026-06-09</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">66248</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;">&nbsp;</td>			</tr>
+			<tr class="text-center">
+                <td class="pt-3 pb-3 align-middle">472</td>
+                                <td class="pt-3 pb-3 text-start">
+					<button type='button' class='btn btn-danger btn-sm'>완료</button> <img src='./images/hit3.gif' align='absmiddle'><a href="bbsNew_view.php?bbs_data=aWR4PTMxMjQmc3RhcnRQYWdlPTE1Jmxpc3RObz00NzImdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||">(2026-122호) 2026년 전기·수소차 분야 수요기술 사업화 지원 참여기업 2차 모집 공고</a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">기업지원단 위기지원팀</td>
+                <td class="pt-3 pb-3">2026-06-08</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">37462</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;">&nbsp;</td>			</tr>
+			<tr class="text-center">
+                <td class="pt-3 pb-3 align-middle">471</td>
+                                <td class="pt-3 pb-3 text-start">
+					<button type='button' class='btn btn-danger btn-sm'>완료</button> <img src='./images/hit3.gif' align='absmiddle'><a href="bbsNew_view.php?bbs_data=aWR4PTMxMjAmc3RhcnRQYWdlPTE1Jmxpc3RObz00NzEmdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||">(2026-123호) 2026년 미래차 정비 전문인력 양성교육 참가자 모집 공고</a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">미래사업단 스마트모빌리티팀</td>
+                <td class="pt-3 pb-3">2026-06-08</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">36885</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;">&nbsp;</td>			</tr>
+			<tr class="text-center">
+                <td class="pt-3 pb-3 align-middle">470</td>
+                                <td class="pt-3 pb-3 text-start">
+					<button type='button' class='btn btn-danger btn-sm'>완료</button> <img src='./images/hit3.gif' align='absmiddle'><a href="bbsNew_view.php?bbs_data=aWR4PTMxMTkmc3RhcnRQYWdlPTE1Jmxpc3RObz00NzAmdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||">(2026-121호) 2026년 강원지역기업 성장사다리 지원사업 공급기업 모집공고</a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">기업지원단 기업지원팀</td>
+                <td class="pt-3 pb-3">2026-06-08</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">37259</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;">&nbsp;</td>			</tr>
+			<tr class="text-center">
+                <td class="pt-3 pb-3 align-middle">469</td>
+                                <td class="pt-3 pb-3 text-start">
+					<button type='button' class='btn btn-danger btn-sm'>완료</button> <img src='./images/hit3.gif' align='absmiddle'><a href="bbsNew_view.php?bbs_data=aWR4PTMxMTgmc3RhcnRQYWdlPTE1Jmxpc3RObz00NjkmdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||">(2026-120호) 2026년 전국 8도 로컬푸드 단체박람회 참가기업 모집 공고</a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">기업지원단 위기지원팀</td>
+                <td class="pt-3 pb-3">2026-06-05</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">38770</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;">&nbsp;</td>			</tr>
+			<tr class="text-center">
+                <td class="pt-3 pb-3 align-middle">468</td>
+                                <td class="pt-3 pb-3 text-start">
+					<button type='button' class='btn btn-danger btn-sm'>완료</button> <img src='./images/hit3.gif' align='absmiddle'><a href="bbsNew_view.php?bbs_data=aWR4PTMxMTQmc3RhcnRQYWdlPTE1Jmxpc3RObz00NjgmdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||">(2026-119호) 2026년 강원지역연구장비 활용 수수료 지원사업 참여기업(1차) 모집 공고</a>&nbsp;
+					&nbsp;                </td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">기업지원단 산업지원팀</td>
+                <td class="pt-3 pb-3">2026-06-05</td>
+                <td class="pt-3 pb-3 d-none d-sm-table-cell">38796</td>
+				<td class="pt-3 pb-3 d-none d-sm-table-cell"><img src="images/disk.gif" style="vertical-align:middle;">&nbsp;</td>			</tr>
+<!-- bbs loop end -->
+		</tbody>
+    </table>
+</div>					<div class="d-flex justify-content-center align-items-center mt-3 mb-3">
+				<ul class='pagination pagination-sm mt-3 mb-3'>
+					<li class='page-item sp-lh_24'><a href='/gwtp/bbsNew_list.php?bbs_data=c3RhcnRQYWdlPTAmY29kZT1zdWIwMWImdGFibGU9Y3NfYmJzX2RhdGFfbmV3JnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDE=||' onfocus='this.blur()' class='page-link px-3 py-1'> 1 </a></li><li class='page-item sp-lh_24 active'><a href='#' class='page-link px-3 py-1'> 2 </a></li><li class='page-item sp-lh_24'><a href='/gwtp/bbsNew_list.php?bbs_data=c3RhcnRQYWdlPTMwJmNvZGU9c3ViMDFiJnRhYmxlPWNzX2Jic19kYXRhX25ldyZzZWFyY2hfaXRlbT0mc2VhcmNoX29yZGVyPSZ1cmw9c3ViMDFiJmtleXZhbHVlPXN1YjAx||' onfocus='this.blur()' class='page-link px-3 py-1'> 3 </a></li><li class='page-item sp-lh_24'><a href='/gwtp/bbsNew_list.php?bbs_data=c3RhcnRQYWdlPTQ1JmNvZGU9c3ViMDFiJnRhYmxlPWNzX2Jic19kYXRhX25ldyZzZWFyY2hfaXRlbT0mc2VhcmNoX29yZGVyPSZ1cmw9c3ViMDFiJmtleXZhbHVlPXN1YjAx||' onfocus='this.blur()' class='page-link px-3 py-1'> 4 </a></li><li class='page-item sp-lh_24'><a href='/gwtp/bbsNew_list.php?bbs_data=c3RhcnRQYWdlPTYwJmNvZGU9c3ViMDFiJnRhYmxlPWNzX2Jic19kYXRhX25ldyZzZWFyY2hfaXRlbT0mc2VhcmNoX29yZGVyPSZ1cmw9c3ViMDFiJmtleXZhbHVlPXN1YjAx||' onfocus='this.blur()' class='page-link px-3 py-1'> 5 </a></li><li class='page-item sp-lh_24'><a href='/gwtp/bbsNew_list.php?bbs_data=c3RhcnRQYWdlPTc1JmNvZGU9c3ViMDFiJnRhYmxlPWNzX2Jic19kYXRhX25ldyZzZWFyY2hfaXRlbT0mc2VhcmNoX29yZGVyPSZ1cmw9c3ViMDFiJmtleXZhbHVlPXN1YjAx||' onfocus='this.blur()' class='page-link px-3 py-1'> 6 </a></li><li class='page-item sp-lh_24'><a href='/gwtp/bbsNew_list.php?bbs_data=c3RhcnRQYWdlPTkwJmNvZGU9c3ViMDFiJnRhYmxlPWNzX2Jic19kYXRhX25ldyZzZWFyY2hfaXRlbT0mc2VhcmNoX29yZGVyPSZ1cmw9c3ViMDFiJmtleXZhbHVlPXN1YjAx||' onfocus='this.blur()' class='page-link px-3 py-1'> 7 </a></li><li class='page-item sp-lh_24'><a href='/gwtp/bbsNew_list.php?bbs_data=c3RhcnRQYWdlPTEwNSZjb2RlPXN1YjAxYiZ0YWJsZT1jc19iYnNfZGF0YV9uZXcmc2VhcmNoX2l0ZW09JnNlYXJjaF9vcmRlcj0mdXJsPXN1YjAxYiZrZXl2YWx1ZT1zdWIwMQ==||' onfocus='this.blur()' class='page-link px-3 py-1'> 8 </a></li><li class='page-item sp-lh_24'><a href='/gwtp/bbsNew_list.php?bbs_data=c3RhcnRQYWdlPTEyMCZjb2RlPXN1YjAxYiZ0YWJsZT1jc19iYnNfZGF0YV9uZXcmc2VhcmNoX2l0ZW09JnNlYXJjaF9vcmRlcj0mdXJsPXN1YjAxYiZrZXl2YWx1ZT1zdWIwMQ==||' onfocus='this.blur()' class='page-link px-3 py-1'> 9 </a></li><li class='page-item sp-lh_24'><a href='/gwtp/bbsNew_list.php?bbs_data=c3RhcnRQYWdlPTEzNSZjb2RlPXN1YjAxYiZ0YWJsZT1jc19iYnNfZGF0YV9uZXcmc2VhcmNoX2l0ZW09JnNlYXJjaF9vcmRlcj0mdXJsPXN1YjAxYiZrZXl2YWx1ZT1zdWIwMQ==||' onfocus='this.blur()' class='page-link px-3 py-1'> 10 </a></li><li class='next sp-lh_24'><a href='/gwtp/bbsNew_list.php?bbs_data=c3RhcnRQYWdlPTE1MCZjb2RlPXN1YjAxYiZ0YWJsZT1jc19iYnNfZGF0YV9uZXcmc2VhcmNoX2l0ZW09JnNlYXJjaF9vcmRlcj0mdXJsPXN1YjAxYiZrZXl2YWx1ZT1zdWIwMQ==||' onfocus='this.blur()' class='page-link px-3 py-1'>Next</a></li>				</ul>
+							</div>
+						
+												
+					  <!-- 검색 부분 -->
+		<script language="javascript">
+		function search(){
+			if(search_form.search_order.value=="")	{
+				alert("검색할 내용을 입력해 주십시오.");
+				search_form.search_order.focus();
+			} else {
+				search_form.submit();
+			}
+		}
+		</script>
+		<form name="search_form" method="post" action="/gwtp/bbsNew_list.php?bbs_data=aWR4PTMxMTQmc3RhcnRQYWdlPTE1Jmxpc3RObz00NjgmdGFibGU9Y3NfYmJzX2RhdGFfbmV3JmNvZGU9c3ViMDFiJnNlYXJjaF9pdGVtPSZzZWFyY2hfb3JkZXI9JnVybD1zdWIwMWIma2V5dmFsdWU9c3ViMDEmYmJzX21hbG5hbWU9||">
+		<div class="d-flex justify-content-center align-items-center mt-3 mb-3">
+			<div class="form-check form-check-inline sp-lh_24">
+				<input class="form-check-input" type="checkbox" name="search_item[]" value="subject">
+				<label class="form-check-label">제목</label>
+			</div>
+			<div class="form-check form-check-inline sp-lh_24">
+				<input class="form-check-input" type="checkbox" name="search_item[]" value="content">
+				<label class="form-check-label">내용</label>
+			</div>
+			<div class="form-check form-check-inline sp-lh_24">
+				<input class="form-check-input" type="checkbox" name="search_item[]" value="name">
+				<label class="form-check-label">작성자</label>
+			</div>
+			<div class="col-2 d-inline-block">
+				<input name="search_order" type="text" size="15" class="input me-2 form-control form-control-sm">
+			</div>
+			<a href="javascript:search();" class="btn btn-sm btn-info btn-flat">검색</a>
+		</div>
+		</form>
+
+
+			<!-- footer text Include -->
+			
+			<!-- 내용출력 끝 //-->
+			<div class="mt80 hidden-sm"></div><!-- pc 간격 -->
+			<div class="mt40 hidden-lg hidden-md"></div><!-- mobile 간격 -->
+			
+		</div>
+		<!-- 내용 출력 끝-->
+	</div>
+</div>
+
+<!-- 셀렉트 메뉴 -->
+<div class="container-fluid dView bg_3d3d3d">
+	<div class="container">
+		<div class="row pt50">
+			<div class="col-12 col-lg-12">
+				<div class="hidden-xs">
+
+	<script type="text/javascript">
+	function goURL(values) {
+			var obj = values.split("|");
+			if (obj[1]=="pop") {
+					 window.open(obj[0],"winName","toolbar=no, width=800, height=700,resize=no,scrollbar=no");
+			} else if (obj[1]=="_blank") {
+					window.open(obj[0]);
+			} else {
+					location.href = obj[0];
+			}
+	}
+	</script>
+
+
+<div class="row">
+	<div class="col-md-3">
+	<select name="name" onchange="goURL(this.value)" class="f16 form-select form-select-lg mb-3" aria-label=".form-select-lg example">
+		<option value="">::: 강원특별자치도 시/군 :::</option>
+		<option value="https://state.gwd.go.kr|_blank">강원특별자치도</option>
+        <option value="https://www.gn.go.kr|_blank">강릉시</option>
+        <option value="https://www.gwgs.go.kr|_blank">고성군</option>
+        <option value="https://www.dh.go.kr|_blank">동해시</option>
+        <option value="https://www.samcheok.go.kr|_blank">삼척시</option>
+        <option value="https://www.sokcho.go.kr|_blank">속초시</option>
+        <option value="https://www.yanggu.go.kr|_blank">양구군</option>
+        <option value="https://www.yangyang.go.kr|_blank">양양군</option>
+        <option value="https://www.yw.go.kr/|_blank">영월군</option>
+        <option value="https://www.wonju.go.kr/|_blank">원주시</option>
+        <option value="https://www.inje.go.kr/|_blank">인제군</option>
+        <option value="https://www.jeongseon.go.kr/|_blank">정선군</option>
+        <option value="https://www.cwg.go.kr/|_blank">철원군</option>
+        <option value="https://www.chuncheon.go.kr/|_blank">춘천시</option>
+        <option value="http://www.taebaek.go.kr/|_blank">태백시</option>
+        <option value="https://www.pc.go.kr/|_blank">평창군</option>
+        <option value="https://www.hongcheon.go.kr/|_blank">홍천군</option>
+        <option value="https://www.ihc.go.kr/|_blank">화천군</option>
+        <option value="https://www.hsg.go.kr/|_blank">횡성군</option>
+	</select>
+	</div>
+	<div class="col-md-3">
+	<select name="name" onchange="goURL(this.value)" class="f16 form-select form-select-lg mb-3" aria-label=".form-select-lg example">
+		<option value="">::: 전국TP :::</option>
+        <option value="https://www.gtp.or.kr/|_blank">경기테크노파크</option>
+        <option value="https://www.gntp.or.kr/|_blank">경남테크노파크</option>
+        <option value="https://www.gbtp.or.kr/|_blank">경북테크노파크</option>
+        <option value="https://www.gjtp.or.kr/|_blank">광주테크노파크</option>
+        <option value="https://dgtp.or.kr/|_blank">대구테크노파크</option>
+        <option value="https://www.djtp.or.kr/|_blank">대전테크노파크</option>
+        <option value="https://www.btp.or.kr/|_blank">부산테크노파크</option>
+        <option value="https://www.seoultp.or.kr/|_blank">서울테크노파크</option>
+        <option value="https://www.utp.or.kr/|_blank">울산테크노파크</option>
+        <option value="https://www.itp.or.kr/|_blank">인천테크노파크</option>
+        <option value="http://www.jntp.or.kr/|_blank">전남테크노파크</option>
+        <option value="https://www.jbtp.or.kr/|_blank">전북테크노파크</option>
+        <option value="https://www.jejutp.or.kr/|_blank">제주테크노파크</option>
+        <option value="https://www.ctp.or.kr/|_blank">충남테크노파크</option>
+        <option value="https://www.cbtp.or.kr/|_blank">충북테크노파크</option>
+        <option value="https://www.ptp.or.kr/|_blank">포항테크노파크</option>
+	</select>
+	</div>
+	
+	<div class="col-md-3">
+	<select name="name" onchange="goURL(this.value)" class="f16 form-select form-select-lg mb-3" aria-label=".form-select-lg example">
+		<option value="">::: TP유관기관 :::</option>
+        <option value="http://www.gwep.or.kr/|_blank">강원특별자치도산업경제진흥원</option>
+        <option value="https://tradesupport.gwd.go.kr/|_blank">강원특별자치도수출기업서포트</option>
+        <option value="http://www.gi.re.kr/|_blank">강원연구원</option>
+        <option value="https://www.cbf.or.kr/|_blank">(재)춘천바이오산업진흥원</option>
+        <option value="https://www.wmit.or.kr/|_blank">(재)원주의료기기테크노밸리</option>
+        <option value="https://gsipa.or.kr/|_blank">(재)강릉과학산업진흥원</option>
+        <option value="https://www.g4b.go.kr:441/svc/main.do|_blank">기업지원플러스</option>
+        <option value="https://www.bizinfo.go.kr/|_blank">중소벤처기업연구원</option>
+        <option value="https://www.ntis.go.kr/|_blank">국가과학기술종합정보서비스</option>
+        <option value="https://www.kosmes.or.kr/|_blank">중소벤처기업진흥공단</option>
+        <option value="https://www.ntb.kr/|_blank">NTB기술은행</option>
+        <option value="https://www.kiat.or.kr/|_blank">한국산업기술진흥원</option>
+        <option value="https://www.startbiz.go.kr/|_blank">온라인법인설립시스템</option>
+		<option value="https://www.kwcenter.or.kr/|_blank">한국여성수련원</option>
+	</select>
+	</div>
+	
+	<div class="col-md-3">
+	<select name="name" onchange="goURL(this.value)" class="f16 form-select form-select-lg mb-3" aria-label=".form-select-lg example">
+		<option value="">::: TP유관대학 :::</option>
+		<option value="https://www.gwnu.ac.kr/|_blank">강릉원주대학교</option>
+		<option value="https://www.gw.ac.kr/|_blank">강원특별자치도립대학교</option>
+		<option value="https://www.kangwon.ac.kr/|_blank">강원대학교</option>
+		<option value="https://wwwk.kangwon.ac.kr/www/contents.do?key=271|_blank">강원대학교 삼척캠퍼스</option>
+		<option value="https://www.cku.ac.kr/|_blank">가톨릭관동대학교</option>
+		<option value="https://www.sangji.ac.kr/|_blank">상지대학교</option>
+		<option value="https://www.yonsei.ac.kr/wj/|_blank">연세대학교 원주미래캠퍼스</option>
+		<option value="https://www.halla.ac.kr/|_blank">한라대학교</option>
+		<option value="https://www.hallym.ac.kr/|_blank">한림대학교</option>
+	</select>
+	</div>
+</div>	
+</div>
+			</div>
+			
+		</div>
+	</div>
+</div>
+
+	
+<!-- 하단 -->
+<div class="container-fluid dView bg_3d3d3d">
+	<div class="container">
+		<div class="row">
+			<footer class="bg_3d3d3d">
+	<div class="container">
+		<div class="row">
+			<div class="col-12 col-lg-3 mt40 mb40">
+				<p class="mt10"><a href="https://www.gwtp.or.kr/gwtp/index.php"><img src="../data/designImages/BANNER_1773810004하단로고 -강원테크노파크로고-흰색 - 복사본.png" alt="logo" class="img-responsive2"></a></p><br>
+			</div>
+			<div class="col-12 col-lg-9 mt40 mb40">
+				<a href="#" class="ft_fff" data-bs-toggle="modal" data-bs-target="#myModal1"><span class="ft_fff f16 pe-2">이용약관</span></a><span class="ft_fff f12 pe-2">|</span>
+				<a href="#" class="ft_fff" data-bs-toggle="modal" data-bs-target="#myModal2"><span class="ft_fff f16 pe-2">개인정보취급방침</span></a>&nbsp;<span class="ft_fff f12 pe-2">|</span>
+				<a href="#" class="ft_fff" data-bs-toggle="modal" data-bs-target="#myModal3"><span class="ft_fff f16 pe-2">이메일주소무단수집거부</span></a>
+				<p class="ft_fff mt20" style="font-size:14px;line-height:20px;">(24206) 강원특별자치도 춘천시 신북읍 신북로 61-10 강원테크노파크 기술혁신지원센터<br>전화번호 : 033-248-5600<br>Copyright © 강원테크노파크. All Rights Reserved.</p>
+			</div>
+		</div>
+	</div>
+</footer>
+		</div>
+	</div>
+</div>
+
+		
+<!-- Modal1 -->
+<div class="modal fade" id="myModal1" tabindex="-1" aria-labelledby="myModal1Label" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg_bebebe">
+        <h5 class="modal-title" id="myModal1Label">이용약관</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+      </div>
+      <div class="modal-body">
+       <p class="sp-lh_20">제 1 조 (목적)<br>이 약관은 강원테크노파크(이하 "재단"라 합니다)이 제공하는 모든 서비스(이하 "서비스"라 한다)의 이용 조건 및 절차에 관한 기본적인 사항에 대해 정의하는 것을 목적으로 합니다.<br><br>제 2 조 (약관의 효력 및 변경)<br>① 이 약관은 서비스를 통하여 알리거나, 전자우편 등의 방법으로 회원에게 알림으로써 효력을 발생합니다.<br>② 재단는 이 약관의 내용을 변경할 수 있으며, 변경된 약관은 제1항과 같은 방법으로 알림으로써 효력을 발생합니다.<br><br>제 3 조 (약관 이외의 준칙)<br>이 약관에 언급되지 않은 사항이 전기통신기본법, 전기통신사업법, 기타 관련법령에 규정되어 있는 경우 그 규정에 따라 적용할 수 있습니다.<br><br>제 4조 (이용계약의 성립)<br>① "이용약관에 동의하십니까?" 라는 이용신청시의 물음에 회원이 "동의"버튼을 클릭하면이 약관에 동의하는 것으로 간주됩니다.<br>② '회원'이 변경된 약관에 동의하지 않을 경우, '서비스' 이용을 중단하고 탈퇴할 수 있습니다. 약관이 변경된 이후에도 계속적으로 '서비스'를 이용하는 경우에는 '회원'이 약관의 변경 사항에 동의한 것으로 봅니다.<br>③ 이용계약은 서비스 이용희망자의 이용약관 동의 후 이뤄지는 이용 신청에 대하여 재단가 승낙함으로써 성립합니다.<br>④ 단, 가입신청자가 본 약관 제10조에 의하여 이전에 회원자격을 상실한 적이 있는 경우. 다만 제10조에 의한 회원자격 상실 후 3년이 경과한 자로서 재단의 회원 재가입 승낙을 얻은 경우에는 예외로 합니다.<br><br>제 5조 (회원의 탈퇴및 자격 상실)<br>① 회원은 재단에 언제든지 자신의 회원 등록을 말소해 줄 것(회원 탈퇴)을 요청할 수 있으며 재단는 위 요청을 받은 즉시 해당 회원의 회원 등록 말소를 위한 절차를 밟습니다.<br>② 회원이 다음 각 호의 사유에 해당하는 경우, 재단는 회원의 회원자격을 적절한 방법으로 제한 및 정지, 상실 시킬 수 있습니다.<br>1. 가입 신청 시에 허위 내용을 등록한 경우<br>2. 다른 사람의 재단 이용을 방해하거나 그 정보를 도용하는 등 전자거래질서를 위협하는 경우<br>3. 재단를 이용하여 법령과 본 약관이 금지하거나 공서양속에 반하는 행위를 하는 경우<br>4. 재단가 회원의 회원자격을 상실 시키기로 결정한 경우에는 회원등록을 말소합니다.<br><br>제 6 조 (이용신청)<br>① 본 서비스를 이용하기 위해서는 재단 소정의 가입신청 양식에서 요구하는 모든 회원 정보를 기록하여 신청해야 합니다.<br>② 가입신청 양식에 쓰는 모든 회원 정보는 모두 실제 데이터인 것으로 간주됩니다. 실명이나 실제 정보를 입력하지 않은 사용자는 법적인 보호를 받을 수 없으며, 서비스의 제한을 받을 수 있습니다.<br><br>제 7 조 (이용신청의 승낙)<br>① 재단는 제 5,6,조의 각 조항에 위배되는 경우를 제외하곤 서비스 이용신청을 승낙합니다.<br>② 재단는 다음에 해당하는 경우, 그 사유가 해소될 때까지 승낙을 유보할 수 있습니다.<br>가. 서비스 관련 설비에 여유가 없는 경우<br>나. 기술상 지장이 있는 경우<br>다. 기타 재단가 필요하다고 인정되는 경우<br>③ 재단는 다음에 해당하는 경우, 가입을 승낙하지 않을 수 있습니다.<br>가. 본인의 주민등록번호가 아닌 경우 (다른 사람의 명의 또는 가명을 사용하여 신청하였을 경우)<br>나. 이용신청시 필요내용을 허위로 기재하여 신청한 경우<br>다. 사회의 안녕 질서 또는 미풍양속을 저해할 목적으로 신청한 경우<br>라. 기타 재단가 정한 이용신청 요건에 맞지 않을 경우<br>마. 만14세 미만의 아동이 부모 등의 법정대리인의 동의를 얻지 않은 경우<br>④ '회원'은 타회원의 정보 중 공개가 되어 있는 부분을 볼 수 있으며, 자신의 정보도 공개/비공개를 선택할 수 있습니다.<br><br>제 8 조 (회원정보의 변경)<br>회원은 이용신청 시 기재한 회원정보가 변경되었을 경우에는, 온라인으로 수정을 하여야하며 변경을 하지 않아 생기는 문제의 책임은 회원에게 있습니다<br><br>제 9 조 (재단의 의무)<br>① 재단는 서비스 제공과 관련하여 취득한 회원의 개인정보를 본인의 사전 승낙 없이 타인에게 누설, 공개 또는 배포할 수 없으며, 서비스관련 업무 이외의 상업적 목적으로 사용 할 수 없습니다. 단, 다음에 해당하는 경우는 예외입니다.<br>- 금융실명거래 및 비밀보장에 관한 법률, 신용정보의 이용 및 보호에 관한 법률, 전기통신기본법, 전기통신 사업법, 지방세법, 소비자보호법, 한국은행법,형사소송법 등 법령에 특별한 규정이 있는 경우<br>- 통계작성/학술연구 또는 시장조사를 위하여 필요한 경우로서 특정 개인을 식별할 수 없는 형태로 제공하는 경우<br>- 이벤트 참여 및 기타 보다 나은 서비스 제공을 위하여 이벤트 주최 및 후원하는비즈니스 파트너 및 제휴사와는 회원의 일부 정보를 공유하는 경우<br>- 공지된 비즈니스파트너 및 제휴사가 제공하는 상품이나 서비스제공을 위한 경우<br>② ①항의 범위 내에서, 재단는 업무와 관련하여 회원 전체 또는 일부의 개인 정보에 관한 통계 자료를 작성하여 이를 사용할수 있고, 서비스를 통하여 회원의 컴퓨터에 쿠키를전송할 수 있습니다. 이 경우 회원은 쿠키의 수신을 거부하거나 쿠키의 수신에 대하여 경고하도록 사용하는 컴퓨터의 브라우져의 설정을 변경할 수 있습니다.<br>③ 재단는 회원에게 회원의 서비스 이용 및 재단의 각종 행사 또는 정보서비스에 대해서 E메일이나 서신우편 등의 방법으로 회원에게 제공할 수 있습니다. 또한, 회원이 등록시 재단의 포탈사이트 및 협력사들로부터 제공되는 제안이나 정보를 받아보겠다고 표시하셨다면, 서비스나 제품들에 관한 소식을 e-mail로 보내드릴 것입니다. 만약 이러한 종류의 메일을 받고 싶지 않으시면, 개인정보수정에서 메일을 받고 싶지 않다는 내용으로 자신의 정보를 수정하시면 됩니다.<br>④ 재단는 회원으로부터 제기되는 불만이 정당하다고 인정할 경우에는 즉시 처리함을 원칙으로 합니다. 다만 즉시 처리가 곤란한 경우에는 회원에게 그 사유와 처리 일정을 통보합니다.<br><br>제 10 조 (회원의 의무)<br>① 회원은 서비스 이용 시 다음 각 호의 행위를 하지 않아야 합니다.<br>가. 다른 회원의 ID및 개인정보를 수집, 저장하여 부정하게 사용하는 행위<br>나. 서비스로 얻은 정보를 재단의 사전승낙 없이 회원의 이용이외의 목적으로 복제, 변경, 출판 및 방송 등에 사용하거나 타인에게 제공하는 행위<br>다. 재단의 저작권, 타인의 저작권 등 기타 권리를 침해하는 행위<br>라. 공공질서 및 미풍양속에 위반되는 내용의 정보, 문장, 도형 등을 타인에게 유포하는 행위<br>마. 범죄와 결부된다고 객관적으로 판단되는 행위<br>바. 기타 관계법령에 위배되는 행위<br>② 회원은 관계법령, 이 약관에서 규정하는 사항, 서비스 이용 안내 및 주의 사항을 준수하여야 합니다.<br>③ 회원은 내용별로 재단가 서비스 공지사항에 게시하거나 별도로 공지한 이용 제한 사항을 준수하여야 합니다.<br>④ 회원은 재단의 사전 승낙없이 서비스를 이용하여 어떠한 영리행위도 할 수 없습니다.<br><br>제 11 조 (서비스의 범주)<br>① 이 약관은 재단에서 제공하는 모든서비스에 기본적으로 적용되며, 다른항의 별도 조항이 요구되는 서비스에는 부속약관을 둘 수 있습니다.<br>- 포탈사이트 서비스 범주<br>- 커뮤니티 서비스 범주<br>- 유,무형의 전자상거래 범주<br>- UMS 상세 서비스 범주<br>- 기타 재단가 정한 부가서비스 범주<br><br>제 12 조 (회원 아이디(ID 및 주민등록번호)와 비밀번호 관리에 대한 회원의 의무)<br>① 아이디(ID 및 주민등록번호)와 비밀번호에 대한 모든 관리는 회원에게 책임이 있습니다. 회원에게 부여된 아이디(ID 및 주민등록번호)와 비밀번호의 관리소홀, 부정사용에 의해 생기는 모든 결과는 전적으로 회원에게 그 책임이 있습니다.<br>② 자신의 아이디(ID 및 주민등록번호)가 부정하게 사용된 경우 또는 기타 보안 위반에 대하여, 회원은 반드시 재단에 그 사실을 통보해야 합니다.<br><br>제 13조 (정보의 제공)<br>재단는 회원이 서비스 이용 중 필요하고 인정되는 다양한 정보에 대해서 전자메일이나 서신우편 등의 방법으로 회원에게 제공할 수 있으며, 회원은 원하지 않을 경우 가입신청 메뉴와 회원정보수정 메뉴에서 정보수신거부를 할 수 있습니다.<br><br>제 14조 (광고주와의 거래)<br>재단는 본 사이트에 게재되어 있거나 본 서비스를 통한 광고주의 판촉활동에 회원이 참여하여 거래한 결과로서 발생하는 모든 손실과 손해에 대해 책임을 지지 않습니다.<br><br>제 15조 (회원의 게시물)<br>재단는 회원이 본 서비스를 통하여 게시, 게재, 전자메일 또는 달리 전송한 내용물에 대해 일체 민,형사상의 책임을 지지 않으며, 다음의 경우에 해당될 경우 사전통지 없이 삭제할 수 있습니다.<br>① 다른 회원이나 타인을 비방하거나, 프라이버시를 침해하거나, 중상모략으로 명예를 손상시키는 내용인 경우<br>② 서비스의 안정적인 운영에 지장을 주거나 줄 우려가 있는 경우<br>③ 범죄적 행위에 관련된다고 인정되는 내용일 경우<br>④ 재단의 지적재산권, 타인의 지적재산권 등 기타 권리를 침해하는 내용인 경우<br>⑤ 재단에서 규정한 게시기간을 초과한 경우<br>⑥ 기타 관계법령에 위반된다고 판단되는 경우<br><br>제 16 조 (게시물에 대한 권리 및 책임)<br>① 본 사이트의 모든 게시물에 대한 저작권은 사전에 당사자간 명시한 별도의 의사표시가 없는 한 재단에 귀속됩니다.<br>② 게시물에 대한 보호는 재단에서 하며, 재단의 허가 없이 타인에 의해 게시물이 다른 사이트에서 사용 또는 인용되는 것은 금지 됩니다.<br><br>제 17 조 (메일의 내용)<br>① 재단는 회원의 메일 내용을 편집하거나 감시하지 않습니다.<br>② 메일의 내용에 대한 책임은 각 회원에게 있습니다.<br>③ 회원은 음란물이나 불온한 내용, 정크메일(junk mail), 스팸메일(spam mail) 및 타인에게 피해를 주거나 미풍양속을 해치는 메일을 보내서는 안됩니다.<br>④ 전기통신법 제 53조와 전기통신사업법 시행령 16조(불온통신), 통신사업법 제53조 3항에 의거, 음란물이나 불온한 내용을 전송함으로서 발생하는 모든 법적인 책임은 회원에게 있으며 재단는 책임지지 않습니다.<br>⑤ 본 서비스를 이용하여 타인에게 피해를 주거나 미풍양속을 해치는 행위를 하신 회원의 아이디(ID)와 메일은 보호 받을 수 없습니다.<br><br>제 18 조 (서비스 이용시간)<br>① 서비스는 재단의 업무상 또는 기술상의 장애, 기타 특별한 사유가 없는 한 연중무휴, 1일 24시간 이용할 수 있습니다. 다만 설비의 점검 등 재단가 필요한 경우 또는 설비의 장애, 서비스 이용의 폭주 등 불가항력으로 인하여 서비스 이용에 지장이 있는 경우, 예외적으로 서비스 이용의 전부 또는 일부에 대하여 제한할 수 있습니다. ② 재단는 제공하는 서비스 중 일부에 대한 서비스 이용시간을 별도로 정할 수 있으며, 이 경우 그 이용시간을 사전에 회원에게 공지 또는 통지합니다.<br><br>제 19 조 (서비스 이용 책임)<br>회원은 서비스를 이용하여 불법 상품을 판매하는 영업 활동을 할 수 없으며 특히 해킹, 돈벌기 광고, 음란사이트를 통한 상업행위, 상용 S/W 불법배포 등을 할 수 없습니다. 이를 어기고 발생한 영업활동의 결과 및 손실, 관계기관에 의한 구속 등 법적 조치등에 관해서는 재단가 책임을 지지 않습니다.<br><br>제 20 조 (서비스 제한 및 정지)<br>① 재단는 전시, 사변, 천재지변 또는 이에 준하는 국가비상사태가 발생하거나 발생할 우려가 있는 경우와 전기통신사업법에 의한 기간통신 사업자가 전기통신서비스를 중지하는등 기타 불가항력적 사유가 있는 경우에는 서비스의 전부 또는 일부를 제한하거나 정지할 수 있습니다.<br>② 재단는 제1항의 규정에 의하여 서비스의 이용을 제한하거나 정지한 때에는 그 사유 및 제한기간 등을 회원에게 알려야 합니다.<br><br>제 21 조 (계약해지 및 이용제한)<br>① 회원이 이용계약을 해지하고자 하는 때에는 회원 본인이 재단에 해지신청을 해야 합니다.<br>② 재단는 회원이 다음에 해당하는 행위를 하였을 경우 사전통지 없이 이용계약을 해지하거나 또는 기간을 정하여 서비스 이용을 중지할 수 있습니다.<br>가. 타인의 서비스 ID 및 비밀번호를 도용한 경우<br>나. 서비스 운영을 고의로 방해한 경우<br>다. 공공질서 및 미풍양속에 저해되는 내용을 고의로 유포시킨 경우<br>라. 회원이 국익 또는 사회적 공익을 저해할 목적으로 서비스이용을 계획 또는 실행하는 경우<br>마. 타인의 명예를 손상시키거나 불이익을 주는 행위를 한 경우<br>바. 서비스의 안정적 운영을 방해할 목적으로 다량의 정보를 전송하거나 광고성 정보를 전송하는 경우<br>사. 정보통신설비의 오작동 이나 정보 등의 파괴를 유발시키는 컴퓨터 바이러스 프로그램등을 유포하는 경우<br>아. 재단, 다른 회원 또는 타인의 지적재산권을 침해하는 경우<br>자. 정보통신윤리위원회 등 외부기관의 시정요구가 있거나 불법선거 운동과 관련하여 선거관리위원회의 유권해석을 받은 경우<br>차. 타인의 개인정보, 회원ID 및 비밀번호를 부정하게 사용하는 경우<br>카. 재단의 서비스 정보를 이용하여 얻은 정보를 재단의 사전 승낙없이 복제 또는 유통시키거나 상업적으로 이용하는 경우<br>타. 회원이 자신의 홈페이지와 게시판에 음란물을 게재하거나 음란사이트를 링크하는 경우<br>파. 본 약관을 포함하여 기타 재단가 정한 이용조건 및 관계법령을 위반한 경우<br><br>제 22 조 (손해배상)<br>재단는 서비스 이용과 관련하여 회원에게 발생한 어떠한 손해도 책임지지 않습니다.<br><br>제 23 조 (면책조항)<br>① 재단는 천재지변 또는 이에 준하는 불가항력으로 인하여 서비스를 제공할 수 없는 경우에는 서비스 제공에 관한 책임이 면제됩니다.<br>② 재단에서 제공하는 각 포탈사이트에서 얻은 정보와 특정전문가로부터의 질문의 대답 등으로 인해 회원에게 발생하는 손해는 재단가 책임지지 않습니다. 회원 각자는 스스로의 판단에 의하여 그러한 정보를 이용할 것을 확인합니다.<br>③ 재단는 회원의 잘못으로 인해 서비스 이용의 장애가 발생한 경우에는 책임이 면제됩니다.<br>④ 재단는 회원이 재단의 서비스 제공으로부터 기대되는 이익을 얻지 못하였거나, 서비스 자료에 대한 취사 선택 또는, 이용으로 발생하는 손해 등에 대해서는 책임이 면제됩니다. ⑤ 재단는 회원이 서비스에 게재한 정보, 자료, 사실의 신뢰도, 정확성 등 그 내용에 관해서 책임이 면제됩니다.<br><br>제 24조 (관할법원)<br>'서비스' 이용과 관련하여 소송이 제기될 경우 '재단'의 소재지를 관할하는 법원을 관할법원으로 합니다.<br><br>제 25조 (커뮤니티 관련 규정)<br>회원약관 제4장 11조에 의거, 커뮤니티 상세 서비스범주와 관련되어 약관을 다음과 같이 정의합니다.<br>① '재단"의 커뮤니티 중 일부 커뮤니티의 서비스를 받기 위해서 별도의 상세정보를 기입해야 할 수도 있습니다.<br>② 커뮤니티 서비스 이용에 따른 의무조항은 '재단'의 약관과 관계법률규정 및 관행에 따릅니다.<br>③ 재단은 원활한 서비스 이용을 위해 사전통보 없이 게시물 데이터 분리, 게시판 이동 등의 기술적 조처를 취할 수 있습니다.<br><br>[부칙] 시행일: 이 약관은 2004년 10월 12일부터 시행합니다.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="myModal2" tabindex="-1" aria-labelledby="myModal2Label" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg_bebebe">
+        <h5 class="modal-title" id="myModal2Label">개인정보취급방침</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+      </div>
+      <div class="modal-body">
+       <p class="sp-lh_20"><p style="line-height: 200%">
+강원테크노파크는 정보주체의 자유와 권리 보호를 위해 「개인정보 보호법」 및 관계 법령이 정한 바를 준수하여, 적법하게 개인정보를 처리하고 안전하게 관리하고 있습니다. 이에 「개인정보 보호법」 제30조에 따라 정보주체에게 개인정보 처리에 관한 절차 및 기준을 안내하고, 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 다음과 같이 개인정보 처리방침을 수립 ‧ 공개합니다.<br><br>
+
+
+제1조 (개인정보의 처리 목적)<br>
+① 강원테크노파크는 다음의 목적을 위하여 최소한의 개인정보를 수집하여 처리합니다. 처리하고 있는 개인정보는 다음 목적 이외의 용도로는 이용되지 않으며, 이용 목적이 변경되는 경우에는 「개인정보 보호법」 제18조에 따라 별도의 동의를 받는 등 필요한 조치를 이행할 예정입니다.<br><br>
+
+② 강원테크노파크가 개인정보보호법 제32조에 따라 등록·공개하는 개인정보파일의 처리목적은 다음과 같습니다.<br><br>
+</p>
+<table width="100%" style="border: 1px solid;">
+  <tbody>
+    <tr>
+      <td width="30%" height="40" align="center" valign="middle" style="background-color: aliceblue;border: 1px solid;">구분</td>
+      <td width="70%" align="center" valign="middle" style="background-color: aliceblue;border: 1px solid;">회원정보</td>
+    </tr>
+    <tr>
+      <td height="40" align="center" valign="middle" style="border: 1px solid;">보유근거</td>
+      <td align="center" valign="middle" style="border: 1px solid;">정보주체의 동의</td>
+    </tr>
+    <tr>
+      <td height="40" align="center" valign="middle" style="border: 1px solid;">보유목적</td>
+      <td align="center" valign="middle" style="border: 1px solid;">클린신고센터 운영관리 및 이용</td>
+    </tr>
+    <tr>
+      <td height="40" align="center" valign="middle" style="border: 1px solid;">수집방법</td>
+      <td align="center" valign="middle" style="border: 1px solid;">온라인 수입(신고센터)</td>
+    </tr>
+    <tr>
+      <td height="40" align="center" valign="middle" style="border: 1px solid;">수집항목</td>
+      <td align="center" valign="middle" style="border: 1px solid;">필수항목: 이름, 소속, 직위, 연락처, 이메일</td>
+    </tr>
+  </tbody>
+</table>
+<br><br>	
+<p style="line-height: 200%">
+제2조 (개인정보의 처리 및 보유 기간)<br>
+① 강원테크노파크는 법령에 따른 개인정보 보유·이용기간 또는 정보주체로부터 개인정보를 수집시에 동의받은 개인정보 보유·이용기간 내에서 개인정보를 처리·보유합니다.
+<br><br>
+제3조 (개인정보의 제3자 제공)<br>
+① 강원테크노파크는 원칙적으로 정보주체의 개인정보를 수집·이용 목적으로 명시한 범위 내에서 처리하며, 정보주체의 사전 동의 없이는 본래의 목적 범위를 초과하여 처리하거나 제3자에게 제공하지 않습니다. 단, 다음의 경우에는 개인정보를 처리할 수 있습니다.
+<br><br>
+가. 정보주체가 사전에 제3자 제공 및 공개에 동의한 경우<br>
+나. 법령 등에 의해 제공이 요구되는 경우<br>
+다. 정보주체 또는 그 법정대리인이 의사표시를 할 수 없는 상태에 있거나 주소불명 등으로 사전 동의를 받을 수 없는경우로서 명백히 정보주체 또는 제3자의 급박한 생명, 신체, 재산의 이익을 위하여 필요하다고 인정되는 경우로서 명백히 정보주체 또는 제3자의 급박한 생명, 신체, 재산의 이익을 위하여 필요하다고 인정되는 경우<br>
+라. 개인을 식별하기에 특정할 수 없는 상태로 가공하여 이용하는 경우<br><br>
+	
+제4조 (개인정보처리 위탁)<br>
+① 강원테크노파크는 원활한 개인정보 업무처리를 위하여 다음과 같이 개인정보 처리업무를 위탁하고 있습니다.<br><br>
+
+가. 수탁업체<br><br>
+</p>
+<table width="100%" style="border: 1px solid;">
+  <tbody>
+    <tr>
+      <td  width="60%" height="40" align="center" style="background-color: aliceblue;border: 1px solid;">수탁업체</td>
+      <td  width="40%" align="center" style="background-color: aliceblue;border: 1px solid;">위탁업무의 내용</td>
+    </tr>
+    <tr>
+      <td height="80" style="border: 1px solid;">- 위탁받는자: 주식회사 애크론<br>
+- 주소: 강원 춘천시 춘천로 188 메가씨티 722<br>
+- 위탁하는 개인정보 항목: 이름, 소속, 직위, 연락처, 이메일</td>
+      <td align="center" style="border: 1px solid;">홈페이지 유지보수</td>
+    </tr>
+  </tbody>
+</table>
+<br><br>
+<p style="line-height: 200%">
+제5조 (정보주체와 법정대리인의 권리·의무 및 그 행사방법에 관한 사항)<br>
+① 정보주체(만 14세 미만인 경우에는 법정대리인을 말함)는 언제든지 강원테크노파크가 보유하고 있는 개인정보에 대하여 개인정보 열람․정정․삭제․처리정지 요구 등의 권리를 행사할 수 있습니다.<br>
+
+② 제1항에 따른 권리 행사는 개인정보 처리 방법에 관한 고시 별지 제8호 서식을 작성 후 서면, 전화, 전자우편, 모사전송(FAX) 등을 통하여 하실 수 있으며 강원테크노파크는 이에 대해 지체없이 조치하겠습니다.<br>
+
+③ 제1항에 따른 권리 행사는 정보주체의 법정대리인이나 위임을 받은 자 등 대리인을 통하여 하실 수 있습니다.<br>
+
+④ 개인정보 열람 및 처리정지 요구는 개인정보보호법 제35조 제4항, 제37조 제2항에 의하여 정보주체의 권리가 제한 될 수 있습니다.<br>
+
+⑤ 개인정보의 정정 및 삭제 요구는 다른 법령에서 그 개인정보가 수집 대상으로 명시되어 있는 경우에는 그 삭제를 요구할 수 없습니다.<br>
+
+⑥ 정보주체 권리에 따른 열람의 요구, 정정·삭제의 요구, 처리정지의 요구 시 열람 등 요구를 한 자가 본인이거나 정당한 대리인인지를 확인합니다.<br><br>
+
+제6조 (처리하는 개인정보의 항목)<br>
+강원테크노파크에서 처리하는 개인정보 항목 및 수집 방법은 제1조(개인정보의 처리 목적) 2항의 개인정보파일현황과 같습니다.<br><br>
+
+제7조 (개인정보 파기 절차 및 방법)<br>
+① 강원테크노파크는 원칙적으로 개인정보 처리목적이 달성된 경우에는 지체없이 해당 개인정보를 파기합니다. 다만, 다른 법률에 따라 보존하여야하는 경우에는 그러하지 않습니다. 파기의 절차, 기한 및 방법은 다음과 같습니다.<br><br>
+
+가. 파기절차<br>
+강원테크노파크는 파기 사유가 발생한 개인정보를 선정하고, 강원테크노파크의 개인정보보호책임자의 승인을 받아 개인정보를 파기합니다.<br><br>
+
+나. 파기방법<br>
+1) 전자적 형태의 정보는 기록을 재생할 수 없는 기술적 방법을 사용합니다.<br>
+2) 종이에 출력된 개인정보는 분쇄기로 분쇄하거나 소각을 통하여 파기합니다.<br><br>
+
+제8조 (개인정보의 안전성 확보 조치)<br>
+강원테크노파크는 「개인정보보호법」 제29조에 따라 다음과 같이 안전성 확보에 필요한 기술적, 관리적, 물리적 조치를 하고 있습니다.<br><br>
+
+1. 내부관리계획의 수립 및 시행<br>
+개인정보의 안전한 처리를 위하여 내부관리계획을 수립하고 시행하고 있습니다.<br><br>
+
+2. 개인정보 취급 직원의 최소화 및 교육<br>
+개인정보를 취급하는 직원을 지정하고 담당자에 한정시켜 최소화 하여 개인정보를 관리하는 대책을 시행하고 있습니다.<br><br>
+
+3. 개인정보에 대한 접근 제한<br>
+개인정보를 처리하는 데이터베이스시스템에 대한 접근권한의 부여,변경,말소를 통하여 개인정보에 대한 접근통제를 위하여 필요한 조치를 하고 있으며 침입차단시스템을 이용하여 외부로부터의 무단 접근을 통제하고 있습니다.<br><br>
+
+4. 접속기록의 보관 및 위변조 방지<br>
+개인정보처리시스템에 접속한 기록을 최소 1년 이상 보관, 관리하고 있으며,다만, 5만명 이상의 정보주체에 관하여 개인정보를 추가하거나, 고유식별정보 또는 민감정보를 처리하는 경우에는 2년이상 보관, 관리하고 있습니다.<br>
+또한, 접속기록이 위변조 및 도난, 분실되지 않도록 보안기능을 사용하고 있습니다.<br><br>
+
+5. 개인정보의 암호화<br>
+이용자의 개인정보는 비밀번호는 암호화 되어 저장 및 관리되고 있어, 본인만이 알 수 있으며 중요한 데이터는 파일 및 전송 데이터를 암호화 하거나 파일 잠금 기능을 사용하는 등의 별도 보안기능을 사용하고 있습니다.<br><br>
+
+6. 보안프로그램 설치 및 주기적 점검·갱신<br>
+해킹이나 컴퓨터 바이러스 등에 의한 개인정보 유출 및 훼손을 막기 위하여 보안프로그램을 설치하고 주기적으로 갱신·점검하고 있습니다.<br><br>
+
+7. 비인가자에 대한 출입 통제<br>
+개인정보를 보관하고 있는 물리적 보관 장소를 별도로 두고 이에 대해 출입통제 절차를 수립, 운영하고 있습니다.<br><br>
+
+제9조 (행태정보의 수집·이용·제공 및 거부 등에 관한 사항)<br>
+강원테크노파크는 온라인 맞춤형 광고 등을 위한 행태정보를 수집·이용·제공하지 않습니다.<br><br>
+
+제10조(개인정보 열람청구)<br>
+① 정보주체는 개인정보보호법 제35조에 따른 개인정보의 열람 청구를 아래의 부서에 할 수 있습니다. 강원테크노파크는 정보주체의 개인정보 열람청구가 신속하게 처리되도록 노력하겠습니다.<br>
+▶ 개인정보 열람청구 접수·처리 부서<br>
+부서명: 윤리경영실/감사팀<br>
+담당자: 김혜수<br>
+연락처: 033-248-5650<br><br>
+
+제11조 (개인정보 보호책임자)<br>
+① 강원테크노파크는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 정보주체의 불만처리 및 피해구제 등을 위하여 아래와 같이 개인정보 보호책임자를 지정·운영하고 있습니다.<br>
+▶ 개인정보보호 책임자<br>
+성명: 박강희<br>
+직책: 행정지원실장<br>
+연락처: 033-248-5673, pkh@gwtp.or.kr<br>
+▶ 개인정보보호 담당자<br>
+담당자: 박강희<br>
+직책: 행정지원팀장<br>
+연락처: 033-248-5656, pkh@gwtp.or.kr<br><br>
+
+제12조 (권익침해 구제방법)<br>
+정보주체는 개인정보침해로 인한 구제를 받기 위하여 개인정보분쟁조정위원회, 한국인터넷진흥원 개인정보침해신고센터 등에 분쟁해결이나 상담 등을 신청할 수 있습니다. 이 밖에 기타 개인정보침해의 신고, 상담에 대하여는 아래의 기관에 문의하시기 바랍니다.<br>
+1. 개인정보분쟁조정위원회 : (국번없이) 1833-6972 (www.kopico.go.kr)<br>
+2. 개인정보침해신고센터 : (국번없이) 118 (privacy.kisa.or.kr)<br>
+3. 대검찰청 : (국번없이) 1301 (www.spo.go.kr)<br>
+4. 경찰청 : (국번없이) 182 (ecrm.cyber.go.kr)<br><br>
+
+「개인정보보호법」제35조(개인정보의 열람), 제36조(개인정보의 정정·삭제), 제37조(개인정보의 처리정지 등)의 규정에 의한 요구에 대 하여 공공기관의 장이 행한 처분 또는 부작위로 인하여 권리 또는 이익의 침해를 받은 자는 행정심판법이 정하는 바에 따라 행정심판을 청구할 수 있습니다.<br><br>
+
+※ 행정심판에 대해 자세한 사항은 중앙행정심판위원회(www.simpan.go.kr) 홈페이지를 참고하시기 바랍니다.<br><br>
+
+제13조 (개인정보 자동 수집 장치의 설치•운영 및 거부)<br>
+강원테크노파크는 정보주체의 이용정보를 저장하고 수시로 불러오는 ‘쿠키(cookie)’를 사용하지 않습니다.<br><br>	
+	
+제14조 (개인정보 처리방침의 변경)<br>
+① 본 방침은 2023년 12월 18일부터 시행됩니다.<br>	
+</p></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="myModal3" tabindex="-1" aria-labelledby="myModal3Label" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg_bebebe">
+        <h5 class="modal-title" id="myModal3Label">이메일주소무단수집거부</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+      </div>
+      <div class="modal-body">
+       <p class="sp-lh_20">(재)강원테크노파크는 본 사이트에서 게시된 이메일 주소가 전자우편 수집 프로그램이나 그 밖의 기술적 장치를 이용하여 무단으로 수집되는 것을 거부하며, 이를 위반할 시 종보통신망법에 의해 형사처벌됨을 유의하기시 바랍니다.<br><br>정보통신망법 제 50조의 2 (전자우편의 무단수집행위 등 금지).<br>①. 누구든지 전자우편의 수집을 거부하는 의사가 명시된 인터넷 홈페이지에서 자동으로 전자우편 주소를 수집하는 프로그램, 그밖의 기술적 장치를 이용하여 전자우편주소를 수집하여서는 아니된다<br>②. 누구든지 제 1항의 규정을 위반하여 수집된 전자우편 주소를 판매,유통해서는아니된다.<br>③. 누구든지 제 1항 및 제 2항의 규정에 의하여 수집,판매 및 유동이 금지된 전자우편주소임을 알고 이를 정보전송에 이용하여서는 아니된다.<br>∇ 만일, 위와 같은 기술적 장치를 사용한 이메일주소 무단수집 피해를 당하신 경우 불법스팸 대응센터 전용전화(1336)나홈페이지(www.spamcop.or.kr)의 신고창을 통하여 신고하여 주시기 바랍니다.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+	@media all and (max-width:767px){ 
+		.has-feedback .form-control {padding:20px 10px 20px 40px;}
+		.form-control-feedback {left:0!important;color:#d2d2d2;line-height:42px;height:42px;}
+		 
+	}
+	@media all and (min-width:768px){ 
+		.has-feedback .form-control {padding:20px 10px 20px 40px;}
+		.form-control-feedback {left:0!important;color:#d2d2d2;line-height:42px;height:42px;}
+	}
+</style>
+
+<script>
+$(function(){
+    // Show the Modal on load
+    $("#myModal").modal("show");
+});
+</script>
+<script>
+$(function() {
+    $(document).tooltip();
+});
+</script>
+<script>
+// 멀티 슬라이드
+$('.carousel[data-type="multi"] .item').each(function() {
+	var next = $(this).next();
+	if (!next.length) {
+		next = $(this).siblings(':first');
+	}
+	next.children(':first-child').clone().appendTo($(this));
+
+	for (var i = 0; i < 1; i++) {
+		next = next.next();
+		if (!next.length) {
+			next = $(this).siblings(':first');
+		}
+
+		next.children(':first-child').clone().appendTo($(this));
+	}
+});
+</script>
+<!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>-->
+<script type="text/javascript" src="./js/endless_scroll_min.js"></script>
+<script type="text/javascript">
+$(window).on('load',(function () {
+	$("#bnr").endlessScroll({ width: '100%', height: '52px', steps: -1, speed: 40, mousestop: true });
+}));
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.7.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/gwtp/js/lightbox/lightbox-2.7.1.min.js"></script>
+</body>
+</html>

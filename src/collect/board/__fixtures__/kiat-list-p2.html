@@ -1,0 +1,6092 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1"/>
+<title>KIAT(Korea Institute for Advancement of Technology) </title>
+<style></style>
+<script  language="javascript"></script>
+
+</head>
+<body>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" src="/assets/jquery/jquery.blockUI.js"></script>
+<script language="javascript">
+
+var boardContentsListUrl = "/front/board/boardContentsListAjax.do";
+var businessGuideFileDownUrl = "/commonfile/yearFileidDownLoad.do";
+
+$(document).ready(function(){
+	// 댓글수 노출여부 확인후 숨기기(미구현)
+	
+		$("#comment_cnt").hide();
+	
+	// 답변 노출여부 확인후 숨기기(미구현)
+	
+		$("#reply_status").hide();
+	
+	
+	$(".app_state").each(function() {
+		fn_app_state2($(this).data("start"), $(this).data("end"), $(this), '진행전', '접수중', '접수마감', 'state  st2', 'state  st2', 'state  st3');
+	});
+	
+// 	$(".selectPageSize").on("change", function() {
+// 		$("#miv_pageNo").val(1);
+// 		search();
+// 	});
+});
+
+/* 사업안내자료 다운로드 */
+function businessGuideFileDown() {
+	var contents_year;
+	
+// 	if(!"") {
+// 		contents_year = $('#contents_year option:eq(1)').val();
+// 	}else if(""){
+// 		contents_year = ""
+// 	}
+
+	contents_year = $("#s_field_year").val();
+		
+ 	$.ajax({
+ 		   method:"POST",
+           url: businessGuideFileDownUrl,
+           data : {
+        	   contents_year : contents_year
+           },
+		success:function(data){
+			
+			if(!data.message) {
+				window.location.href ="/commonfile/yearFileidDownLoad.do?contents_year="+contents_year;	
+			} else {
+				alert(data.message);
+			}
+				
+		}
+	});
+}		
+
+</script>
+
+<div class="bbs_top">
+	
+		<p>총 게시글 <span>2598</span>건 &nbsp;</p>
+		
+		<select class="select selectPageSize" title="게시물 개수" id="pageSize" style="display=none";>
+			<option value="15" selected>15개</option>
+			<option value="20" >20개</option>
+			<option value="50" >50개</option>
+			<option value="100" >100개</option>
+		</select>
+	
+	
+	
+		<p class="float_r">
+			최근 업데이트 날짜 : 
+			
+				2026-08-28
+			
+			
+		</p>
+	
+</div>
+
+
+<div class="list_table_area only_web_list">
+	
+	<table class="list fixed listTypeA">
+		<caption>사업공고 리스트 화면</caption>
+		<colgroup>
+			
+				
+					<col style="width: 10%;" />
+				
+			
+				
+					<col style="width: 50%;" />
+				
+			
+				
+					<col style="width: 10%;" />
+				
+			
+				
+					<col style="width: 20%;" />
+				
+			
+				
+					<col style="width: 10%;" />
+				
+			
+		</colgroup>
+		<thead>
+		 <tr>
+			
+				
+				
+				<th scope="col" class="
+					first
+					
+				">
+				번호
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</th>
+				
+			
+				
+				
+				<th scope="col" class="
+					
+					
+				">
+				
+				
+				공고명
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</th>
+				
+			
+				
+				
+				<th scope="col" class="
+					
+					
+				">
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				공고일
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</th>
+				
+			
+				
+				
+				<th scope="col" class="
+					
+					
+				">
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				접수기간
+				
+				
+				
+				
+				
+				
+				
+				
+				</th>
+				
+			
+				
+				
+				<th scope="col" class="
+					
+					last
+				">
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				상태
+				
+				
+				
+				
+				
+				
+				
+				</th>
+				
+			
+		</tr>
+		</thead>
+		<tbody>			
+			
+			<tr>
+				
+				
+				<td class="
+					first
+					
+					
+					
+					
+					
+					 td_number
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+					
+					2583
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					 alignl
+					
+					
+					 td_title
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" style="text-align:left;"
+				>
+				
+				
+				
+				
+				
+					
+						
+							
+							
+							
+								<a href="javascript:contentsView('a01dea628353413dbf7da67285ad26b2')" >2026년 첨단분야 인턴십 지원사업 3차 공고</a>
+							
+							
+							
+						
+						
+					
+					
+					
+					
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_reg_date
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-07-15
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_term
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-07-15~2026-08-12
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					last
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_state
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				<span class="app_state" data-start="2026-07-15" data-end="2026-08-12"></span>
+				
+				
+				</td>
+				
+				
+			</tr>
+			
+			<tr>
+				
+				
+				<td class="
+					first
+					
+					
+					
+					
+					
+					 td_number
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+					
+					2582
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					 alignl
+					
+					
+					 td_title
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" style="text-align:left;"
+				>
+				
+				
+				
+				
+				
+					
+						
+							
+							
+							
+								<a href="javascript:contentsView('e594aa9a443949cfaffdbe66fc53b3a7')" >2026년도 녹색인증 유공자 포상 공고</a>
+							
+							
+							
+						
+						
+					
+					
+					
+					
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_reg_date
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-07-14
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_term
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-07-14~2026-08-14
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					last
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_state
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				<span class="app_state" data-start="2026-07-14" data-end="2026-08-14"></span>
+				
+				
+				</td>
+				
+				
+			</tr>
+			
+			<tr>
+				
+				
+				<td class="
+					first
+					
+					
+					
+					
+					
+					 td_number
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+					
+					2581
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					 alignl
+					
+					
+					 td_title
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" style="text-align:left;"
+				>
+				
+				
+				
+				
+				
+					
+						
+							
+							
+							
+								<a href="javascript:contentsView('338134a6d9f44105a5d89b3af7bd4566')" >2026년 산업기술국제협력사업(유로스타3) 11차공고 유럽 중앙접수 안내</a>
+							
+							
+							
+						
+						
+					
+					
+					
+					
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_reg_date
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-07-09
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_term
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-07-09~2026-09-10
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					last
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_state
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				<span class="app_state" data-start="2026-07-09" data-end="2026-09-10"></span>
+				
+				
+				</td>
+				
+				
+			</tr>
+			
+			<tr>
+				
+				
+				<td class="
+					first
+					
+					
+					
+					
+					
+					 td_number
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+					
+					2580
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					 alignl
+					
+					
+					 td_title
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" style="text-align:left;"
+				>
+				
+				
+				
+				
+				
+					
+						
+							
+							
+							
+								<a href="javascript:contentsView('506f072c2cc144c9a03a1fa56f28e0b5')" >2027년도 가상공학플랫폼구축사업(자율실험실) 신규 수요조사 공고</a>
+							
+							
+							
+						
+						
+					
+					
+					
+					
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_reg_date
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-07-08
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_term
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-07-08~2026-07-22
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					last
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_state
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				<span class="app_state" data-start="2026-07-08" data-end="2026-07-22"></span>
+				
+				
+				</td>
+				
+				
+			</tr>
+			
+			<tr>
+				
+				
+				<td class="
+					first
+					
+					
+					
+					
+					
+					 td_number
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+					
+					2579
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					 alignl
+					
+					
+					 td_title
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" style="text-align:left;"
+				>
+				
+				
+				
+				
+				
+					
+						
+							
+							
+							
+								<a href="javascript:contentsView('e36714afa6264c609902e0168ada4123')" >2026년도 산업통상부-공공기관 기술나눔 연장공고</a>
+							
+							
+							
+						
+						
+					
+					
+					
+					
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_reg_date
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-07-06
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_term
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-07-03~2026-07-20
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					last
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_state
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				<span class="app_state" data-start="2026-07-03" data-end="2026-07-20"></span>
+				
+				
+				</td>
+				
+				
+			</tr>
+			
+			<tr>
+				
+				
+				<td class="
+					first
+					
+					
+					
+					
+					
+					 td_number
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+					
+					2578
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					 alignl
+					
+					
+					 td_title
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" style="text-align:left;"
+				>
+				
+				
+				
+				
+				
+					
+						
+							
+							
+							
+								<a href="javascript:contentsView('85eacd88dbaa47aabed627fb2d4088f3')" >2026년도「신뢰성기반활용지원사업」수시형(2차) 참여기업 모집 안내</a>
+							
+							
+							
+						
+						
+					
+					
+					
+					
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_reg_date
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-07-06
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_term
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-07-06~2026-08-03
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					last
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_state
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				<span class="app_state" data-start="2026-07-06" data-end="2026-08-03"></span>
+				
+				
+				</td>
+				
+				
+			</tr>
+			
+			<tr>
+				
+				
+				<td class="
+					first
+					
+					
+					
+					
+					
+					 td_number
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+					
+					2577
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					 alignl
+					
+					
+					 td_title
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" style="text-align:left;"
+				>
+				
+				
+				
+				
+				
+					
+						
+							
+							
+							
+								<a href="javascript:contentsView('7bca70d5735c4511a16570b4ffebfa0c')" >2026년 청정제조기반구축사업 통합 공고</a>
+							
+							
+							
+						
+						
+					
+					
+					
+					
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_reg_date
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-07-06
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_term
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-07-06~2026-08-05
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					last
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_state
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				<span class="app_state" data-start="2026-07-06" data-end="2026-08-05"></span>
+				
+				
+				</td>
+				
+				
+			</tr>
+			
+			<tr>
+				
+				
+				<td class="
+					first
+					
+					
+					
+					
+					
+					 td_number
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+					
+					2576
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					 alignl
+					
+					
+					 td_title
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" style="text-align:left;"
+				>
+				
+				
+				
+				
+				
+					
+						
+							
+							
+							
+								<a href="javascript:contentsView('c321f6647f01407bb4f5245c29da7b90')" >산업혁신인재성장지원 사업(최고급 해외인재 유치지원) 추가 공고 안내</a>
+							
+							
+							
+						
+						
+					
+					
+					
+					
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_reg_date
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-06-30
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_term
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-06-30~2026-08-27
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					last
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_state
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				<span class="app_state" data-start="2026-06-30" data-end="2026-08-27"></span>
+				
+				
+				</td>
+				
+				
+			</tr>
+			
+			<tr>
+				
+				
+				<td class="
+					first
+					
+					
+					
+					
+					
+					 td_number
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+					
+					2575
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					 alignl
+					
+					
+					 td_title
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" style="text-align:left;"
+				>
+				
+				
+				
+				
+				
+					
+						
+							
+							
+							
+								<a href="javascript:contentsView('b219c89c566947d1975847caec850c46')" >2026년 기술사업화 유공자 포상 신청 공고</a>
+							
+							
+							
+						
+						
+					
+					
+					
+					
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_reg_date
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-06-29
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_term
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-06-29~2026-07-24
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					last
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_state
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				<span class="app_state" data-start="2026-06-29" data-end="2026-07-24"></span>
+				
+				
+				</td>
+				
+				
+			</tr>
+			
+			<tr>
+				
+				
+				<td class="
+					first
+					
+					
+					
+					
+					
+					 td_number
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+					
+					2574
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					 alignl
+					
+					
+					 td_title
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" style="text-align:left;"
+				>
+				
+				
+				
+				
+				
+					
+						
+							
+							
+							
+								<a href="javascript:contentsView('0ceefa7c9f814e79b3ea804ac6618cc8')" >2026년도 중견기업-공공연 개방형 혁신 지원 사업 신규과제 모집 공고</a>
+							
+							
+							
+						
+						
+					
+					
+					
+					
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_reg_date
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-06-26
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_term
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-06-26~2026-07-27
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					last
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_state
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				<span class="app_state" data-start="2026-06-26" data-end="2026-07-27"></span>
+				
+				
+				</td>
+				
+				
+			</tr>
+			
+			<tr>
+				
+				
+				<td class="
+					first
+					
+					
+					
+					
+					
+					 td_number
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+					
+					2573
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					 alignl
+					
+					
+					 td_title
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" style="text-align:left;"
+				>
+				
+				
+				
+				
+				
+					
+						
+							
+							
+							
+								<a href="javascript:contentsView('fe1725771c4e48c789e06fff611fe0ef')" >2026년도 지역산업위기대응  이차보전 지원사업 1차 변경공고</a>
+							
+							
+							
+						
+						
+					
+					
+					
+					
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_reg_date
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-06-17
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_term
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-06-16~2026-11-13
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					last
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_state
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				<span class="app_state" data-start="2026-06-16" data-end="2026-11-13"></span>
+				
+				
+				</td>
+				
+				
+			</tr>
+			
+			<tr>
+				
+				
+				<td class="
+					first
+					
+					
+					
+					
+					
+					 td_number
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+					
+					2572
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					 alignl
+					
+					
+					 td_title
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" style="text-align:left;"
+				>
+				
+				
+				
+				
+				
+					
+						
+							
+							
+							
+								<a href="javascript:contentsView('ed24963af39f40f2b7df0e78de9f63e8')" >지역산업위기대응 맞춤형 지원사업 울산광역시 남구 수행기관 선정 공고</a>
+							
+							
+							
+						
+						
+					
+					
+					
+					
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_reg_date
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-06-17
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_term
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-06-16~2026-07-06
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					last
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_state
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				<span class="app_state" data-start="2026-06-16" data-end="2026-07-06"></span>
+				
+				
+				</td>
+				
+				
+			</tr>
+			
+			<tr>
+				
+				
+				<td class="
+					first
+					
+					
+					
+					
+					
+					 td_number
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+					
+					2571
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					 alignl
+					
+					
+					 td_title
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" style="text-align:left;"
+				>
+				
+				
+				
+				
+				
+					
+						
+							
+							
+							
+								<a href="javascript:contentsView('c4cebfaaf9f64724bc9d4b6a1c9a2792')" >지역산업위기대응 맞춤형 지원사업 충남 당진시 수행기관 선정 공고</a>
+							
+							
+							
+						
+						
+					
+					
+					
+					
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_reg_date
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-06-17
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_term
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-06-16~2026-07-06
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					last
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_state
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				<span class="app_state" data-start="2026-06-16" data-end="2026-07-06"></span>
+				
+				
+				</td>
+				
+				
+			</tr>
+			
+			<tr>
+				
+				
+				<td class="
+					first
+					
+					
+					
+					
+					
+					 td_number
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+					
+					2570
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					 alignl
+					
+					
+					 td_title
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" style="text-align:left;"
+				>
+				
+				
+				
+				
+				
+					
+						
+							
+							
+							
+								<a href="javascript:contentsView('199d73633c574eeda3d6b66c8e1431e6')" >2026년도 관세피해업종 이차보전지원 사업 2차공고</a>
+							
+							
+							
+						
+						
+					
+					
+					
+					
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_reg_date
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-06-12
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_term
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-06-12~2026-07-15
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					last
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_state
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				<span class="app_state" data-start="2026-06-12" data-end="2026-07-15"></span>
+				
+				
+				</td>
+				
+				
+			</tr>
+			
+			<tr>
+				
+				
+				<td class="
+					first
+					
+					
+					
+					
+					
+					 td_number
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+					
+					2569
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					 alignl
+					
+					
+					 td_title
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" style="text-align:left;"
+				>
+				
+				
+				
+				
+				
+					
+						
+							
+							
+							
+								<a href="javascript:contentsView('84b2738bdae44d5189b3981f640f838e')" >제조 AX 설비 구축지원 사업 수요조사(수정)</a>
+							
+							
+							
+						
+						
+					
+					
+					
+					
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_reg_date
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-06-11
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_term
+					
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				2026-06-11~2026-06-19
+				
+				
+				
+				</td>
+				
+				
+				
+				<td class="
+					
+					last
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					 td_app_state
+					
+					
+				" 
+				>
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				<span class="app_state" data-start="2026-06-11" data-end="2026-06-19"></span>
+				
+				
+				</td>
+				
+				
+			</tr>
+			
+			
+		</tbody>
+	</table>
+</div>
+
+<!--// list_table_area -->
+
+<!-- paging_area -->
+<div class="page"><div class='paging_area' >
+<a href="javascript:go_Page(1)" class="border_non"> <img src="/images/mgr/common/btn_paging_first.png" alt="처음 페이지" /> </a>
+<a href="javascript:go_Page(1)" class="border_non"> <img src="/images/mgr/common/btn_paging_prev.png" alt="이전 페이지" /> </a>
+<a href='javascript:go_Page(1)' title='1페이지' >1</a>
+<a href='javascript:go_Page(2)' class='on' title='현재 2페이지' >2</a>
+<a href='javascript:go_Page(3)' title='3페이지' >3</a>
+<a href='javascript:go_Page(4)' title='4페이지' >4</a>
+<a href='javascript:go_Page(5)' title='5페이지' >5</a>
+<a href='javascript:go_Page(6)' title='6페이지' >6</a>
+<a href='javascript:go_Page(7)' title='7페이지' >7</a>
+<a href='javascript:go_Page(8)' title='8페이지' >8</a>
+<a href='javascript:go_Page(9)' title='9페이지' >9</a>
+<a href='javascript:go_Page(10)' title='10페이지' >10</a>
+<a href="javascript:go_Page(3)" class="border_non"> <img src="/images/mgr/common/btn_paging_next.png" alt="다음 페이지" /> </a>
+<a href="javascript:go_Page(174)" class="border_non"> <img src="/images/mgr/common/btn_paging_last.png" alt="마지막 페이지" /> </a>
+</div>
+</div>
+<!--// paging_area -->
+
+</body>
+</html>

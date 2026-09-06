@@ -1,0 +1,967 @@
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ko">
+
+	
+
+
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-RJSW4P1VJM"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-RJSW4P1VJM');
+</script>
+
+
+	<meta charset="utf-8"> 
+	<!-- <meta http-equiv="Content-Type" content="text/html; charset=euc-kr" /> -->
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<!-- <meta name="viewport" content="width=device-width, initial-scale=1.0"> -->
+	<meta name="description" content="용인시 기업들이 원하는 정보를 한눈에! 용인시 지원사업과 기업정보 관리 일원화를 위한 종합시스템">
+	<meta name="description" content="용기씨">
+	<meta name="author" content="용인기업지원시스템">
+	<meta name="Keywords" content="용인시, 용인시산업진흥원, 용인시 지원사업,기업지원, 기업지원정보, 용인시소식, 자금보증지원, 기업SOS지원, 통산지원, 기업맞춤형지원,창업지원,소상공인지원,인증지원,기업규제">
+	<meta name="keywords" content="용기씨">
+	<!-- open graph -->
+	<meta property="og:type" content="website">
+	<meta property="og:title" content="용인시산업진흥원">
+	<meta property="og:description" content="용인시 기업들이 원하는 정보를 한눈에! 용인시 지원사업과 기업정보 관리 일원화를 위한 종합시스템">
+	<meta property="og:image" content="http://ybs.ypa.or.kr/images/oglogo.jpg">
+	<meta property="og:url" content="http://ybs.ypa.or.kr">
+	
+	<meta name="NaverBot" content="All"/>
+	<meta name="NaverBot" content="index,follow"/>
+	<meta name="Yeti" content="All"/>
+	<meta name="Yeti" content="index,follow"/>
+	
+	<link rel="canonical" href=http://ybs.ypa.or.kr>
+
+
+
+
+
+    <title>용인기업지원시스템</title>
+    <meta name="naver-site-verification" content="c036f2a01a6b2d7b6ae2080977af281ae2974740" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+
+    <!--[if lte IE 9]>
+	<script type="text/javascript" src="/js/respond.min.js"></script>
+	<script type="text/javascript" src="/js/html5.js"></script>
+	<![endif]-->
+    <script type="text/javascript" src="/js/jquery.min.js"></script>
+
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+    <script type="text/javascript" src="/js/bxslider/jquery.bxslider.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/js/bxslider/jquery.bxslider.css">
+    <link rel="stylesheet" type="text/css" href="/css/common.css">
+    <link rel="stylesheet" type="text/css" href="/css/layout.css">
+    
+    
+	
+    <link rel="stylesheet" type="text/css" href="/css/board.css">
+	
+	
+	
+
+    <script src="/js/common.js"></script>
+    
+    
+</head>
+<body>
+	<script>
+	if(null != "" && "" != ""){
+		alert("");
+	}
+		$(document).ready(function(){
+			$("#tabMenu li").on("click",function(){
+				$("#aplcType").val(code);
+				fn_search('1');
+			});
+
+			$.ajax({
+			    url: "/getAplcTypeCode.do",
+			    data:
+			    {
+			    	"_csrf": "c2c5e29a-43a0-48b6-9cf7-c0d35a7e4801"
+			    	,"type"          : "getCnt"
+			    	,"searchStartDt" : $("#searchStartDt").val()
+			    	,"searchEndDt"   : $("#searchEndDt").val()
+			    	,"searchCnd"     : $("#searchCnd").val()
+			    	,"searchKeyword" : $("#searchKeyword").val()
+			    	,"lastChk"       : $("#lastChk").val()
+			    	,"groupNm"		 : $("#groupNm").val()
+
+			   	},
+			    type: "POST",
+			    dataType: "json",
+			    success : function(result){
+			    	var gCls = "";
+			    	var totalCnt = 0;
+			    	$.each(result.countList,function(){
+                        var setCls = "";
+                        if("" == this.code){
+                        	setCls = "active";
+                        	gCls   = "active";
+                        }
+			    		$("#sch_list").append("<li class='"+setCls+"'><a href='javascript:void(0)' onclick='selectAplCode("+this.code+")'><span>"+this.codeNm+"</span><i>"+this.cnt+"</i></a></li>")
+			    		totalCnt += this.cnt;
+			    	});
+			    	if(gCls == ""){
+			    		$("#sch_list").prepend('<li class="active"><a href="javascript:void(0)" onclick="selectAplCode(99)"><span>전체</span><i class="total">'+totalCnt+'</i></a></li>');
+			    	}else{
+			    		$("#sch_list").prepend('<li><a href="javascript:void(0)" onclick="selectAplCode(99)"><span>전체</span><i class="total">'+totalCnt+'</i></a></li>');
+			    	}
+
+			    	$(".countText > .tcolor1").html($("#sch_list").find(".active").find("span").html());
+				}
+			});
+
+
+			$(".datepicker").datepicker({
+		        dateFormat: 'yy-mm-dd' //달력 날짜 형태
+		        ,showOtherMonths: true //빈 공간에 현재월의 앞뒤월의 날짜를 표시
+		        ,showMonthAfterYear:true // 월- 년 순서가아닌 년도 - 월 순서
+		        ,changeYear: true //option값 년 선택 가능
+		        ,changeMonth: true //option값  월 선택 가능
+		        ,showOn: "button" //button:버튼을 표시하고,버튼을 눌러야만 달력 표시 ^ both:버튼을 표시하고,버튼을 누르거나 input을 클릭하면 달력 표시
+		        ,buttonImage: "/images/board/icon_cal.png" //버튼 이미지 경로
+		        ,buttonImageOnly: true //버튼 이미지만 깔끔하게 보이게함
+		        ,buttonText: "선택" //버튼 호버 텍스트
+		        ,yearSuffix: "년" //달력의 년도 부분 뒤 텍스트
+		        ,monthNamesShort: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'] //달력의 월 부분 텍스트
+		        ,monthNames: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'] //달력의 월 부분 Tooltip
+		        ,dayNamesMin: ['일','월','화','수','목','금','토'] //달력의 요일 텍스트
+		        ,dayNames: ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'] //달력의 요일 Tooltip
+		        ,minDate: "-5Y" //최소 선택일자(-1D:하루전, -1M:한달전, -1Y:일년전)
+		        ,maxDate: "+5y" //최대 선택일자(+1D:하루후, -1M:한달후, -1Y:일년후)
+		    });
+		});
+
+
+		function selectAplCode(code){
+			if(code == 99){
+				$("#aplcType").val('');
+			}else{
+				$("#aplcType").val(code);
+			}
+			fn_search('1');
+		}
+		<!--
+			function press(event) {
+				if (event.keyCode == 13) {
+					fn_search('1');
+				}
+			}
+
+			function fn_viewDetail(regNo){
+				$("#regNo").val(regNo);
+				location.href = "/poratlAppFormDtl.do?regNo="+regNo;
+				//document.frm.action = "/poratlAppFormDtl.do?site=&id=";
+				//document.frm.submit();
+			}
+
+			function fn_search(pageNo) {
+				document.frm.pageIndex.value = pageNo;
+				document.frm.action = "/application.do?site=&id=";
+				document.frm.submit();
+			}
+
+			function fn_tabmove(pageNo) {
+				document.frm.pageIndex.value = pageNo;
+				document.frm.action = "/application2.do?site=&id=";
+				document.frm.submit();
+			}
+		//-->
+	</script>
+	<style>
+		.ui-datepicker-trigger{
+		    position: absolute;
+		    right: 10px;
+		    top: 12px;
+		    display: inline-block;
+		    width: 24px;
+		    height: 50%;
+		    background: url(../images/board/icon_cal.png) no-repeat center;
+		    text-indent: -999em;
+		}
+	</style>
+	<noscript>자바스크립트를 지원하지 않는 브라우저에서는 일부 기능을 사용하실 수 없습니다.</noscript>
+	<!-- 전체 레이어 시작 -->
+	<div id="wrap">
+		
+
+
+
+
+
+
+		
+			
+			
+		
+
+
+
+
+
+<header id="header" class="container">
+			<div id="lguWrap">
+				<h1 id="logo"><a href="/" title="용인기업지원시스템 용기씨">용인기업지원시스템</a></h1>
+				<button class="all_menu" type="button"><i class="ico_cate">전체메뉴</i></button>
+				<nav id="gnbWrap">
+					<a href="#" class="btn_close"></a>
+					<div class="mo_only login_box">
+						<p class="mb10"><strong>로그인 후</strong> 이용하세요.</p>
+						<ul>
+							
+								
+								
+								<li class="login"><a href="/login.do">로그인</a></li>
+								<li class="join"><a href="/memberRegisterBefore.do">회원가입</a></li>
+								
+							
+							
+						</ul>
+					</div>
+					<ul id="gnb">
+						
+							
+						
+
+
+<script>
+	function gbn_makeHeaderMenu(menuUri, portalUpperMenuNo, portalMenuNo, menuNm, siteNo, newWindowYn){
+	
+	    if(menuUri == ""){
+	        menuUri = "javascript:void(0)";
+	    }
+	
+	    var targetAttr = (newWindowYn == "Y") ? ' target="_blank"' : '';
+	
+	    var menuItem = '<li><a class="dropdown-item" href="' + menuUri + '"' + targetAttr + '>' + menuNm + '</a></li>';
+	
+	    $($("#topmenu_" + portalUpperMenuNo).find("ul")[0]).append(menuItem);
+	}
+	
+	function fn_firstPage(obj){
+		
+		if ($(window).width() > 820 ) {
+			
+			var objUl = $(obj).next();
+			var objLi =  objUl.children("li:eq(0)");
+			var objA = objLi.find("a")
+			$(".nav-link").prop("href", $(objA).attr('href'))
+		}
+	}
+
+	$(document).ready(function(){
+		$.each($("#gnb>li"),function(index,item){
+			if($(this).find("li").length == 0){
+				$(this).find("ul").remove();
+			}
+		});
+	});
+</script>
+
+	
+		<li class="nav-item dropdown" id="topmenu_21">
+			<a class="nav-link dropdown-toggle" href="javascript:void(0)" role="button" data-bs-toggle="dropdown" aria-expanded="false" onclick="fn_firstPage(this)">지원사업 안내</a>
+			<ul class="dropdown-menu gnb_sub" aria-labelledby="navbarDropdown" style="margin-left: -30px;"></ul>
+		</li>
+	
+	
+
+	
+		<li class="nav-item dropdown" id="topmenu_20">
+			<a class="nav-link dropdown-toggle" href="javascript:void(0)" role="button" data-bs-toggle="dropdown" aria-expanded="false" onclick="fn_firstPage(this)">지원사업 공고</a>
+			<ul class="dropdown-menu gnb_sub" aria-labelledby="navbarDropdown" style="margin-left: -30px;"></ul>
+		</li>
+	
+	
+
+	
+		<li class="nav-item dropdown" id="topmenu_64">
+			<a class="nav-link dropdown-toggle" href="javascript:void(0)" role="button" data-bs-toggle="dropdown" aria-expanded="false" onclick="fn_firstPage(this)">기업규제</a>
+			<ul class="dropdown-menu gnb_sub" aria-labelledby="navbarDropdown" style="margin-left: -30px;"></ul>
+		</li>
+	
+	
+
+	
+		<li class="nav-item dropdown" id="topmenu_22">
+			<a class="nav-link dropdown-toggle" href="javascript:void(0)" role="button" data-bs-toggle="dropdown" aria-expanded="false" onclick="fn_firstPage(this)">정보광장</a>
+			<ul class="dropdown-menu gnb_sub" aria-labelledby="navbarDropdown" style="margin-left: -30px;"></ul>
+		</li>
+	
+	
+
+	
+		<li class="nav-item dropdown" id="topmenu_54">
+			<a class="nav-link dropdown-toggle" href="javascript:void(0)" role="button" data-bs-toggle="dropdown" aria-expanded="false" onclick="fn_firstPage(this)">시스템 소개</a>
+			<ul class="dropdown-menu gnb_sub" aria-labelledby="navbarDropdown" style="margin-left: -30px;"></ul>
+		</li>
+	
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=43","19","43","기업 소개","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=44","19","44","제품소개","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/application.do","20","46","용인시 지원사업","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=47","20","47","유관기관 사업공고","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=65","21","65","자금·보증지원","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=66","21","66","기업SOS지원","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=67","21","67","통상지원","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=68","21","68","기업 맞춤형지원","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=69","21","69","창업지원","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=70","21","70","공장설립 및 산업단지","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=71","21","71","소상공인 지원","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=72","21","72","인증 지원","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=50","22","50","용인시 소식","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=39","22","39","시스템공지","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/userSelectQnaList.do","22","28","Q&A","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/faq.do","22","27","FAQ","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/userProductView.do","22","79","제품 소개","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("https://ypa.bidman.co.kr/","22","78","맞춤형 입찰정보 서비스","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("https://www.zeus.go.kr/main","22","52","공동연구장비","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=55","54","55","시스템 소개","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=60","54","60","사이트맵","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=53","54","53","찾아오시는 길","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/companySelectQnaList.do","64","63","기업애로 및 규제","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=74","73","74","공사입찰","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=76","73","76","용역입찰","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=77","73","77","물품입찰","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=56","99","56","이용약관","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=57","99","57","개인정보처리방침","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=58","99","58","이메일무단수집거부","","");
+		</script>
+	
+
+
+					</ul>
+				</nav>
+				<div id="utillWrap">
+					<ul class="ut_list">
+						
+							
+							
+							<li class="login"><a href="/login.do">로그인</a></li>
+							<li class="join"><a href="/memberRegisterBefore.do" >회원가입</a></li>
+							
+						
+						
+					</ul>
+				</div>
+			</div>
+		</header>
+<script>
+	var p_param = "";
+  	p_param += "&_csrf=c2c5e29a-43a0-48b6-9cf7-c0d35a7e4801";
+	$.ajax({
+		url		: "/getQnaCnt.do",
+		type 	: "post",
+		dataType: "json",
+		async	: false,
+ 		data	: p_param,
+		success : function(responseData){
+			if(responseData.qnaCnt > 0){
+				$(".qnaNew").show();
+			}
+		},
+		error 	: function(xhr, status, error){}
+	});
+</script>
+		
+			
+			
+		
+
+
+
+<script>
+	$(document).ready(function(){
+		$.ajax({
+		    url: "/getAplcTypeCode.do",
+		    data: {"_csrf": "c2c5e29a-43a0-48b6-9cf7-c0d35a7e4801"},
+		    type: "POST",
+		    dataType: "json",
+		    
+		    success : function(result){
+		        
+		        $("#subHeader_sch_list").html("");
+		        
+		        const uniqueMap = new Map();
+		        $.each(result.resultList, function(){
+		            if (!uniqueMap.has(this.code)) {
+		                uniqueMap.set(this.code, this.codeNm);
+		            }
+		        });
+		        
+		        uniqueMap.forEach((codeNm, code) => {
+		            $("#subHeader_sch_list").append(
+		                "<li><a href='javascript:void(0)' onclick='fn_selectAplCode(\"" + code + "\")'>" + codeNm + "</a></li>"
+		            );
+		        });
+		    }
+		    
+		});
+		
+		$(".icon_btn >.print").on("click",function(){
+			window.print();
+		});
+		$(".icon_btn >.share").on("click",function(){
+			let url = '';
+			  const textarea = document.createElement("textarea");
+			  document.body.appendChild(textarea);
+			  url = window.document.location.href;
+			  textarea.value = url;
+			  textarea.select();
+			  document.execCommand("copy");
+			  document.body.removeChild(textarea);
+			  alert("URL이 복사되었습니다.");
+		});
+	});
+	
+	function subHeader_selectCode(code){
+		$("#subHeadre_aplcType").val(code);
+		//$("#subHeader_searchKeyword").val(code);
+		gfn_subHeader_search();
+	}
+	
+	function gfn_subHeader_search(){
+		$("#subHeader_searchFrm").submit();
+	}
+</script>
+<div id="subTop">
+            <div id="schWrap" class="container">
+                <div class="sch_box">
+                	<form action="/search.do" method="post" id="subHeader_searchFrm">
+						<input type="hidden" name="_csrf" value="c2c5e29a-43a0-48b6-9cf7-c0d35a7e4801" />
+						<input type="hidden" name="aplcType" id="subHeadre_aplcType" value="" />
+	                    <label for="subHeader_searchKeyword"><span class="blind">검색어 입력</span></label>
+	                    <input type="text" name="searchKeyword" id="subHeader_searchKeyword" class="sch_ipt" placeholder="검색어를 입력해주세요."/>
+	                    <button type="button" class="sch_btn" onclick="gfn_subHeader_search()"><span>검색</span></button>
+                    </form>
+                </div>
+                <dl>
+                    
+                    <dt># 어떤 지원사업을 찾으세요?</dt>
+                    <dd>
+                        <ul class="sch_list" id="subHeader_sch_list">
+                        </ul>
+                    </dd>
+                </dl>
+            </div>
+            <div id="lnb">
+                <div class="container">
+                    <ul>
+                        <li class="home"><span>메인</span></li>
+                        <li class="1dep"><span>용인시 지원사업</span></li>
+                        <li class="2dep">
+                            <a href="#none" title="2번째 메뉴 바로가기">용인시 지원사업</a>
+                            <ul class="dropdown">
+                                <li><a href="#">지원사업 공고</a></li>
+                                <li><a href="#">유관기관 사업공고</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <span class="icon_btn">
+                        <button class="print"><span class="blind">인쇄</span></button>
+                        <button class="share"><span class="blind">공유</span></button>
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+        	$(document).ready(function(){
+        		$(".2dep > ul >li").remove();
+        		$.each($("#gnb").find("a"),function(){
+        			if($(this).html() == "용인시 지원사업"){
+        				$(".1dep").html("<span>"+$(this).parent().parent().parent().find(">a").html()+"</span>");
+        				$(".2dep > ul").append($(this).parent().parent().find(">li").clone());
+        			}
+        		})
+        		
+        		
+        	});
+        </script>
+        <!-- // #subTop -->
+        <div id="contents">
+            <h3 id="subTitle">지원사업 공고</h3>
+            <div id="boardWrap" class="container">
+            	
+                <div id="boardList">
+                    <!--검색 폼 -->
+                    <form name="frm" method="post">
+						<input name="pageIndex" type="hidden" value="2" />
+						<input type="hidden" name="_csrf" value="c2c5e29a-43a0-48b6-9cf7-c0d35a7e4801" />
+						<input type="hidden" name="regNo" id="regNo" value=""/>
+						<input type="hidden" name="aplcType" id="aplcType" value="" />
+						<input type="hidden" name="groupNm" id="groupNm" value="" />
+
+	                    <div id="schBox" class="schbox2 mb30">
+	                        <ul class="sch_iplist">
+	                        	<li>
+	                                <label for="lastChk">접수상태</label>
+	                                <div class="cal_wrap">
+	                                   	<select name="lastChk" id="lastChk" class="ip_wd20" title="검색조건 선택" style="width:100%">
+											<option value="0" >전체</option>
+											<option value="1" >접수중</option>
+										</select>
+									</div>
+	                            </li>
+	                        	
+	                            <li>
+									<div class="schbox1">
+										<select name="searchCnd" id="searchCnd" class="ip_wd20" title="검색조건 선택">
+											<option value="0" >지원사업명</option>
+											
+										</select>
+										<div>
+											<input name="searchKeyword" id="searchKeyword" class="ip_wd40" type="text" value='' maxlength="35" onkeypress="press(event);" title="검색어 입력"/>
+											<input class="btn_search" type="submit" onclick="fn_search('1'); return false;" value="조회" />
+										</div>
+									</div>
+	                            </li>
+	                        </ul>
+	                    </div>
+	                    <!-- // 검색 폼-->
+
+	                    <div id="tabMenu" class="mb50">
+	                        <ul class="tab_div9" id="sch_list">
+	                        </ul>
+	                    </div>
+	                    <div class="countBox fs_b">
+	                        <p class="countText"><strong class="tcolor1">기술인력</strong> 전체 <strong class="count">374</strong>건</p>
+	                        <select id="findType" name="findType" title="검색 목록" onchange="fn_search('1');">
+	                            <option value="0" >최신등록순</option>
+	                            <option value="1" >기한종료순</option>
+	                        </select>
+	                    </div>
+                    </form>
+
+					<ul class="boardBox mb30">
+
+						
+							
+							<li>
+	                            <a href="javascript:void(0)" onclick="javascript:fn_viewDetail('RGS_0000000000000575')">
+	                                <p class="radi_box"><span class="colorbox">용인시산업진흥원(사업화지원팀)</span><span class="linebox">인증·특허</span></p>
+	                                <strong class="pjtit">2026년 용인IP지원센터 운영 IP 컨설팅 통합 공고(수시 접수)</strong>
+	                                <p class="date_box"><span>2026.04.10 00:00 ~ 2026.12.31 23:00</span>
+										
+										
+										    <strong class="dday">
+										        
+										            
+										            D-119
+										        
+										    </strong>
+										
+									</p>
+	                            </a>
+	                        </li>
+						
+							
+							<li>
+	                            <a href="javascript:void(0)" onclick="javascript:fn_viewDetail('RGS_0000000000000574')">
+	                                <p class="radi_box"><span class="colorbox">용인시산업진흥원(인프라지원팀)</span><span class="linebox">컨설팅·멘토링</span></p>
+	                                <strong class="pjtit">2026년 제품화 지원 멘토링 프로그램 모집 공고(~10/30(금), 18시)</strong>
+	                                <p class="date_box"><span>2026.04.09 09:00 ~ 2026.10.30 18:00</span>
+										
+										
+										    <strong class="dday">
+										        
+										            
+										            D-57
+										        
+										    </strong>
+										
+									</p>
+	                            </a>
+	                        </li>
+						
+							
+							<li>
+	                            <a href="javascript:void(0)" onclick="javascript:fn_viewDetail('RGS_0000000000000537')">
+	                                <p class="radi_box"><span class="colorbox">용인시산업진흥원(사업화지원팀)</span><span class="linebox">컨설팅·멘토링</span></p>
+	                                <strong class="pjtit">2026년 용인시산업진흥원 찾아가는 사업 설명회(상시 접수)</strong>
+	                                <p class="date_box"><span>2026.01.27 00:00 ~ 2026.12.31 00:00</span>
+										
+										
+										    <strong class="dday">
+										        
+										            
+										            D-119
+										        
+										    </strong>
+										
+									</p>
+	                            </a>
+	                        </li>
+						
+							
+							<li>
+	                            <a href="javascript:void(0)" onclick="javascript:fn_viewDetail('RGS_0000000000000535')">
+	                                <p class="radi_box"><span class="colorbox">용인시산업진흥원(인프라지원팀)</span><span class="linebox">인프라지원</span></p>
+	                                <strong class="pjtit">2026년 온라인 전시장 전시업체 모집공고(~12/31)</strong>
+	                                <p class="date_box"><span>2026.02.03 12:00 ~ 2026.12.31 18:00</span>
+										
+										
+										    <strong class="dday">
+										        
+										            
+										            D-119
+										        
+										    </strong>
+										
+									</p>
+	                            </a>
+	                        </li>
+						
+							
+							<li>
+	                            <a href="javascript:void(0)" onclick="javascript:fn_viewDetail('RGS_0000000000000527')">
+	                                <p class="radi_box"><span class="colorbox">용인시(국제통상팀)</span><span class="linebox">수출·내수</span></p>
+	                                <strong class="pjtit">2026년 용인 다통해 서포터즈(시민 통번역) 지원사업 안내(예산 소진시까지)</strong>
+	                                <p class="date_box"><span>2026.01.23 10:00 ~ 2026.12.31 18:00</span>
+										
+										
+										    <strong class="dday">
+										        
+										            
+										            D-119
+										        
+										    </strong>
+										
+									</p>
+	                            </a>
+	                        </li>
+						
+							
+							<li>
+	                            <a href="javascript:void(0)" onclick="javascript:fn_viewDetail('RGS_0000000000000519')">
+	                                <p class="radi_box"><span class="colorbox">용인시산업진흥원(전략산업팀)</span><span class="linebox">금융·경영</span></p>
+	                                <strong class="pjtit">용인 벤처창업기업투자유치 제안서 접수 모집</strong>
+	                                <p class="date_box"><span>2023.12.12 00:00 ~ 2028.12.12 00:00</span>
+										
+										
+										    <strong class="dday">
+										        
+										            
+										            D-831
+										        
+										    </strong>
+										
+									</p>
+	                            </a>
+	                        </li>
+						
+							
+							<li>
+	                            <a href="javascript:void(0)" onclick="javascript:fn_viewDetail('RGS_0000000000000513')">
+	                                <p class="radi_box"><span class="colorbox">용인시산업진흥원(사업화지원팀)</span><span class="linebox">컨설팅·멘토링</span></p>
+	                                <strong class="pjtit">2026년 용인특례시 기업 규제·애로 조사(상시)</strong>
+	                                <p class="date_box"><span>2026.01.01 00:00 ~ 2026.12.31 23:00</span>
+										
+										
+										    <strong class="dday">
+										        
+										            
+										            D-119
+										        
+										    </strong>
+										
+									</p>
+	                            </a>
+	                        </li>
+						
+							
+							<li>
+	                            <a href="javascript:void(0)" onclick="javascript:fn_viewDetail('RGS_0000000000000509')">
+	                                <p class="radi_box"><span class="colorbox">용인시(기업지원팀)</span><span class="linebox">금융·경영</span></p>
+	                                <strong class="pjtit">2026년 용인시 중소기업 특례보증 지원사업</strong>
+	                                <p class="date_box"><span>2026.01.05 00:00 ~ 2026.12.31 00:00</span>
+										
+										
+										    <strong class="dday">
+										        
+										            
+										            D-119
+										        
+										    </strong>
+										
+									</p>
+	                            </a>
+	                        </li>
+						
+							
+							<li>
+	                            <a href="javascript:void(0)" onclick="javascript:fn_viewDetail('RGS_0000000000000508')">
+	                                <p class="radi_box"><span class="colorbox">용인시(국제통상팀)</span><span class="linebox">컨설팅·멘토링</span></p>
+	                                <strong class="pjtit">「2026년 용인시 중소기업 수출멘토링 지원사업」 참가기업 모집</strong>
+	                                <p class="date_box"><span>2026.01.05 08:00 ~ 2026.12.31 20:00</span>
+										
+										
+										    <strong class="dday">
+										        
+										            
+										            D-119
+										        
+										    </strong>
+										
+									</p>
+	                            </a>
+	                        </li>
+						
+							
+							<li>
+	                            <a href="javascript:void(0)" onclick="javascript:fn_viewDetail('RGS_0000000000000656')">
+	                                <p class="radi_box"><span class="colorbox">용인시산업진흥원(인프라지원팀)</span><span class="linebox">인프라지원</span></p>
+	                                <strong class="pjtit">소공인 네트워킹 데이(레벨업 특강) 모집</strong>
+	                                <p class="date_box"><span>2026.08.14 00:00 ~ 2026.08.20 23:30</span>
+										
+										    <strong class="dday end">마감</strong>
+										
+										
+									</p>
+	                            </a>
+	                        </li>
+						
+					</ul>
+                    <!-- 페이지 네비게이션 시작 -->
+					<div class="pagination">
+						<ul class="clear">
+							<li>&#160;</li><li><a href="?pageIndex=1" onclick="fn_search(1);return false; "><img src="/images/egovframework/com/cmm/mod/icon/icon_prevend.gif" alt="처음"   border="0"/></a></li><li><a href="?pageIndex=1" onclick="fn_search(1);return false; "><img src="/images/egovframework/com/cmm/mod/icon/icon_prev.gif"    alt="이전"   border="0"/></a></li><li><a href="?pageIndex=1" onclick="fn_search(1);return false; ">1</a></li><li><strong>2</strong></li><li><a href="?pageIndex=3" onclick="fn_search(3);return false; ">3</a></li><li><a href="?pageIndex=4" onclick="fn_search(4);return false; ">4</a></li><li><a href="?pageIndex=5" onclick="fn_search(5);return false; ">5</a></li><li><a href="?pageIndex=6" onclick="fn_search(6);return false; ">6</a></li><li><a href="?pageIndex=7" onclick="fn_search(7);return false; ">7</a></li><li><a href="?pageIndex=8" onclick="fn_search(8);return false; ">8</a></li><li><a href="?pageIndex=9" onclick="fn_search(9);return false; ">9</a></li><li><a href="?pageIndex=10" onclick="fn_search(10);return false; ">10</a></li><li>&#160;<a href="?pageIndex=11" onclick="fn_search(11);return false; "><img src="/images/egovframework/com/cmm/mod/icon/icon_next.gif"    alt="다음"   border="0"/></a></li><li><a href="?pageIndex=38" onclick="fn_search(38);return false; "><img src="/images/egovframework/com/cmm/mod/icon/icon_nextend.gif" alt="마지막" border="0"/></a></li>
+
+						</ul>
+					</div>
+					<!-- //페이지 네비게이션 끝 -->
+                </div>
+                <!-- // #boardList -->
+            </div>
+            <!-- // .container -->
+        </div>
+		
+
+<footer id="footer">
+            <div class="ft_utill">
+                <div class="container">
+                    <ul class="ft_link">
+                        <li><a href="/page.do?site=10&id=56" title="새창열림">이용약관</a></li>
+                        <li><a href="/page.do?site=10&id=57" title="새창열림"><strong>개인정보처리방침</strong></a></li>
+                        <li><a href="/page.do?site=10&id=58" title="새창열림">이메일무단수집거부</a></li>
+                        <li><a href="/page.do?site=10&id=53">오시는길</a></li>
+                    </ul>
+                    <ul class="ft_sns">
+                        <li><a href="https://www.facebook.com/yonginypa" target="_blank"><img src="/images/sns_icon_face.png" alt="용인기업지원시스템 공식 페이스북"></a></li>
+                        <li><a href="https://www.instagram.com/yonginypa" target="_blank"><img src="/images/sns_icon_instar.png" alt="용인기업지원시스템 공식 인스타그램"></a></li>
+                        <li><a href="https://www.youtube.com/channel/UCH9fmwPkRaEBYOuRLIzi1iA" target="_blank"><img src="/images/sns_icon_youtube.png" alt="용인기업지원시스템 공식 유튜브"></a></li>
+                        <li><a href="https://blog.naver.com/yongindipa" target="_blank"><img src="/images/sns_icon_blog.png" alt="용인기업지원시스템 공식 블로그"></a></li>
+                        <li><a href="https://pf.kakao.com/_UzDqb" target="_blank"><img src="/images/sns_icon_kakao.png" alt="용인기업지원시스템 공식 카카오"></a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="ft_con">
+                <div class="container">
+                    <ul class="address">
+                        <li><span>(우)17057 경기도 용인시 처인구 명지로 15-20(김량장동)</span> | <span>Tel. 031-323-4643</span> | <span>Fax. 031-323-3054</span> | <span>문의메일 info@ypa.or.kr</span></li>
+                        <li class="copyright">COPYRIGHT©YONGIN INDUSTRY PROMOTION AGENCY ALL RIGHTS RESERVED</li>
+                    </ul>
+                    <!-- <div class="cscenter">
+                        <dl>
+                            <dt>고객센터</dt>
+                            <dd>031.323.4643</dd>
+                        </dl>
+                        <ul>
+                            <li>월~금 09:00 ~ 18:00</li>
+                            <li>법정공휴일 휴무</li>
+                        </ul>
+                    </div> -->
+                </div>
+            </div>
+        </footer>
+	</div>
+</body>
+</html>

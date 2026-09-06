@@ -1,0 +1,991 @@
+
+<script language="javascript">
+
+
+	function eDataList() {
+		document.location.href="notice.asp?menuno=1&bct_s=&ste=&sty=&Page=&status_s=";
+	}
+
+	function go_modify(idx) { //이전/다음글
+		
+			document.location.href="notice_chk_view.asp?idx="+idx+"&menuno=1&bct_s=&ste=&sty=&Page=&status_s=&mode=write";
+
+		
+	}
+
+	function eDataView(idx) {
+		document.location.href="notice_view.asp?idx="+idx+"&menuno=1&bct_s=&ste=&sty=&Page=&status_s=";
+	}
+	
+
+</script>
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<meta property="og:image" content="/IB/img/meta_thumbnail.png">
+    <script src="/IB/js/jquery-2.2.4.min.js"></script>
+    <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/Swiper/4.4.2/js/swiper.min.js"></script>
+    <script src="/IB/js/innobiz.js?v=2"></script>
+	<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="/IB/css/swiper.min.css">
+
+		<link rel="stylesheet" href="/IB/css/common.css?v=13">
+
+ 		<link rel="icon" href="/IB/img/favicon.png" />
+    <title>INNOBIZ, 중소기업기술혁신협회</title>
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="//www.googletagmanager.com/gtag/js?id=UA-58541396-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-58541396-1');
+</script>
+
+
+<script type="text/javascript" src="//wcs.pstatic.net/wcslog.js"></script>
+<script type="text/javascript">
+if(!wcs_add) var wcs_add = {};
+wcs_add["wa"] = "128c72e51023790";
+if(window.wcs) {
+wcs_do();
+}
+</script>
+</head>
+
+<body>
+
+<style>
+
+	header .nav .logo {
+		max-width: 120rem;
+		width: auto;
+	}
+
+	.login-user-name {
+		display: flex;
+		align-items: center;
+		gap: 20rem;
+	}
+
+	@media (max-width: 768px) {
+		.login-user-name {
+			gap: 8rem;
+		}
+	}
+
+	/* 사용자 편의 기능 스타일 (웹 접근성 스킵 네비게이션 및 Top 버튼) */
+	#skip-nav {
+		position: absolute;
+		top: -9999px;
+		left: 0;
+		width: 100%;
+		z-index: 10000;
+	}
+	#skip-nav a {
+		display: block;
+		padding: 12px;
+		background: #004085;
+		color: #fff;
+		text-align: center;
+		font-weight: bold;
+		text-decoration: none;
+	}
+	#skip-nav a:focus {
+		top: 0;
+		position: fixed;
+	}
+
+	.btn-top-scroll {
+		position: fixed;
+		bottom: 30px;
+		right: 30px;
+		width: 45px;
+		height: 45px;
+		background-color: #333333;
+		color: #ffffff;
+		border: none;
+		border-radius: 50%;
+		cursor: pointer;
+		display: none;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+		z-index: 999;
+		transition: opacity 0.3s, transform 0.3s;
+	}
+	.btn-top-scroll:hover {
+		background-color: #0056b3;
+		transform: translateY(-3px);
+	}
+	.btn-top-scroll::after {
+		content: '▲';
+		font-size: 14px;
+	}
+</style>
+
+<!-- 스킵 네비게이션 -->
+<div id="skip-nav">
+	<a href="#main-content">본문 바로가기</a>
+</div>
+
+<!-- header -->
+
+<header>
+	<div class="top">
+		<div class="wrapper">
+			<a href="https://www.innobiz.net/index.asp" class="innobiz-link" target="_blank" rel="noopener noreferrer" title="새창 열림"><img src="/MA/gate/assets/images/logo_gov.svg" alt="대한민국정부 로고">이노비즈넷 바로가기</a>
+			<div class="top-sub">
+			
+				<a href="/IB/etc/login.asp">로그인</a>
+				<a href="/IB/members/join.asp">회원가입</a>
+			
+				<a href="/IB/etc/sitemap.asp">사이트맵</a>
+				<a href="/eng">ENG</a>
+			</div>
+		</div>
+	</div>
+
+	<div class="nav">
+		<div class="wrapper">
+
+			<div class="login-user-name">
+				<a href="/IB/" class="logo">
+					<img src="/IB/img/logo_since.png" alt="이노비즈 로고">
+				</a>
+				
+			</div>
+			
+
+			<label class="hamberger-menu">
+				<input type="checkbox">
+				<div class="img"></div>
+			</label>
+			<ul class="main-menu">
+				
+					
+					 <li >
+					 	
+						<a href="javascript:;" >사업안내</a>
+						<ul class="sub-menu">
+							
+							
+								<li><a href="/IB/business/business.asp">전체보기</a></li>
+								
+							
+											
+											<li>
+												<a href="/IB/business/business.asp?ord=1" >
+												
+												이노비즈 운영관리
+
+
+												</a>
+											</li>
+
+										
+												<li>
+													<a href="https://innobiz.or.kr/tech-ev/"  target="_blank;">
+													
+													기술평가 <img src="/IB/img/icons/icon_exlink.svg" style="width:20px; vertical-align: middle;" /></a>
+												</li>
+
+
+										
+											
+											<li>
+												<a href="/IB/business/business.asp?ord=2" >
+												
+												교육지원
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/business/business.asp?ord=3" >
+												
+												일자리지원센터
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/business/business.asp?ord=4" >
+												
+												해외/판로지원
+
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/business/business.asp?ord=5" >
+												
+												이노비즈정책지원
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/business/business.asp?ord=6" >
+												
+												4차산업혁명지원
+
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/business/fmale.asp" >
+												
+												여성경제위원회
+
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="https://innobiz.or.kr/IB/news/notice_view.asp?idx=8745&menuno=1&bct_s=0&sty=T&Page=1&status_s=" >
+												
+												최고경영자과정
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="https://rscseoul.or.kr/"  target="_blank;">
+												
+												서울지역 인적자원개발위원회 <img src="/IB/img/icons/icon_exlink.svg" style="width:20px; vertical-align: middle;"  />
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="http://aseic.or.kr/"  target="_blank;">
+												
+												ASEM 중소기업친환경혁신센터(ASEIC) <img src="/IB/img/icons/icon_exlink.svg" style="width:20px; vertical-align: middle;"  />
+
+
+												</a>
+											</li>
+
+										
+
+
+						</ul>
+
+					</li>		
+
+					
+					
+					 <li >
+					 	
+						<a href="javascript:;" >회원사</a>
+						<ul class="sub-menu">
+							
+							
+											
+											<li>
+												<a href="/IB/members/benefits.asp" >
+												
+												혜택 안내
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/members/join.asp" >
+												
+												가입안내
+
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/members/memberlist.asp" >
+												
+												회원사 현황
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/news/notice.asp?menuno=9" >
+												
+												회원사 동정
+
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/news/notice.asp?menuno=10" >
+												
+												임원사 동정
+
+
+
+												</a>
+											</li>
+
+										
+
+
+						</ul>
+
+					</li>		
+
+					
+					
+					 <li >
+					 	
+						<a href="javascript:;"  class="active">INNOBIZ 소식</a>
+						<ul class="sub-menu">
+							
+							
+											
+											<li>
+												<a href="/IB/news/notice.asp?menuno=1" >
+												
+												공지사항
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/news/notice.asp?menuno=13" >
+												
+												입찰/채용
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/news/notice.asp?menuno=2" >
+												
+												지원정보
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/news/notice.asp?menuno=3" >
+												
+												협회장이야기
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/news/network.asp" >
+												
+												지회네트워크
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/news/notice.asp?menuno=4" >
+												
+												협회갤러리
+
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/news/faq.asp" >
+												
+												FAQ
+
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/news/notice.asp?menuno=7" >
+												
+												Q&A
+
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/news/notice.asp?menuno=12" >
+												
+												협회 뉴스레터
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/news/notice.asp?menuno=11" >
+												
+												협회 보도자료
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/news/notice_lab.asp" >
+												
+												정책조사/연구
+
+
+												</a>
+											</li>
+
+										
+
+
+						</ul>
+
+					</li>		
+
+					
+					
+					 <li >
+					 	
+						<a href="javascript:;" >이노비즈협회</a>
+						<ul class="sub-menu">
+							
+							
+											
+											<li>
+												<a href="/IB/intro/innobiz.asp" >
+												
+												협회소개
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/intro/introduce.asp" >
+												
+												협회장 인사말
+
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/intro/history.asp" >
+												
+												연혁
+
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/intro/bylaw.asp" >
+												
+												정관
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/intro/director.asp" >
+												
+												이사회
+
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/intro/advice_list.asp" >
+												
+												자문위원
+
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/intro/staff.asp" >
+												
+												조직도 및 연락처
+
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/intro/ethic.asp" >
+												
+												윤리규범
+
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/intro/location.asp" >
+												
+												찾아오시는길
+
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/intro/ci.asp" >
+												
+												CI규정
+
+
+
+												</a>
+											</li>
+
+										
+											
+											<li>
+												<a href="/IB/20th_magazine/page_01.html"  target="_blank;">
+												
+												이노비즈 역사관 <img src="/IB/img/icons/icon_exlink.svg" style="width:20px; vertical-align: middle;"  />
+
+
+												</a>
+											</li>
+
+										
+
+
+						</ul>
+
+					</li>		
+
+				 
+
+				
+
+
+			</ul>
+		</div>
+	</div>
+</header>
+
+<!-- /header -->
+
+
+<main id="main-content"><div id="sub-visual" style="background-image:url(/IB/img/sub_visual_04.jpg);">
+	<div class="title">
+		<div>공지사항</div>
+		<p>INNOBIZ<br/>협회 공지사항</p>
+	</div>
+
+	
+		<a href="/IB/news/notice.asp?menuno=13"  class="next">
+			입찰/채용
+			<img src="/IB/img/icon_arrow_right_01.png">
+		</a>
+	
+
+</div>
+
+
+<div id="breadcrumbs">
+	<div class="wrapper">
+		<div class="items">
+			<a href="/IB/" class="home"><img src="/IB/img/icon_home.png"></a>
+			<label>
+				INNOBIZ 소식
+				<input type="checkbox">
+				<ul>
+					
+					<li><a href="/IB/business/innobiz.asp">사업안내</a></li>		
+					
+					<li><a href="/IB/members/benefits.asp">회원사</a></li>		
+					
+					<li><a href="/IB/news/notice.asp?menuno=1">INNOBIZ 소식</a></li>		
+					
+					<li><a href="/IB/intro/innobiz.asp">이노비즈협회</a></li>		
+					
+        </ul>
+			</label>
+
+			
+
+			<label>
+				공지사항
+				<input type="checkbox">
+				<ul>
+					
+
+						<li><a href="/IB/news/notice.asp?menuno=1">공지사항</a></li>
+
+
+					
+
+						<li><a href="/IB/news/notice.asp?menuno=13">입찰/채용</a></li>
+
+
+					
+
+						<li><a href="/IB/news/notice.asp?menuno=2">지원정보</a></li>
+
+
+					
+
+						<li><a href="/IB/news/notice.asp?menuno=3">협회장이야기</a></li>
+
+
+					
+
+						<li><a href="/IB/news/network.asp">지회네트워크</a></li>
+
+
+					
+
+						<li><a href="/IB/news/notice.asp?menuno=4">협회갤러리
+</a></li>
+
+
+					
+
+						<li><a href="/IB/news/faq.asp">FAQ
+</a></li>
+
+
+					
+
+						<li><a href="/IB/news/notice.asp?menuno=7">Q&A
+</a></li>
+
+
+					
+
+						<li><a href="/IB/news/notice.asp?menuno=12">협회 뉴스레터</a></li>
+
+
+					
+
+						<li><a href="/IB/news/notice.asp?menuno=11">협회 보도자료</a></li>
+
+
+					
+
+						<li><a href="/IB/news/notice_lab.asp">정책조사/연구</a></li>
+
+
+					
+				</ul>
+			</label>
+		</div>
+		
+		<div class="sns">
+			<a href="//www.youtube.com/user/INNOBIZorkr" target="_blank"><img src="/IB/img/sub_sns_05.png"></a>
+      <a href="//facebook.com/innobizorkr" target="_balnk"><img src="/IB/img/sub_sns_01.png"></a>
+      <a href="//blog.naver.com/innobizorkr" target="_balnk"><img src="/IB/img/sub_sns_03.png"></a>
+		</div>
+	</div>
+</div>
+
+<div class="wrapper flat notice write">
+
+	<section class="title">
+		<h1>[강남구] 2026년 청년일자리도약장려금 참여기업 모집 (하이테커X이노비즈협회)</h1>
+		<ul>
+			
+				
+			<li>
+				<p>종류</p>
+			<span>사업</span>
+			</li>
+			
+			<li>
+				<p>작성자</p>
+			<span>정지현</span>
+			</li>
+			<li>
+				<p>작성일</p>
+			<span>2026-08-26</span>
+			</li>
+			
+			 
+				<li>
+					<p>조회수</p>
+					<span>64</span>
+				</li>
+			
+		</ul>
+	</section>
+
+	<section class="content">
+		<p><img width="691" height="1060" src="https://innobiz.or.kr/Data/BM83/(강남구)%202026년%20청년일자리도약장려금%20사업%20안내.jpg" border="0"></p><p>청년 정규직 채용을 계획 중인 중소기업을 대상으로 『2026 청년일자리도약장려금』 참여기업을 모집하고 있습니다.</p><p>청년 채용에 따른 인건비 부담을 줄일 수 있는 좋은 기회인 만큼 많은 관심과 참여 바랍니다.</p><p><br></p><p>■ 사업 소개</p><p>청년일자리도약장려금은 취업애로청년을 정규직으로 신규 채용한 5인 이상 중소기업에 인건비를 지원하는 고용노동부 사업입니다.</p><p>청년 채용에 따른 인건비 부담을 덜고, 우수 인재 확보에도 실질적인 도움을 받으실 수 있습니다.</p><p><br></p><p>■ 주요지원 내용</p><p>&nbsp;- 채용 청년 1인당 연 720만원 지원 (총 3회차: 6/9/12개월 차)</p><p>&nbsp;- 6개월 고용 유지 후 1회차(360만원) 지급</p><p>&nbsp;</p><p>■ 참여 대상</p><p>&nbsp;- 서울 강남구 소재 기업 </p><p>&nbsp;- 5인 이상 우선지원대상기업</p><p>&nbsp;- 만 15~34세 취업애로청년을 정규직으로 신규 채용한 기업</p><p>&nbsp;- 지식서비스산업, 문화콘텐츠산업, 청년창업기업 등 일부 업종은 5인 미만 기업도 참여 가능</p><p>&nbsp;&nbsp; ※ 세부 참여요건 및 지원 가능 여부는 기업 및 채용 청년의 요건에 따라 달라질 수 있습니다.</p><p><br></p><p>■ 참여 신청</p><p>&nbsp;- 아래 신청서를 작성해 주시면 참여 가능 여부 및 사업 진행 절차를 안내드리겠습니다.</p><p>&nbsp;- 사전신청서 작성하기 : ﻿<a href="https://forms.gle/KqyNjXiitRm63H999" target="_self">https://forms.gle/KqyNjXiitRm63H999</a></p><p>&nbsp;</p><p>■ 문의</p><p>&nbsp;- 하이테커 강남지사 청년일자리도약장려금 운영팀</p><p>&nbsp;&nbsp; 02-6953-2313&nbsp; |&nbsp; 02-6953-4203&nbsp; |&nbsp; <a href="mailto:jump_work@kfo.or.kr" target="_self">jump_work@kfo.or.kr</a><br>&nbsp;&nbsp; (평일 9:00~18:00, 점심시간 12:00~13:00)</p><p style=''margin: 0px; padding: 0px; color: rgb(0, 0, 0); text-transform: none; line-height: 20px; text-indent: 0px; letter-spacing: normal; clear: both; font-family: "맑은 고딕"; font-size: 10pt; font-style: normal; font-weight: 400; word-spacing: 0px; white-space: normal; -ms-word-break: normal !important; orphans: 2; widows: 2; background-color: rgb(255, 255, 255); font-variant-ligatures: normal; font-variant-caps: normal; -webkit-text-stroke-width: 0px; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; overflow-wrap: break-word;'' dir="ltr"><br></p><div style=''margin: 0px; padding: 0px; color: rgb(0, 0, 0); text-transform: none; line-height: 20px; text-indent: 0px; letter-spacing: normal; font-family: "맑은 고딕"; font-size: 10pt; font-style: normal; font-weight: 400; word-spacing: 0px; display: table; white-space: normal; orphans: 2; widows: 2; background-color: rgb(255, 255, 255); font-variant-ligatures: normal; font-variant-caps: normal; -webkit-text-stroke-width: 0px; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;''><div style=''margin: 0px; padding: 0px; line-height: 20px; font-family: "맑은 고딕"; font-size: 10pt; display: table-row;''><div style=''margin: 0px; padding: 0px; line-height: 20px; font-family: "맑은 고딕"; font-size: 10pt; vertical-align: top; display: table-cell;''><p class="isSelectedEnd" style=''margin: 0px; padding: 0px; line-height: 20px; clear: both; font-family: "맑은 고딕"; font-size: 10pt; -ms-word-break: normal !important; overflow-wrap: break-word;''><span style="clear: both; font-size: 11pt; -ms-word-break: normal !important; overflow-wrap: break-word;"><span style=''clear: both; font-family: "맑은 고딕"; font-size: 11pt; -ms-word-break: normal !important; overflow-wrap: break-word;''><span style="clear: both; font-size: 11pt; -ms-word-break: normal !important; overflow-wrap: break-word;"><span style=''clear: both; font-family: "맑은 고딕"; font-size: 11pt; -ms-word-break: normal !important; overflow-wrap: break-word;''><br></span></span></span></span></p></div></div></div><p style=''margin: 0px; padding: 0px; color: rgb(0, 0, 0); text-transform: none; line-height: 20px; text-indent: 0px; letter-spacing: normal; clear: both; font-family: "맑은 고딕"; font-size: 10pt; font-style: normal; font-weight: 400; word-spacing: 0px; white-space: normal; -ms-word-break: normal !important; orphans: 2; widows: 2; background-color: rgb(255, 255, 255); font-variant-ligatures: normal; font-variant-caps: normal; -webkit-text-stroke-width: 0px; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; overflow-wrap: break-word;'' dir="ltr"><p style=''margin: 0px; padding: 0px; color: rgb(0, 0, 0); text-transform: none; line-height: 20px; text-indent: 0px; letter-spacing: normal; clear: both; font-family: "맑은 고딕"; font-size: 10pt; font-style: normal; font-weight: 400; word-spacing: 0px; white-space: normal; -ms-word-break: normal !important; orphans: 2; widows: 2; background-color: rgb(255, 255, 255); font-variant-ligatures: normal; font-variant-caps: normal; -webkit-text-stroke-width: 0px; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; overflow-wrap: break-word;'' dir="ltr"><span style=''font-family: "맑은 고딕"; font-size: 11pt;''><br></span></p><br class="Apple-interchange-newline"></p>
+	</section>
+
+	<section class="attachment">
+
+	<ul>
+		
+	
+	</ul>
+	</section>
+
+
+	
+	<section>
+		<div class="table-box">
+			<table>
+				<colgroup>
+					<col width="20%">
+					<col width="80%">
+				</colgroup>
+				<tbody>
+					
+						<tr>
+							<th>
+								<a href="javascript:eDataView(9046);">
+								다음글</a>
+							</th>
+								<td class="text-left"><a href="javascript:eDataView(9046);">중소벤처기업부X이노비즈협회 2026년 9월 이노비즈 확인 교육 안내</a></td>
+						</tr>
+						<tr>
+							<th>
+								<a href="javascript:eDataView(9041);">
+								이전글</a>
+							</th>
+							<td class="text-left"><a href="javascript:eDataView(9041);">2026년 제6회 K-인공지능 제조데이터 분석 경진대회 참가자 모집</a></td>
+						</tr>
+					
+			</table>
+		</div>
+	</section>
+
+	<section>
+		<div class="button-wrap">
+			<a href="javascript:eDataList()" class="button m">리스트</a>
+			
+		</div>
+	</section>
+
+</div>
+
+</main>
+
+
+
+<footer>
+	<div class="top">
+		<div class="wrapper">
+			<a class="just_text">전국 지회</a>
+			<a href="http://dkinnobiz.or.kr" target="_blank">대구/경북지회</a>
+			<a href="https://blog.naver.com/inobiz_korea" target="_blank">대전/세종/충남지회</a>
+			<a href="http://gwangju.innobiz.or.kr/MA/" target="_blank">광주/전남지회</a>
+			<a href="http://www.cbinnobiz.or.kr/" target="_blank">충북지회</a>
+			<a href="http://gninnobiz.or.kr/" target="_blank">경남지회</a>
+			<a href="https://innobiz.or.kr/IB/news/network.asp?menuno=13&bct_s=7&sty=T&ste=" target="_blank">강원지회</a>
+			<a href="https://innobiz.or.kr/IB/news/network.asp?menuno=13&bct_s=32&sty=T&ste=" target="_blank">전북지회</a>
+			<a href="http://buinnobiz.co.kr/" target="_blank">부산/울산지회</a>
+			<a href="https://innobiz.or.kr/IB/news/network.asp?menuno=13&bct_s=5&sty=T&ste= " target="_blank">제주지회</a>
+		</div>
+	</div>
+	<div class="info">
+		<div class="wrapper">
+			<div class="flex d-c j-sb g-40">
+				<div class="logo">
+					<img src="/IB/img/innobiz_logo_w.svg" alt="이노비즈 로고">
+
+
+					<div class="flex a-c g-8">
+						<select onchange="if(this.selectedIndex !== 0) window.open(this.value, '_blank');" name="org">
+							<option>전국 지회</option>
+							<option value="http://dkinnobiz.or.kr">대구/경북지회</option>
+							<option value="https://blog.naver.com/inobiz_korea">대전/세종/충남지회</option>
+							<option value="http://gwangju.innobiz.or.kr/MA/">광주/전남지회</option>
+							<option value="http://www.cbinnobiz.or.kr/">충북지회</option>
+							<option value="http://gninnobiz.or.kr/">경남지회</option>
+							<option value="https://innobiz.or.kr/IB/news/network.asp?menuno=13&bct_s=7&sty=T&ste=">강원지회</option>
+							<option value="https://innobiz.or.kr/IB/news/network.asp?menuno=13&bct_s=32&sty=T&ste=">전북지회</option>
+							<option value="http://buinnobiz.co.kr/">부산/울산지회</option>
+							<option value="https://innobiz.or.kr/IB/news/network.asp?menuno=13&bct_s=5&sty=T&ste= ">제주지회</option>
+						</select>
+
+						<select onchange="if(this.selectedIndex !== 0) window.open(this.value, '_blank');" name="familysite">
+							<option>관계사이트 바로가기</option>
+							<option onclick="window.open(value,'_blank');" value="https://www.innobiz.net/">이노비즈넷</option>
+							<option value="https://innobiz.or.kr/tech-ev/">이노비즈기술평가</option>
+							<option value="https://www.k-innoshow.com/">중소기업기술경영혁신대전</option>
+							<option value="https://rscseoul.or.kr/">서울지역 인적자원개발위원회</option>
+							<option value="https://ibgc.co.kr/">이노비즈글로벌인증원(IBGC)</option>
+							<option value="http://aseic.or.kr/">ASEM중소기업친환경혁신센터(ASEIC)</option>
+						</select>
+						</div>
+
+				</div>
+				<div class="flex d-c j-sb g-16">
+					<ul class="contact">
+						<li>
+							<p>대표전화</p>
+							<div>031-628-9600</div>
+						</li>
+						<li>
+							<p>팩스</p>
+							<div>031-628-9611</div>
+						</li>
+						<li>
+							<p>문의시간</p>
+							<div>09:00~18:00 (월~금)</div>
+						</li>
+						<li>
+							<p>SNS</p>
+							<div class="flex a-c g-4">
+								<a href="//www.youtube.com/user/INNOBIZorkr" target="_blank"><img src="/IB/img/footer_sns_04.png"></a>
+								<a href="//facebook.com/innobizorkr" target="_balnk"><img src="/IB/img/footer_sns_01.png"></a>
+								<a href="//blog.naver.com/innobizorkr" target="_blank"><img src="/IB/img/footer_sns_03.png"></a>
+								<a href="//pf.kakao.com/_ydpyxb" target="_blank"><img src="/IB/img/footer_sns_05.png"></a>
+							<div>
+						</li>
+						<li>
+							<p>브로슈어</p>
+							<div><a href="/filedown/이노비즈협회_메인브로슈어_국문_2026.pdf" target="_blank" >국문 다운로드 </a></div>
+						</li>
+					</ul>
+
+					<div class="sub-menu">
+						<a href="/IB/etc/terms.asp">이용약관</a>
+						<a href="/IB/etc/privacy.asp">개인정보처리방침</a>
+						<a href="/IB/intro/staff.asp">담당자 찾기</a>
+						<a href="/IB/intro/location.asp">찾아오시는길</a>
+					</div>
+
+					<div class="address">
+						<p>경기도 성남시 분당구 판교로 255 판교 이노밸리E동 202호 중소기업기술혁신협회(이노비즈협회)</p>
+						<!-- <p>COPYRIGHT 2019 INNOBIZ. ALL RIGHTS RESERVED</p> -->
+						<p>COPYRIGHT INNOBIZ. ALL RIGHTS RESERVED</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</footer>
+
+<button type="button" class="btn-top-scroll" id="btnTopScroll" aria-label="최상단으로 이동"></button>
+
+<script>
+	$(document).ready(function() {
+		$(window).scroll(function() {
+			if ($(this).scrollTop() > 300) {
+				$('#btnTopScroll').fadeIn(200).css('display', 'flex');
+			} else {
+				$('#btnTopScroll').fadeOut(200);
+			}
+		});
+
+		$('#btnTopScroll').click(function() {
+			$('html, body').animate({ scrollTop: 0 }, 400);
+			return false;
+		});
+	});
+</script>
+
+</body>
+</html>

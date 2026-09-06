@@ -1,0 +1,797 @@
+<!DOCTYPE HTML>
+<html lang="ko">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="Content-Script-Type" content="text/javascript">
+	<title>
+	사업공고 &lt; 알림소식 < 	
+	농림식품기술기획평가원</title>
+	<meta name="description" content="농림식품기술기획평가원 홈페이지(iPet)">
+	<meta name="google-site-verification" content="tkeiu2mNZbM8JgAmbkhzP_KbE7ohbN4jjiXuTO-g37s" />
+	
+	<!--<script src="/js/jquery-1.12.3.minN.js"></script>-->
+	
+	<link rel="stylesheet" type="text/css" href="/css/slickN.css">
+    <link rel="stylesheet" type="text/css" href="/css/resetN.css">
+    <link rel="stylesheet" type="text/css" href="/css/font/nanumgothic.css">
+    <link rel="stylesheet" type="text/css" href="/css/mainN.css?ver=1.23">
+	<link rel="stylesheet" type="text/css" href="/css/subN.css?ver=1.00">
+	<link rel="stylesheet" type="text/css" href="/css/commonN.css">
+	<link rel="stylesheet" type="text/css" href="/css/table.css">
+	<link rel="stylesheet" type="text/css" href="/css/sub02.css">
+	<link rel="stylesheet" type="text/css" href="/css/sub03.css">
+	<link rel="stylesheet" type="text/css" href="/css/sub04N.css?ver=1.11">
+	<link rel="stylesheet" type="text/css" href="/css/sub05.css">
+    <link rel="stylesheet" type="text/css" href="/css/search_sub.css?ver=1.0">
+	<link rel="stylesheet" type="text/css" href="/font/xeicon/xeicon.min.css">
+	
+	<!--<script type="text/javascript" src="/common/js/prototype.js"></script>-->
+	<script type="text/javascript" src="/common/js/jquery-1.11.1.min.js"></script>
+    <script src="/js/slickN.js"></script>
+    <script src="/js/commonN.js"></script>
+    <script src="/js/common2017.minN.js"></script>
+    <script src="/js/crypto-js.min.js"></script>
+	
+	
+	
+	
+	<script type="application/ld+json">
+	{
+	 "@context": "http://schema.org",
+	 "@type": "Organization",
+	 "name": "농림식품기술기획평가원",
+	 "url": "http://www.ipet.re.kr",
+	 "sameAs": [
+	   "https://www.facebook.com/ipet2018",
+	   "https://blog.naver.com/ipet1002",
+	   "https://www.instagram.com/ipet.official/",
+	   "https://www.youtube.com/c/iPET1004/"
+	 ]
+	}
+	</script>
+
+    <script language="javascript">
+
+        function main_search_chang(){
+            var srh_wrd 
+            srh_wrd = document.getElementById("srh_wrd").value;
+            window.open("/search/TotalSearch.asp?totalQuery="+srh_wrd+"");
+        }
+
+    </script>
+
+	
+	
+
+	
+
+</head>
+<body>
+    <div id="pageTop" tabindex="-1" style="position:absolute; top:0; left:0; width:1px; height:1px; overflow:hidden;"></div>
+	<!-- skip -->
+	<div class="skip" id="skip">
+	
+		<a href="#rightstext">본문 바로가기</a>
+	
+		<a href="#gnb">주메뉴 바로가기</a>
+	</div>
+	<!-- //skip -->
+   <div class="wrap">
+       <div class="header">
+           <div class="header__top">
+               <ul class="util__menu">
+                   <li><a href="/">홈으로</a></li>     
+					
+						<li><a href="/member/Login.asp" alt="로그인">로그인</a></li>
+						<li><a href="/member/Join.asp" alt="회원가입">회원가입</a></li>
+					
+                   <li><a href="/Material/relationSiteLV.asp">관련사이트</a></li>
+               </ul>
+               <div class="logo"><h1><a href="/" title="메인페이지로"><img src="/img/main/logo.jpg" alt="IPET 농림식품기술기획평가원"></a></h1></div>
+               <ul class="top__bn">
+                    <!--<li><img src="/img/main/top_bn01.jpg" alt="정부혁신 보다나은 정부"></li>-->
+                    <!--<li><img src="/img/main/top_bn02.jpg" alt="국민의 나라 정의로운 대한민국"></li>-->
+                    <!--<li><img src="img/main/top_bn03.jpg" alt="국기상징 알아보기"></li>-->
+                    <!--<li><a href="https://innovation.go.kr/" target="_blank" title="새 창"><img src="/img/main/2023_mark.png" alt="일 잘하는 정부 더 편안한 국민"></a></li>-->
+                    <!--<li><img src="/img/main/2023_slogan.png" alt="다시 대한민국! 새로운 국민의 나라"></li>-->
+					<!--<li><a href="https://rnd.ipet.re.kr/ipetUsr/" target="_blank" ><img src="/img/main/logoN2.gif" alt="IPET 농림식품기술기획평가원 농식품산업육성지원시스템" style="height:36px;"></a></li>-->
+					<li><a href="https://www.mois.go.kr/frt/sub/popup/p_taegugki_banner/screen.do" target="_blank" title="새 창"><img src="/img/main/kor_logo.png" alt="국가상징 국무회의 알아보기" style="height:36px;"></a></li>
+					<!--<li><a href="https://data.mafra.go.kr/" target="_blank"  title="새 창"><img src="/img/main/dataf_logo.svg" alt="농림축산식품 공공데이터 포털" style="height:30px; margin-top:4px;"></a></li>-->
+               </ul>
+                <div class="search_top_div">
+                    <input type="text" id="srh_wrd" class="search_top_input" placeholder="검색어를 입력하세요" title="검색어를 입력하세요"  onkeyup="if(window.event.keyCode==13){main_search_chang()};" >
+                    <button type="button" id="srh_btn" onclick="main_search_chang();"><img src="/images/search/btn_search1.gif" alt="검색" title="[새창]통합검색페이지로 이동"></button>
+                </div>
+                <div style="float:right; margin-right: 10px; height: 35px; margin-top:-10px; line-height: 33px; padding: 0 5px;background-color: #00458b; color: white; border-radius: 4px; ">
+                    <a href="/search/totalsearch.asp" target="_blank;" title="[새창] 통합검색 이동">통합검색</a>
+                </div>
+           </div>
+
+		 
+		   
+           <div class="header__bottom--gnb">
+                <div id="gnb">
+                    <div class="gnbwdth">
+                        <ul class="nav">
+                            <li class="gnv-nav-menu1"><h2><a href="/Gov30/GovFaceLV.asp">정보공개</a></h2>
+                                <div class="dep2_area">
+                                    <ul>
+                                        <li class="has"><a href="/Gov30/GovFaceLV.asp">정보공개안내</a>
+                                            <ul class="menu-3">            
+                                                <li><a href="/Gov30/GovFaceLV.asp">정보목록</a></li>            
+                                                <li><a href="/Gov30/GovFaceB.asp">비공개 세부기준</a></li>
+                                            </ul>
+                                        </li>                                        
+                                        <li class="has"><a href="/Gov30/NoticePrvInfoCateLV.asp">사전정보공표</a>
+                                            <ul class="menu-3">
+                                                <li><a href="/Gov30/NoticePrvInfoCateLV.asp">사전정보공표</a></li>
+												<li><a href="/Gov30/EsgInfoLV.asp">ESG 관련 정보 분류</a></li>
+                                                <li><a href="/Gov30/NoticePrvInfoLV_go.asp">즐겨찾기</a></li>
+                                                <li><a href="/Gov30/NationLV.asp">국민 사전정보 건의함</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a href="/Gov30/NoticeBizNameInfoLV.asp">사업실명제</a></li>
+                                        <li><a href="https://www.open.go.kr/" target="_blank" title="새창">정보공개청구</a></li>
+                                        <!--<li><a href="/Gov30/GovData.asp">공공데이터개방</a></li>-->
+										<li class="has"><a href="/Gov30/GovData.asp">공공데이터개방</a>
+                                            <ul class="menu-3">
+                                                <li><a href="/Gov30/GovData.asp">공공데이터개방</a></li>
+                                                <li><a href="/Gov30/OpendataSubLV.asp">공공데이터 <br>&nbsp;&nbsp;사용자 의견 제출</a></li>
+                                            </ul>
+                                        </li>
+                                        <li class="has"><a href="/Gov30/IntroCommonM.asp">경영공시</a>
+                                            <ul class="menu-3">
+                                                <li><a href="/Gov30/IntroCommonM.asp">경영공시 소개</a></li>
+                                                <li><a href="/Gov30/IntroDisclosure.asp">항목별 공시</a></li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                       
+                            <li><h2><a href="/Rnd/bizIntro.asp">주요사업</a></h2>
+                                <div class="dep2_area">
+                                    <ul>
+                                        <li class="has"><a href="/Rnd/bizIntro.asp">연구개발</a>
+                                            <ul class="menu-3">
+                                                <li><a href="/Rnd/bizIntro.asp">사업소개</a></li>
+                                                <li><a href="/Rnd/scheduleLV.asp">사업일정</a></li>
+                                                <li><a href="/Rnd/reseachTask.asp">연구과제검색</a></li>
+                                                <li><a href="/Rnd/researchKind.asp">과제분류체계</a></li>
+                                                <li><a href="/Rnd/Rule.asp">규정 및 서식</a></li>
+                                                <li><a href="/Rnd/FAQLV.asp">사업FAQ</a></li>
+                                                <li><a href="/Rnd/QnaLV.asp">사업Q&A</a></li>
+                                            </ul>
+                                        </li>
+										<li class="has"><a href="/Rnd/SupbizIntroLV.asp">혁신제품 지정</a>
+                                            <ul class="menu-3">
+                                                <li><a href="/Rnd/SupbizIntroLV.asp">사업소개</a></li>
+                                                <li><a href="/Rnd/SupbizScheduleLV.asp">사업일정</a></li>
+                                                <li><a href="/Rnd/SupEvalLV.asp">평가기준</a></li>
+                                                <li><a href="/Rnd/SupRuleLV.asp">관련법규 및 서식</a></li>
+                                                <li><a href="/Rnd/SupFAQLV.asp">자주묻는질문(FAQ)</a></li>
+                                            </ul>
+                                        </li>
+                                        <li class="has"><a href="/Rnd/NewatLV.asp">기술인증</a>
+                                            <ul class="menu-3">
+                                                <li><a href="/Rnd/NewatLV.asp">신기술인증</a></li>
+                                                <li><a href="/Rnd/GreencertLV.asp">녹색인증</a></li>
+                                            </ul>
+                                        </li>
+										
+										<!--<li class="has"><a href="/Rnd/snsConsult1.asp">농식품기술<br>SNS컨설팅</a>
+											<ul class="menu-3">
+												<li><a href="/Rnd/snsConsult1.asp">사업소개</a></li>
+												<li><a href="/Rnd/snsConsult2.asp">품목별 바로가기</a></li>
+											</ul>
+										</li>-->
+										
+										<li class="has"><a href="/Rnd/snsConsult1.asp">농식품 R&D<br>코디네이터사업</a>
+											<ul class="menu-3">
+												<li><a href="/Rnd/RDatLV.asp">코디네이터 사업소개</a></li>
+											</ul>
+										</li>
+                                    </ul>
+                                </div>
+                            </li>						
+							<li><h2><a href="/Market/TechIntroduce.asp">기술거래</a></h2>
+                                <div class="dep2_area">
+                                    <ul>
+                                        <li class="has">
+											<a href="/Market/TechIntroduce.asp">소개</a>
+											<ul class="menu-3">
+                                                <li><a href="/Market/TechIntroduce.asp">소개</a></li>
+                                                <li><a href="/Market/TechInformation.asp">이용안내</a></li>
+                                                <li><a href="/Market/MarketNoticeLV.asp">공지사항</a></li>
+                                                <li><a href="/Market/MarketQnaLV.asp">Q&amp;A</a></li>
+                                                <li><a href="/Market/MarketFormLV.asp">서식자료실</a></li>
+                                            </ul>
+										</li>
+										<li >
+											<a href="https://newat.or.kr/techTrade/techSearch/saleTechSearch/saleTechSearch.do" target="_blank;" title="새 창">기술검색</a>
+											
+										</li>
+                                        <li><a href="https://newat.or.kr/" target="_blank;" title="새 창">기술등록</a>
+											
+										</li>
+                                        <li >
+                                            <a href="https://newat.or.kr/techTrade/freeTech/hopeTechConference/hopeTechConfList.do" target="_blank;" title="새창">유망기술발표회</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li><h2><a href="/Material/StudyLV.asp">자료실</a></h2>
+                                <div class="dep2_area">
+                                    <ul>
+										<li class="has"><a href="/Material/Promote.asp">R&amp;D정책</a>
+											<ul class="menu-3">
+												<li><a href="/Material/Promote.asp">농림식품과학기술<br>&nbsp;&nbsp;육성법</a></li>
+												<li><a href="/Material/SkilPlan2025.asp">제4차농림식품과학<br>&nbsp;&nbsp;기술육성 종합계획<br>&nbsp;&nbsp;(2025-2029)</a></li>
+												<li><a href="/Material/SkilPlan.asp">제3차농림식품과학<br>&nbsp;&nbsp;기술육성 종합계획<br>&nbsp;&nbsp;(2020-2024)</a></li>
+												<li><a href="/Material/SkilPlanM.asp">농림식품과학기술<br>&nbsp;&nbsp;육성중장기<br>&nbsp;&nbsp;(2013-2022)계획</a></li>
+												<li><a href="/Material/Propel.asp">농림식품 R&amp;D 추진<br>&nbsp;&nbsp;체계</a></li>
+											</ul>
+										</li>
+                                        <li><a href="/Material/IPETDataLV.asp?cate=BB">행사자료</a></li>
+                                        <li class="has"><a href="/Material/IPETDataLVHB.asp">R&amp;D동향정보</a>
+                                            <ul class="menu-3">
+												<li><a href="/Material/IPETDataEvaluationLV.asp">기술수준평가</a></li>
+												<li><a href="/Material/IPETDatatrendLV.asp">R&D 이슈브리프</a></li>
+												<!--<li><a href="/Material/IPETDataissueLV.asp">이슈리포트</a></li>-->
+												<!--<li><a href="/Material/IPETDataglobalLV.asp">글로벌인사이트</a></li>-->
+												<li><a href="/Material/IPETDatafutureLV.asp">미래기술예측</a></li>
+                                                <!--<li><a href="/Material/KnowledgeLV.asp">연구개발 지식지도</a></li>-->
+												<li><a href="/Material/IPETDatatrendsLV.asp">동향 보고서</a></li>
+												<li><a href="/Material/IPETDataTechLV.asp">IPET 농산업 기술전략</a></li>
+                                            </ul>
+                                        </li>
+                                        
+                                        <li><a href="/Material/IPETBizReportLV.asp">국외출장 보고서</a></li>
+                                        <li><a href="/Material/StudyLV.asp">R&amp;D최종보고서</a></li>
+                                        
+                                    </ul>
+                                </div>
+                            </li>
+							
+                            <li><h2><a href="/Notice/NoticeLV.asp">알림소식</a></h2>
+                                <div class="dep2_area">
+                                    <ul>
+                                        <li><a href="/Notice/NoticeLV.asp">공지사항</a></li>
+										<li><a href="/Notice/bizNoticeLV.asp">사업공고</a></li>
+                                        <li><a href="/Notice/biddingLV.asp">입찰공고</a></li>
+                                        <li class="has">
+                                            <a href="/Notice/RecInfo.asp">채용안내</a>
+                                            <ul class="menu-3">
+                                                <li><a href="/Notice/RecInfo.asp">채용안내</a></li>
+                                                <li><a href="/Notice/Rec_Announce.asp">채용공고 및 입사지원</a></li>
+                                                <li><a href="/Notice/Rec_ResultInfo.asp">지원서확인·수정</a></li>
+                                                <li><a href="/Notice/Rec_ResultInfo2.asp">지원결과확인</a></li>
+                                                <li><a href="/Notice/Rec_QnaLV.asp">채용Q&amp;A</a></li>
+                                                <li><a href="/Notice/Rec_FaqLV.asp">채용FAQ</a></li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+							<li><h2><a href="/GoodCase/ReportLV.asp">홍보관</a></h2>
+                                <div class="dep2_area">
+                                    <ul>
+										<li><a href="/GoodCase/ReportLV.asp">보도자료</a></li>
+										<li><a href="/GoodCase/PressLV.asp">언론보도</a></li>
+										<li><a href="/GoodCase/cardnewsLV.asp">카드뉴스</a></li>
+										<li><a href="/GoodCase/PhotoNewsLV.asp">포토뉴스</a></li>
+										<li><a href="/GoodCase/iwebzineLV.asp">뉴스레터</a></li>
+										<li><a href="/GoodCase/ipetChangLVA.asp">IPET창</a></li>
+										<li class="has"><a href="/GoodCase/GoodCaseLV.asp">사업성과</a>
+											<ul class="menu-3">
+											  <li><a href="/GoodCase/GoodCaseLV.asp">연구개발우수사례</a></li>
+											  <li><a href="/GoodCase/TechnologyLV.asp">유망기술소개</a></li>
+											  <li><a href="/GoodCase/newTechLV.asp">인증기술우수사례</a></li>
+											  <li><a href="/GoodCase/ComGoodCaseLV.asp">상용화우수사례</a></li>
+											  <!--<li><a href="/GoodCase/snsTechLV.asp">농식품기술SNS컨설팅<br>&nbsp;&nbsp;우수사례</a></li>-->
+											</ul>
+										</li>
+										<!--<li class="has"><a href="/GoodCase/PrSupportIntro.asp">홍보지원</a>
+											<ul class="menu-3">
+											  <li><a href="/GoodCase/PrSupportIntro.asp">홍보지원 서비스 소개</a></li>
+											  <li><a href="/GoodCase/PrSupportLV.asp">홍보지원</a></li>
+											</ul>
+										</li>-->
+									</ul>
+                                </div>
+                            </li>
+							
+							
+                            <li><h2><a href="/Customer/Service.asp">고객소통</a></h2>
+                                <div class="dep2_area">
+                                    <ul>
+                                        <li><a href="/Customer/Service.asp">고객서비스헌장</a>
+											<ul class="menu-3">
+												<li><a href="/Customer/Service.asp">고객헌장</a></li>
+												<li><a href="/Customer/service01.asp">기업민원 보호·서비스<br>&nbsp;&nbsp;헌장</a></li>
+												<li><a href="/Customer/service02.asp">핵심서비스 이행표준</a></li>
+												<li><a href="/Customer/service03.asp">고객응대서비스<br>&nbsp;&nbsp;이행표준</a></li>
+                                                <li><a href="/Customer/ethicalmanageLV.asp">윤리경영</a></li>
+											</ul>
+										</li>
+                                        <!--<li><a href="javascript:alert('컨텐츠 준비중입니다.');">안전 및 환경</a></li>-->
+                                        <li><a href="/Customer/safeEnvironment.asp">안전 및 환경</a></li>
+
+										<!--<li class="has"><a href="/Customer/socialval.asp">사회적가치</a>
+											<ul class="menu-3">
+												<li><a href="/Customer/socialval.asp">사회적 가치 실현</a></li>
+												<li><a href="/Customer/socialvalOrg.asp">추진체계</a></li>
+												<li><a href="/Customer/jobcreation.asp">일자리 창출</a></li>
+												<li><a href="/Customer/safeEnvironment.asp">안전 및 환경</a></li>
+												<li><a href="/Customer/socialActLV.asp">사회공헌활동 </a></li>
+												<li><a href="/Customer/ethicalmanageLV.asp">윤리경영</a></li>
+												<li><a href="/Customer/humanmanageLV.asp">인권경영</a></li>
+											</ul>
+										</li>-->
+										<li class="has">
+                                            <a href="/Customer/CusSkillIntro.asp">수요조사</a>
+                                            <ul class="menu-3">
+                                                <li><a href="/Customer/CusSkillIntro.asp">현장수요조사</a></li>
+                                            </ul>
+                                        </li>
+                                        <li class="has"><a href="/Customer/NationOfferLV.asp">고객제안</a>
+                                            <ul class="menu-3">
+												<li><a href="/Customer/NationOfferLV.asp">국민제안</a></li>
+                                                <li><a href="/Customer/OfferLV.asp">고객의 소리</a></li>
+                                                <!-- li><a href="/Customer/OpenLV.asp">국민 열린혁신<br>&nbsp;&nbsp;아이디어 제안</a></li> -->
+												<li><a href="/Customer/PraiseLV.asp">미담·칭찬</a></li>
+												<!--<li><a href="/Customer/CheerLV.asp">칭찬격려</a></li>-->
+												<!--<li><a href="/Customer/ExcellentEmployeeLV.asp">적극행정 우수직원</a></li>-->
+                                            </ul>
+                                        </li>
+                                        <li><a href="/Customer/CertiLV.asp">실적증명서 발급</a></li>
+                                        <li class="has">
+                                            <a href="/Customer/Sinmungo.asp">IPET 신문고</a>
+                                            <ul class="menu-3">
+                                                
+                                                <li><a href="/Customer/PublicLogin.asp">공익·갑질 익명<br>&nbsp;&nbsp;신고센터</a></li>
+                                                <li><a href="/Customer/HumanRight.asp">인권침해행위 <br>&nbsp;&nbsp;신고센터</a></li>
+                                                <li><a href="/Customer/Sinmungo.asp">채용비리 등<br>&nbsp;&nbsp;종합신고센터</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a href="/Customer/PassiveReportLV.asp">소극행정·규제애로<br>신고</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li><h2><!--<a href="/Introduce/Greet.asp">기관 소개</a> 임시--><a href="/Introduce/Vision.asp">기관 소개</a></h2>
+                                <div class="dep2_area">
+                                    <ul>
+                                    <li class="has"><!--<a href="/Introduce/Greet.asp">IPET소개</a> 임시--><a href="/Introduce/Vision.asp">IPET소개</a>
+                                        <ul class="menu-3">
+                                            <li><a href="/Introduce/Greet.asp">인사말</a></li>
+                                            <li><a href="/Introduce/Vision.asp">비전 및 목표</a></li>
+                                            <li><a href="/Introduce/History.asp">연혁</a></li>
+                                            <li><a href="/Introduce/Function.asp">주요기능</a></li>
+                                            <li><a href="/Introduce/Introci.asp">CI소개</a></li>
+											<!--<li><a href="/Introduce/PresidentCareer.asp">원장 소개</a></li>-->
+											<li><a href="/Introduce/NewsLV.asp">기관장 활동</a></li>
+											<li><a href="/Introduce/PresidentHIS.asp">역대원장</a></li>
+											
+                                        </ul>
+                                    </li>			  
+                                   <li  class="has"><a href="/Introduce/Organ_new.asp">조직 및 직원안내</a>
+                                        <ul class="menu-3">
+                                            <li><a href="/Introduce/Organ_new.asp">조직도</a></li>
+                                            <li><a href="/Introduce/memberLV.asp">담당업무 검색</a></li>
+                                        </ul>
+                                    </li>
+									<li  class="has"><a href="/Introduce/Intromap.asp">찾아오시는 길</a>
+                                        <ul class="menu-3">
+                                            <li><a href="/Introduce/Intromap.asp">본원</a></li>
+                                            <li><a href="/Introduce/IntromapSub.asp">서울 한가람 평가장</a></li>
+											<li><a href="/Introduce/IntromapSub2.asp">나주 빛가람 평가장</a></li>
+                                        </ul>
+                                    </li>
+                                    </ul>
+                                    <div class="gnb_close_area"><a href="#self" class="gnb_close">전체 메뉴 닫기<span></span></a></div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+           </div>
+           <!-- //gnb -->
+       </div>
+       <!-- //header -->
+
+	<div id="contener">
+		<div class="sub-contener">
+			<div class="path">
+				<div class="pathedfr clearfix">
+					<ul>
+						<li>홈</li>
+						<li>알림소식</li>
+						<li><strong>사업공고</strong></li>
+					</ul>
+				</div>
+			</div>
+			<div class="sub-conttp">
+				<div class="sub-contxt clearfix">
+					
+<div class="lnb">
+	<h2>알림소식</h2>
+	<div class="ssleftxt">
+		<ul>
+			<li><a href="/Notice/NoticeLV.asp"><span>공지사항</span></a></li>
+			<li><a href="/Notice/bizNoticeLV.asp" class="menu_on" ><span>사업공고</span></a></li>
+			<li><a href="/Notice/biddingLV.asp"><span>입찰공고</span></a></li>
+			<li><a href="/Notice/RecInfo.asp"><span>채용안내</span></a>
+				<ul class="lnb-meun2">
+					<li><a href="/Notice/RecInfo.asp">채용안내</a></li>
+					<li><a href="/Notice/Rec_Announce.asp">채용공고 및 입사지원</a></li>
+					<li><a href="/Notice/Rec_ResultInfo.asp">지원서확인·수정</a></li>
+					<li><a href="/Notice/Rec_ResultInfo2.asp">지원결과확인</a></li>
+					<li><a href="/Notice/Rec_QnaLV.asp">채용Q&A</a></li>
+					<li><a href="/Notice/Rec_FaqLV.asp">채용FAQ</a></li>
+				</ul>
+			</li>
+		</ul>
+	</div>
+</div>
+
+
+					<div class="rightstext" id="rightstext">
+						<div class="rightstopt">
+							<h3>사업공고</h3>
+							<p>세상을 바꾸는 힘! 미래를 이끄는 빛-IPET. 농림식품산업의 밝은 미래, IPET가 이끌어 갑니다.</p>
+						</div>
+						<form name="searchFrm" method="get" action="bizNoticeLV.asp">
+						<div class="contentsZone">
+							<div class="mebtop">
+								<ul>
+									<li class="fts4">
+										<label for="seass1">접수상태</label>
+										<select id="seass1" name="findAnucStat">
+											<option value=''>전체</option>
+											<option value="001" >미진행</option>
+											<option value="002" >접수중</option>
+											<option value="003" >접수완료</option>
+										</select>
+									</li>
+									<li class="fts3">
+										<label for="seass2">검색어</label>
+										<select id="seass2" name="qtype">
+											<option value="ANUC_NM" >공고명</option>
+										</select>
+									</li>
+									<li class="li-search">
+										<input type="text" name="query" maxlength="30" value="" title="검색어입력">
+										<a class="a-search" href="#" onclick="t_search();">검색</a>
+									</li>
+								</ul>
+							</div>
+							</div>
+							</form>
+							<ul class="total-pages">
+								<li>Total <span>330 건</span></li>
+								<li>검색결과 <span>327 건</span></li>
+							</ul>
+							<div class="sub-table-topbor">
+								<table class="sub-table no-bor">
+									<caption>사업공고의 글번호, 접수기간 ,공고명, 접수상태, 등록일 제공표</caption>
+									<colgroup>
+										<col style="width:10%" />
+										<col style="width:20%" />
+										<col style="width:40%" />
+										<col style="width:20%" />
+										<col style="width:10%" />
+									</colgroup>
+									<thead>
+										<tr>
+											<th scope="col">번호</th>
+											<th scope="col">접수기간</th>
+											<th scope="col">공고명</th>
+											<th scope="col">접수상태</th>
+											<th scope="col">등록일</th>
+										</tr>
+									</thead>
+									<tbody>
+	
+										<tr>
+											<td>317</td>
+											<td>2025-12-30 ~ 2026-02-02</td>
+											<td class="taxt-lt20">
+												<a href="bizNoticeVP.asp?page=2&amp;tbl_id=2026000017&amp;_sbj=2026%EB%85%84+%EB%86%8D%EC%97%85%EC%97%B0%EA%B5%AC%EA%B0%9C%EB%B0%9C%EC%82%AC%EC%97%85+3%EC%B0%A8%EA%B3%B5%EB%AA%A8" title="2026년 농업연구개발사업 3차공모">2026년 농업연구개발사업 3차공모</a>
+											</td>
+											<td>
+											
+												<span class="td-color-box td-c3">접수완료</span>
+											</td>
+											<td>2026-01-20</td>
+										</tr>
+	
+										<tr>
+											<td>316</td>
+											<td>2026-01-19 ~ 2026-02-11</td>
+											<td class="taxt-lt20">
+												<a href="bizNoticeVP.asp?page=2&amp;tbl_id=2026000016&amp;_sbj=2026%EB%85%84%EB%8F%84+%EB%86%8D%EC%97%85%EB%86%8D%EC%B4%8C%EA%B5%AD%EB%AF%BC%EC%B2%B4%EA%B0%90AX%EC%A0%84%ED%99%98%EA%B8%B0%EC%88%A0%EA%B0%9C%EB%B0%9C%EC%82%AC%EC%97%85+%EC%8B%9C%ED%96%89%EA%B3%84%ED%9A%8D+%EA%B3%B5%EA%B3%A0" title="2026년도 농업농촌국민체감AX전환기술개발사업 시행계획 공고">2026년도 농업농촌국민체감AX전환기술개발사업 시행계획 공고</a>
+											</td>
+											<td>
+											
+												<span class="td-color-box td-c3">접수완료</span>
+											</td>
+											<td>2026-01-12</td>
+										</tr>
+	
+										<tr>
+											<td>315</td>
+											<td>2026-01-16 ~ 2026-02-09</td>
+											<td class="taxt-lt20">
+												<a href="bizNoticeVP.asp?page=2&amp;tbl_id=2026000014&amp;_sbj=2026%EB%85%84%EB%8F%84+%EA%B3%A0%EB%B6%80%EA%B0%80%EA%B0%80%EC%B9%98%EC%8B%9D%ED%92%88%EA%B8%B0%EC%88%A0%EA%B0%9C%EB%B0%9C%EC%82%AC%EC%97%85+%EC%8B%9C%ED%96%89%EA%B3%84%ED%9A%8D+%EA%B3%B5%EA%B3%A0" title="2026년도 고부가가치식품기술개발사업 시행계획 공고">2026년도 고부가가치식품기술개발사업 시행계획 공고</a>
+											</td>
+											<td>
+											
+												<span class="td-color-box td-c3">접수완료</span>
+											</td>
+											<td>2026-01-09</td>
+										</tr>
+	
+										<tr>
+											<td>314</td>
+											<td>2026-01-12 ~ 2026-02-10</td>
+											<td class="taxt-lt20">
+												<a href="bizNoticeVP.asp?page=2&amp;tbl_id=2026000013&amp;_sbj=2026%EB%85%84%EB%8F%84+%EB%B0%98%EB%A0%A4%EB%8F%99%EB%AC%BC%EB%82%9C%EC%B9%98%EC%84%B1%EC%A7%88%ED%99%98%EA%B7%B9%EB%B3%B5%EA%B8%B0%EC%88%A0%EA%B0%9C%EB%B0%9C%EC%82%AC%EC%97%85+%EC%8B%9C%ED%96%89%EA%B3%84%ED%9A%8D+%EA%B3%B5%EA%B3%A0" title="2026년도 반려동물난치성질환극복기술개발사업 시행계획 공고">2026년도 반려동물난치성질환극복기술개발사업 시행계획 공고</a>
+											</td>
+											<td>
+											
+												<span class="td-color-box td-c3">접수완료</span>
+											</td>
+											<td>2026-01-07</td>
+										</tr>
+	
+										<tr>
+											<td>313</td>
+											<td>2026-01-12 ~ 2026-02-10</td>
+											<td class="taxt-lt20">
+												<a href="bizNoticeVP.asp?page=2&amp;tbl_id=2026000012&amp;_sbj=2026%EB%85%84%EB%8F%84+%EA%B8%B0%EC%88%A0%EC%82%AC%EC%97%85%ED%99%94%EC%A7%80%EC%9B%90%EC%82%AC%EC%97%85+%EC%8B%9C%ED%96%89%EA%B3%84%ED%9A%8D+%EA%B3%B5%EA%B3%A0" title="2026년도 기술사업화지원사업 시행계획 공고">2026년도 기술사업화지원사업 시행계획 공고</a>
+											</td>
+											<td>
+											
+												<span class="td-color-box td-c3">접수완료</span>
+											</td>
+											<td>2026-01-05</td>
+										</tr>
+	
+										<tr>
+											<td>312</td>
+											<td>2026-01-12 ~ 2026-02-10</td>
+											<td class="taxt-lt20">
+												<a href="bizNoticeVP.asp?page=2&amp;tbl_id=2026000011&amp;_sbj=2026%EB%85%84%EB%8F%84+%EB%86%8D%EC%83%9D%EB%AA%85%EC%9E%90%EC%9B%90%EA%B8%B0%EB%B0%98+%EA%B5%AD%EA%B0%80%ED%95%84%EC%88%98%EC%9D%98%EC%95%BD%ED%92%88+%EC%9B%90%EB%A3%8C%EA%B3%B5%EA%B8%89%EB%A7%9D+%EB%8C%80%EC%9D%91%EA%B8%B0%EC%88%A0%EA%B0%9C%EB%B0%9C%EC%82%AC%EC%97%85+%EC%8B%9C%ED%96%89%EA%B3%84%ED%9A%8D+%EA%B3%B5%EA%B3%A0" title="2026년도 농생명자원기반 국가필수의약품 원료공급망 대응기술개발사업 시행계획 공고">2026년도 농생명자원기반 국가필수의약품 원료공급망 대응기술개발사업 시행계획 공고</a>
+											</td>
+											<td>
+											
+												<span class="td-color-box td-c3">접수완료</span>
+											</td>
+											<td>2026-01-05</td>
+										</tr>
+	
+										<tr>
+											<td>311</td>
+											<td>2026-01-12 ~ 2026-02-05</td>
+											<td class="taxt-lt20">
+												<a href="bizNoticeVP.asp?page=2&amp;tbl_id=2026000010&amp;_sbj=2026%EB%85%84%EB%8F%84+%EA%B8%B0%ED%9B%84%EB%B3%80%ED%99%94%EB%8C%80%EC%9D%91%EC%A7%80%EB%8A%A5%ED%98%95%EB%86%8D%EC%97%85%EA%B8%B0%EB%B0%98%EA%B4%80%EB%A6%AC%EA%B8%B0%EC%88%A0%EA%B0%9C%EB%B0%9C%EC%82%AC%EC%97%85+%EC%8B%9C%ED%96%89%EA%B3%84%ED%9A%8D+%EA%B3%B5%EA%B3%A0" title="2026년도 기후변화대응지능형농업기반관리기술개발사업 시행계획 공고">2026년도 기후변화대응지능형농업기반관리기술개발사업 시행계획 공고</a>
+											</td>
+											<td>
+											
+												<span class="td-color-box td-c3">접수완료</span>
+											</td>
+											<td>2026-01-05</td>
+										</tr>
+	
+										<tr>
+											<td>310</td>
+											<td>2026-01-12 ~ 2026-02-10</td>
+											<td class="taxt-lt20">
+												<a href="bizNoticeVP.asp?page=2&amp;tbl_id=2026000009&amp;_sbj=2026%EB%85%84%EB%8F%84+AX%EA%B8%B0%EB%B0%98%EC%A7%80%EB%8A%A5%ED%98%95%EB%86%8D%EC%97%85%EB%A1%9C%EB%B4%87%EB%B6%84%EC%95%BC+%EB%86%8D%EC%8B%9D%ED%92%88%EB%B6%80%2D%EB%86%8D%EC%A7%84%EC%B2%AD+%ED%98%91%EC%97%85%EA%B3%BC%EC%A0%9C+%ED%86%B5%ED%95%A9+%EA%B3%B5%EA%B3%A0" title="2026년도 AX기반지능형농업로봇분야 농식품부-농진청 협업과제 통합 공고">2026년도 AX기반지능형농업로봇분야 농식품부-농진청 협업과제 통합 공고</a>
+											</td>
+											<td>
+											
+												<span class="td-color-box td-c3">접수완료</span>
+											</td>
+											<td>2026-01-05</td>
+										</tr>
+	
+										<tr>
+											<td>309</td>
+											<td>2026-01-12 ~ 2026-02-10</td>
+											<td class="taxt-lt20">
+												<a href="bizNoticeVP.asp?page=2&amp;tbl_id=2026000008&amp;_sbj=2026%EB%85%84%EB%8F%84+AX%EA%B8%B0%EB%B0%98%EC%A7%80%EB%8A%A5%ED%98%95%EB%86%8D%EC%9E%91%EC%97%85%ED%98%91%EC%97%85%EC%82%B0%EC%97%85%ED%99%94%EA%B8%B0%EC%88%A0%EA%B0%9C%EB%B0%9C%EC%82%AC%EC%97%85+%EC%8B%9C%ED%96%89%EA%B3%84%ED%9A%8D+%EA%B3%B5%EA%B3%A0" title="2026년도 AX기반지능형농작업협업산업화기술개발사업 시행계획 공고">2026년도 AX기반지능형농작업협업산업화기술개발사업 시행계획 공고</a>
+											</td>
+											<td>
+											
+												<span class="td-color-box td-c3">접수완료</span>
+											</td>
+											<td>2026-01-05</td>
+										</tr>
+	
+										<tr>
+											<td>308</td>
+											<td>2026-01-12 ~ 2026-02-10</td>
+											<td class="taxt-lt20">
+												<a href="bizNoticeVP.asp?page=2&amp;tbl_id=2026000007&amp;_sbj=2026%EB%85%84%EB%8F%84+%ED%95%A9%EC%84%B1%ED%99%94%ED%95%99%EA%B8%B0%EB%B0%98+K%2D%EC%8B%A0%EC%9E%91%EB%AC%BC%EB%B3%B4%ED%98%B8%EC%A0%9C+%EA%B8%80%EB%A1%9C%EB%B2%8C+%EC%82%B0%EC%97%85%ED%99%94+%EC%8B%9C%ED%96%89%EA%B3%84%ED%9A%8D+%EA%B3%B5%EA%B3%A0" title="2026년도 합성화학기반 K-신작물보호제 글로벌 산업화 시행계획 공고">2026년도 합성화학기반 K-신작물보호제 글로벌 산업화 시행계획 공고</a>
+											</td>
+											<td>
+											
+												<span class="td-color-box td-c3">접수완료</span>
+											</td>
+											<td>2026-01-05</td>
+										</tr>
+	
+										
+									</tbody>
+								</table>
+							</div>
+							<!-- paging -->
+							<div class="paging"><a href="?qtype=&amp;query=&amp;findAnucStat=&amp;page=1" title="처음"><img src="/images/sub/paging_11.gif" alt="첫 페이지로 이동"></a> <a href="?qtype=&amp;query=&amp;findAnucStat=&amp;page=1" title="1 페이지">1</a><font style='color: #fff; background: #6b6b6b; width: 31px; height: 29px; font-size: 13px; border: 1px solid #d7d7d7; display: inline-block; line-height: 29px;'>2</font><a href="?qtype=&amp;query=&amp;findAnucStat=&amp;page=3" title="3 페이지">3</a><a href="?qtype=&amp;query=&amp;findAnucStat=&amp;page=4" title="4 페이지">4</a><a href="?qtype=&amp;query=&amp;findAnucStat=&amp;page=5" title="5 페이지">5</a><a href="?qtype=&amp;query=&amp;findAnucStat=&amp;page=6" title="6 페이지">6</a><a href="?qtype=&amp;query=&amp;findAnucStat=&amp;page=7" title="7 페이지">7</a><a href="?qtype=&amp;query=&amp;findAnucStat=&amp;page=8" title="8 페이지">8</a><a href="?qtype=&amp;query=&amp;findAnucStat=&amp;page=9" title="9 페이지">9</a><a href="?qtype=&amp;query=&amp;findAnucStat=&amp;page=10" title="10 페이지">10</a> <a href="?qtype=&amp;query=&amp;findAnucStat=&amp;page=11" title="11 페이지"><img src="/images/sub/paging_15.gif" alt="다음10페이지로"></a> <a href="?qtype=&amp;query=&amp;findAnucStat=&amp;page=33" title="마지막"><img src="/images/sub/paging_17.gif" alt="마지막 페이지로 이동"></a></div>
+<div style="float:right; margin-right:30px; margin-top:75px; font-size:16px;">
+	<dl class="clearfix">
+		<dd>
+			<ul>
+				<!--<li class="bgNone"><b style=" font-size:15px; color:#3b49ef;">문의전화 : 농식품 R&D 상담센터 (061-338-9805, 9806, 9807)</b></li>-->
+			</ul>
+		</dd>
+	</dl>
+</div>
+
+<div class="pageBottom">
+	<div class="research">
+		<dl class="clearfix">
+			<dt>콘텐츠담당자</dt>
+			<dd>
+				<ul>
+					<li class="bgNone">담당부서 : 융복합사업실</li>
+					<li>문의전화 : 061-338-9752</li>
+				</ul>
+			</dd>
+		</dl>
+		<form id="surveyFrm" name="surveyFrm" method="post" action="/common/surveyPS.asp">
+		<input type="hidden" name="fName" value="frm">
+		<input type="hidden" name="surveyMenu1" id="surveyMenu1" value="알림소식">
+		<input type="hidden" name="surveyMenu2" id="surveyMenu2" value="사업공고">
+		<input type="hidden" name="surveyMenu3" id="surveyMenu3" value="">
+		<input type="hidden" name="surveyStaffID" id="surveyStaffID" value="admin">
+		<input type="hidden" name="surveyStaffName" id="surveyStaffName" value="박종락">
+		<input type="hidden" name="surveyStaffDepart" id="surveyStaffDepart" value="융복합사업실">
+		<input type="hidden" name="surveyStaffTel" id="surveyStaffTel" value="061-338-9752">
+		<input type="hidden" name="surveyFinalModDate" id="surveyFinalModDate" value="2023-01-03">
+			
+		<div class="fprbm">
+			<p>이 페이지에서 제공하는 정보에 대해 만족하십니까?
+				<input type="radio" class="inputRadio" id="eval01" name="surveyChk" value="5"><label for="eval01">매우만족</label>
+				<input type="radio" class="inputRadio" id="eval02" name="surveyChk" value="4"><label for="eval02">만족</label>
+				<input type="radio" class="inputRadio" id="eval03" name="surveyChk" value="3"><label for="eval03">보통</label>
+				<input type="radio" class="inputRadio" id="eval04" name="surveyChk" value="2"><label for="eval04">불만</label>
+				<input type="radio" class="inputRadio" id="eval05" name="surveyChk" value="1"><label for="eval05">매우불만</label>
+				<a href="#n" onclick="return survey_submit();">평가하기</a>
+			</p>
+		</div>
+		</form>
+	</div>
+</div>
+
+						</div>
+					
+								<div id="QuickMenu" class="quickMenuWrap">
+				<ul>
+					<li class="qckmns1"><a href="/Notice/bizNoticeLV.asp">사업공고</a></li>
+					<li class="qckmns4"><a href="/Rnd/Rule.asp">규정 및 서식</a></li>
+					<li class="qckmns2"><a href="/Rnd/reseachTask.asp">연구과제 검색</a></li>
+					<li class="qckmns3"><a href="/Rnd/researchKind.asp">과제분류체계</a></li>
+				</ul>
+			</div>
+
+					</div>
+				</div>
+			</div>
+		</div>
+
+<script type="text/javascript">
+function t_search(){
+	searchFrm.submit();
+}
+</script>
+ <div class="footer">
+           <div class="footer__top">
+                <div class="footer--innder clear">
+                    <ul class="footer__menu--top">
+                        <!--<li><a href="https://rnd.ipet.re.kr/ipetUsr/" target="_blank" title="농식품산업육성지원시스템 새창열림">농식품산업육성지원시스템</a></li>       -->
+                        <li><a href="https://gaia.go.kr/" target="_blank" title="연구비통합관리시스템(EZbaro) 새창열림">연구비통합관리시스템(EZbaro)</a></li>       
+                        <li><a href="https://www.stca.go.kr/html/" target="_blank" title="농림식품과학기술위원회 새창열림">농림식품과학기술위원회</a></li>       
+                        <li><a href="https://www.newat.or.kr/" target="_blank" title="기술상용화플랫폼 새창열림">기술상용화플랫폼</a></li>
+                    </ul>
+                    <div class="site--wrap">
+                        <div class="relate-site family-site">
+                            <button type="button" class="title" title="메뉴 펼치기">농업관련기관</button>
+                            <ul style="display: none;">
+                                <li><a href="http://www.mafra.go.kr/"  title="농림축산식품부 새창열림" target="_blank">농림축산식품부</a></li>
+                                <li><a href="http://www.rda.go.kr/"  title="농촌진흥청 새창열림" target="_blank">농촌진흥청</a></li>
+                                <!--<li><a href="http://www.gsp.re.kr/"  title="네이버 새창열림" target="_blank">Golden Seed프로젝트</a></li>-->
+                                <li><a href="http://www.forest.go.kr"  title="산림청 새창열림" target="_blank">산림청</a></li>
+                                <li><a href="http://www.naqs.go.kr"  title="국립농산물품질관리원 새창열림" target="_blank">국립농산물품질관리원</a></li>
+                                <!--<li><a href="http://www.nfis.go.kr">농림축산검역본부</a></li>-->
+                                <li><a href="http://www.ati.go.kr"  title="농식품공무원교육원 새창열림" target="_blank">농식품공무원교육원</a></li>
+                                <li><a href="http://www.qia.go.kr/"  title="농림축산검역본부 새창열림" target="_blank">농림축산검역본부</a></li>
+                                <li><a href="http://www.seed.go.kr"  title="국립종자원 새창열림" target="_blank">국립종자원</a></li>
+                                <li><a href="https://www.af.ac.kr/" title="한국농수산대학 새창열림" target="_blank">한국농수산대학</a></li>
+                                <li><a href="http://www.stca.go.kr" title="농림식품과학기술위원회 새창열림" target="_blank">농림식품과학기술위원회</a></li>                                
+                            </ul>
+                        </div>
+                        <div class="relate-site major-site">
+                            <button type="button" class="title">R&D전문기관</button>
+                            <ul>
+                                <li><a href="https://www.nrf.re.kr/index"  title="한국연구재단 새창열림" target="_blank">한국연구재단</a></li>
+                                <li><a href="http://www.kocca.kr"  title="한국콘텐츠진흥원 새창열림" target="_blank">한국콘텐츠진흥원</a></li>
+                                <li><a href="http://www.ipet.re.kr"  title="농림식품기술기획평가원 새창열림" target="_blank">농림식품기술기획평가원</a></li>
+                                <li><a href="http://www.rda.go.kr"  title="농촌진흥청 새창열림" target="_blank">농촌진흥청</a></li>
+                                <li><a href="http://www.keit.re.kr"  title="한국산업기술평가관리원 새창열림" target="_blank">한국산업기술평가관리원</a></li>
+                                <li><a href="http://www.kiat.or.kr"  title="한국산업기술진흥원 새창열림" target="_blank">한국산업기술진흥원</a></li>
+                                <li><a href="http://www.ketep.re.kr"  title="한국에너지기술평가원 새창열림" target="_blank">한국에너지기술평가원</a></li>
+                                <li><a href="http://www.nipa.re.kr"  title="정보통신산업진흥원 새창열림" target="_blank">정보통신산업진흥원</a></li>
+                                <li><a href="http://www.khidi.or.kr"  title="한국보건산업진흥원 새창열림" target="_blank">한국보건산업진흥원</a></li>
+                                <li><a href="http://www.keiti.re.kr"  title="한국환경산업기술원 새창열림" target="_blank">한국환경산업기술원</a></li>
+                                <li><a href="http://www.kictep.re.kr" title="국토교통과학기술진흥원 새창열림" target="_blank">국토교통과학기술진흥원</a></li>
+                                <li><a href="http://www.kimst.re.kr" title="한국해양과학기술진흥원 새창열림" target="_blank">한국해양과학기술진흥원</a></li>
+                                <li><a href="http://www.dtaq.re.kr" title="국방기술품질원 새창열림" target="_blank">국방기술품질원</a></li>	
+                                <li><a href="http://www.kma.go.kr" title="기상청 새창열림" target="_blank">기상청</a></li>		
+                                <li><a href="https://www.mfds.go.kr/index.do" title="식품의약품안전처 새창열림" target="_blank">식품의약품안전처</a></li>
+                                <li><a href="http://www.forest.go.kr" title="산림청 새창열림" target="_blank">산림청</a></li>
+
+                            </ul>
+                        </div>
+                    </div>                    
+                </div>
+           </div>
+           <div class="footer__bottom">
+                <div class="footer--innder clear">
+                    <div class="bottom--logo">
+                        <img src="/img/main/bottom_logo.jpg" alt="IPET 농림식품기술기획평가원 하단로고">
+                    </div>
+                    <div class="bottom--info">
+                        <p class="footer__menu--bottom">
+                            <a href="../Etc/privacy_policy.asp" style="text-decoration:underline; text-underline-position: under;">개인정보처리방침</a>    
+                            <a href="../Etc/Siterow.asp">사이트이용약관</a>
+                            <a href="../Etc/Email.asp">이메일무단수집거부</a>     
+                            <a href="../Etc/UncomfortableLV.asp">홈페이지개선의견</a>
+                            <a href="../Etc/Viewdown.asp">뷰어다운로드</a>
+								<a href="../Etc/Sitemap.asp">사이트맵</a>
+                        </p>
+                        <p class="copyinfo">
+                            58326 전남광주통합특별시 나주시 교육길 45 TEL (주간)061-338-9700/(야간 및 휴일)061-338-9860 FAX 061-338-9739<br>
+                            Copyright© 2011 Korea INSTITUTE OF PLANNING AND EVALUATION FOR TECHNOLOGY IN FOOD, AGRICULTURE AND FORESTRY All right reserved.                             
+                        </p>
+                        <p class="wa"><a href="http://www.webwatch.or.kr/Situation/WA_Situation.html?MenuCD=110" target="_blank"><img src="/img/main/WA_Mark_20250930.png" style="width:90px;" alt="[새창]과학기술정보통신부 WA(WEB 접근성) 품질인증 마크 웹와치(WebWatch) 2025.9.30~2026.9.29"></a></p>
+                    </div>
+                </div>
+           </div> <!--footer__bottom end---->
+       </div>
+</div>
+</body>
+<script language="javascript">
+	
+//웹접근성 메뉴 확장 축소
+jQuery(".nav > li > div > ul > li").ready(function() {
+	jQuery('.has').attr('title','메뉴 축소됨');
+	});
+jQuery('.nav > li > div > ul > li').on('click',function(){
+        var subMenuTab = jQuery(this).closest('.has');
+        if(subMenuTab.hasClass('on')){
+			jQuery(".nav > li > div > ul > li").each(function(){
+				jQuery('.has').attr('title','메뉴 축소됨');
+			});
+        	jQuery(this).attr('title','메뉴 확장됨');
+            subMenuTab.addClass('on');
+            subMenuTab.find('ul').slideDown();
+        } else {
+            subMenuTab.removeClass('on');
+            jQuery(this).attr('title','메뉴 축소됨');
+            subMenuTab.find('ul').slideUp();
+        }
+    });
+
+</script>
+</html>

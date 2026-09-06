@@ -1,0 +1,209 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>고용정책 상세_제도안내</title></head>
+<!-- 고정본: 없는 번호(SI09999999) 실응답 — 지원내용/지원자격 h3 없음 -->
+<body id="body">
+	
+	<input type="hidden" id="currentMenuId" value="EBG020000001572" />
+	
+	<div id="wrap" class="person">
+		
+
+
+
+
+
+
+
+
+
+
+<!-- main layer popup -->
+
+<!-- //main layer popup -->
+
+<script type="text/javascript">
+
+function fn_skipNavigator(param) {
+
+	if($.find("."+param)) {
+
+		/*
+		$("."+param).focus();
+		$("."+param).attr("id", param);
+		location.hash = "#"+param;
+		$("#skipnav").hide();
+		*/
+
+	} else {
+		console.log("not find");
+	}
+
+}
+//웹품질진단팀 제공소스로 변경
+$(function(){
+	$("#skipnaviCont").on("click", function(event) {
+		event.preventDefault();
+		var scrollTop = $(window).scrollTop();
+		$(".cont_wrap").attr("tabindex", "-1").focus().removeAttr("tabindex");
+
+		$("html, body").scrollTop(scrollTop);
+	});
+})
+
+</script>
+<nav id="skipnav">
+	
+		
+		
+			<a href="javascript:void(0)" id="skipnaviCont">본문 바로가기</a>
+		
+	
+
+	<a href="#gnb">주메뉴 바로가기</a>
+</nav>
+<!-- //skip navigation -->
+<script type="text/javascript">
+function fn_layerPopupClose(layerPopId,signYnId){
+	var today = DateLib.addDay(7,null,"YYYYMMDD")
+
+	//기존에 저장된것들
+	var preList = localStorage.getItem("g24LayerPopup") == null ? null:JsonLib.parse(localStorage.getItem("g24LayerPopup"));
+	if(preList == null ){
+		preList = new Array();
+	}
+	//오늘하루체크되어 있으면
+	if($("input:checkbox[id='"+signYnId+"']").is(":checked") == true){//체크박스에 선택이 되면
+		var o = {};
+		o[layerPopId] = {"extDay":today};
+		preList.push(o);
+		var ret = JsonLib.stringify(preList);
+		localStorage.setItem("g24LayerPopup", ret );
+	}
+	$("#"+layerPopId).remove();
+	if($('section[id^=layerPop]').length ==0){
+		ui.dimHide();
+	}
+}
+</script>
+
+
+		<!-- #HEADER -->
+		<header class="new">
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- 한글 가상키보드 -->
+<link rel="stylesheet" href="/cm/static/external/hunmin-keyboard/hunmin-keyboard.css">
+<script type="text/javascript" src="/cm/static/external/hunmin-keyboard/hangul.js"></script>
+<script type="text/javascript" src="/cm/static/external/hunmin-keyboard/hunmin-keyboard.js"></script>
+
+
+    
+
+
+
+
+
+<script type="text/javascript">
+    var popList = '';
+    //메시지 출력
+    if (``) {
+        alert(``);
+    } else if (``) {
+        alert(``);
+    }
+    var silent = ``;
+    if (silent != null && silent != "") {
+        alert(silent);
+    }
+    if ("") {
+        var strUrl = "";
+        if(strUrl.indexOf("Post.do") <= -1){
+            location.href = strUrl;
+        }else{
+            var form = new FormLib.Form();
+            form.createForm("dummy0001", strUrl, "POST", null,null).addHidden("_csrf", $("meta[name='_csrf']").attr("content"));
+            form.addBody();
+
+            ComLib.submit("dummy0001");
+        }
+    }
+
+    function fn_saveSurvay(){
+        if($("#satisRgstedYn").val() == "Y"){
+            alert("만족도조사는 1번만 가능합니다");
+            return;
+        }
+
+        $("input[name='rating']:checked").val();
+
+        var data = {
+            "stdgTrgtMenuId" : _menuId
+            , "stdgTrgtUrla": window.location.href
+            , "stdgScor" : $("input[name='rating']:checked").val()
+            , "stdgQsinRspnCn" : $("#stdgQsinRspnCn").val()
+            , "stdgQsinDsfcCn" : $("#stdgQsinDsfcCn").val()
+            , "evtAgreeYn" : $("#evtAgreeYn").val()
+        };
+
+        var request = ComLib.ajaxReqObj("/cm/common/insertSatifyRate.do", data);
+        request.done(function (responseObj, statusText, xhr) {
+            $("#satisRgstedYn").val("Y");
+            if($("#evtAgreeYn").val() == "Y"){
+                alert("이벤트 참여가 완료되었습니다.\n소중한 의견 감사합니다.");
+            }else{
+                alert('소중한 의견 감사합니다.');
+            };
+        });
+    }
+
+    function fn_screenMode(mode){
+
+        var data = {
+            "screenMode" : mode
+        };
+
+        var request = ComLib.ajaxReqObj("/cm/common/setScreenMode.do", data);
+        request.done(function (responseObj, statusText, xhr) {
+            //세션에는 저장해두고, 화면에서는 즉시 토글 반영.
+            //location.reload();
+            if(mode == "dark"){
+                $("#darkSystem-css").attr("disabled", true);
+                $("#dark-css").removeAttr("disabled")
+</body></html>

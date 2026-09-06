@@ -1,0 +1,1272 @@
+
+        
+        
+        
+        
+        
+        
+        
+		
+		
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<title>수출지원기반활용사업</title>
+	<meta charset="UTF-8">
+	<meta name="Author" content="KOTRA"/>
+	<meta name="description" content="수출바우처.대한민국 수출지원정책의 큰 변화!이제는 원하는서비스와 업체를 내가고른다!">
+	<meta property="og:type" content="website">
+	<meta property="og:title" content="수출지원기반활용사업">
+	<meta property="og:description" content="수출바우처.대한민국 수출지원정책의 큰 변화!이제는 원하는서비스와 업체를 내가고른다!">
+	<meta property="og:image" content="https://www.exportvoucher.com/static/images/v_ad/potal/bg_index010.png">
+	<meta property="og:url" content="https://www.exportvoucher.com">
+	<meta name="keywords" content="수출지원기반활용사업, 수출바우처">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+
+	<!--[if lt IE 9]>
+	<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+	<script src="http://css3-mediaqueries-js.googlecode.com/svn/trunk/css3-mediaqueries.js"></script>
+	<![endif]-->
+	
+	<link rel="stylesheet" href="/static/style/v_ad/bootstrap.min.css" media="screen">
+	<script src="/static/script/v_ad/jquery-1.9.1.min.js"></script>
+	<script src="/static/script/v_ad/ui_login_check.js" ></script>
+	<script>
+		// 운영 svc sequence - 국제운송 : 132 / 관세대응 : 144 / 테크 : 145 / 톻상애로 : 153 / 무역보험ㆍ보증 : 142 (1Depth 기준)
+		// 개발 svc sequence - 국제운송 : 131 / 관세대응 : 153 / 테크 : 155 / 톻상애로 : 163 / 무역보험ㆍ보증 : 151 (1Depth 기준)
+		
+		// layout.jsp java String 변수로 최상단 영역에 setting 
+		const tariffSeq = 144;
+		const techSeq = 145;
+		const tradeTrubleSeq = 153;
+		const intrlTrsptSeq = 132;
+		const trdInsrAsrncSeq = 142;
+
+		//자바스크립트용 카테고리
+		var ALL_CATG_LIST = [{"divCd":"010","svcNm":"조사/일반 컨설팅","children":[{"divCd":"010","svcDfltImg":[],"svcNm":"조사/일반 컨설팅(일반)","svcSeq":102,"upSvcSeq":90,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000000324990"}],"svcSeq":90,"hasChild":true,"upSvcSeq":86,"divCdNm":"일반"},{"divCd":"010","svcNm":"디자인개발","children":[{"divCd":"010","svcDfltImg":[],"svcNm":"멀티미디어 디자인","svcSeq":125,"upSvcSeq":95,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000000567575"},{"divCd":"010","svcDfltImg":[],"svcNm":"제품디자인","svcSeq":126,"upSvcSeq":95,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000000567577"},{"divCd":"010","svcDfltImg":[],"svcNm":"CI/BI","svcSeq":127,"upSvcSeq":95,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000000567591"},{"divCd":"010","svcDfltImg":[],"svcNm":"시각·포장디자인","svcSeq":128,"upSvcSeq":95,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000000567593"}],"svcSeq":95,"hasChild":true,"upSvcSeq":86,"divCdNm":"일반"},{"divCd":"010","svcNm":"브랜드개발/관리","children":[{"divCd":"010","svcDfltImg":[],"svcNm":"브랜드개발/관리(일반)","svcSeq":99,"upSvcSeq":87,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000000324987"}],"svcSeq":87,"hasChild":true,"upSvcSeq":86,"divCdNm":"일반"},{"divCd":"010","svcNm":"홍보동영상","children":[{"divCd":"010,020","svcDfltImg":[],"svcNm":"홍보동영상","svcSeq":108,"upSvcSeq":96,"divCdNm":"일반,스타트업","svcDfltImgDocId":"DOC_000000000324996"}],"svcSeq":96,"hasChild":false,"upSvcSeq":86,"divCdNm":"일반"},{"divCd":"010","svcNm":"통번역","children":[{"divCd":"010","svcDfltImg":[],"svcNm":"통번역(일반)","svcSeq":106,"upSvcSeq":94,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000000324994"}],"svcSeq":94,"hasChild":true,"upSvcSeq":86,"divCdNm":"일반"},{"divCd":"010","svcNm":"역량강화 교육","children":[{"divCd":"010","svcDfltImg":[],"svcNm":"역량강화 교육(일반)","svcSeq":104,"upSvcSeq":92,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000000324992"}],"svcSeq":92,"hasChild":true,"upSvcSeq":86,"divCdNm":"일반"},{"divCd":"010","svcNm":"전시회/행사/해외영업지원","children":[{"divCd":"010","svcDfltImg":[],"svcNm":"전시회/행사/해외영업지원(일반)","svcSeq":101,"upSvcSeq":89,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000000324989"}],"svcSeq":89,"hasChild":true,"upSvcSeq":86,"divCdNm":"일반"},{"divCd":"010","svcNm":"해외규격인증","children":[{"divCd":"010,020","svcDfltImg":[],"svcNm":"해외규격인증","svcSeq":109,"upSvcSeq":97,"divCdNm":"일반,스타트업","svcDfltImgDocId":"DOC_000000000324997"}],"svcSeq":97,"hasChild":false,"upSvcSeq":86,"divCdNm":"일반"},{"divCd":"010","svcNm":"특허/지재권","children":[{"divCd":"010","svcDfltImg":[],"svcNm":"특허/지재권","svcSeq":110,"upSvcSeq":98,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000000324998"},{"divCd":"010","upSvcSeq":98,"svcDfltImg":[],"divCdNm":"일반","svcNm":"해외 IP권리화","svcSeq":161},{"divCd":"010","upSvcSeq":98,"svcDfltImg":[],"divCdNm":"일반","svcNm":"해외 IP조사 분석 및 컨설팅","svcSeq":162}],"svcSeq":98,"hasChild":true,"upSvcSeq":86,"divCdNm":"일반"},{"divCd":"010","svcNm":"홍보/광고","children":[{"divCd":"010","svcDfltImg":[],"svcNm":"홍보/광고(일반)","svcSeq":100,"upSvcSeq":88,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000000324988"}],"svcSeq":88,"hasChild":true,"upSvcSeq":86,"divCdNm":"일반"},{"divCd":"010","svcNm":"국제 운송","children":[{"divCd":"010,030","upSvcSeq":132,"svcDfltImg":[],"divCdNm":"일반,수출물류","svcNm":"국제 운송","svcSeq":133}],"svcSeq":132,"hasChild":false,"upSvcSeq":86,"divCdNm":"일반"},{"divCd":"010","svcNm":"서류대행/현지등록","children":[{"divCd":"010","svcDfltImg":[],"svcNm":"서류대행/현지등록","svcSeq":105,"upSvcSeq":93,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000000324993"}],"svcSeq":93,"hasChild":false,"upSvcSeq":86,"divCdNm":"일반"},{"divCd":"010","svcNm":"법무ㆍ세무/회계ㆍ관세 컨설팅","children":[{"divCd":"010","svcDfltImg":[],"svcNm":"법무ㆍ세무/회계ㆍ관세 컨설팅","svcSeq":103,"upSvcSeq":91,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000000324991"}],"svcSeq":91,"hasChild":false,"upSvcSeq":86,"divCdNm":"일반"},{"divCd":"010","svcNm":"무역보험ㆍ보증","children":[{"divCd":"010","upSvcSeq":142,"svcDfltImg":[],"divCdNm":"일반","svcNm":"무역보험ㆍ보증","svcSeq":143}],"svcSeq":142,"hasChild":false,"upSvcSeq":86,"divCdNm":"일반"},{"divCd":"010","svcNm":"테크서비스","children":[{"divCd":"010","upSvcSeq":145,"svcDfltImg":[],"divCdNm":"일반","svcNm":"테크서비스","svcSeq":152}],"svcSeq":145,"hasChild":false,"upSvcSeq":86,"divCdNm":"일반"},{"divCd":"010","svcNm":"관세대응 패키지","children":[{"divCd":"010","svcDfltImg":[],"svcNm":"조사/일반 컨설팅","svcSeq":146,"upSvcSeq":144,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000002495696"},{"divCd":"010","svcDfltImg":[],"svcNm":"법무ㆍ세무ㆍ회계 컨설팅","svcSeq":147,"upSvcSeq":144,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000002495698"},{"divCd":"010","svcDfltImg":[],"svcNm":"국제운송","svcSeq":148,"upSvcSeq":144,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000002495671"},{"divCd":"010","svcDfltImg":[],"svcNm":"전시회/행사/해외영업지원","svcSeq":149,"upSvcSeq":144,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000002495705"},{"divCd":"010","svcDfltImg":[],"svcNm":"해외규격인증","svcSeq":150,"upSvcSeq":144,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000002495707"},{"divCd":"010","svcDfltImg":[],"svcNm":"특허/지재권","svcSeq":151,"upSvcSeq":144,"divCdNm":"일반","svcDfltImgDocId":"DOC_000000002495708"},{"divCd":"010","upSvcSeq":144,"svcDfltImg":[],"divCdNm":"일반","svcNm":"해외 IP권리화","svcSeq":163},{"divCd":"010","upSvcSeq":144,"svcDfltImg":[],"divCdNm":"일반","svcNm":"해외 IP조사 분석 및 컨설팅","svcSeq":164}],"svcSeq":144,"hasChild":true,"upSvcSeq":86,"divCdNm":"일반"},{"divCd":"010","svcNm":"통상애로 긴급지원","children":[{"divCd":"010","upSvcSeq":153,"svcDfltImg":[],"divCdNm":"일반","svcNm":"美 관세 산정","svcSeq":154},{"divCd":"010","upSvcSeq":153,"svcDfltImg":[],"divCdNm":"일반","svcNm":"美 수출 원산지 대응","svcSeq":155},{"divCd":"010","upSvcSeq":153,"svcDfltImg":[],"divCdNm":"일반","svcNm":"美 관세 환급","svcSeq":156},{"divCd":"010","upSvcSeq":153,"svcDfltImg":[],"divCdNm":"일반","svcNm":"생산거점 이전","svcSeq":157},{"divCd":"010","upSvcSeq":153,"svcDfltImg":[],"divCdNm":"일반","svcNm":"유럽 통상 애로","svcSeq":158},{"divCd":"010","upSvcSeq":153,"svcDfltImg":[],"divCdNm":"일반","svcNm":"인도 통상 애로","svcSeq":159},{"divCd":"010","upSvcSeq":153,"svcDfltImg":[],"divCdNm":"일반","svcNm":"중동 물류 대응","svcSeq":160},{"divCd":"010","upSvcSeq":153,"svcDfltImg":[],"divCdNm":"일반","svcNm":"수출통제 컨설팅","svcSeq":167}],"svcSeq":153,"hasChild":true,"upSvcSeq":86,"divCdNm":"일반"}];
+		// ALL_CATG_LIST = ALL_CATG_LIST.filter(v => v. svcSeq != tradeTrubleSeq); // 통상애로 메뉴판 비노출 처리 (통상애로 개발 : 163 / 운영 : 153)
+		if('' == '270'){
+			ALL_CATG_LIST = [];
+		}
+		var SVC_RST_LIST = [];
+		
+
+		function getCookie(name){
+			var nameOfCookie =name +"=";
+			var x=0;
+			while (x  <= document.cookie.length)
+			{
+				var y=(x+nameOfCookie.length);
+				if(document.cookie.substring(x ,y)==nameOfCookie){
+					if( (endOfCookie=document.cookie.indexOf(";" ,y))==-1)
+						endOfCookie=document.cookie.length;
+					return unescape (document.cookie.substring(y, endOfCookie));
+				}
+				x=document.cookie.indexOf(" ",x)+1;
+				if(x==0)
+					break;
+			}
+			return "";
+		}
+
+		function setCookie(name, value, expiredays){
+			var todayDate=new Date();
+			todayDate.setDate(todayDate.getDate()+expiredays);
+			document.cookie=name + "=" + escape(value) + "; path=/; expires=" + todayDate.toGMTString() +"; SameSite=None;Secure";
+		}
+
+		$(document).ready(function(){
+			
+			function doSearch(){
+				var kwd = $("#totSchInput").val();
+				location.href = '/portal/menupan/menu?totSchInput='+encodeURIComponent(kwd);
+			}
+
+			$("#totSchInput").on('keypress', function(e){
+				if(e.keyCode == 13){
+					doSearch();
+				}
+			});
+			
+			var keywordCnt = null;
+			function drawSearchBox(){
+				if(keywordCnt){
+					var $rankTop = $(".searchBlock [data-search-rank-top]");
+					$rankTop.find("dd").remove();
+					for(var i=0; i<keywordCnt.length && i < 7; i++) {
+						var $dd = $("<dd>");
+						if(i<3){
+							$dd.addClass('blue');
+						}
+						$dd.html("<a href='/portal/menupan/menu?totSchInput="+encodeURIComponent(keywordCnt[i].kwd)+"'>"+(i+1)+". "+keywordCnt[i].kwd+"</a>");
+						$rankTop.append($dd);
+					}
+				}
+
+				var $searchTop = $(".searchBlock [data-recent-search-top]");
+				var searchHist = unescape(getCookie("searchHist"));
+				if(searchHist){
+					searchHist = $.parseJSON(searchHist);
+					$searchTop.find("dd").remove();
+					if(searchHist.length > 0) {
+						for(var i=0; i<searchHist.length && i < 7; i++) {
+							var $dd = $("<dd>");
+							$dd.html("<a href='/portal/menupan/menu?totSchInput="+encodeURIComponent(searchHist[i].kwd)+"' style='float:left;'>"+(i+1)+". "+searchHist[i].kwd+"</a><button type='button' class='delSearchHist' style='float:right;margin-right:2%;font-size:10px;' data-index='"+i+"'>삭제X</button>");
+							$searchTop.append($dd);
+						}
+					} else {
+						var $dd = $("<dd>");
+						$dd.html("최근 검색어가 없습니다.");
+						$searchTop.append($dd);
+					}
+				}
+				$(".search .searchBlock").show();
+				
+				$('.delSearchHist').on('click', function(){
+					var orgHist = $.parseJSON(unescape(getCookie("searchHist")));
+					var tgtIdx = Number(this.getAttribute('data-index'));
+					orgHist.splice(tgtIdx,1);console.log(orgHist,tgtIdx);
+					setCookie("searchHist", JSON.stringify(orgHist), 1);
+					$(this).parent().remove();
+					drawSearchBox();
+				});
+			}
+
+			$("#totSchInput").on('focus', function(e){
+				$(this).parent().addClass('active');
+				if(keywordCnt == null){
+					$.ajax({
+						"url": "/portal/search/keywordCnt",
+						"type": "get",
+						"traditional": true,
+						"success": function (jsonData) {
+							keywordCnt = jsonData;
+							drawSearchBox();
+						}
+					});
+				} else {
+					drawSearchBox();
+				}
+			});
+
+			$(document).on('click', function(e){
+				if($(".search .searchBlock").is(":visible")){
+					if($(e.target).closest('.headerTop').length== 0 && !$(e.target).hasClass('delSearchHist')){
+						$(".search .searchBlock").parent().removeClass('active');
+						$(".search .searchBlock").hide();
+					}
+				}
+			});
+
+			$(".search .searchBlock .close button").on('click', function(){
+				$(".search .searchBlock").parent().removeClass('active');
+				$(".search .searchBlock").hide();
+			});
+
+			$("#totSchButton").on('click', function(e){
+				doSearch();
+			});
+			
+			$("#totResetButton").on('click', function(e){
+				$("#totSchInput").val("");
+				$("#totSchInput").trigger("keyup");
+			});
+			
+			$("#totSchInput").on('keyup', function(e){
+				if(this.value == "") {
+					$("#totResetButton").hide();
+				} else {
+					$("#totResetButton").show();
+				}
+			});
+
+			//타이틀 표시
+			setWindowTitle();
+		});
+
+		function delngGbnNtfcn(){//거래구분알림
+			alert('(국내거래) 국내 수행기관이 수행한 서비스, 대한민국 국세청 (전자)세금계산서 발행(가능)한 건\n\n(해외거래 / 면세·영세) 해외현지 수행기관과 거래한 서비스, 인보이스 등은 발급 가능하나, 대한민국 국세청 (전자)세금계산서 발행이 불가능한 건');
+		}
+
+		//접근성 조치 - 타이틀 표시
+		function setWindowTitle(){
+			var titleStr = '수출지원기반활용사업';
+			var depth1 = $.trim($('.gnb li a.active').text());
+			if(depth1 !== ''){
+				titleStr += ' > ' + depth1;
+			}
+
+			var depth2 = $.trim($('#leftArea .leftNav li.active').text());
+			if(depth2 !== ''){
+				titleStr += ' > ' + depth2;
+			}
+
+			var depth3 = $.trim($('.tabMenu li.active a').text());
+			if(depth3 !== ''){
+				titleStr += ' > ' + depth3;
+			}
+
+			$('title').text(titleStr);
+		}
+	</script>
+
+	<!-- 2022-05-25 엔로거 추가 -->
+	<script src="/static/script/v_ad/nlogger.js"></script>
+	<!-- 로깅 설정 -->
+	<script>
+		nLogger.configure({
+			nth_service_id: "exportvoucher", // 로그 생성 단위, 값 지정 필요 (하단 참조)
+			nth_logging_url_base_http: "https://collect.kotra.or.kr:9443/nlog", // 수집 서버 주소
+			nth_logging_url_base_https: "https://collect.kotra.or.kr:9443/nlog" // 수집 서버 주소
+		});
+	</script>
+
+	<!-- 기본 페이지뷰 로깅 -->
+	<script>
+		nLogger.log();
+	</script>
+
+	<script src="/static/script/v_ad/bootstrap.min.js"></script>
+	<link href="/static/script/ftSystem/jQuery/jquery-ui.min.css" rel="stylesheet"/>
+	<script src="/static/script/ftSystem/jQuery/jquery-ui.min.js"></script>
+	<script src="/static/script/ftSystem/jQuery/jquery.ui.datepicker-ko.js"></script>
+	<!-- 한글적용 -->
+	<script src="/static/script/ftSystem/jQuery/jquery.blockUI.js"></script>
+	
+	<link rel="stylesheet" href="/static/style/v_ad2/style.css"/>
+	<link rel="stylesheet" href="/static/style/v_ad2/style_fix.css?ver=1.2"/>
+	<link rel="stylesheet" href="/static/style/v_ad3/style.css"/>
+	
+	<script src="/static/script/v_ad2/cheat.js"></script>
+	<script src="/static/script/v_ad2/cst.js"></script>
+	
+
+
+        
+        
+        
+        
+        
+        
+        
+
+
+<script type="text/javascript">
+$(document).ready(function(){
+
+	$("input[name=start_date], input[name=end_date]").datepicker({
+		dateFormat:'yymmdd'
+	});
+
+	$("[data-date-bt]").on("click", function(){
+		var selector=$(this).attr("data-date-bt");
+		$(selector).datepicker("show");
+	});
+
+	$("form[name=aform]").on('keypress', function(e){
+		if(e.keyCode == 13){
+			e.preventDefault();
+			document.aform.submit();
+			return false;
+		}
+	})
+});
+
+function resetSearch(){
+	$("form[name=aform]").find("input[type=text]").val('');
+	$("form[name=aform]").find("select").each(function(){
+		$(this).find("option").eq(0).attr("selected","selected");
+	});
+}
+
+function goPage(pageNo){
+	$("input[name=pageNo]").val(pageNo);
+	$("form[name=aform]")[0].submit();
+}
+function goSearch(){
+
+	var start_date=$("input[name=start_date]").val();
+	var end_date=$("input[name=end_date]").val();
+
+	if(start_date > end_date){
+		alert("시작날짜가 종료날짜보다 큽니다.");
+		return;
+	}
+
+
+	document.aform.submit();
+}
+function goDetail(seq){
+	document.aform.ntt_id.value=seq;
+	document.aform.action = '/portal/board/boardView';
+	document.aform.submit();
+}
+</script>
+
+
+</head>
+<body>
+<div class="accessbility"><a href="#contents">본문 바로가기</a></div>
+<div id="wrapper">
+	
+
+
+        
+        
+        
+        
+        
+        
+        
+
+
+
+<header id="header"> <!-- 메뉴 -->
+	<!-- 퀵메뉴 START -->
+	<ul id="fixedbtn" style="position: fixed; right: 10%; bottom: 70%; z-index: 100;">
+		<li>
+			<a href="/portal/board/boardView?pageNo=1&bbs_id=2&ntt_id=2957&active_menu_cd=EZ005005000&pageUnit=10">
+				<img src="/static/images/v_ad/ico_master_change.png" style="width: 75%;border: 2px solid #ffdc6e;" alt="마스터 변경신청 바로가기" >
+			</a>
+		</li>
+		<li style="margin-top: 3px">
+			
+				<a href="/common.FileDownload.do?file_id=FILE_000000006769439&sec_code=ZtaNT">
+					<img src="/static/images/v_ad/ico_guide_download02.png" style="width: 75%;border: 2px solid #56c10e;" alt="정산가이드 안내 바로가기" >
+				</a>
+			
+		</li>
+	</ul>
+	<!-- 퀵메뉴 END -->
+	<div class="headerTop" style="height: 80px">
+		<div class="row">
+			<ul class="util clearfix ULeft">
+			</ul>
+			<ul class="util clearfix">
+				
+					
+					
+						<li><a href="/usr/loginForm">로그인</a></li>
+						<li><a href="/portal/regist/registSel">회원가입</a></li>
+						<li><a href="/portal/regist/registUpdateF">마이페이지</a></li>
+						<li><a href="/portal/board/boardView?pageNo=1&bbs_id=1&ntt_id=2776&active_menu_cd=EZ005004000&pageUnit=10">인증서 안내</a></li>
+					
+				
+				
+				
+				<li><a href="/jisahwa" class="login"><i class="fa fa-home" aria-hidden="true"></i> 해외지사화사업</a></li>
+				<li><a href="javascript:alert('물류전용 수출바우처는 현재 진행중인 지원사업이 없습니다.')" class="login"><i class="fa fa-home" aria-hidden="true"></i> 수출물류</a></li>
+			</ul>
+		</div>
+	</div>
+	<div class="headerTop">
+		<div class="row">
+			<h1 style="margin-top: 10px;"><a href="/portal/sample/main"><img src="/static/images/v_ad2/img_logo2.png" alt="수출지원기반 활용사업" style="width: 85%;"></a></h1>
+			<ul class="clearfix ULeft" style="">
+				<li><a href="" target="_blank" rel="noopener"><img src="/static/images/v_ad/img_logo_05.png" alt="산업통상부" style="width: 80%;"></a></li>
+				<li style="margin-left: -40px;"><a href="" target="_blank" rel="noopener"><img src="/static/images/v_ad/img_logo_02.png" alt="중소벤처기업부" style="width: 80%;"></a></li>
+			</ul>
+			<div class="search" style="position: absolute;right:273px;">
+				<label for="totSchInput"><input type="text" id="totSchInput" placeholder="검색어를 입력하세요." value="" title="검색어를 입력하세요" autocomplete="off"></label>
+ 				<!-- <label for="totSchInput" style="display:none;">검색어를 입력하세요</label> -->
+				<button type="button" id="totSchButton"><img src="/static/images/v_ad2/btn_search.png" alt="검색"></button>
+ 				<button type="button" id="totResetButton" style="display:none;"><img src="/static/images/v_ad2/ico_search_close.png" alt="초기화"></button>
+
+				<div class="searchBlock">
+					<div class="clearfix">
+
+
+
+
+						<dl data-recent-search-top>
+							<dt>최근 검색어</dt>
+							<dd>최근 검색어가 없습니다.</dd>
+						</dl>
+					</div>
+					<p class="close"><button type="button">닫기 <img src="/static/images/v_ad2/ico_search_close.png" alt="닫기이미지"></button></p>
+				</div>
+			</div>
+
+
+			<!-- 추천사업 미리보기 -->
+			
+		</div>
+	</div>
+	<nav class="menuBlock">
+		<div class="row">
+			<nav class="gnb">
+				<ul class="clearfix">
+					
+						
+							<li>
+								<a href="/portal/menupan/menu" data-menu-code="EZ002000000">메뉴판
+								</a>
+								
+									
+								
+							</li>
+						
+					
+						
+							<li>
+								<a href="/portal/bizinfo/voucher_01" data-menu-code="EZ001000000">사업안내&nbsp;<span class="arrow"></span>
+								</a>
+								
+									
+										<ul>
+											
+												
+													
+														
+														
+															<li><a href="/portal/bizinfo/voucher_01" data-aaa="EZ001001000">수출바우처 사업</a></li>
+														
+													
+													
+												
+											
+												
+													
+														
+														
+															<li><a href="/portal/bizinfo/support_01" data-aaa="EZ001002000">선택형 지원사업</a></li>
+														
+													
+													
+												
+											
+												
+													
+													
+														
+														
+													
+												
+											
+												
+													
+													
+														
+														
+															<li><a href="/portal/apply/user/form2" >수행기관 신청</a></li>
+														
+													
+												
+											
+										</ul>
+									
+								
+							</li>
+						
+					
+						
+							<li>
+								<a href="/portal/peform/peformList" data-menu-code="EZ004000000">수행기관
+								</a>
+								
+									
+								
+							</li>
+						
+					
+						
+							<li>
+								<a href="/portal/board/boardList?bbs_id=1" data-menu-code="EZ005000000">커뮤니티&nbsp;<span class="arrow"></span>
+								</a>
+								
+									
+										<ul>
+											
+												
+													
+														
+														
+															<li><a href="/portal/board/boardList?bbs_id=1" data-aaa="EZ005004000">공지사항</a></li>
+														
+													
+													
+												
+											
+												
+													
+														
+														
+															<li><a href="/portal/board/boardList?bbs_id=9" data-aaa="EZ005011000">정산가이드</a></li>
+														
+													
+													
+												
+											
+												
+													
+														
+														
+															<li><a href="/portal/board/boardList?bbs_id=2" data-aaa="EZ005005000">자료실</a></li>
+														
+													
+													
+												
+											
+												
+													
+														
+														
+															<li><a href="/portal/board/faqList" data-aaa="EZ005001000">자주하는 질문</a></li>
+														
+													
+													
+												
+											
+												
+													
+														
+														
+															<li><a href="/portal/svcenter/qna/list" data-aaa="EZ005002000">문의하기</a></li>
+														
+													
+													
+												
+											
+												
+													
+														
+														
+															<li><a href="/portal/bizinfo/contact" data-aaa="EZ005003000">문의처</a></li>
+														
+													
+													
+												
+											
+												
+													
+														
+														
+															<li><a href="/portal/CstContAppList?bbs_id=4" data-aaa="EZ005010000">기업 별도 접수 게시판</a></li>
+														
+													
+													
+												
+											
+												
+													
+														
+														
+															<li><a href="/pto/SelectSvcSearchList" data-aaa="EZ005012000">서비스를 찾습니다</a></li>
+														
+													
+													
+												
+											
+										</ul>
+									
+								
+							</li>
+						
+					
+						
+					
+						
+					
+						
+					
+				</ul>
+			</nav>
+
+			
+				
+					<p class="cheat"><a href="javascript:void(0);" onclick="openCheatDialog();"><img src="/static/images/v_ad2/ico_point.png" alt="부정신고"/> 부정신고</a></p>
+				
+				
+			
+		</div>
+		<div class="bg_subNav"></div>
+	</nav>
+
+	
+
+	
+	<script>
+		$(document).ready(function() { 
+
+		});
+	</script>
+</header><!-- //메뉴 -->
+
+
+
+
+	<section id="contentsArea" class="clearfix">
+		<h2 style="display: none;">본문</h2>
+		
+
+
+        
+        
+        
+        
+        
+        
+        
+<div class="row">
+    
+
+
+
+
+
+
+        
+        
+        
+        
+        
+        
+        
+
+<script>
+	// SR2509-01879 : breadcrumb 추가 요청 (page load 이후 실행되어야 하므로, document.ready 에서 호출)
+	$(document).ready(() => {
+		fn_setBreadCrumb();
+	});
+	
+	function fn_setBreadCrumb() {
+		const targetMenu = 'EZ001000000|EZ004000000|EZ005000000'; // 메뉴판은 left.jsp 를 사용하지 않으므로 하드코딩
+		
+		// layout.jsp 에서 기존 {menuTtlNm=커뮤니티, menuNm=커뮤니티, prgPath=/portal/board/boardList?bbs_id=1, childList=[{menuTtlNm=공지사항, menuNm=공지사항, prgPath=/portal/board/boardList?bbs_id=1, childList=[], active=true, menuCd=EZ005004000}, {menuTtlNm=정산가이드, menuNm=정산가이드, prgPath=/portal/board/boardList?bbs_id=9, childList=[], menuCd=EZ005011000}, {menuTtlNm=자료실, menuNm=자료실, prgPath=/portal/board/boardList?bbs_id=2, childList=[], menuCd=EZ005005000}, {menuTtlNm=자주하는 질문, menuNm=자주하는 질문, prgPath=/portal/board/faqList, childList=[], menuCd=EZ005001000}, {menuTtlNm=문의하기, menuNm=문의하기, prgPath=/portal/svcenter/qna/list, childList=[{menuTtlNm=문의상세, menuNm=문의상세, prgPath=/portal/svcenter/qna/detail, childList=[], menuCd=EZ005002003}, {menuTtlNm=문의하기폼, menuNm=문의하기폼, prgPath=/portal/svcenter/qna/form, childList=[], menuCd=EZ005002004}, {menuTtlNm=문의하기리스트, menuNm=문의하기리스트, prgPath=/portal/svcenter/qna/list, childList=[], menuCd=EZ005002005}], menuCd=EZ005002000}, {menuTtlNm=문의처, menuNm=문의처, prgPath=/portal/bizinfo/contact, childList=[], menuCd=EZ005003000}, {menuTtlNm=기업 별도 접수 게시판, menuNm=기업 별도 접수 게시판, prgPath=/portal/CstContAppList?bbs_id=4, childList=[], menuCd=EZ005010000}, {menuTtlNm=서비스를 찾습니다, menuNm=서비스를 찾습니다, prgPath=/pto/SelectSvcSearchList, childList=[], menuCd=EZ005012000}], active=true, menuCd=EZ005000000} 를 ObjectMapper 로 JSON 파싱
+		const menuJson = {"menuTtlNm":"커뮤니티","menuNm":"커뮤니티","prgPath":"/portal/board/boardList?bbs_id=1","childList":[{"menuTtlNm":"공지사항","menuNm":"공지사항","prgPath":"/portal/board/boardList?bbs_id=1","childList":[],"active":true,"menuCd":"EZ005004000"},{"menuTtlNm":"정산가이드","menuNm":"정산가이드","prgPath":"/portal/board/boardList?bbs_id=9","childList":[],"menuCd":"EZ005011000"},{"menuTtlNm":"자료실","menuNm":"자료실","prgPath":"/portal/board/boardList?bbs_id=2","childList":[],"menuCd":"EZ005005000"},{"menuTtlNm":"자주하는 질문","menuNm":"자주하는 질문","prgPath":"/portal/board/faqList","childList":[],"menuCd":"EZ005001000"},{"menuTtlNm":"문의하기","menuNm":"문의하기","prgPath":"/portal/svcenter/qna/list","childList":[{"menuTtlNm":"문의상세","menuNm":"문의상세","prgPath":"/portal/svcenter/qna/detail","childList":[],"menuCd":"EZ005002003"},{"menuTtlNm":"문의하기폼","menuNm":"문의하기폼","prgPath":"/portal/svcenter/qna/form","childList":[],"menuCd":"EZ005002004"},{"menuTtlNm":"문의하기리스트","menuNm":"문의하기리스트","prgPath":"/portal/svcenter/qna/list","childList":[],"menuCd":"EZ005002005"}],"menuCd":"EZ005002000"},{"menuTtlNm":"문의처","menuNm":"문의처","prgPath":"/portal/bizinfo/contact","childList":[],"menuCd":"EZ005003000"},{"menuTtlNm":"기업 별도 접수 게시판","menuNm":"기업 별도 접수 게시판","prgPath":"/portal/CstContAppList?bbs_id=4","childList":[],"menuCd":"EZ005010000"},{"menuTtlNm":"서비스를 찾습니다","menuNm":"서비스를 찾습니다","prgPath":"/pto/SelectSvcSearchList","childList":[],"menuCd":"EZ005012000"}],"active":true,"menuCd":"EZ005000000"};
+		const isPresent = $('div.location').length > 0;          // div.location 여부 확인 (일부 jsp에 존재하는 브레드크럼 수정 회피)
+		const isTarget = targetMenu.includes(menuJson?.menuCd);
+		const location = menuJson?.childList?.find(v => v.active); // 현재 선택된 2Depth 메뉴
+		
+		if(isTarget && !isPresent && location) {
+			const breadCrumb = $('<div class="location">홈<span>></span>' + menuJson.menuTtlNm + '<span>></span><em>' + location.menuNm.replace('<br/>', ' ') + '</em></div>');
+			$('#contents').prepend(breadCrumb);
+		}
+	}
+</script>
+<div id="leftArea">
+    <h2>커뮤니티</h2>
+    
+    <ul class="leftNav">
+    
+        
+        
+            
+        
+        
+            
+            
+            
+            
+            
+            
+
+            
+
+            
+            
+            
+            
+            
+            
+
+            
+                <li class="active"><a href="/portal/board/boardList?bbs_id=1&active_menu_cd=EZ005004000" data-menu-code="EZ005004000" >공지사항</a></li>
+            
+        
+    
+        
+        
+            
+        
+        
+            
+            
+            
+            
+            
+            
+
+            
+
+            
+            
+            
+            
+            
+            
+
+            
+                <li ><a href="/portal/board/boardList?bbs_id=9&active_menu_cd=EZ005011000" data-menu-code="EZ005011000" >정산가이드</a></li>
+            
+        
+    
+        
+        
+            
+        
+        
+            
+            
+            
+            
+            
+            
+
+            
+
+            
+            
+            
+            
+            
+            
+
+            
+                <li ><a href="/portal/board/boardList?bbs_id=2&active_menu_cd=EZ005005000" data-menu-code="EZ005005000" >자료실</a></li>
+            
+        
+    
+        
+        
+        
+            
+            
+            
+            
+            
+            
+
+            
+
+            
+            
+            
+            
+            
+            
+
+            
+                <li ><a href="/portal/board/faqList?active_menu_cd=EZ005001000" data-menu-code="EZ005001000" >자주하는 질문</a></li>
+            
+        
+    
+        
+        
+        
+            
+            
+            
+            
+            
+            
+
+            
+
+            
+            
+            
+            
+            
+            
+
+            
+                <li ><a href="/portal/svcenter/qna/list?active_menu_cd=EZ005002000" data-menu-code="EZ005002000" >문의하기</a></li>
+            
+        
+    
+        
+        
+        
+            
+            
+            
+            
+            
+            
+
+            
+
+            
+            
+            
+            
+            
+            
+
+            
+                <li ><a href="/portal/bizinfo/contact?active_menu_cd=EZ005003000" data-menu-code="EZ005003000" >문의처</a></li>
+            
+        
+    
+        
+        
+            
+        
+        
+            
+            
+            
+            
+            
+            
+
+            
+
+            
+            
+            
+            
+            
+            
+
+            
+                <li ><a href="/portal/CstContAppList?bbs_id=4&active_menu_cd=EZ005010000" data-menu-code="EZ005010000" >기업 별도 접수 게시판</a></li>
+            
+        
+    
+        
+        
+        
+            
+            
+            
+            
+            
+            
+
+            
+
+            
+            
+            
+            
+            
+            
+
+            
+                <li ><a href="/pto/SelectSvcSearchList?active_menu_cd=EZ005012000" data-menu-code="EZ005012000" >서비스를 찾습니다</a></li>
+            
+        
+    
+    </ul>
+
+</div>
+    <article id="contents" class="contentsCompatible"><!-- 컨텐츠 영역-->
+        <form name="aform" method="get" action="/portal/board/boardList">
+            <input type="hidden" name="pageNo" value="1"/>
+            <input type="hidden" name="bbs_id" value="1"/>
+            <input type="hidden" name="ntt_id" value=""/>
+            <input type="hidden" name="active_menu_cd" value="EZ005004000"/>
+
+            <h2 class="title">공지사항</h2>
+
+            <p class="subtitle line">수출지원기반활용사업에서 알려드리는 최근 소식과 정보입니다.</p>
+
+            <div class="searchBbs">
+                <div>
+                    <select title="카테고리 선택" name="search_type" style="width:160px;">
+                        <option value='SJ' >제목
+                        </option>
+                        <option value='CN' >내용
+                        </option>
+                        <option value='ALL' >
+                            제목+내용
+                        </option>
+                    </select>
+                    <input type="text" name="search_text" id="search_text" style="width:514px;"
+                           placeholder="검색어를 입력해 주세요" value="" title="검색어를 입력하세요"><label for="search_text"></label>
+                </div>
+                <div class="mT10">
+                    <input type="text" style="width:218px; border-right:none;" readonly="readonly" name="start_date"
+                           id="start_date" value="" title="시작일자"/><label for="start_date"></label>
+                    <button class="date" data-date-bt="input[name=start_date]"><i class="fa fa-calendar"
+                                                                                  aria-hidden="true"></i>
+                        <span class="hide">date</span></button>
+                    ~
+                    <input type="text" style="width:218px; border-right:none;" readonly="readonly" name="end_date"
+                           id="end_date" value="" title="종료일자"/><label for="end_date"></label>
+                    <button class="date" data-date-bt="input[name=end_date]"><i class="fa fa-calendar"
+                                                                                aria-hidden="true"></i><span
+                            class="hide">date</span></button>
+                    <button class="btn btn_gray" onclick="javascript:resetSearch();">초기화</button>
+                    <button class="btn btn_black" onclick="javascript:goSearch();"><i class="fa fa-search"
+                                                                                      aria-hidden="true"></i>검색
+                    </button>
+                </div>
+            </div>
+
+            <div class="clearfix mT35">
+                <p class="fL mT10">전체 898건</p>
+
+                <p class="fR">
+                    게시글 페이지당
+                    <select name="pageUnit" style="width:57px;" onchange="goSearch()" title="페이지당 게시글">
+                        
+                            <option value="10" selected="selected">10</option>
+                        
+                            <option value="20">20</option>
+                        
+                            <option value="50">50</option>
+                        
+                            <option value="100">100</option>
+                        
+                            <option value="200">200</option>
+                        
+                    </select>
+                </p>
+            </div>
+
+            <table class="table-default mT10">
+                <caption style="display: none;">공지사항</caption>
+                <colgroup>
+                    <col style="width:70px;">
+                    <col>
+                    <col style="width:100px;">
+                    <col style="width:120px;">
+                </colgroup>
+                <thead>
+                <tr>
+                    <th class="num">번호</th>
+                    <th>제목</th>
+                    <th>등록일</th>
+                    <th>조회수</th>
+                </tr>
+                </thead>
+                <tbody>
+                
+                    <tr>
+                        <td class="num"><img src="/static/images/v_ad3/btn_notice02.png" alt="중요"/></td>
+                        <td class="left"><a href="javascript:void(0)" onclick='goDetail(12444)'>2026년 산업부(KOTRA) 수출바우처 사후정산 독려 캠페인(8.18~8.21) </a></td>
+                        <td>2026-06-18</td>
+                        <td>8778</td>
+                    </tr>
+                
+                    <tr>
+                        <td class="num"><img src="/static/images/v_ad3/btn_notice02.png" alt="중요"/></td>
+                        <td class="left"><a href="javascript:void(0)" onclick='goDetail(8410)'>[상시모집] 수출지원기반활용사업(수출바우처) 수행기관 모집 </a></td>
+                        <td>2025-01-13</td>
+                        <td>61494</td>
+                    </tr>
+                
+                    <tr>
+                        <td class="num"><img src="/static/images/v_ad3/btn_notice02.png" alt="중요"/></td>
+                        <td class="left"><a href="javascript:void(0)" onclick='goDetail(4911)'>[필독] 수출지원기반활용사업(수출바우처) 수행기관 서비스 등록 안내 </a></td>
+                        <td>2023-07-03</td>
+                        <td>40738</td>
+                    </tr>
+                
+                
+                    <tr>
+                        <td class="num">898</td>
+                        <td class="left"><a href="javascript:void(0)"
+                                            onclick='goDetail(12866)'>[선정결과] 2026년 3차 중기부 수출바우처사업 참여기업 선정발표 <img src="/static/images/v_ad3/btn_new02.png" alt="새글"/></a></td>
+                        <td>2026-08-26</td>
+                        <td>1005</td>
+                    </tr>
+                
+                    <tr>
+                        <td class="num">897</td>
+                        <td class="left"><a href="javascript:void(0)"
+                                            onclick='goDetail(12835)'>디자인개발분야 검수평가 결과보고서 안내(202608) </a></td>
+                        <td>2026-08-19</td>
+                        <td>824</td>
+                    </tr>
+                
+                    <tr>
+                        <td class="num">896</td>
+                        <td class="left"><a href="javascript:void(0)"
+                                            onclick='goDetail(12582)'>[KOTRA] 2026년 산업부 수출바우처사업(긴급지원 바우처 4차) 온라인 신청 설명회 안내 </a></td>
+                        <td>2026-07-10</td>
+                        <td>10849</td>
+                    </tr>
+                
+                    <tr>
+                        <td class="num">895</td>
+                        <td class="left"><a href="javascript:void(0)"
+                                            onclick='goDetail(12555)'>2026 산업통상부 수출지원기반활용사업(산업 글로벌 진출역량 강화 사업_긴급지원바우처4차) 참여기업 모집안내 </a></td>
+                        <td>2026-07-08</td>
+                        <td>18769</td>
+                    </tr>
+                
+                    <tr>
+                        <td class="num">894</td>
+                        <td class="left"><a href="javascript:void(0)"
+                                            onclick='goDetail(12551)'>(중기부) 2026년도 중기부 수출지원기반활용사업 참여기업 3차 모집공고 </a></td>
+                        <td>2026-07-08</td>
+                        <td>25418</td>
+                    </tr>
+                
+                    <tr>
+                        <td class="num">893</td>
+                        <td class="left"><a href="javascript:void(0)"
+                                            onclick='goDetail(12539)'>디자인개발분야 투입 전문인력 하반기 인건비 총액 전수조사 안내(~26.07.29) </a></td>
+                        <td>2026-07-06</td>
+                        <td>1983</td>
+                    </tr>
+                
+                    <tr>
+                        <td class="num">892</td>
+                        <td class="left"><a href="javascript:void(0)"
+                                            onclick='goDetail(12510)'>2026년 제3차 신규 수출바우처 수행기관 선정 결과 안내 </a></td>
+                        <td>2026-06-30</td>
+                        <td>6224</td>
+                    </tr>
+                
+                    <tr>
+                        <td class="num">891</td>
+                        <td class="left"><a href="javascript:void(0)"
+                                            onclick='goDetail(12482)'>수출바우처사업 「부정행위 집중신고기간 」 운영 (~7.23일까지) </a></td>
+                        <td>2026-06-24</td>
+                        <td>2342</td>
+                    </tr>
+                
+                    <tr>
+                        <td class="num">890</td>
+                        <td class="left"><a href="javascript:void(0)"
+                                            onclick='goDetail(12473)'>(수정공고)[중기부]  2026년 수출바우처 말레이시아 수출상담회 참가기업 모집(~7.15(수)) </a></td>
+                        <td>2026-06-23</td>
+                        <td>3446</td>
+                    </tr>
+                
+                    <tr>
+                        <td class="num">889</td>
+                        <td class="left"><a href="javascript:void(0)"
+                                            onclick='goDetail(12378)'>디자인개발분야 검수평가 결과보고서 안내(202606) </a></td>
+                        <td>2026-06-08</td>
+                        <td>2260</td>
+                    </tr>
+                
+                
+                </tbody>
+
+            </table>
+
+            <div class="pageInfo">
+                
+                    
+                
+
+        
+        
+        
+        
+        
+        
+        
+<script>
+	var _pageCommon_searchHtml = "";
+	$(document).ready(function(){
+		setTimeout(function(){
+			var temp = $(".table.table_h").eq(0);
+			temp.find('select option').each(function(idx){
+				if($(this).prop("selected")){
+					$(this).attr("selected", "selected");
+				}
+			});
+			_pageCommon_searchHtml = temp.html();
+		}, 400);
+	});
+	function _pageCommon_goPage(page){
+		if(_pageCommon_searchHtml){
+			$(".table.table_h").eq(0).html(_pageCommon_searchHtml);
+		}
+		goPage(page);
+	}
+</script>
+<div class="paging">
+
+
+
+
+<a href="javascript:void(0)" onclick="_pageCommon_goPage(1);" class="active" title="1페이지 선택됨" >1</a>
+
+<a href="javascript:void(0)" onclick="_pageCommon_goPage(2);">2</a>
+
+<a href="javascript:void(0)" onclick="_pageCommon_goPage(3);">3</a>
+
+<a href="javascript:void(0)" onclick="_pageCommon_goPage(4);">4</a>
+
+<a href="javascript:void(0)" onclick="_pageCommon_goPage(5);">5</a>
+
+<a href="javascript:void(0)" onclick="_pageCommon_goPage(6);">6</a>
+
+<a href="javascript:void(0)" onclick="_pageCommon_goPage(7);">7</a>
+
+<a href="javascript:void(0)" onclick="_pageCommon_goPage(8);">8</a>
+
+<a href="javascript:void(0)" onclick="_pageCommon_goPage(9);">9</a>
+
+<a href="javascript:void(0)" onclick="_pageCommon_goPage(10);">10</a>
+
+
+
+	<a href="javascript:void(0)"  onclick="_pageCommon_goPage(2);" class="jump" title="다음 페이지">&ZeroWidthSpace;<i class="fa fa-angle-right" aria-hidden="true"></i><span style="display:none;">다음</span></a>
+	<a href="javascript:void(0)" onclick="_pageCommon_goPage(90);" class="jump" title="마지막 페이지">&ZeroWidthSpace;<i class="fa fa-angle-double-right" aria-hidden="true"></i><span style="display:none;">맨끝</span></a>
+
+</div>
+
+            </div>
+
+        </form>
+    </article>
+</div>
+		
+		
+
+		<!-- 수행계약서 체크 -->
+		
+		<!-- 수행계약서 체크 END -->
+		
+
+		
+		
+
+		
+
+        
+        
+        
+        
+        
+        
+        
+
+<div class="overay" id="USER_CERT_OVERLAY" style="display: none;"></div>
+<div class="popupLayer" id="USER_CERT_DIALOG" style="display: none;">
+    <div class="popup_contents">
+        <h2>본인인증</h2>
+        <p class="txt">휴대전화, 신용카드 또는 아이핀(I-PIN)을 통하여 본인인증을 진행할 수 있습니다.</p>
+        <div class="find_me clearfix">
+            <div class="findType">
+                <p><img src="/static/images/v_ad/join/ico_me_01.png" alt="휴대전화 인증"></p>
+                <p class="btn"><a href="javascript:void(0)" onclick="Mobile.openPopup()">휴대전화 인증</a></p>
+            </div>
+            <div class="findType">
+                <p><img src="/static/images/v_ad/join/ico_me_03.png" alt="신용카드 인증"></p>
+                <p class="btn"><a href="javascript:void(0)" onclick="Card.openPopup()">신용카드 인증</a></p>
+            </div>
+            <div class="findType">
+                <p><img src="/static/images/v_ad/join/ico_me_02.png" alt="아이핀 인증"></p>
+                <p class="btn"><a href="javascript:void(0)" onclick="Ipin.openPopup()">아이핀 인증</a></p>
+            </div>
+        </div>
+        <ul class="cautionMsg">
+            <li>
+                <span>*</span>
+                아이핀 (I-Pin)이란? <br>
+                인터넷 상에서 주민등록번호를 대신하여 본인임을 확인 받을 수 있는 사이버 신원 확인번호입니다.
+            </li>
+            <li>
+                <span>*</span>
+                본인인증을 위해 입력하신 정보는 본인인증을 위해서만 사용됩니다.<br>
+                본인인증기관 : KCB
+            </li>
+        </ul>
+        <p class="btn_close"><a href="javascript:USER_CERT_CHECKER.closeDialog();"><img
+                src="/static/images/v_ad/join/btn_close.png" alt="닫기"></a></p>
+    </div>
+</div>
+
+
+
+
+
+<iframe src="/kcb/on/on_phone_popup/phone_popup1.jsp" style="width: 0px;height: 0px;border: 0px;visibility: hidden;float: left;" name="Mobile" title="Mobile 인증"></iframe>
+<iframe src="/kcb/on/on_card_popup/card_popup1.jsp" style="width: 0px;height: 0px;border: 0px;visibility: hidden;float: left;" name="Card" title="Card 인증"></iframe>
+<iframe src="/kcb/on/on_ipin_popup/ipin_popup1.jsp" style="width: 0px;height: 0px;border: 0px;visibility: hidden;float: left;" name="Ipin" title="Ipin 인증"></iframe>
+
+
+<script>
+    var USER_CERT_CHECKER = {
+        isOpened : false,
+        openDialog : function(){
+            $("#USER_CERT_OVERLAY").show();
+            $("#USER_CERT_DIALOG").show();
+            USER_CERT_CHECKER.isOpened = true;
+            (function checkSessionDi() {
+                $.ajax({
+                    url: "/sessionDi.jsp",
+                    type: "get",
+                    cache: false,
+                    success: function (data) {
+                        if (data && data.name && data.di && data.ci) {
+                            USER_CERT_CHECKER.complete(data.name, data.ci, data.di, data.no);
+                        }
+                    }
+                });
+                if(USER_CERT_CHECKER.isOpened){
+                    setTimeout(checkSessionDi, 500);
+                }
+            })();
+        },
+        closeDialog : function(){
+            USER_CERT_CHECKER.isOpened = false;
+            $("#USER_CERT_OVERLAY").hide();
+            $("#USER_CERT_DIALOG").hide();
+        },
+        callback : null,
+        setCallback : function(callback){
+            USER_CERT_CHECKER.callback = callback;
+        },
+        mode : '',
+        complete : function (name, ci, di, no) {
+            if (name == 'undefined') {
+                alert("에러가 발생하였습니다.\n잠시후 다시 시도해주세요");
+                return false;
+            }
+            if(USER_CERT_CHECKER.callback){
+                USER_CERT_CHECKER.callback(USER_CERT_CHECKER.mode, name, ci, di, no);
+            }
+        }
+    }
+</script>
+	</section>
+	
+
+
+        
+        
+        
+        
+        
+        
+        
+<footer id="footer">
+    <div class="row">
+        <ul class="footMenu clearfix">
+            <li><a href="/portal/etc/terms">이용약관</a></li>
+            <li><a href="/portal/etc/copyrightPolicy">저작권정책</a></li>
+            <li><a href="/portal/etc/personalDataPolicy" style="color: #FC9A92;">개인정보처리방침</a></li>
+            <li><a href="/portal/bizinfo/contact">문의처</a></li>
+            <li><a href="/portal/etc/sitemap">사이트맵</a></li>
+
+        </ul>
+        <p class="txt" style="top:-7px">수출지원기반활용사업 관리기관 :
+        <img src="/static/images/v_ad/img_logo_03.png" alt="코트라">
+        <img src="/static/images/v_ad/img_logo_04.png" alt="중소벤처기업진흥공단">
+        
+            <a href="/common.FileDownload.do?file_id=FILE_000000006726376&sec_code=IjPnl">관리지침</a></p>
+        
+        <p class="copyright" style="padding:0; border:0px;">
+        	KOTRA 대표전화 02-6004-8400 (유료, 평일 09~18시)
+        	<br/>
+        	중진공 대표전화 055-752-8580 (유료, 평일 09~18시)</p>
+        <p class="copyright">Copyright(C) 2017 KOTRA. ALL RIGHTS RESERVED 대한무역투자진흥공사.</p>
+    </div>
+</footer>
+	<script src="/static/script/v_ad2/jquery.bxslider.min.js"></script>
+	<script src="/static/script/v_ad/jquery.form.min.js"></script>
+	<script src="/static/script/v_ad/ftFile2.js?v=3"></script>
+	<script src="/static/script/v_ad2/ui.js"></script>
+	<script src="/static/script/v_ad2/ui_pc_fix2.js"></script>
+	<script src="/static/script/v_ad/ftCommon.js"></script>
+</div>
+</body>
+<script>
+const serverId = '#' + '1';
+document.addEventListener("DOMContentLoaded", function(){
+	document.title = serverId + ' ' + document.title;	
+});
+</script>
+</html>

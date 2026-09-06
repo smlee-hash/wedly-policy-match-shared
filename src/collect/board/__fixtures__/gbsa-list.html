@@ -1,0 +1,3473 @@
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	
+
+
+
+
+
+
+
+<!-- don touch!!  -->
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="keywords" content="공지사항">
+<meta name="description" content="성장의 기회가 넘치는 경기도, K-중소벤처스타트업 혁신성장 허브">
+<meta property="og:type" content="website">
+<meta property="og:title" content="경기도경제과학진흥원">
+<meta property="og:description" content="공지사항">
+<meta property="og:image" content="https://www.gbsa.or.kr/images/site/main/logo.png">
+<meta property="og:url" content="https://www.gbsa.or.kr">
+
+<!-- Favicon -->
+<link href="/images/site/favicon.ico" rel="shortcut icon" type="image/x-icon">
+
+<link rel="stylesheet" type="text/css" href="/assets/css/reset.css"> <!--초기화css-->
+<link rel="stylesheet" type="text/css" href="/assets/css/base.css"> <!--기본css-->
+<link rel="stylesheet" type="text/css" href="/assets/css/layout.css"><!--레이아웃 css-->
+
+<link rel="stylesheet" type="text/css" href="/assets/css/board.css"><!-- board css-->
+<link rel="stylesheet" type="text/css" href="/assets/css/button.css"><!-- button css-->
+
+<link rel="stylesheet" type="text/css" href="/assets/css/custom.css">
+<link rel="stylesheet" type="text/css" href="/assets/css/privacy.css">
+<link rel="stylesheet" type="text/css" href="/assets/css/jquery.bxslider.css">
+<script src="/assets/js/jquery-1.11.3.min.js"></script>
+<script src="/assets/js/common.js"></script>
+<script src="/assets/js/jquery.bxslider.js"></script>
+<script src="/assets/js/swiper-bundle.min.js"></script>
+<script src="/assets/js/slide.js"></script>
+<script src="/assets/js/privacy.js"></script>
+<script src="/assets/js/location.js"></script>
+<script src="/assets/js/Fontszie.js"></script>
+<script src="/assets/js/jquery.slimscroll.js"></script>
+<script src="/js/cmm/sso.js"></script>
+<script src="/js/cmm/googleAnalytics.js"></script>
+<link rel="stylesheet" type="text/css" href="/assets/css/test.css">
+<link rel="stylesheet" type="text/css" href="/assets/css/swiper-bundle.min.css">
+<link href="/assets/css/print.css" media="print" rel="stylesheet" type="text/css">
+ <script>
+ 	
+    $(document).ready(function(){
+    	
+    	//메인메뉴 스크롤
+    	$('.m-scroll').slimScroll({
+            height: 'auto',
+
+        }); 
+    	
+    	
+	  $('.wpop-item').bxSlider({
+		auto: true,
+		slideWidth: 365,
+		pager: true,
+		minSlides: 3,
+		maxSlides: 3,
+		moveSlides: 1,
+		slideMargin: 40,
+		stopAutoOnClick: true
+	  });
+
+	   $('.abnr').bxSlider({
+		auto: true,
+		pager: false,
+		slideWidth: 190,
+		minSlides: 5,
+		maxSlides: 5,
+		slideMargin: 10,
+		moveSlides:1,
+		autoControls: true,
+		stopAutoOnClick: true,
+		touchEnabled : (navigator.maxTouchPoints > 0),
+		
+	  }); 
+    });
+  </script>
+<title>공지사항 ㅣ 경기도경제과학진흥원</title>
+</head>
+<body>
+	<!-- skipNavi -->
+	<div id="skipNavi">
+		<!-- <h1 class="blind">스킵네비게이션</h1>
+    <ul>
+        <li><a href="#mcontainer" class="skipLink">본문바로가기</a></li>
+        <li><a href="#mainNavi" class="skipLink">주메뉴바로가기</a></li>
+    </ul> -->
+	
+	<h1 class="blind">스킵네비게이션</h1>
+	<ul>
+		<li><a href="#content" class="skipLink" onclick="document.getElementById('content').tabIndex = -1;document.getElementById('content').focus();jQuery('#content').addClass('selected');return false;">본문내용 바로가기</a></li>
+		<li><a href="#gnavigation" class="skipLink" onclick="document.getElementById('gnavigation').tabIndex = -1;document.getElementById('gnavigation').focus();jQuery('#gnavigation').addClass('selected');return false;">주메뉴 바로가기</a></li>
+	</ul></div>
+	<!-- skipNavi //-->
+
+<!-- wrap -->
+<div id="wrap">
+ 	<!-- header-wrap -->
+    <div id="header-wrap">
+	<!-- global -->
+        <div id="global">
+        	<!-- global-wrap -->
+            <div class="global-wrap">
+            	<script>
+
+var userId;
+var user_data = '';
+var agent_id = 'gbsa-gbsa-java';
+var server_id = 'gbsa-ext-sso-server';
+var sso_url = 'https://sso.gbsa.or.kr:8443/sso';
+var sso_login_url = sso_url + '/gbsa/user/login/link';
+var sso_logout_url = sso_url + '/user/logout';
+var sign_up_url = sso_url + '/gbsa/user/self/userRegist';
+var sign_out_url = sso_url + '/gbsa/user/self/userOut';
+var modify_url = sso_url + '/gbsa/user/self/userModify';
+
+var pni_token = '';
+
+
+function fnNewSSOLogin() {
+	var agt_url = $(location).attr('protocol') + '//' + $(location).attr('host');
+	document.ssoForm.agt_url.value = agt_url;
+	
+	$('#ssoForm').attr('action', sso_login_url).submit();
+}
+
+function fnNewAlertSSOMemberJoin() {
+	alert("경기도 경제과학진흥원 홈페이지 이용을 위해 회원가입을 해주시기 바랍니다.\n감사합니다.");
+	var agt_url = $(location).attr('protocol') + '//' + $(location).attr('host');
+	document.ssoForm.agt_url.value = agt_url;
+	
+	$('#ssoForm').attr('action', sign_up_url).submit();
+}
+
+function fnNewSSOLogout() {
+	/*var agt_url = $(location).attr('protocol') + '//' + $(location).attr('host');
+	//alert(agt_url);
+	document.ssoForm.agt_url.value = agt_url;
+	
+	$('#ssoForm').attr('action', sso_logout_url).submit();*/
+	location.href = "/member/actionLogout.do";
+}
+
+function fnNewSSOMemberUpdate() {
+	
+	var agt_url = $(location).attr('protocol') + '//' + $(location).attr('host');
+	document.ssoForm.agt_url.value = agt_url;
+	
+	$('#ssoForm').attr('action', modify_url).submit();
+}
+
+function fnNewSSOMemberOut() {
+	var agt_url = $(location).attr('protocol') + '//' + $(location).attr('host');
+	document.ssoForm.agt_url.value = agt_url;
+	
+	$('#ssoForm').attr('action', sign_out_url).submit();
+}
+
+function fnSSOMemberJob(jobType) {
+	var url = "/ssoCheck/jobType.jsp";
+	$.ajax({
+		url: url,
+		data : "jobType="+jobType,
+		success: function() {
+			if(jobType == "mod"){
+				fnNewSSOMemberUpdate();
+			}else if(jobType == "del"){
+				fnNewSSOMemberOut();
+			}
+		}
+	})
+}
+
+</script>
+
+	<form name="ssoForm" id="ssoForm" method="post">
+		<input type="hidden" id="agt_id" name="agt_id" value="gbsa-gbsa-java">
+		<input type="hidden" id="agt_url" name="agt_url" value="">
+		<input type="hidden" id="pni_token" name="pni_token" value="">
+		<input type="hidden" name="ozcsrf" id="ozcsrf_inc_global" value="">
+	</form>
+
+	<!--top-lnk-->
+	<div class="top-lnk">
+		<a href="http://www.egbiz.or.kr" class="lnk05" target="_blank">경기기업비서</a>
+		<a href="/pages/bio/index.do" class="lnk01"><span>바이오산업본부</span></a>
+		<a href="https://www.3dgc.re.kr/" target="_blank" class="lnk02">3D프린팅 통합센터</a>
+		<!-- <a href="/prgm/rent/index.do" class="lnk03" >대관시설예약</a> -->
+		<a href="https://share.gg.go.kr/miniHome?pCode=B553729" class="lnk03" target="_blank">대관시설예약</a>
+		<a href="/pages/family/family.do" class="lnk04">패밀리사이트</a>
+		
+	</div><!--//top-lnk-->
+	<!-- svcbtn-box -->
+	<div class="svcbtn-box">
+		<ul class="member-lnk">
+			<li><a href="javascript:fnNewSSOLogin();"><span>로그인</span></a></li>
+					<li><a href="#" onclick="fnNewAlertSSOMemberJoin(); return false;"><span>회원가입</span></a></li>
+				<!-- 20200619 다국어 사이트 재오픈 --> 
+			<li class="language"><a href="#none" class="lang_off">LANGUAGE</a>
+				<ul>
+					<li><a href="/en" target="_blank"><span>English</span> <i class="fa fa-external-link"></i></a></li>
+					<li><a href="/cn" target="_blank"><span>中國語</span> <i class="fa fa-external-link"></i></a></li>
+				</ul>
+			</li>
+			<li class="sns"><a href="#none" class="lang_off" style="padding-left:30px;">SNS</a>
+				<ul>
+					<li><a href="https://www.facebook.com/smartgbsa" target="_blank"><span>페이스북</span></a></li>
+					<li><a href="https://twitter.com/smartgbsa" target="_blank"><span>트위터</span></a></li>
+					<li><a href="http://blog.gbsa.or.kr/" target="_blank"><span>블로그</span></a></li>								
+					<li><a href="https://www.youtube.com/channel/UC0cHAc8BKafjiU_EYEBk-wQ" target="_blank"><span>유튜브</span></a></li>
+					<li><a href="https://pf.kakao.com/_nDnwT" target="_blank"><span>카카오톡플러스</span></a></li>
+					<li><a href="https://www.instagram.com/smartgbsa/" target="_blank"><span>인스타그램</span></a></li>
+				</ul>
+			</li>
+		</ul>
+	</div><!-- //svcbtn-box --><!-- toppop-ctrl -->
+            	<div id="toppop-ctrl" class="toppop-ctrl">
+					<button type="button" class="btn-wctrl"><span class="closed">팝업존</span></button>
+				</div>
+            	<!-- //toppop-ctrl -->
+            </div>
+            <!-- //global-wrap --></div>
+        <!-- //global -->
+
+        <!--header-->
+        <div id="header">
+        	<!--header_area-->
+        	<div class="header_area">
+        		<h1 class="logo">
+        			<a href="/"><img src="/images/site/main/logo.png" alt="경기도경제과학진흥원"></a>
+        		</h1>
+	        	<h2 class="blind">경기도경제과학진흥원 홈페이지 주메뉴</h2> 
+	        	<div class="nav"> <!--<nav class="gnb" id="gnb"> http://www.daejeon.go.kr-->
+	        		<ul id="gnavigation">
+	        		
+<li>
+		<a href="#none" class="topMenu "><span>기관소개</span></a>
+			<div class="depth dpt1">
+			<h3>기관소개<span></span></h3>
+			<ul class="dpt2">		
+		<li >
+			<a href="/pages/ceo_intro.do" class="" >CEO 인사말</a>									
+				</li>
+	<li >
+			<a href="/pages/vision_mission.do" class="" >비전과 미션</a>									
+				</li>
+	<li >
+			<a href="/pages/history.do" class="" >연혁</a>									
+				</li>
+	<li class="dep_t">
+			<a href="#none" class="" >ESG 경영</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/esg_strategy.do" class="" >ESG 경영 전략체계</a>									
+			</li>
+	<li>
+		<a href="/pages/esg_disclosure.do" class="" >ESG 경영공시</a>									
+			</li>
+	<li>
+		<a href="/board/esg_report.do" class="" >ESG 보고서</a>									
+			</li>
+	<li>
+		<a href="/pages/cp-introduction.do" class="" >공정거래자율준수</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >윤리경영</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/propulsion_organization.do" class="" >추진체계</a>									
+			</li>
+	<li>
+		<a href="/pages/ethics.do" class="" >윤리헌장</a>									
+			</li>
+	<li>
+		<a href="/pages/ethics_creed.do" class="" >윤리 행동강령</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >인권경영</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/humanrights_charter.do" class="" >인권경영헌장</a>									
+			</li>
+	<li>
+		<a href="/pages/humanrights_charter_eng.do" class="" >인권경영헌장(영문)</a>									
+			</li>
+	<li>
+		<a href="/pages/humanrights_guidelines.do" class="" >인권경영운영지침</a>									
+			</li>
+	<li>
+		<a href="/pages/humanrights_abuse.do" class="" >인권침해 구제신고·지원센터</a>									
+			</li>
+	<li>
+		<a href="/board/humanrights_progress.do" class="" >인권경영 추진내용</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >고객만족경영</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/cs_strategic.do" class="" >고객만족 전략체계</a>									
+			</li>
+	<li>
+		<a href="/pages/cs_charter.do" class="" >고객서비스헌장</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >안전보건경영</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/safe_vision.do" class="" >CEO 안전보건경영철학</a>									
+			</li>
+	<li>
+		<a href="/pages/safe_mission.do" class="" >안전보건경영방침 및 목표</a>									
+			</li>
+	<li>
+		<a href="/board/safe_data.do" class="" >매뉴얼 및 안전보건자료</a>									
+			</li>
+	<li>
+		<a href="/board/safe_accept.do" class="" >안전보건 신문고</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >홍보관</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/ci.do" class="" >CI</a>									
+			</li>
+	<li>
+		<a href="/pages/promotion.do" class="" >홍보물</a>									
+			</li>
+	<li>
+		<a href="/pages/promo_video.do" class="" >홍보동영상</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >조직도</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/organiztion.do" class="" >조직도</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >위치 및 시설 안내</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/contact_gbsa_pj.do" class="" >본원</a>									
+			</li>
+	<li>
+		<a href="/pages/contact_gbsa.do" class="" >수원</a>									
+			</li>
+	<li>
+		<a href="/pages/contact_bio_center.do" class="" >판교</a>									
+			</li>
+	<li>
+		<a href="/pages/contact_region_special.do" class="" >균형발전본부</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li >
+			<a href="/board/rental.do" class="" >행사현황(광교)</a>									
+				</li>
+	</ul>
+			<div class="bn_box">
+				<img src="/images/site/main/banner_01_2026.gif" alt="K-중소벤처스타트업 혁신성장 허브 GBSA">
+				<div class="bn_link">
+					<a href="/pages/ci.do"><strong>&nbsp;&nbsp;CI 소개 및 다운로드</strong></a>
+					<a href="/pages/promotion.do"><strong>&nbsp;&nbsp;브로셔 다운로드</strong></a>
+				</div>
+			</div>
+		</div>
+		</li>
+	<li>
+		<a href="#none" class="topMenu "><span>주요사업</span></a>
+			<div class="depth dpt1">
+			<h3>주요사업<span></span></h3>
+			<ul class="dpt2">		
+		<li class="dep_t">
+			<a href="#none" class="" >창업 지원</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/intro_startup.do" class="" >창업지원 소개</a>									
+			</li>
+	<li>
+		<a href="/pages/global_growth.do" class="" >경기 스타트업 글로벌 성장 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/global_startup.do" class="" >경기 스타트업 서밋(G-SUMMIT)</a>									
+			</li>
+	<li>
+		<a href="/pages/gyeonggi_startup_operation.do" class="" >경기 스타트업 아카데미 운영</a>									
+			</li>
+	<li>
+		<a href="/pages/startup_platform.do" class="" >경기 스타트업 플랫폼 운영</a>									
+			</li>
+	<li>
+		<a href="/pages/startup_participation.do" class="" >경기 창업 공모</a>									
+			</li>
+	<li>
+		<a href="/pages/pangyo_startup_investment.do" class="" >경기도 글로벌스타트업 육성</a>									
+			</li>
+	<li>
+		<a href="/pages/innovation_space.do" class="" >경기창업혁신공간 운영</a>									
+			</li>
+	<li>
+		<a href="/pages/rechallenge_business.do" class="" >기술창업 재도전 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/private_investment_skill.do" class="" >민간투자연계형 기술창업지원</a>									
+			</li>
+	<li>
+		<a href="/pages/pet_startup.do" class="" >반려동물산업 스타트업 발굴 및 창업지원</a>									
+			</li>
+	<li>
+		<a href="/pages/startup_campus_space.do" class="" >스타트업캠퍼스 보육 운영</a>									
+			</li>
+	<li>
+		<a href="/pages/startup_project.do" class="" >예비·초기 기술창업지원</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >사업화 지원</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/businessization_support.do" class="" >사업화지원 소개</a>									
+			</li>
+	<li>
+		<a href="/pages/operate_3dgc.do" class="" >3D프린팅 통합센터 운영</a>									
+			</li>
+	<li>
+		<a href="/pages/star_sme.do" class="" >경기도 스타기업육성</a>									
+			</li>
+	<li>
+		<a href="/pages/biz-org-prgm.do" class="" >경제단체 우수프로그램 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/ghc_promote.do" class="" >글로벌강소기업 육성</a>									
+			</li>
+	<li>
+		<a href="/pages/mpq.do" class="" >소부장 기업 육성</a>									
+			</li>
+	<li>
+		<a href="/pages/sme_convergence.do" class="" >중소기업 비즈니스 융합성장 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/esg_management.do" class="" >중소기업 환경·사회·투명(ESG) 경영활성화 지원사업</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >R&D 지원</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/rnd_support.do" class="" >R&D지원 소개</a>									
+			</li>
+	<li>
+		<a href="/pages/firststep_rnd.do" class="" >R&D첫걸음 기업연구소 지원사업</a>									
+			</li>
+	<li>
+		<a href="/pages/dev_skills.do" class="" >경기도 기술개발사업</a>									
+			</li>
+	<li>
+		<a href="/pages/robotics_industry.do" class="" >경기도 로봇SI 기업 육성</a>									
+			</li>
+	<li>
+		<a href="/pages/hydrogen_energy.do" class="" >경기도 차세대 수소에너지 기술개발</a>									
+			</li>
+	<li>
+		<a href="/pages/textile_skills.do" class="" >섬유분야 기술개발사업</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >바이오산업 지원</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/bio_support_intro.do" class="" >바이오산업 지원 소개</a>									
+			</li>
+	<li>
+		<a href="/pages/bio_startuplab.do" class="" >경기 바이오스타트업 육성 지원사업</a>									
+			</li>
+	<li>
+		<a href="/pages/bio_speciality.do" class="" >경기도 바이오 전문인력 양성 사업</a>									
+			</li>
+	<li>
+		<a href="/pages/medical_device.do" class="" >경기도 의료기기 개발지원</a>									
+			</li>
+	<li>
+		<a href="/pages/advanced_health.do" class="" >경기도 첨단 바이오헬스 강소기업 육성 프로젝트</a>									
+			</li>
+	<li>
+		<a href="/pages/beauty_material.do" class="" >국내외 천연물 및 합성물 소재개발 사업_경기도천연물소재은행</a>									
+			</li>
+	<li>
+		<a href="/pages/techinfo_cowork.do" class="" >기술정보 및 협력네트워크 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/bio_performance.do" class="" >바이오 연구성과 확산</a>									
+			</li>
+	<li>
+		<a href="/pages/bio_global_biz.do" class="" >바이오산업 글로벌 기술사업화</a>									
+			</li>
+	<li>
+		<a href="/pages/nonclinical_analysis_research.do" class="" >비임상 연구분석 서비스</a>									
+			</li>
+	<li>
+		<a href="/pages/nonclinical_validity.do" class="" >비임상 유효성 평가지원</a>									
+			</li>
+	<li>
+		<a href="/pages/positive_study.do" class="" >소재개발 실증연구</a>									
+			</li>
+	<li>
+		<a href="/pages/fusion_iuic_collaboration.do" class="" >수요기술 산학연 공동연구</a>									
+			</li>
+	<li>
+		<a href="/pages/equipment_union.do" class="" >연구장비공동활용 시스템 운영</a>									
+			</li>
+	<li>
+		<a href="/pages/med-global-spt.do" class="" >의료기기 기업 해외진출 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/analysis_infra.do" class="" >전문분석/시생산 인프라지원</a>									
+			</li>
+	<li>
+		<a href="/pages/natural_origins.do" class="" >천연물유래 제품개발 연구</a>									
+			</li>
+	<li>
+		<a href="/pages/medicinal_properties.do" class="" >초고속대용량 소재발굴지원</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >마케팅 지원</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/marketing_support.do" class="" >마케팅지원 소개</a>									
+			</li>
+	<li>
+		<a href="/pages/operate_gbc.do" class="" >경기비즈니스센터(GBC) 운영</a>									
+			</li>
+	<li>
+		<a href="/pages/operate_gms.do" class="" >GMS(GBC 수출대행 사업)</a>									
+			</li>
+	<li>
+		<a href="/pages/operate_dts.do" class="" >GBM(무료 수출화상상담 서비스)</a>									
+			</li>
+	<li>
+		<a href="/pages/support_logistics.do" class="" >경기도 수출기업 물류비 지원사업</a>									
+			</li>
+	<li>
+		<a href="/pages/oversea_employment.do" class="" >경기 청년 해외 취·창업 기회 확충 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/oversea_gfair.do" class="" >해외 G-FAIR 개최</a>									
+			</li>
+	<li>
+		<a href="/pages/permanent_exhibition.do" class="" >G-FAIR KOREA 개최</a>									
+			</li>
+	<li>
+		<a href="/pages/overseas_exhibition.do" class="" >해외전시회 단체관 운영</a>									
+			</li>
+	<li>
+		<a href="/pages/export_mentoring.do" class="" >무역전문가 활용 해외마케팅 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/market_developer.do" class="" >통상촉진단(시장개척단)</a>									
+			</li>
+	<li>
+		<a href="/pages/buyer_meeting.do" class="" >수출상담회</a>									
+			</li>
+	<li>
+		<a href="/pages/trade-crisis-package.do" class="" >무역위기 대응 패키지 지원</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >교육 지원</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/education.do" class="" >교육지원 소개</a>									
+			</li>
+	<li>
+		<a href="/pages/gbsa_academy.do" class="" >GBSA 아카데미 운영</a>									
+			</li>
+	<li>
+		<a href="/pages/software.do" class="" >소프트웨어(SW) 미래채움</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >현장애로 지원/인증</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/field_support.do" class="" >현장애로지원/인증 소개</a>									
+			</li>
+	<li>
+		<a href="/pages/family_friendly.do" class="" >경기가족친화기업 인증 및 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/regulatory_sandbox.do" class="" >경기도 규제샌드박스 활성화 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/corp_omz.do" class="" >경기도 기업옴부즈만 운영</a>									
+			</li>
+	<li>
+		<a href="/pages/gwbs_project.do" class="" >경기도 대중소 상생협력 활성화 지원사업</a>									
+			</li>
+	<li>
+		<a href="/pages/smb_certification.do" class="" >경기도 유망 중소기업 인증</a>									
+			</li>
+	<li>
+		<a href="/pages/good_company.do" class="" >경기도 착한기업 인증 및 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/sos_center.do" class="" >기업SOS지원센터운영</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >지역특화 지원</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/regional_specific.do" class="" >지역특화지원 소개</a>									
+			</li>
+	<li>
+		<a href="/pages/furniture_marketing.do" class="" >가구기업 제품개발 및 마케팅 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/furniture_exhibition_company.do" class="" >가구전시회 참가 도내기업 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/support_root.do" class="" >경기도 뿌리산업 경쟁력 강화지원</a>									
+			</li>
+	<li>
+		<a href="/pages/export_subsidies.do" class="" >경기북부 수출물류비 지원(고양, 남양주, 동두천, 파주, 포천)</a>									
+			</li>
+	<li>
+		<a href="/pages/operate_gtc.do" class="" >경기섬유마케팅센터(GTC) 운영</a>									
+			</li>
+	<li>
+		<a href="/pages/support_procurement.do" class="" >국내외조달등록 지원(파주, 연천)</a>									
+			</li>
+	<li>
+		<a href="/pages/global_marketing.do" class="" >글로벌 마케팅지원(파주, 의정부)</a>									
+			</li>
+	<li>
+		<a href="/pages/global_market_developer.do" class="" >글로벌 시장개척단(고양, 남양주, 파주, 포천)</a>									
+			</li>
+	<li>
+		<a href="/pages/global_market_development.do" class="" >글로벌시장개척단(안성시)</a>									
+			</li>
+	<li>
+		<a href="/pages/southern_production_levelup.do" class="" >남부권역 생산레벨업 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/exhibition_support_nyj.do" class="" >남양주시 국내전시회 참가기업 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/decrepit_facilities_modernization.do" class="" >노후생산시설 현대화 지원(김포시)</a>									
+			</li>
+	<li>
+		<a href="/pages/modernization_support_ddc.do" class="" >노후생산시설 현대화 지원(동두천시)</a>									
+			</li>
+	<li>
+		<a href="/pages/west_market_pioneer_group.do" class="" >서부권역 해외시장개척단 운영(안산시,부천시)</a>									
+			</li>
+	<li>
+		<a href="/pages/global_textile_fashion_exhibition.do" class="" >섬유 국내외 전시회 참가지원</a>									
+			</li>
+	<li>
+		<a href="/pages/support_logisticsCost_anseong_icheon.do" class="" >수출기업 물류비 지원(안성시)</a>									
+			</li>
+	<li>
+		<a href="/pages/local-sme-esg.do" class="" >시군 중소기업 ESG 경영지원(광명시, 의왕시)</a>									
+			</li>
+	<li>
+		<a href="/pages/global_marketing_anseong.do" class="" >안성시 글로벌마케팅 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/anseong_support.do" class="" >안성시 중소기업 역량강화 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/yangju_textile_exhibit.do" class="" >양주시 해외 섬유전시회 참가지원</a>									
+			</li>
+	<li>
+		<a href="/pages/standard_certification_yangju.do" class="" >양주시 해외규격인증취득 지원사업</a>									
+			</li>
+	<li>
+		<a href="/pages/yeoju_sos.do" class="" >여주시 기업SOS 현장클리닉</a>									
+			</li>
+	<li>
+		<a href="/pages/global_export_marketing.do" class="" >온라인 수출 마케팅 지원(광명시)</a>									
+			</li>
+	<li>
+		<a href="/pages/global_export_marketing_uw.do" class="" >온라인 수출 마케팅 지원(의왕시)</a>									
+			</li>
+	<li>
+		<a href="/pages/icheon_growth.do" class="" >이천시 중소기업 맞춤형 성장지원사업</a>									
+			</li>
+	<li>
+		<a href="/pages/family_north.do" class="" >중소기업 개발생산판로 맞춤형 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/support_digital_trans.do" class="" >중소기업 디지털전환 컨설팅 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/sample_and_export_cost_gwang.do" class="" >중소기업 수출물류비 지원(광명시)</a>									
+			</li>
+	<li>
+		<a href="/pages/sample_and_export_cost_sup.do" class="" >중소기업 수출물류비 지원(김포시)</a>									
+			</li>
+	<li>
+		<a href="/pages/sample_and_export_cost_as.do" class="" >중소기업 수출물류비 지원(안산시)</a>									
+			</li>
+	<li>
+		<a href="/pages/dev_design.do" class="" >중소기업 제품디자인 및 마케팅 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/region_special_project.do" class="" >지역특화 프로젝트(뿌리산업의 디지털 제조혁신)</a>									
+			</li>
+	<li>
+		<a href="/pages/fabric_design.do" class="" >패션디자인 실용화 및 역량강화</a>									
+			</li>
+	<li>
+		<a href="/pages/pyeongtaek_exports.do" class="" >평택시 수출역량강화 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/female_company.do" class="" >평택시 여성기업 경쟁력강화 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/pyeongtaek_winwin_cooperation.do" class="" >평택시 중소기업 상생협력 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/pyeongtaek_hidden_champion_promotion.do" class="" >평택시 히든 챔피언 육성지원</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >정책연구 지원</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/policy_research.do" class="" >정책연구 지원 소개</a>									
+			</li>
+	<li>
+		<a href="/pages/research_development.do" class="" >경기연구개발지원단</a>									
+			</li>
+	<li>
+		<a href="/pages/science_technology.do" class="" >과학기술정책연구</a>									
+			</li>
+	<li>
+		<a href="/pages/smb_policy_analysis.do" class="" >중소기업 정책분석</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >투자유치 지원</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/investment_attraction.do" class="" >투자유치 지원 소개</a>									
+			</li>
+	<li>
+		<a href="/pages/global_mfg.do" class="" >경기 디지털 제조 공급기술 글로벌화 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/gyeonggi_invest.do" class="" >경기도 투자 및 진출 지원</a>									
+			</li>
+	<li>
+		<a href="/pages/investment_union.do" class="" >경기도 투자조합(G-펀드)</a>									
+			</li>
+	<li>
+		<a href="/pages/return_support.do" class="" >국내복귀기업 지원사업</a>									
+			</li>
+	<li>
+		<a href="/pages/invest_gyeonggi.do" class="" >Invest 경기</a>									
+			</li>
+	<li>
+		<a href="/pages/fdi_support.do" class="" >경기도 외국인투자기업 지원센터 운영</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >AI산업육성 지원</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/intro_ai.do" class="" >AI산업육성 지원 소개</a>									
+			</li>
+	<li>
+		<a href="/pages/gg_ai_cluster.do" class="" >경기 AI 혁신클러스터 조성</a>									
+			</li>
+	<li>
+		<a href="/pages/ai_growth.do" class="" >인공지능(AI) 인재양성</a>									
+			</li>
+	<li>
+		<a href="/pages/ai_joint_training.do" class="" >AI 특화 공동훈련센터</a>									
+			</li>
+	<li>
+		<a href="/pages/ai_digiedu.do" class="" >AI 디지털 배움터</a>									
+			</li>
+	<li>
+		<a href="/pages/ai_global_prog.do" class="" >AI 글로벌 챌린지 프로그램</a>									
+			</li>
+	<li>
+		<a href="/pages/ai_challenge_prog.do" class="" >AI 챌린지 프로그램</a>									
+			</li>
+	<li>
+		<a href="/pages/digital_openlab.do" class="" >열린 혁신 디지털오픈랩 구축</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >경기 RISE 센터</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/intro_rise.do" class="" >경기 RISE 센터 소개</a>									
+			</li>
+	<li>
+		<a href="/pages/rise_center.do" class="" >경기 RISE 센터</a>									
+			</li>
+	<li>
+		<a href="/pages/rise_support.do" class="" >경기도 지역혁신중심대학지원체계(RISE)</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	</ul>
+			<div class="bn_box">
+				<img src="/images/site/main/banner_01_2026.gif" alt="K-중소벤처스타트업 혁신성장 허브 GBSA">
+				<div class="bn_link">
+					<a href="/pages/ci.do"><strong>&nbsp;&nbsp;CI 소개 및 다운로드</strong></a>
+					<a href="/pages/promotion.do"><strong>&nbsp;&nbsp;브로셔 다운로드</strong></a>
+				</div>
+			</div>
+		</div>
+		</li>
+	<li>
+		<a href="#none" class="topMenu "><span>소통과참여</span></a>
+			<div class="depth dpt1">
+			<h3>소통과참여<span></span></h3>
+			<ul class="dpt2">		
+		<li >
+			<a href="/pages/qna_guide.do" class="" >종합상담안내</a>									
+				</li>
+	<li >
+			<a href="/board/support_inquiry.do" class="" >지원사업문의</a>									
+				</li>
+	<li >
+			<a href="/board/inquiry.do" class="" >일반문의</a>									
+				</li>
+	<li >
+			<a href="/board/praised_encourage.do" class="" >칭찬/격려</a>									
+				</li>
+	<li >
+			<a href="/board/discontent_accept.do" class="" >불만접수</a>									
+				</li>
+	<li class="dep_t">
+			<a href="#none" class="" >정책/제도 제안</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/policy_proposal_guide.do" class="" >정책/제도 제안 소개</a>									
+			</li>
+	<li>
+		<a href="/board/policy_system.do?mode=write" class="" >정책/제도 제안하기</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li class="dep_t">
+			<a href="#none" class="" >청렴신고</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/clean_guide.do" class="" >청렴신고 소개</a>									
+			</li>
+	<li>
+		<a href="/board/clean_report.do" class="" >청렴신고하기</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	<li >
+			<a href="/pages/public_report.do" class="" >공익신고</a>									
+				</li>
+	<li >
+			<a href="/pages/cyber_sh_report.do" class="" >사이버성희롱ㆍ성폭력 신고센터</a>									
+				</li>
+	<li >
+			<a href="/pages/complain_process.do" class="" >민원처리안내</a>									
+				</li>
+	</ul>
+			<div class="bn_box">
+				<img src="/images/site/main/banner_01_2026.gif" alt="K-중소벤처스타트업 혁신성장 허브 GBSA">
+				<div class="bn_link">
+					<a href="/pages/ci.do"><strong>&nbsp;&nbsp;CI 소개 및 다운로드</strong></a>
+					<a href="/pages/promotion.do"><strong>&nbsp;&nbsp;브로셔 다운로드</strong></a>
+				</div>
+			</div>
+		</div>
+		</li>
+	<li>
+		<a href="#none" class="topMenu "><span>정보공개</span></a>
+			<div class="depth dpt1">
+			<h3>정보공개<span></span></h3>
+			<ul class="dpt2">		
+		<li >
+			<a href="/pages/announce_management.do" class="" >경영공시안내</a>									
+				</li>
+	<li >
+			<a href="/board/yr_announce.do" class="" >연도별 공시자료</a>									
+				</li>
+	<li >
+			<a href="/board/general_data.do" class="" >정보자료실</a>									
+				</li>
+	<li >
+			<a href="/pages/user_guide.do" class="" >정보공개청구</a>									
+				</li>
+	<li class="dep_t">
+			<a href="#none" class="" >공공데이터개방</a>
+				<div class="m-scroll-wrap">
+			<div class="m-scroll">
+			<ul class="dpt3">		
+			<li>
+		<a href="/pages/open_guide.do" class="" >개방제도 안내</a>									
+			</li>
+	<li>
+		<a href="https://bit.ly/3lv0QIq" class="" target="_blank">데이터 제공목록</a>									
+			</li>
+	</ul>
+			</div>
+			</div>
+		</li>
+	</ul>
+			<div class="bn_box">
+				<img src="/images/site/main/banner_01_2026.gif" alt="K-중소벤처스타트업 혁신성장 허브 GBSA">
+				<div class="bn_link">
+					<a href="/pages/ci.do"><strong>&nbsp;&nbsp;CI 소개 및 다운로드</strong></a>
+					<a href="/pages/promotion.do"><strong>&nbsp;&nbsp;브로셔 다운로드</strong></a>
+				</div>
+			</div>
+		</div>
+		</li>
+	<li>
+		<a href="#none" class="topMenu "><span>연구 발간물</span></a>
+			<div class="depth dpt1">
+			<h3>연구 발간물<span></span></h3>
+			<ul class="dpt2">		
+		<li >
+			<a href="/board/recent_data.do" class="" >조사분석</a>									
+				</li>
+	<li >
+			<a href="/board/industrial_trend.do" class="" >정책연구</a>									
+				</li>
+	<li >
+			<a href="/board/daily_trend.do" class="" >뉴스리포트</a>									
+				</li>
+	<li >
+			<a href="/board/issue_briefing.do" class="" >이슈브리핑</a>									
+				</li>
+	</ul>
+			<div class="bn_box">
+				<img src="/images/site/main/banner_01_2026.gif" alt="K-중소벤처스타트업 혁신성장 허브 GBSA">
+				<div class="bn_link">
+					<a href="/pages/ci.do"><strong>&nbsp;&nbsp;CI 소개 및 다운로드</strong></a>
+					<a href="/pages/promotion.do"><strong>&nbsp;&nbsp;브로셔 다운로드</strong></a>
+				</div>
+			</div>
+		</div>
+		</li>
+	<li>
+		<a href="#none" class="topMenu active"><span>기관소식</span></a>
+			<div class="depth dpt1">
+			<h3>기관소식<span></span></h3>
+			<ul class="dpt2">		
+		<li >
+			<a href="/board/new.do" class="" >새소식</a>									
+				</li>
+	<li >
+			<a href="/board/press_data.do" class="" >언론보도</a>									
+				</li>
+	<li >
+			<a href="/board/bid_info.do" class="" >입찰정보</a>									
+				</li>
+	<li >
+			<a href="/board/order_plan.do" class="" >발주계획</a>									
+				</li>
+	<li >
+			<a href="/board/notice.do" class="active" >공지사항</a>									
+				</li>
+	<li >
+			<a href="/board/recruitInfo.do" class="" >채용공고</a>									
+				</li>
+	<li >
+			<a href="https://gbsa.or.kr/newsletter/" class="" target="_blank">정기 뉴스레터</a>									
+				</li>
+	</ul>
+			<div class="bn_box">
+				<img src="/images/site/main/banner_01_2026.gif" alt="K-중소벤처스타트업 혁신성장 허브 GBSA">
+				<div class="bn_link">
+					<a href="/pages/ci.do"><strong>&nbsp;&nbsp;CI 소개 및 다운로드</strong></a>
+					<a href="/pages/promotion.do"><strong>&nbsp;&nbsp;브로셔 다운로드</strong></a>
+				</div>
+			</div>
+		</div>
+		</li>
+	</ul>
+				</div>
+
+	        	<div class="header-all-menu">
+	        		<a href="#none" class="all-menu-view all-view-hiden">
+	        			<img src="/images/site/main/renew_all_menu_view_on.png" alt="전체 메뉴 보기" title="전체 메뉴 보기" class="over">
+	        		</a>    
+    			</div>
+    			<div class="srch-btn">
+	        		<a href="#none" class="all-menu-view all-view-hiden">
+	        			<img src="/images/site/main/renew_srch_ico.png" alt="통합 검색 보기" title="통합 검색 보기" class="over">
+	        		</a>    
+    			</div>
+        	</div>
+        	<!--//header_area-->
+
+			<!-- gnb_bg -->
+			<div class="gnb_bgwrap">
+				<div class="gnb_bg"></div>
+			</div>
+			<!--// gnb_bg --></div>
+        <!--//header-->
+    </div>
+    <!-- //header-wrap-->
+
+    <!--전체메뉴 all-menu-list-->
+    <div class="Mask" style="display: none;"></div>
+    <div class="all-menu-list" style="display:none;">
+        <h3 class="all-menu-title">전체 메뉴
+        <a href="#" class="all-menu-close all-view-hiden"><img src="/images/site/main/btn_close.png" alt="전체 메뉴 닫기"></a>
+        </h3>
+        <!--all-menu-wra-->
+        <div class="all-menu-wrap">
+            <!--allMenuArea-->
+        <div class="allMenuArea">
+		<h2>기관소개</h2>
+			<div class="allMenuBox">
+            	<ul>
+		<li class="nochild no01">
+			<a href="/pages/ceo_intro.do" >CEO 인사말</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/pages/vision_mission.do" >비전과 미션</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/pages/history.do" >연혁</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">ESG 경영</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/esg_strategy.do" >ESG 경영 전략체계</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/esg_disclosure.do" >ESG 경영공시</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/board/esg_report.do" >ESG 보고서</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/cp-introduction.do" >공정거래자율준수</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">윤리경영</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/propulsion_organization.do" >추진체계</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/ethics.do" >윤리헌장</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/ethics_creed.do" >윤리 행동강령</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">인권경영</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/humanrights_charter.do" >인권경영헌장</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/humanrights_charter_eng.do" >인권경영헌장(영문)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/humanrights_guidelines.do" >인권경영운영지침</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/humanrights_abuse.do" >인권침해 구제신고·지원센터</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/board/humanrights_progress.do" >인권경영 추진내용</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">고객만족경영</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/cs_strategic.do" >고객만족 전략체계</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/cs_charter.do" >고객서비스헌장</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">안전보건경영</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/safe_vision.do" >CEO 안전보건경영철학</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/safe_mission.do" >안전보건경영방침 및 목표</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/board/safe_data.do" >매뉴얼 및 안전보건자료</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/board/safe_accept.do" >안전보건 신문고</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">홍보관</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/ci.do" >CI</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/promotion.do" >홍보물</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/promo_video.do" >홍보동영상</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">조직도</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/organiztion_facility.do" >조직도(시설관리)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/organiztion.do" >조직도</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">위치 및 시설 안내</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/contact_gbsa_pj.do" >본원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/contact_gbsa.do" >수원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/contact_bio_center.do" >판교</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/contact_region_special.do" >균형발전본부</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/board/rental.do" >행사현황(광교)</a>									
+				<ul>		
+		</ul>
+		</li>
+	</ul>
+			</div>
+		</div><!--//allMenuArea-->		
+	<!--allMenuArea-->
+        <div class="allMenuArea">
+		<h2>주요사업</h2>
+			<div class="allMenuBox">
+            	<ul>
+		<li class="nochild no01">
+			<a href="#">창업 지원</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/intro_startup.do" >창업지원 소개</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/global_growth.do" >경기 스타트업 글로벌 성장 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/global_startup.do" >경기 스타트업 서밋(G-SUMMIT)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/gyeonggi_startup_operation.do" >경기 스타트업 아카데미 운영</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/startup_platform.do" >경기 스타트업 플랫폼 운영</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/startup_participation.do" >경기 창업 공모</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/pangyo_startup_investment.do" >경기도 글로벌스타트업 육성</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/innovation_space.do" >경기창업혁신공간 운영</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/rechallenge_business.do" >기술창업 재도전 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/private_investment_skill.do" >민간투자연계형 기술창업지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/pet_startup.do" >반려동물산업 스타트업 발굴 및 창업지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/startup_campus_space.do" >스타트업캠퍼스 보육 운영</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/startup_project.do" >예비·초기 기술창업지원</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">사업화 지원</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/businessization_support.do" >사업화지원 소개</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/operate_3dgc.do" >3D프린팅 통합센터 운영</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/star_sme.do" >경기도 스타기업육성</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/biz-org-prgm.do" >경제단체 우수프로그램 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/ghc_promote.do" >글로벌강소기업 육성</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/mpq.do" >소부장 기업 육성</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/sme_convergence.do" >중소기업 비즈니스 융합성장 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/esg_management.do" >중소기업 환경·사회·투명(ESG) 경영활성화 지원사업</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">R&D 지원</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/rnd_support.do" >R&D지원 소개</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/firststep_rnd.do" >R&D첫걸음 기업연구소 지원사업</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/dev_skills.do" >경기도 기술개발사업</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/robotics_industry.do" >경기도 로봇SI 기업 육성</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/hydrogen_energy.do" >경기도 차세대 수소에너지 기술개발</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/textile_skills.do" >섬유분야 기술개발사업</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">바이오산업 지원</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/bio_support_intro.do" >바이오산업 지원 소개</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/bio_startuplab.do" >경기 바이오스타트업 육성 지원사업</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/bio_speciality.do" >경기도 바이오 전문인력 양성 사업</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/medical_device.do" >경기도 의료기기 개발지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/advanced_health.do" >경기도 첨단 바이오헬스 강소기업 육성 프로젝트</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/beauty_material.do" >국내외 천연물 및 합성물 소재개발 사업_경기도천연물소재은행</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/techinfo_cowork.do" >기술정보 및 협력네트워크 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/bio_performance.do" >바이오 연구성과 확산</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/bio_global_biz.do" >바이오산업 글로벌 기술사업화</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/nonclinical_analysis_research.do" >비임상 연구분석 서비스</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/nonclinical_validity.do" >비임상 유효성 평가지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/positive_study.do" >소재개발 실증연구</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/fusion_iuic_collaboration.do" >수요기술 산학연 공동연구</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/equipment_union.do" >연구장비공동활용 시스템 운영</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/med-global-spt.do" >의료기기 기업 해외진출 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/analysis_infra.do" >전문분석/시생산 인프라지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/natural_origins.do" >천연물유래 제품개발 연구</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/medicinal_properties.do" >초고속대용량 소재발굴지원</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">마케팅 지원</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/marketing_support.do" >마케팅지원 소개</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/operate_gbc.do" >경기비즈니스센터(GBC) 운영</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/operate_gms.do" >GMS(GBC 수출대행 사업)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/operate_dts.do" >GBM(무료 수출화상상담 서비스)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/support_logistics.do" >경기도 수출기업 물류비 지원사업</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/oversea_employment.do" >경기 청년 해외 취·창업 기회 확충 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/oversea_gfair.do" >해외 G-FAIR 개최</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/permanent_exhibition.do" >G-FAIR KOREA 개최</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/overseas_exhibition.do" >해외전시회 단체관 운영</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/export_mentoring.do" >무역전문가 활용 해외마케팅 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/market_developer.do" >통상촉진단(시장개척단)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/buyer_meeting.do" >수출상담회</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/trade-crisis-package.do" >무역위기 대응 패키지 지원</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">교육 지원</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/education.do" >교육지원 소개</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/gbsa_academy.do" >GBSA 아카데미 운영</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/software.do" >소프트웨어(SW) 미래채움</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">현장애로 지원/인증</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/field_support.do" >현장애로지원/인증 소개</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/family_friendly.do" >경기가족친화기업 인증 및 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/regulatory_sandbox.do" >경기도 규제샌드박스 활성화 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/corp_omz.do" >경기도 기업옴부즈만 운영</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/gwbs_project.do" >경기도 대중소 상생협력 활성화 지원사업</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/smb_certification.do" >경기도 유망 중소기업 인증</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/good_company.do" >경기도 착한기업 인증 및 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/sos_center.do" >기업SOS지원센터운영</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">지역특화 지원</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/regional_specific.do" >지역특화지원 소개</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/furniture_marketing.do" >가구기업 제품개발 및 마케팅 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/furniture_exhibition_company.do" >가구전시회 참가 도내기업 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/support_root.do" >경기도 뿌리산업 경쟁력 강화지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/export_subsidies.do" >경기북부 수출물류비 지원(고양, 남양주, 동두천, 파주, 포천)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/operate_gtc.do" >경기섬유마케팅센터(GTC) 운영</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/support_procurement.do" >국내외조달등록 지원(파주, 연천)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/global_marketing.do" >글로벌 마케팅지원(파주, 의정부)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/global_market_developer.do" >글로벌 시장개척단(고양, 남양주, 파주, 포천)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/global_market_development.do" >글로벌시장개척단(안성시)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/southern_production_levelup.do" >남부권역 생산레벨업 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/exhibition_support_nyj.do" >남양주시 국내전시회 참가기업 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/decrepit_facilities_modernization.do" >노후생산시설 현대화 지원(김포시)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/modernization_support_ddc.do" >노후생산시설 현대화 지원(동두천시)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/west_market_pioneer_group.do" >서부권역 해외시장개척단 운영(안산시,부천시)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/global_textile_fashion_exhibition.do" >섬유 국내외 전시회 참가지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/support_logisticsCost_anseong_icheon.do" >수출기업 물류비 지원(안성시)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/local-sme-esg.do" >시군 중소기업 ESG 경영지원(광명시, 의왕시)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/global_marketing_anseong.do" >안성시 글로벌마케팅 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/anseong_support.do" >안성시 중소기업 역량강화 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/yangju_textile_exhibit.do" >양주시 해외 섬유전시회 참가지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/standard_certification_yangju.do" >양주시 해외규격인증취득 지원사업</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/yeoju_sos.do" >여주시 기업SOS 현장클리닉</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/global_export_marketing.do" >온라인 수출 마케팅 지원(광명시)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/global_export_marketing_uw.do" >온라인 수출 마케팅 지원(의왕시)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/icheon_growth.do" >이천시 중소기업 맞춤형 성장지원사업</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/family_north.do" >중소기업 개발생산판로 맞춤형 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/support_digital_trans.do" >중소기업 디지털전환 컨설팅 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/sample_and_export_cost_gwang.do" >중소기업 수출물류비 지원(광명시)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/sample_and_export_cost_sup.do" >중소기업 수출물류비 지원(김포시)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/sample_and_export_cost_as.do" >중소기업 수출물류비 지원(안산시)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/dev_design.do" >중소기업 제품디자인 및 마케팅 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/region_special_project.do" >지역특화 프로젝트(뿌리산업의 디지털 제조혁신)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/fabric_design.do" >패션디자인 실용화 및 역량강화</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/pyeongtaek_exports.do" >평택시 수출역량강화 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/female_company.do" >평택시 여성기업 경쟁력강화 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/pyeongtaek_winwin_cooperation.do" >평택시 중소기업 상생협력 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/pyeongtaek_hidden_champion_promotion.do" >평택시 히든 챔피언 육성지원</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">정책연구 지원</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/policy_research.do" >정책연구 지원 소개</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/research_development.do" >경기연구개발지원단</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/science_technology.do" >과학기술정책연구</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/smb_policy_analysis.do" >중소기업 정책분석</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">투자유치 지원</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/investment_attraction.do" >투자유치 지원 소개</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/global_mfg.do" >경기 디지털 제조 공급기술 글로벌화 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/gyeonggi_invest.do" >경기도 투자 및 진출 지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/investment_union.do" >경기도 투자조합(G-펀드)</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/return_support.do" >국내복귀기업 지원사업</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/invest_gyeonggi.do" >Invest 경기</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/fdi_support.do" >경기도 외국인투자기업 지원센터 운영</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">AI산업육성 지원</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/intro_ai.do" >AI산업육성 지원 소개</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/gg_ai_cluster.do" >경기 AI 혁신클러스터 조성</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/ai_growth.do" >인공지능(AI) 인재양성</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/ai_joint_training.do" >AI 특화 공동훈련센터</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/ai_digiedu.do" >AI 디지털 배움터</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/ai_global_prog.do" >AI 글로벌 챌린지 프로그램</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/ai_challenge_prog.do" >AI 챌린지 프로그램</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/digital_openlab.do" >열린 혁신 디지털오픈랩 구축</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">경기 RISE 센터</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/intro_rise.do" >경기 RISE 센터 소개</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/rise_center.do" >경기 RISE 센터</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/rise_support.do" >경기도 지역혁신중심대학지원체계(RISE)</a>									
+			</li>
+	</ul>
+		</li>
+	</ul>
+			</div>
+		</div><!--//allMenuArea-->		
+	<!--allMenuArea-->
+        <div class="allMenuArea">
+		<h2>소통과참여</h2>
+			<div class="allMenuBox">
+            	<ul>
+		<li class="nochild no01">
+			<a href="/pages/qna_guide.do" >종합상담안내</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/board/support_inquiry.do" >지원사업문의</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/board/inquiry.do" >일반문의</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/board/praised_encourage.do" >칭찬/격려</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/board/discontent_accept.do" >불만접수</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">정책/제도 제안</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/policy_proposal_guide.do" >정책/제도 제안 소개</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/board/policy_system.do?mode=write" >정책/제도 제안하기</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">청렴신고</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/clean_guide.do" >청렴신고 소개</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/board/clean_report.do" >청렴신고하기</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/pages/public_report.do" >공익신고</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/pages/cyber_sh_report.do" >사이버성희롱ㆍ성폭력 신고센터</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/pages/complain_process.do" >민원처리안내</a>									
+				<ul>		
+		</ul>
+		</li>
+	</ul>
+			</div>
+		</div><!--//allMenuArea-->		
+	<!--allMenuArea-->
+        <div class="allMenuArea">
+		<h2>정보공개</h2>
+			<div class="allMenuBox">
+            	<ul>
+		<li class="nochild no01">
+			<a href="/pages/announce_management.do" >경영공시안내</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/board/yr_announce.do" >연도별 공시자료</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/board/general_data.do" >정보자료실</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/pages/user_guide.do" >정보공개청구</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">공공데이터개방</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/open_guide.do" >개방제도 안내</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="https://bit.ly/3lv0QIq" target="_blank">데이터 제공목록</a>									
+			</li>
+	</ul>
+		</li>
+	</ul>
+			</div>
+		</div><!--//allMenuArea-->		
+	<!--allMenuArea-->
+        <div class="allMenuArea">
+		<h2>연구 발간물</h2>
+			<div class="allMenuBox">
+            	<ul>
+		<li class="nochild no01">
+			<a href="/board/recent_data.do" >조사분석</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/board/industrial_trend.do" >정책연구</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/board/daily_trend.do" >뉴스리포트</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/board/issue_briefing.do" >이슈브리핑</a>									
+				<ul>		
+		</ul>
+		</li>
+	</ul>
+			</div>
+		</div><!--//allMenuArea-->		
+	<!--allMenuArea-->
+        <div class="allMenuArea">
+		<h2>기관소식</h2>
+			<div class="allMenuBox">
+            	<ul>
+		<li class="nochild no01">
+			<a href="/board/new.do" >새소식</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/board/press_data.do" >언론보도</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/board/bid_info.do" >입찰정보</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/board/order_plan.do" >발주계획</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/board/notice.do" >공지사항</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/board/recruitInfo.do" >채용공고</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="https://gbsa.or.kr/newsletter/" target="_blank">정기 뉴스레터</a>									
+				<ul>		
+		</ul>
+		</li>
+	</ul>
+			</div>
+		</div><!--//allMenuArea-->		
+	<!--allMenuArea-->
+        <div class="allMenuArea">
+		<h2>마이페이지</h2>
+			<div class="allMenuBox">
+            	<ul>
+		<li class="nochild no01">
+			<a href="/prgm/mypage/main.do" >마이페이지 메인</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/prgm/mypage/memberinfo.do" >회원정보</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">내가쓴글</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/board/mypage/my-provono.do" >종합상담안내</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/board/mypage/my-support_qna.do" >지원사업문의</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/board/mypage/my-common_qna.do" >일반문의</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/board/mypage/my-compliment.do" >칭찬/격려</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/board/mypage/my-complain-recept.do" >불만접수</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/board/mypage/my-itegrity.do" >청렴신고</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">신청내역</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/prgm/mypage/equipAppList.do" >장비사용신청현황</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/prgm/mypage/analysisAppList.do" >분석의뢰신청현황</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/prgm/mypage/natureProduct/selectNatureProduct01List.do" >천연물유래 소재연구</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/prgm/mypage/natureProduct/np2/selectNatureProduct02List.do" >비임상유효성평가 서비스</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/prgm/mypage/natureProduct/np3/selectNatureProduct03List.do" >비임상 연구분석 서비스</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/prgm/mypage/natureProduct/np6/selectNatureProduct06List.do" >시생산지원 서비스</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">결제/확인/취소</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/prgm/mypage/equip/list.do" >장비사용/분석의뢰 결제</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/prgm/mypage/memberout.do" >회원탈퇴</a>									
+				<ul>		
+		</ul>
+		</li>
+	</ul>
+			</div>
+		</div><!--//allMenuArea-->		
+	<!--allMenuArea-->
+        <div class="allMenuArea">
+		<h2>이용안내</h2>
+			<div class="allMenuBox">
+            	<ul>
+		<li class="nochild no01">
+			<a href="/pages/useguide.do" >서비스 이용약관</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/pages/privacy.do" >개인정보처리방침</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/pages/noemail.do" >이메일무단수집거부</a>									
+				<ul>		
+		</ul>
+		</li>
+	</ul>
+			</div>
+		</div><!--//allMenuArea-->		
+	<!--allMenuArea-->
+        <div class="allMenuArea">
+		<h2>회원정보</h2>
+			<div class="allMenuBox">
+            	<ul>
+		<li class="nochild no01">
+			<a href="/prgm/uat/uia/egovLoginUsr.do" >로그인</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="https://www.gbsa.or.kr/member/login.do" >로그인</a>									
+				<ul>		
+		</ul>
+		</li>
+	</ul>
+			</div>
+		</div><!--//allMenuArea-->		
+	<!--allMenuArea-->
+        <div class="allMenuArea">
+		<h2>바이오산업본부</h2>
+			<div class="allMenuBox">
+            	<ul>
+		<li class="nochild no01">
+			<a href="/pages/bio/index.do" >바이오산업본부 Home</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">바이오산업본부 안내</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/bio_intro.do" >사업개요</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/bio_bis_area.do" >사업영역</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/board/bio_notice.do" >공지사항</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/bio_contact.do" >오시는길</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/prgm/equipApp/selectEquipAppList.do" >장비사용신청</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="/prgm/equipApp/analy/selectAnalAppList.do" >분석의뢰</a>									
+				<ul>		
+		</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">초고속약효검색지원</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/search_medi_intro.do" >사업내용</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/search_medi_properties.do" >약효검색서비스 항목</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/search_medi_compoundbank.do" >화합물은행</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/search_medi_joint.do" >위탁/공동연구</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/search_medi_consignment.do" >화합물수탁안내</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/search_medi_guide.do" >이용안내</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">연구개발지원</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/prgm/natureProduct/matterResearchMain.do" >천연물 유래소재연구서비스</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/prgm/natureProduct/np2/nonClinicalAssessmentMain.do" >비임상유효성평가서비스</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/prgm/natureProduct/np3/researchAnalysis_noclinicalMain.do" >비임상연구분석 서비스</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/prgm/natureProduct/np6/newNatureProduct02Main.do" >시생산지원 서비스</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">기술은행</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/techBank_intro.do" >개요 및 소개</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/prgm/bio/techBank/techList.do" >기술정보</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/prgm/bio/techBank/applyList.do" >수요기술 신청내역</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/board/techBankBusinessNotice.do" >기술사업화지원</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/board/techBankBriefingNotice.do" >기술사업화지원</a>									
+			</li>
+	</ul>
+		</li>
+	<li class="nochild no01">
+			<a href="#">이용안내</a>
+				<ul>		
+		<li class="nochild no01">
+		<a href="/pages/application_procedure.do" >신청절차</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/prgm/equip/usage/cardpay.do" >사용료 카드결제</a>									
+			</li>
+	<li class="nochild no01">
+		<a href="/pages/fee_information.do" >수수료 정보</a>									
+			</li>
+	</ul>
+		</li>
+	</ul>
+			</div>
+		</div><!--//allMenuArea-->		
+	<!--allMenuArea-->
+        <div class="allMenuArea">
+		<h2>3D프린팅통합센터</h2>
+			<div class="allMenuBox">
+            	<ul>
+		<li class="nochild no01">
+			<a href="https://www.3dgc.re.kr:446/html/main/index.asp" target="_blank">3D프린팅통합센터 바로가기</a>									
+				<ul>		
+		</ul>
+		</li>
+	</ul>
+			</div>
+		</div><!--//allMenuArea-->		
+	<!--allMenuArea-->
+        <div class="allMenuArea">
+		<h2>패밀리사이트</h2>
+			<div class="allMenuBox">
+            	<ul>
+		<li class="nochild no01">
+			<a href="/pages/family/family.do" >패밀리사이트</a>									
+				<ul>		
+		</ul>
+		</li>
+	</ul>
+			</div>
+		</div><!--//allMenuArea-->		
+	<!--allMenuArea-->
+        <div class="allMenuArea">
+		<a href="/prgm/tagmanage/selectTagManageList.do" class="" ><h2>태그 검색결과</h2></a>									
+			<div class="allMenuBox">
+            	<ul>
+		</ul>
+			</div>
+		</div><!--//allMenuArea-->		
+	<!--allMenuArea-->
+        <div class="allMenuArea">
+		<a href="/pages/search.do" class="" ><h2>통합검색(검색엔진)</h2></a>									
+			<div class="allMenuBox">
+            	<ul>
+		</ul>
+			</div>
+		</div><!--//allMenuArea-->		
+	<!--allMenuArea-->
+        <div class="allMenuArea">
+		<a href="/prgm/tagmanage/selectTagManageList.do" class="" ><h2>통합검색</h2></a>									
+			<div class="allMenuBox">
+            	<ul>
+		</ul>
+			</div>
+		</div><!--//allMenuArea-->		
+	<!--allMenuArea-->
+        <div class="allMenuArea">
+		<a href="/prgm/bbsParsing/getBbsList.do" class="" ><h2>게시판데이터파싱</h2></a>									
+			<div class="allMenuBox">
+            	<ul>
+		</ul>
+			</div>
+		</div><!--//allMenuArea-->		
+	</div><!--//all-menu-wra-->
+        
+    </div>
+    <!--//전체메뉴 all-menu-list-->
+
+    <!--통합검색 searchWrap-->
+    <div class="searchWrap" style="display:none;">
+		<script src="/js/egovframework/com/sch/ark.js"></script>
+
+
+<div class="searchInner">
+	<form name="t_query" class="search" id="t_query" action="/prgm/search.do" method="POST" onsubmit="return false;" autocomplete="off" >
+   		<input type="hidden" name="query" value="">
+   		
+		<fieldset class="gSection">
+			<legend>통합검색 폼</legend>
+			<label for="queryTop"><span>통합검색</span></label>
+			<input class="totalSearchInput" name="queryTop" id="queryTop" type="text" value="" onkeypress="javascript:pressCheckTop((event),this);" autocomplete="off" placeholder="검색어를 입력해 주세요." title="검색어 입력">
+			<div id="top_ark">
+				<!-- <div class="m_auto_result"></div> -->
+			</div>
+			<button id="topsearchbtn" class="totalSearchBtn" onclick="javascript:doSearchTop();return false;">
+				<img src="/images/site/main/icon_magnify.gif" alt="검색 아이콘">
+				<em class="sr-only">검색</em>
+			</button>
+		</fieldset>
+	<input type="hidden" name="ozcsrf" id="ozcsrf_search1" value=""> </form>
+	<button class="btnSearchClose">닫기</button>
+</div></div>
+    <!--//통합검색 searchWrap-->
+
+    <!--container-->
+    <div id="container">
+        <!--location-->
+        <div class="location">
+            <!--inner-->
+            <div class="inner">
+                <!--path-->
+                <div class="path">
+                    <a href="/index.do"><span class="home">HOME</span></a>
+					<ul class="breadcrumb"> 
+<li class="topNaviMenu1"><a href="#">기관소식</a></li>
+		<li class="topNaviMenu2">
+	<a href="#">공지사항</a>
+		<ul>
+	
+	<li><a href="/board/new.do" >새소식</a></li>
+			<li><a href="/board/press_data.do" >언론보도</a></li>
+			<li><a href="/board/bid_info.do" >입찰정보</a></li>
+			<li><a href="/board/order_plan.do" >발주계획</a></li>
+			<li><a class="show" href="/board/notice.do" >공지사항</a></li>
+			<li><a href="/board/recruitInfo.do" >채용공고</a></li>
+			<li><a href="https://gbsa.or.kr/newsletter/" target="_blank">정기 뉴스레터</a></li>
+			</ul>
+	</li>
+</ul>
+</div>
+                <!--//path-->
+                <!--nsnBtn-->
+                <div class="nsnBtn">
+                    <div class="legibility">글자크기
+                        <span>
+                            <a href="#" onclick="fontSz('inc');" >글자크기 키우기</a>
+                            <a href="#" onclick="fontSz('dec');">글자크기 줄이기</a>
+                        </span>
+                    </div>
+                    <div class="sns">
+                    <a href="#this" title="새창열림" onclick="share_sns('twitter','경기도경제과학진흥원 - 공지사항','https://gbsa.or.kr/board/notice.do');"><img src="/images/site/main/sns_share_tw.png" alt="트위터"></a>
+                    <a href="#this" title="새창열림" onclick="share_sns('facebook','경기도경제과학진흥원 - 공지사항','https://gbsa.or.kr/board/notice.do');"><img src="/images/site/main/sns_share_fb.png" alt="페이스북"></a>
+                    <a href="#this" onclick="window.print();return false;"><img src="/images/site/main/sns_share_pr.png" alt="인쇄"></a>
+                    </div>
+                </div>
+                <!--//nsnBtn-->
+            </div><!--//inner-->
+        </div>
+<!--//location-->
+
+        <!--sublayout-->
+        <div class="sublayout">
+            <!--lnb-->
+            <div class="lnb">
+                <!-- 
+	
+	 -->
+	<!-- 
+	
+	 -->
+	<!-- 
+	
+	 -->
+	<!-- 
+	
+	 -->
+	<!-- 
+	
+	 -->
+	<h2 id="side_title">기관소식</h2>
+		<div id="snb1" class="snb1">
+	       	<ul>		
+				<li class="">
+		<a href="/board/new.do" >새소식</a>
+			</li>
+	<!-- 
+	
+	 -->
+	<li class="">
+		<a href="/board/press_data.do" >언론보도</a>
+			</li>
+	<!-- 
+	
+	 -->
+	<li class="">
+		<a href="/board/bid_info.do" >입찰정보</a>
+			</li>
+	<!-- 
+	
+	 -->
+	<li class="">
+		<a href="/board/order_plan.do" >발주계획</a>
+			</li>
+	<!-- 
+	
+	 -->
+	<li class=" on">
+		<a href="/board/notice.do" >공지사항</a>
+			</li>
+	<!-- 
+	
+	 -->
+	<li class="">
+		<a href="/board/recruitInfo.do" >채용공고</a>
+			</li>
+	<!-- 
+	
+	 -->
+	<li class="">
+		<a href="https://gbsa.or.kr/newsletter/" target="_blank">정기 뉴스레터</a>
+			</li>
+	<!-- 
+	
+	 -->
+	</ul>
+	   	</div>
+	<!-- 
+	
+	 -->
+	<!-- 
+	
+	 -->
+	<!-- 
+	
+	 -->
+	<!-- 
+	
+	 -->
+	<!-- 
+	
+	 -->
+	<!-- 
+	
+	 -->
+	<!-- 
+	
+	 -->
+	<!-- 
+	
+	 -->
+	<!-- 
+	
+	 -->
+	<!-- 
+	
+	 -->
+	<!-- 
+	
+	 -->
+	</div>
+            <!--//lnb-->
+            <!--content-->
+            <div class="content" id="content">
+            	<!--sub_title-->
+                <div class="sub_title">                    
+                    <h3>공지사항</h3>
+                    <p class="text">성장의 기회가 넘치는 경기도, K-중소벤처스타트업 혁신성장 허브 &nbsp;&nbsp;</p>
+                </div><!--//sub_title-->
+                <div class="ctt-wrap">
+                <!-- //box -->
+		
+			
+			
+						
+		
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/egovframework/com/cop/bbs/EgovBBSMng.js;jsessionid=AD44BF8261CEF5B9FAB58DF8453019BB" ></script>
+
+<script>
+<!--
+	/*
+	function press(event) {
+		if (event.keyCode==13) {
+			fn_egov_select_noticeList('1');
+		}
+	}
+	*/
+
+	function fn_egov_addNotice() {
+		document.frm.action = "/cop/bbs/addBoardArticle.do;jsessionid=AD44BF8261CEF5B9FAB58DF8453019BB";
+		document.frm.submit();
+	}
+
+	function fn_egov_select_noticeList(pageNo) {
+		document.frm.pageIndex.value = pageNo;
+		document.frm.method = "get";
+		document.frm.action = "/board/notice.do;jsessionid=AD44BF8261CEF5B9FAB58DF8453019BB";
+		document.frm.submit();
+	}
+	
+	function fn_inqire_notice(nttId, bbsId) {
+		/*
+		document.subForm.nttId.value = nttId;
+		//document.subForm.bbsId.value = "";
+		document.subForm.action =  "/board/notice.do;jsessionid=AD44BF8261CEF5B9FAB58DF8453019BB";
+		document.subForm.submit();
+		*/
+		/*
+		//document.frm.pageIndex.value = pageNo;
+		document.frm.method = "get";
+		document.frm.action = "/board/notice.do;jsessionid=AD44BF8261CEF5B9FAB58DF8453019BB";
+		document.frm.submit();
+		*/
+		var link = "/board/notice.do?nttId=" + nttId ;
+		document.location.replace(link);
+		
+	}
+
+	function checkLogin() {
+		if ( !confirm("로그인 후에 글을 등록하실수 있습니다.\n로그인 하시겠습니까?") ) return false;
+		goMemberLogin("") ;
+	}
+	
+//-->
+	function fn_chgTechBankTap(idx){
+		var vUrl = location.href;
+		if(vUrl.indexOf("mobile") != -1){
+			vUrl = "/mobile";
+		}else{
+			vUrl = "";
+		}
+		if(idx == 1){
+			location.href = vUrl+"/board/techBankBusinessNotice.do";
+		}else if(idx == 2){
+			location.href = vUrl+"/board/techBankBriefingNotice.do";
+		}
+	}
+</script>
+
+<div class="ctt">
+
+</div>
+
+<div class="searchForm">
+
+<form name="frm" action ="/board/notice.do;jsessionid=AD44BF8261CEF5B9FAB58DF8453019BB" method="post">
+<input name="pageIndex" type="hidden" value="1">
+
+	<select name="searchCnd" class="select" title="검색조건선택">
+		   <option value="0"  >제목</option>
+		   <option value="1"  >글내용</option>
+		   
+		   <option value="2"  >작성자</option>
+		   
+	</select>
+  
+    <input name="searchWrd" type="text" size="35" value='' maxlength="35" title="검색어 입력">
+  <input type="submit" value="조회" onclick="fn_egov_select_noticeList('1'); return false;" >
+	 
+      
+   
+ </form>
+ </div>
+
+ 	<form name="subForm" method="post">
+	 	<!-- input type="hidden" name="bbsId"  /-->
+		<input type="hidden" name="bbsId" value="">
+		<input type="hidden" name="nttId" value="">
+		<input type="hidden" name="bbsTyCode" value="BBST03">
+		<input type="hidden" name="bbsAttrbCode" value="BBSA03">
+		<input type="hidden" name="authFlag" value="">
+		<input name="pageIndex" type="hidden" value="1">
+ 	</form>
+								<table class="tbl-basic bbs-list">
+									<caption><span class="tit-add"></span>게시판 목록 - 번호, 제목
+										
+										
+											
+												
+													, 작성자
+													, 등록일
+													, 조회수
+													, 첨부
+												
+												
+											
+											
+										
+										로 구성
+									</caption>
+									<colgroup>
+										<col style="width: 7%">
+										
+										
+										
+											
+												
+												<col style="width: 46%">
+												<col style="width: 15%">
+												<col style="width: 12%">
+												<col style="width: 10%">
+											
+											
+											<col style="width: 10%">
+										
+										
+									</colgroup>
+ <thead>
+<tr>
+											<th scope="col">번호</th>
+											<th scope="col">제 목</th>
+											
+
+											
+												
+													
+														<th scope="col">작성자</th>
+														<th scope="col">등록일</th>
+														<th scope="col">조회수</th>
+														<th scope="col">첨부</th>
+													
+													
+												
+												
+											
+										</tr>
+ </thead>
+
+ <tbody>
+ 	
+
+				
+										
+										
+											<tr>
+												<!--td class="lt_text3" nowrap="nowrap"><input type="checkbox" name="check1" class="check2"></td-->
+												<td>
+													676
+													<!-- 													<img src="/commons/main/images/member/notice_ico.png" alt="공지"/> -->
+												</td>
+												<td class="align_left" style="text-align:left;">
+													
+													
+														
+														
+															
+															
+															
+																<a href="/board/notice.do?nttId=11583&pageIndex=1&searchCnd=&searchWrd=">
+																	
+																	
+																	2026년 창업기업 오프라인 팝업스토어 및 기획전 입점 기업 모집 공고 (성수동 일대 진행 예정)
+																</a>
+															
+														
+														
+													
+												</td>
+												
+												
+												
+													
+													
+													
+														
+														<td>
+														
+															
+															
+																
+																	
+																    
+																			GBSA관리자
+																    
+																
+															
+														
+														</td>
+														<td>
+															2026-08-05
+														</td>
+														<td>
+															719
+														</td>
+														<td>
+															
+																<img src="/images/cms/comm/add_file.jpg" alt="첨부파일">
+															
+			
+														</td>
+														
+													
+												
+											</tr>
+										
+											<tr>
+												<!--td class="lt_text3" nowrap="nowrap"><input type="checkbox" name="check1" class="check2"></td-->
+												<td>
+													675
+													<!-- 													<img src="/commons/main/images/member/notice_ico.png" alt="공지"/> -->
+												</td>
+												<td class="align_left" style="text-align:left;">
+													
+													
+														
+														
+															
+															
+															
+																<a href="/board/notice.do?nttId=11582&pageIndex=1&searchCnd=&searchWrd=">
+																	
+																	
+																	GBSA 제안서 평가위원(후보자) Pool 모집
+																</a>
+															
+														
+														
+													
+												</td>
+												
+												
+												
+													
+													
+													
+														
+														<td>
+														
+															
+															
+																
+																	
+																    
+																			재무회계팀
+																    
+																
+															
+														
+														</td>
+														<td>
+															2026-08-05
+														</td>
+														<td>
+															2044
+														</td>
+														<td>
+															
+																<img src="/images/cms/comm/add_file.jpg" alt="첨부파일">
+															
+			
+														</td>
+														
+													
+												
+											</tr>
+										
+											<tr>
+												<!--td class="lt_text3" nowrap="nowrap"><input type="checkbox" name="check1" class="check2"></td-->
+												<td>
+													674
+													<!-- 													<img src="/commons/main/images/member/notice_ico.png" alt="공지"/> -->
+												</td>
+												<td class="align_left" style="text-align:left;">
+													
+													
+														
+														
+															
+															
+															
+																<a href="/board/notice.do?nttId=11572&pageIndex=1&searchCnd=&searchWrd=">
+																	
+																	
+																	경기R&DB센터, 광교비즈니스센터 입주기업 모집
+																</a>
+															
+														
+														
+													
+												</td>
+												
+												
+												
+													
+													
+													
+														
+														<td>
+														
+															
+															
+																
+																	
+																    
+																			GBSA관리자
+																    
+																
+															
+														
+														</td>
+														<td>
+															2026-07-30
+														</td>
+														<td>
+															902
+														</td>
+														<td>
+															
+																<img src="/images/cms/comm/add_file.jpg" alt="첨부파일">
+															
+			
+														</td>
+														
+													
+												
+											</tr>
+										
+											<tr>
+												<!--td class="lt_text3" nowrap="nowrap"><input type="checkbox" name="check1" class="check2"></td-->
+												<td>
+													673
+													<!-- 													<img src="/commons/main/images/member/notice_ico.png" alt="공지"/> -->
+												</td>
+												<td class="align_left" style="text-align:left;">
+													
+													
+														
+														
+															
+															
+															
+																<a href="/board/notice.do?nttId=11526&pageIndex=1&searchCnd=&searchWrd=">
+																	
+																	
+																	정보공개(공개, 정보부존재) 결정통지 공시송달 공고
+																</a>
+															
+														
+														
+													
+												</td>
+												
+												
+												
+													
+													
+													
+														
+														<td>
+														
+															
+															
+																
+																	
+																    
+																			GBSA관리자
+																    
+																
+															
+														
+														</td>
+														<td>
+															2026-07-20
+														</td>
+														<td>
+															454
+														</td>
+														<td>
+															
+																<img src="/images/cms/comm/add_file.jpg" alt="첨부파일">
+															
+			
+														</td>
+														
+													
+												
+											</tr>
+										
+											<tr>
+												<!--td class="lt_text3" nowrap="nowrap"><input type="checkbox" name="check1" class="check2"></td-->
+												<td>
+													672
+													<!-- 													<img src="/commons/main/images/member/notice_ico.png" alt="공지"/> -->
+												</td>
+												<td class="align_left" style="text-align:left;">
+													
+													
+														
+														
+															
+															
+															
+																<a href="/board/notice.do?nttId=11502&pageIndex=1&searchCnd=&searchWrd=">
+																	
+																	
+																	경기도 공직유관단체 종합청렴도 평가 관련 개인정보 제3자 제공사항 알림 공고
+																</a>
+															
+														
+														
+													
+												</td>
+												
+												
+												
+													
+													
+													
+														
+														<td>
+														
+															
+															
+																
+																	
+																    
+																			GBSA관리자
+																    
+																
+															
+														
+														</td>
+														<td>
+															2026-07-10
+														</td>
+														<td>
+															599
+														</td>
+														<td>
+															
+			
+														</td>
+														
+													
+												
+											</tr>
+										
+											<tr>
+												<!--td class="lt_text3" nowrap="nowrap"><input type="checkbox" name="check1" class="check2"></td-->
+												<td>
+													671
+													<!-- 													<img src="/commons/main/images/member/notice_ico.png" alt="공지"/> -->
+												</td>
+												<td class="align_left" style="text-align:left;">
+													
+													
+														
+														
+															
+															
+															
+																<a href="/board/notice.do?nttId=11420&pageIndex=1&searchCnd=&searchWrd=">
+																	
+																	
+																	2026년 경기도 AI글로벌 챌린지 글로벌 오픈이노베이션 프로그램 참가기업 모집 공고
+																</a>
+															
+														
+														
+													
+												</td>
+												
+												
+												
+													
+													
+													
+														
+														<td>
+														
+															
+															
+																
+																	
+																    
+																			GBSA관리자
+																    
+																
+															
+														
+														</td>
+														<td>
+															2026-06-23
+														</td>
+														<td>
+															2036
+														</td>
+														<td>
+															
+																<img src="/images/cms/comm/add_file.jpg" alt="첨부파일">
+															
+			
+														</td>
+														
+													
+												
+											</tr>
+										
+											<tr>
+												<!--td class="lt_text3" nowrap="nowrap"><input type="checkbox" name="check1" class="check2"></td-->
+												<td>
+													670
+													<!-- 													<img src="/commons/main/images/member/notice_ico.png" alt="공지"/> -->
+												</td>
+												<td class="align_left" style="text-align:left;">
+													
+													
+														
+														
+															
+															
+															
+																<a href="/board/notice.do?nttId=11365&pageIndex=1&searchCnd=&searchWrd=">
+																	
+																	
+																	2026 LBS 스타트업 챌린지
+																</a>
+															
+														
+														
+													
+												</td>
+												
+												
+												
+													
+													
+													
+														
+														<td>
+														
+															
+															
+																
+																	
+																    
+																			GBSA관리자
+																    
+																
+															
+														
+														</td>
+														<td>
+															2026-06-02
+														</td>
+														<td>
+															1308
+														</td>
+														<td>
+															
+																<img src="/images/cms/comm/add_file.jpg" alt="첨부파일">
+															
+			
+														</td>
+														
+													
+												
+											</tr>
+										
+											<tr>
+												<!--td class="lt_text3" nowrap="nowrap"><input type="checkbox" name="check1" class="check2"></td-->
+												<td>
+													669
+													<!-- 													<img src="/commons/main/images/member/notice_ico.png" alt="공지"/> -->
+												</td>
+												<td class="align_left" style="text-align:left;">
+													
+													
+														
+														
+															
+															
+															
+																<a href="/board/notice.do?nttId=11293&pageIndex=1&searchCnd=&searchWrd=">
+																	
+																	
+																	2026 지방강소기업 육성 프로젝트 통합홍보 수행사 모집 공고
+																</a>
+															
+														
+														
+													
+												</td>
+												
+												
+												
+													
+													
+													
+														
+														<td>
+														
+															
+															
+																
+																	
+																    
+																			GBSA관리자
+																    
+																
+															
+														
+														</td>
+														<td>
+															2026-05-15
+														</td>
+														<td>
+															1797
+														</td>
+														<td>
+															
+																<img src="/images/cms/comm/add_file.jpg" alt="첨부파일">
+															
+			
+														</td>
+														
+													
+												
+											</tr>
+										
+											<tr>
+												<!--td class="lt_text3" nowrap="nowrap"><input type="checkbox" name="check1" class="check2"></td-->
+												<td>
+													668
+													<!-- 													<img src="/commons/main/images/member/notice_ico.png" alt="공지"/> -->
+												</td>
+												<td class="align_left" style="text-align:left;">
+													
+													
+														
+														
+															
+															
+															
+																<a href="/board/notice.do?nttId=11290&pageIndex=1&searchCnd=&searchWrd=">
+																	
+																	
+																	경기도 규제샌드박스 컨설턴트 모집공고
+																</a>
+															
+														
+														
+													
+												</td>
+												
+												
+												
+													
+													
+													
+														
+														<td>
+														
+															
+															
+																
+																	
+																    
+																			GBSA관리자
+																    
+																
+															
+														
+														</td>
+														<td>
+															2026-05-14
+														</td>
+														<td>
+															1671
+														</td>
+														<td>
+															
+																<img src="/images/cms/comm/add_file.jpg" alt="첨부파일">
+															
+			
+														</td>
+														
+													
+												
+											</tr>
+										
+											<tr>
+												<!--td class="lt_text3" nowrap="nowrap"><input type="checkbox" name="check1" class="check2"></td-->
+												<td>
+													667
+													<!-- 													<img src="/commons/main/images/member/notice_ico.png" alt="공지"/> -->
+												</td>
+												<td class="align_left" style="text-align:left;">
+													
+													
+														
+														
+															
+															
+															
+																<a href="/board/notice.do?nttId=11257&pageIndex=1&searchCnd=&searchWrd=">
+																	
+																	
+																	2026년 발명의 달 홍보
+																</a>
+															
+														
+														
+													
+												</td>
+												
+												
+												
+													
+													
+													
+														
+														<td>
+														
+															
+															
+																
+																	
+																    
+																			GBSA관리자
+																    
+																
+															
+														
+														</td>
+														<td>
+															2026-05-06
+														</td>
+														<td>
+															1127
+														</td>
+														<td>
+															
+			
+														</td>
+														
+													
+												
+											</tr>
+										
+ </tbody>
+</table>
+
+
+<div class="paging">
+	<a href="#" onclick="fn_egov_select_noticeList(1); return false;">[처음]</a>&#160;<a href="#" onclick="fn_egov_select_noticeList(1); return false;">[이전]</a>&#160;<strong>1</strong>&#160;<a href="#" onclick="fn_egov_select_noticeList(2); return false;">2</a>&#160;<a href="#" onclick="fn_egov_select_noticeList(3); return false;">3</a>&#160;<a href="#" onclick="fn_egov_select_noticeList(4); return false;">4</a>&#160;<a href="#" onclick="fn_egov_select_noticeList(5); return false;">5</a>&#160;<a href="#" onclick="fn_egov_select_noticeList(6); return false;">6</a>&#160;<a href="#" onclick="fn_egov_select_noticeList(7); return false;">7</a>&#160;<a href="#" onclick="fn_egov_select_noticeList(8); return false;">8</a>&#160;<a href="#" onclick="fn_egov_select_noticeList(9); return false;">9</a>&#160;<a href="#" onclick="fn_egov_select_noticeList(10); return false;">10</a>&#160;<a href="#" onclick="fn_egov_select_noticeList(11); return false;">[다음]</a>&#160;<a href="#" onclick="fn_egov_select_noticeList(68); return false;">[마지막]</a>&#160;
+
+</div>
+
+
+
+
+
+
+<script>
+	//
+	function captionAdd(){
+		var locTit = $('.sub_title > h3').text();
+		$('.tit-add').text(locTit);
+
+	}
+	captionAdd();
+</script></div>  
+	
+				<!--tag list-->                
+                <!-- hash tag -->
+				<!-- //hash tag -->
+				
+				<!-- contact -->
+				<div class="contact">
+					<div class="satis">
+						<p>열람하신 정보에 대해 만족하십니까?</p>
+						<form action="#" name="assessmentForm" id="assessmentForm"  onsubmit="return false;">
+							<fieldset>
+								<legend>만족도 조사</legend>
+								<input type="radio" id="value5" name="assessment" value="5">
+								<label for="value5">매우 만족</label>
+								<input type="radio" id="value4" name="assessment" value="4">
+								<label for="value4">만족</label>
+								<input type="radio" id="value3" name="assessment" value="3">
+								<label for="value3">보통</label>
+								<input type="radio" id="value2" name="assessment" value="2">
+								<label for="value2">불만족</label>
+								<input type="radio" id="value1" name="assessment" value="1">
+								<label for="value1">매우 불만족</label>
+								<div class="opinion">
+									<input type="text" name="opinionfield" id="opinionfield" title="의견을 입력해주세요" placeholder="의견을 입력해 주세요" style="padding: 3px 10px; line-height:normal;">
+									<input type="submit" value="의견등록" id="assessInsert">
+								</div>
+							</fieldset>
+							<input type="hidden" name="menuNo" id="idSatisMenuNo" value="1000231">
+						 <input type="hidden" name="ozcsrf" id="ozcsrf_inc_hashtag" value="" /> </form>
+					</div>
+					</div>
+				<!-- //contact -->
+				<script>
+
+$(document).ready(function(){
+	 
+   	// 평가하기 
+	$("#assessInsert").click(function(){
+		var score = $(':radio[name="assessment"]:checked').val();
+		var len = $(':radio[name="assessment"]:checked').length;
+		var comment = $("#opinionfield").val();
+		var undefiend= "undefined";
+		var menuNo = $("#idSatisMenuNo").val();
+		var ozcsrf = $("#ozcsrf").val();
+		
+		if( len == 0 ){
+			alert("만족도를 선택해주세요.");
+			return;
+		}
+		
+		if ( comment == "" ) {
+			alert("의견을 입력해 주세요");
+			return false;
+		}
+
+		$.ajax({
+			url: "/prgm/menuAssessment/ajaxSetMenuAssessment.do",
+			data : {menuNo: menuNo ,score: score,comment: comment, ozcsrf: ozcsrf},
+			type: 'post',
+			headers:{
+		    	'X-CSRF-TOKEN': $("#ozcsrf").val()
+		    },
+			success: function(data, status) {
+				if(data.message != null){
+					alert(data.message);
+				}
+				if(data.status == "Y"){
+					$(':radio[name="assessment"]').prop("checked", false);
+					$("#opinionfield").val("");
+				}
+			},
+			error: function(data, status) {
+			}
+   		}); 
+
+	});
+});
+
+
+
+</script>				   
+				
+				
+				
+				<!--// tag list -->
+            </div>
+            <!--//content-->
+        </div>
+        <!--//sublayout-->  
+    </div>
+ 	<!--//container-->
+ 
+
+    <!-- footer-wrap-->
+    <div id="footer-wrap">
+    	<!--banner-wrap-->
+		<div class="banner-wrap">
+			<div class="banner">
+				<strong>패밀리사이트</strong>
+				<div class="f_banner_wrap">
+					<div class="fb_swiper">
+						<div class="swiper-wrapper">
+							<div class="swiper-slide"><a href="https://www.gg.go.kr" target="_blank">경기도</a></div>
+							<div class="swiper-slide"><a href="https://www.egbiz.or.kr" target="_blank">경기기업비서</a></div>
+							<div class="swiper-slide"><a href="https://www.giupsos.or.kr" target="_blank">기업SOS</a></div>
+							<div class="swiper-slide"><a href="https://www.gsp.or.kr" target="_blank">경기스타트업플랫폼</a></div>
+							<div class="swiper-slide"><a href="https://pms.gbsa.or.kr" target="_blank">경기도 R&D 관리시스템</a></div>
+							<div class="swiper-slide"><a href="https://gtis.gbsa.or.kr" target="_blank">경기도 과학기술정보서비스</a></div>
+							<div class="swiper-slide"><a href="https://www.gbedu.or.kr" target="_blank">GBSA 아카데미</a></div>
+							<div class="swiper-slide"><a href="https://www.pangyotechnovalley.org" target="_blank">판교테크노밸리</a></div>
+							<div class="swiper-slide"><a href="https://www.3dgc.re.kr" target="_blank">3D프린팅통합센터</a></div>
+							<div class="swiper-slide"><a href="https://digitalopenlab.kr" target="_blank">디지털오픈랩</a></div>
+							<div class="swiper-slide"><a href="https://www.gjstudio.or.kr" target="_blank">광주시제품촬영스튜디오</a></div>
+							<div class="swiper-slide"><a href="https://gbcprime.com" target="_blank">gbcprime(수출플랫폼)</a></div>
+							<div class="swiper-slide"><a href="https://www.gfair.or.kr" target="_blank">대한민국 우수상품전시회(G-Fair)</a></div>
+							<div class="swiper-slide"><a href="https://gginfra.gbsa.or.kr" target="_blank">경기도 연구장비공동활용사업</a></div>
+							<div class="swiper-slide"><a href="https://healing.gbsa.or.kr" target="_blank">힐링케어 실증지원 플랫폼</a></div>
+							<div class="swiper-slide"><a href="https://g-natural.gbsa.or.kr/" target="_blank">경기도천연물소재은행</a></div>
+							<div class="swiper-slide"><a href="https://ggrise.or.kr/" target="_blank">경기앵커센터</a></div>
+							<div class="swiper-slide"><a href="https://www.c4irkorea.org" target="_blank">4차산업혁명센터</a></div>
+						</div>
+					</div>
+				</div>
+				<div class="f_banner_control">
+					<button type="button" class="swiper-button-prev">이전</button>
+					<button type="button" class="swiper-button-pause" tabindex="0"><span>슬라이드 정지</span></button>
+					<button type="button" class="swiper-button-next">다음</button>
+				</div>
+			</div>
+		</div>
+		<!--//banner-wrap-->
+		<!--footer-->
+		<div class="footer">
+			<!--footerArea-->
+			<div class="footerArea">
+				<!--footerSubWrap-->
+				<div class="footerSubWrap">
+					<ul class="footerSubMenu">
+						<li class="no01"><a href="/pages/useguide.do">서비스이용약관</a></li>
+						<li class="no02"><a href="/pages/privacy.do">개인정보처리방침 </a></li>
+						<li class="no03"><a href="/pages/noemail.do">이메일집단수집거부 </a></li>
+						<li class="no05"><a href="/pages/contact_gbsa_pj.do">오시는길</a></li>
+					</ul>
+					<div class="footerInfo">
+						<p class="copyrigyht">(10956) 경기도 파주시 초롱꽃로 117-46(동패동), 5층 경기도경제과학진흥원</p>
+						<p class="copyrigyht">대표자명 : 김현곤&nbsp;&nbsp;&nbsp;대표번호 : 031-935-4796&nbsp;&nbsp;&nbsp;사업자등록번호 : 124-82-08755</p>
+						<p class="copyrigyht">Copyright © 2018 GBSA.or.kr All Rights Reserved.</p>
+					</div>
+				</div>
+				<!--//footerSubWrap-->
+				<!--footerLinkWrap-->
+				<div class="footerLinkWrap">
+					<a href="http://www.wa.or.kr/board/list.asp?BoardID=0006"  target="_blank" title="새창열림" >
+                            <img src="/images/site/main_2023/webmark_20260106.png" alt="(사)한국장애인단체총연합회 한국웹접근성인증평가원 웹 접근성 우수사이트 인증마크(WA인증마크)">
+                        </a>
+					<!--selectLink-->
+					<div class="selectLink" style="display:none">
+						<p><a href="#none" class="toggleSelect">패밀리사이트</a></p>
+						<ul style="display:none;">
+							<li><a title="새창열림" href="#" target="_blank">국토교통부 주택도시기금포털</a></li>
+							<li><a title="새창열림" href="#" target="_blank">온나라부동산포털</a></li>
+							<li><a title="새창열림" href="#" target="_blank">통계청국가통계포털</a></li>
+							<li><a title="새창열림" href="#" target="_blank">국가법령정보센터</a></li>
+							<li><a title="새창열림" href="#" target="_blank">대한주택건설협회</a></li>
+							<li><a title="새창열림" href="#" target="_blank">주택산업연구원</a></li>
+						</ul>
+					</div><!--//selectLink-->
+				</div><!--//footerLinkWrap-->
+			</div><!--//footerArea-->
+		</div><!--//footer-->
+		<script>
+			function newPop(url){
+				window.open(url, "_blank", "");
+			}
+		</script>
+
+<script>
+	function title_copy(siteTitle){
+		var bbsTable = jQuery('table').hasClass('bbs-view');
+		var bbsTableL = jQuery('table').hasClass('bbs-list');
+		var tblBasic = jQuery('table').hasClass('tbl-basic');
+		var bioTable = $(".bio-view");
+		var sjline = jQuery('.tbl-basic tr:first-child td[colspan="5"]').text();
+		var biosjline = jQuery('.bio-view .bio-name').text();
+		var mainLocate = jQuery('body').hasClass('mainpage');
+		var bbsWrite = jQuery('div').hasClass('bbs_write_wrap');
+		var locItem = jQuery('.breadcrumb > li > a');
+		var loc = [locItem.eq(0).text(),
+					locItem.eq(1).text(),
+					locItem.eq(2).text(),
+					locItem.eq(3).text(),
+					locItem.eq(4).text()
+				];
+		var url = location.pathname;
+		var params = new URLSearchParams(location.search);
+		
+		if (bbsWrite == true ){
+			document.title =  '글 등록' + ' | ' + loc[1] + ' < ' +  loc[0] +  ' | ' + siteTitle ;
+		}
+		else if ( bbsTableL == true || ( tblBasic == true && (url.includes('board') || url.includes('equipApp')) && bioTable.length == 0 && !params.has('nttId') && !(params.has('mode') && params.get('mode') === 'write') ) ) {
+			var locL = locItem.length;
+			if (locL == 3) {
+				document.title =  loc[2] + ' 목록 < ' +  loc[1] +  ' | ' + loc[0] +  ' | ' + siteTitle ;
+			} else {
+				document.title =  loc[1] + ' 목록 < ' +  loc[0] +  ' | ' + siteTitle ;
+			}
+		}
+		else if (bioTable.length > 0) {
+			var locL = locItem.length;
+			if (locL == 3) {
+				document.title = biosjline + ' < ' + loc[2] + ' < ' + loc[1] + ' < ' + loc[0]   + ' | ' + siteTitle
+			} else {
+				if ($('.bio-view').hasClass('bio-form')) {
+					document.title =  '신청하기  < ' + biosjline + ' < ' + loc[1] + ' < ' +  loc[0] +  ' | ' + siteTitle ;
+				} else {
+					document.title =  biosjline + ' < ' + loc[1] + ' < ' +  loc[0] +  ' | ' + siteTitle ;
+				}
+			}
+		}
+		else if (bbsTable == true ){
+			document.title =  sjline + ' < ' + loc[1] + ' < ' +  loc[0] +  ' | ' + siteTitle ;
+		}
+		else if (mainLocate == true) {
+			document.title = siteTitle ;
+		}
+		else {
+			//document.title = jQuery( '.loc_tit' ).text() + ' | ' + siteTitle ;
+			var locL = locItem.length;
+			var tabText = $('.rent_off_tab li.on a').text();
+			 
+			if (locL == 3) {
+				if(tabText != "" ) {
+					document.title = tabText + ' < ' + loc[2] + ' < ' + loc[1] + ' < ' + loc[0] + ' | ' + siteTitle
+				} else {
+					document.title = loc[2] + ' < ' + loc[1] + ' < ' + loc[0] + ' | ' + siteTitle
+				}
+			} else if (locL ==4) {
+				document.title = loc[3] + ' < ' + loc[2] + ' < ' + loc[1] + ' < ' + loc[0]   + ' | ' + siteTitle
+			} else if (locL == 5) {
+				document.title = loc[4] + ' < ' + loc[3] + ' < ' + loc[2] + ' < ' + loc[1] + ' < ' + loc[0]  + ' | ' + siteTitle
+			} else {
+				document.title = loc[1] + ' < ' +  loc[0] +  ' | ' + siteTitle
+			}
+
+		}
+
+	};
+	title_copy('경기도경제과학진흥원');
+</script></div>
+    <!-- //footer-wrap -->
+</div>
+<!-- //wrap -->
+
+<script>
+
+</script>
+</body>
+</html>
+
+
+
+
+
+		

@@ -1,0 +1,4614 @@
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ko">
+	<head>
+    <meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<title>공지사항 | HOME > 공지·뉴스 &gt; 공지사항 &gt; 공지사항</title>
+		<link rel="icon" href="/images/common/favicon.svg">
+		<meta name="description" content="한국산업단지공단 KICOX">
+		<meta id="ogTitle" property="og:title" content="한국산업단지공단"/>
+		<meta id="ogImage" property="og:image" content="https://www.kicox.or.kr:443/api/common/getFile/SITE" />
+		<meta id="ogUrl" property="og:url" content="https://kicox.or.kr/"/>
+		<script type="text/javascript">
+			sessionStorage.setItem('contextPath','');
+		</script>		
+		<link rel="stylesheet" href="/css/lib/jquery.bxslider.css"/>
+		<link rel="stylesheet" href="/css/lib/slick.css"/>
+		<link rel="stylesheet" href="/css/lib/slick-theme.css"/>
+		<link rel="stylesheet" href="/css/lib/jquery-ui.min.css"/>
+		<link rel="stylesheet" href="/css/lib/jquery-ui.theme.min.css"/>
+
+		<link rel="stylesheet" href="/css/base.css">
+		<link rel="stylesheet" href="/css/font.css">
+		<link rel="stylesheet" href="/css/common.css">
+		<link rel="stylesheet" href="/css/sub.css">
+		<link rel="stylesheet" href="/css/layout.css">
+		<link rel="stylesheet" href="/css/custom.css">
+		<link rel="stylesheet" href="/css/cont_B.css">
+		<link rel="stylesheet" href="/css/cont_S.css">
+		<link rel="stylesheet" href="/css/google_font.css">
+		<link rel="stylesheet" href="/safe/css/safeti.css">
+
+		<script src="/js/lib/jquery-3.7.1.min.js"></script>
+		<script src="/js/lib/jquery-ui.min.js"></script>
+		<script src="/js/lib/slick.min.js"></script>
+		<script src="/js/lib/jquery.bxslider.min.js"></script>
+
+		<script src="/js/common.js"></script>
+		<script src="/js/sub.js"></script>
+		<script src="/js/ScmsCommon.js"></script>
+		
+		<!-- 카카오 우편번호 검색 -->
+		<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+		<!-- 카카오 우편번호 검색 끝 -->
+		
+		<!-- 토스트 에디터 관련 모듈 -->
+		<!-- 토스트 에이터 기본 CSS -->
+		<link rel="stylesheet" href="/lib/toastEditor/css/codemirror.min.css" />
+		<link rel="stylesheet" href="/lib/toastEditor/css/toastui-editor.min.css" />
+		
+		<!-- 토스트 UI 컬러피커 -->
+		<link rel="stylesheet" href="/lib/toastEditor/css/tui-color-picker.css" />
+		
+		<!-- 토스트 UI 컬러피커와 에디터 연동 플러그인 -->
+		<link rel="stylesheet" href="/lib/toastEditor/css/toastui-editor-plugin-color-syntax.min.css" />
+		
+		<!-- 토스트 UI 에디터 플러그인, 코드 신텍스 하이라이터 -->
+		<link rel="stylesheet" href="/lib/toastEditor/css/prism-okaidia.min.css" />
+		<link rel="stylesheet" href="/lib/toastEditor/css/toastui-editor-plugin-code-syntax-highlight.min.css" />
+		
+		
+		<!-- 토스트 에디터 기본 JS -->
+		<script src="/lib/toastEditor/js/toastui-editor-all.min.js"  charset="utf-8"></script>
+		<!-- 토스트 에디터 한글 JS -->
+		<script src="/lib/toastEditor/js/ko-kr.js"  charset="utf-8"></script>
+		
+		<!-- 토스트 UI 컬러피커 -->
+		<script src="/lib/toastEditor/js/tui-color-picker.min.js"  charset="utf-8"></script>
+		
+		<!-- 토스트 UI 컬러피커와 에디터 연동 플러그인 -->
+		<script src="/lib/toastEditor/js/toastui-editor-plugin-color-syntax.min.js"  charset="utf-8"></script>
+		
+		<!-- 토스트 UI 에디터 플러그인, 코드 신텍스 하이라이터 -->
+		<script src="/lib/toastEditor/js/toastui-editor-plugin-code-syntax-highlight-all.min.js"  charset="utf-8"></script>
+		
+		<!-- 토스트 UI 에디터 플러그인, 테이블 셀 병합 -->
+		<script src="/lib/toastEditor/js/toastui-editor-plugin-table-merged-cell.min.js"  charset="utf-8"></script>		
+		<!-- 토스트 에디터 관련 모듈 끝 -->
+		
+		<!-- 스마트 에디터 관련 모듈 -->
+		<script src="/lib/smartEditor/js/HuskyEZCreator.js" charset="utf-8"></script>
+		
+		<!-- 폰트 프리로드 -->
+		<link rel="preload" href="/font/Pretendard-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+		<link rel="preload" href="/font/Pretendard-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+		<link rel="preload" href="/font/MaterialIcons-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+		
+		<!-- CK Editor 관련 모듈 -->
+		<script type="importmap">
+			{
+				"imports": {
+					"ckeditor5": "/lib/ckeditor5/ckeditor5.js",
+					"ckeditor5/": "/ckeditor5/"
+				}
+			}
+		</script>
+		<link rel="stylesheet" href="/lib/ckeditor5/ckeditor5.css">
+		<!-- CK Editor 관련 모듈 끝 -->
+		
+        <link rel="shortcut icon" href="/images/common/favicon.svg">	
+        <script>
+
+	        $(document).ready(function () {
+		        // 블로그 및 페이스북 공유 링크
+	            var setUrl = location.href;
+	            var setTit = "HOME > 공지·뉴스 > 공지사항 > 공지사항"
+	
+	            setUrl = encodeURIComponent(setUrl);
+	            setTit = encodeURIComponent(setTit);
+	
+	            $("#naverSns").attr("href", "http://share.naver.com/web/shareView.nhn?url=" + setUrl + "&title=" + setTit);
+	            $("#facebookSns").attr("href", "https://www.facebook.com/sharer/sharer.php?u=" + setUrl);
+	        });
+	        
+	        async function fnStsfdgIndict(){
+	        	var imeNo = document.querySelector('input[name="imeNo"]:checked');
+				if (imeNo.value == '') {
+					alert("만족도를 선택해주세요.");
+					return;
+				}
+				
+				var opatclCn = document.getElementById('opatclCn').value;
+				if (opatclCn == '') {
+					alert("평가의견을 입력해주세요.");
+					return;
+				}
+	        	
+	        	let url = "/api/common/registStsfdgIndict";
+	        	
+	        	if(confirm("의견을 등록하시겠습니까?")){
+	        		try{
+	        			// 폼데이터 전송
+	        			let frmJson = ScmsCommonUtil.formToJson("#stsfdgForm");
+	                    let result = await ScmsCommonUtil.frmSubmit(url,frmJson);
+	                    
+	        			if (result.result == "SUCCESS") {
+	        				alert("의견이 등록되었습니다.");
+	        			} else if(result.result == "DUPIP"){
+	        				alert('이미 반영되어 있습니다.');
+	        			} else {
+	        				console.log("실패")
+	        			}
+	        		}catch(error){
+	        			console.log(error);
+	        			alert("의견등록에 실패하였습니다.");
+	        		}			
+	        	}
+	        }
+	        
+	        // 현재페이지 링크 복사
+	        function copyUrl() {
+	            var url = '';
+	            var textarea = $("<textarea></textarea>");
+	            
+	            $("body").append(textarea);
+	            url = window.document.location.href;
+	            textarea.val(url);
+	            textarea.select();
+	            document.execCommand("copy");
+	            textarea.remove();
+	            alert("URL이 복사되었습니다.");
+	        }
+	        
+		    
+		
+		    var anlzSessionId = "34BE9CAC619AF1FBF6632CE922ACA922.usr";
+		    var anlzClientIp = "180.231.81.253";
+		    var anlzMenuCode = "MENU_00000262";
+        </script>
+		<script src="/js/tracker.js"></script>
+	</head>
+	<body>
+		<!--로딩중 -->
+		<div id="loader" class="loading">
+			<div class="spinner-box">
+				<div class="configure-border-1">  
+					<div class="configure-core"></div>
+				</div>
+				<div class="configure-border-2">
+					<div class="configure-core"></div>
+				</div>
+				<p class="txt">LOADING</p>
+			</div>
+		</div>
+		
+		<!-- Progress Bar -->
+		<div class="progress">
+			<div class="loadingBar">
+				<div class="inner"></div>
+				<div class="percent"></div>
+			</div>
+		</div>
+		 
+		
+		<ul id="skip_navigation">
+			<li><a href="#mainMenu"><h2>주메뉴 바로가기</h2></a></li>
+			<li><a href="#container"><h2>본문 바로가기</h2></a></li>
+		</ul>
+		
+		
+
+
+<script type="text/javascript">
+//검색 처리
+function fnTotalHeadSearch(){
+	var searchValue = $('#totSearchValue').val().trim();
+	if (searchValue == '') {
+		alert('검색어를 입력해주세요.');
+		$('#totSearchValue').focus();
+		return false;
+	}
+	location.href = "/search/searchList?searchText="+searchValue;
+}
+//엔터 클릭시 검색처리
+function headKeyPress(e){
+	if(e.keyCode == 13){
+		e.preventDefault();
+		fnTotalHeadSearch();
+		return false;
+	}
+	return true;
+}
+</script>
+<div id="top">
+	<div class="inner">
+		<span class="nuri-txt">이 누리집은 대한민국 공식 전자정부 누리집입니다.</span>
+	</div>
+</div>
+<!-- GNB -->
+<div id="gnb">
+    <div class="gnbShadow"></div>
+    <div class="inner">    
+	    <h1 class="logo"><a href="/" class="go_home" id="home"><img src="/api/common/getFile/LOGO" alt="한국산업단지공단"></a></h1>
+	    <ul class="gnb">
+	    	
+	    		
+			        <li class="dep01">
+			            <a href="#none" id="mainMenu">ESG 경영</a>
+			            <div class="dep02">
+			            	<p class="leftTit">ESG 경영</p>
+				            <ul class="wrap">
+				            	
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/contents/2">ESG 경영</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/2" >
+										                					ESG 경영전략
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/3" >
+										                					ESG 경영보고서
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                			
+						                			
+						                			
+						                				                			
+						                				<a href="/contents/4">E(환경)</a>
+						                			
+					                			
+					                		
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/boardList/1043">S(사회)</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1043" >
+										                					동반성장
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/5" >
+										                					안전경영
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/6" >
+										                					사회공헌
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/contents/7">G(지배)</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/7" >
+										                					윤리경영
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1008" >
+										                					이사회/규정
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1010" >
+										                					윤리경영 자료실
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                	                
+				            </ul>
+				        </div>
+			        </li>
+		        
+	        
+	    		
+			        <li class="dep01">
+			            <a href="#none" id="mainMenu">공지·뉴스</a>
+			            <div class="dep02">
+			            	<p class="leftTit">공지·뉴스</p>
+				            <ul class="wrap">
+				            	
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/boardList/1016">공지사항</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1016" >
+										                					공지사항
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1062" >
+										                					안전자료실
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/boardList/1103">보도 및 해명자료</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1103" >
+										                					보도자료
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1104" >
+										                					해명자료
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/boardList/1106">연구통계</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1106" >
+										                					연구보고서
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1107" >
+										                					산업입지
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1108" >
+										                					산업입지 Issue&amp;Trend
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1109" >
+										                					산업입지요람
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1110" >
+										                					전국산업단지 현황통계
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1111" >
+										                					국가산업단지 산업동향
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1112" >
+										                					산업단지현황지도
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/boardList/1002">입찰/임대/수의계약</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1002" >
+										                					입찰공고
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1003" >
+										                					임대/분양
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1055" >
+										                					수의계약 견적제출
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/plgrnd/plgrndInfo">시설물 안내/예약</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/plgrnd/plgrndInfo" >
+										                					서울 디지털 운동장
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/69" >
+										                					지역 체력증진시설/회의실
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/serc/sercInfo" >
+										                					안전장비 대여
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/contents/70">산업안전 유형진단</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/70" >
+										                					산업안전유형진단이란?
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/incmTypeDig/incmTypeDigList.do" >
+										                					진단참여
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/cmpySearch/cmpySearch.do" >
+										                					등록기업조회
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                	                
+				            </ul>
+				        </div>
+			        </li>
+		        
+	        
+	    		
+			        <li class="dep01">
+			            <a href="#none" id="mainMenu">국민소통</a>
+			            <div class="dep02">
+			            	<p class="leftTit">국민소통</p>
+				            <ul class="wrap">
+				            	
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/boardRegist/1047">제안</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardRegist/1047" >
+										                					국민제안
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardRegist/1060" >
+										                					산단안전 제도개선 공모전
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardRegist/1049" >
+										                					국민참여예산
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardRegist/1051" >
+										                					조사·연구과제 상시제안
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardRegist/1057" >
+										                					규제입증요청
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardRegist/1075" >
+										                					용적률 완화 특례 신청
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/boardRegist/1048">고객소리함</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardRegist/1048" >
+										                					Q&amp;A 고객의 소리
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardRegist/1058" >
+										                					정보공개 고객소리함
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardRegist/1024" >
+										                					이사장과의 대화
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/contents/15">신고센터</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/15" >
+										                					청탁금지법 위반신고
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/16" >
+										                					공익신고
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/17" >
+										                					부패행위신고
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/18" >
+										                					복지·보조금 부정신고
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/19" >
+										                					헬프라인(익명신고)
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardRegist/1061" >
+										                					성희롱 성폭력 사이버신고 센터
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="https://www.safetyreport.go.kr/#safereport/safereport"  target="_blank">
+										                					안전신고
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/boardRegist/1056">규제애로</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardRegist/1056" >
+										                					기업성장응답센터
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                	                
+				            </ul>
+				        </div>
+			        </li>
+		        
+	        
+	    		
+			        <li class="dep01">
+			            <a href="#none" id="mainMenu">주요사업</a>
+			            <div class="dep02">
+			            	<p class="leftTit">주요사업</p>
+				            <ul class="wrap">
+				            	
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/mwrc/mwrcDGIC/1">디지털·저탄소 산업환경 조성</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/mwrc/mwrcDGIC/1" >
+										                					디지털 산업환경 조성
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/mwrc/mwrcDGIC/2" >
+										                					저탄소·산업 환경 조성
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/mwrc/mwrcDGIC/3" >
+										                					디지털 기반 안전환경 조성
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/mwrc/mwrcSigtc/1">입주기업 혁신성장 지원</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/mwrc/mwrcSigtc/1" >
+										                					지역경제 활성화 지원
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/mwrc/mwrcSigtc/2" >
+										                					기업성장 지원
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/mwrc/mwrcSigtc/3" >
+										                					산업 정책 지원
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/mwrc/mwrcSigtc/4" >
+										                					입주지원
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/mwrc/mwrcCsnis/1">산업입지조성 및 리모델링</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/mwrc/mwrcCsnis/1" >
+										                					미래전략 산업입지 기획·공급
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/mwrc/mwrcCsnis/2" >
+										                					민간협력 기존 입지공간재편
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/mwrc/mwrcCsnis/3" >
+										                					문화융합 산업단지 조성
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                	                
+				            </ul>
+				        </div>
+			        </li>
+		        
+	        
+	    		
+			        <li class="dep01">
+			            <a href="#none" id="mainMenu">정보공개</a>
+			            <div class="dep02">
+			            	<p class="leftTit">정보공개</p>
+				            <ul class="wrap">
+				            	
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/contents/41">정보공개</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/41" >
+										                					정보공개안내
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/42" >
+										                					관련법령
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/43" >
+										                					정보공개청구
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/44" >
+										                					관련서식
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/45" >
+										                					수수료안내
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="https://kicox.or.kr/boardList/1031?searchCategory=68" >
+										                					정보목록
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/contents/46">경영공시</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/46" >
+										                					통합공시
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1093" >
+										                					경영공시
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/publict/publictList">사전정보공표</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/publict/publictList" >
+										                					사전정보공표
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/publicData/publicDataList">공공데이터 개방</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/publicData/publicDataList" >
+										                					데이터기반 행정 제공
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/boardList/1100">사업실명제</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1100" >
+										                					사업리스트
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1101" >
+										                					진행사업
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1102" >
+										                					완료사업
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                	                
+				            </ul>
+				        </div>
+			        </li>
+		        
+	        
+	    		
+			        <li class="dep01">
+			            <a href="#none" id="mainMenu">공단소개</a>
+			            <div class="dep02">
+			            	<p class="leftTit">공단소개</p>
+				            <ul class="wrap">
+				            	
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/contents/50">CEO</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/50" >
+										                					CEO 인사말
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/contents/51">연혁, 비전 및 목표</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/51" >
+										                					설립목적 및 연혁
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/52" >
+										                					미션 및 비전
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/53" >
+										                					핵심가치
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/54" >
+										                					경영방침
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/55" >
+										                					전략체계도
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/contents/56">CI</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/56" >
+										                					공단 상징
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/dept/dept">조직 및 연락처</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/dept/dept" >
+										                					조직도
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/common/otlnMap">찾아오시는 길</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/common/otlnMap" >
+										                					공단 위치안내
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/cyclb/cyclbList">공단 사보</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/cyclb/cyclbList" >
+										                					산단공 사보
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/contents/60">고객헌장</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/60" >
+										                					고객헌장 전문
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/61" >
+										                					핵심서비스 이행표준
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/62" >
+										                					고객응대서비스 이행표준
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/63" >
+										                					핵심서비스 이행표준점검
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/contents/64" >
+										                					기업민원 보호·서비스헌장
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                
+				            		
+					                	<li class="aaa">
+					                		
+					                		
+					                			
+						                			
+						                			
+						                			
+						                				<a href="/boardList/1019">기관채용안내</a>
+						                			
+					                			
+				                				<ul class="dep03">
+				                					
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1019" >
+										                					채용공고
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+				                						
+								                        	<li>
+								                        		
+									                        		
+										                			
+										                				                			
+										                				<a href="/boardList/1052" >
+										                					친인척 채용현황
+										                				</a>
+										                			
+									                			
+								                        	</li>
+							                        	
+							                        
+							                    </ul>
+					                			                		
+					                	</li>
+				                	
+				                	                
+				            </ul>
+				        </div>
+			        </li>
+		        
+	                
+	    </ul>
+	    <ul class="menu clr">
+	        <li><a href="#none" class="menu_search" title="통합검색"><i class="micon">search</i><span>통합검색</span></a>
+	            <div class="searchPop">
+	            	<form name="searchTot">
+		                <div class="area">
+		                    <fieldset>
+		                        <legend>통합검색</legend>
+		                        <label for="totSearchValue" class="sr-only">검색어 입력</label><input type="text" name="totSearchValue" id="totSearchValue" onkeydown="return headKeyPress(event);">
+		                        <button type="button" class="srhBtn" title="검색" onclick="fnTotalHeadSearch();"><i class="micon">search</i></button>
+		                    </fieldset>
+		                    <button type="button" class="close" title="닫기"><i class="micon">close</i></button>
+		                </div>
+	               	</form>
+	            </div>
+	        </li>
+	        <li><a href="#none" class="menu_all" title="전체메뉴"><i class="micon">menu</i><span>전체메뉴</span></a></li>
+	    </ul>
+	</div>
+</div>
+<!-- //GNB -->
+
+<!-- 전체메뉴 -->
+<div id="allmenu" style="margin-right: 0px; transition-duration: 0.5s;">
+	<ul class="mGnb">
+		
+		
+			
+				<li class="dep01"><a href="#none"  class="on">ESG 경영</a></li>
+				
+			
+		
+			
+				<li class="dep01"><a href="#none" >공지·뉴스</a></li>
+				
+			
+		
+			
+				<li class="dep01"><a href="#none" >국민소통</a></li>
+				
+			
+		
+			
+				<li class="dep01"><a href="#none" >주요사업</a></li>
+				
+			
+		
+			
+				<li class="dep01"><a href="#none" >정보공개</a></li>
+				
+			
+		
+			
+				<li class="dep01"><a href="#none" >공단소개</a></li>
+				
+			
+				
+	</ul>
+	
+	<div class="mSnb">
+				
+		
+			
+				<ul class="dep02 on">
+					
+						
+							
+							
+								<li>
+									<button type="button">ESG 경영 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/2" >
+							                					ESG 경영전략
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/3" >
+							                					ESG 경영보고서
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+								<li>
+									
+			                			
+			                			
+			                			
+			                				<a href="/contents/4">E(환경)</a>
+			                			
+		                			
+								</li>
+							
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">S(사회) <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1043" >
+							                					동반성장
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/5" >
+							                					안전경영
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/6" >
+							                					사회공헌
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">G(지배) <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/7" >
+							                					윤리경영
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1008" >
+							                					이사회/규정
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1010" >
+							                					윤리경영 자료실
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+									
+				</ul>
+				
+			
+		
+			
+				<ul class="dep02">
+					
+						
+							
+							
+								<li>
+									<button type="button">공지사항 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1016" >
+							                					공지사항
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1062" >
+							                					안전자료실
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">보도 및 해명자료 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1103" >
+							                					보도자료
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1104" >
+							                					해명자료
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">연구통계 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1106" >
+							                					연구보고서
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1107" >
+							                					산업입지
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1108" >
+							                					산업입지 Issue&amp;Trend
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1109" >
+							                					산업입지요람
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1110" >
+							                					전국산업단지 현황통계
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1111" >
+							                					국가산업단지 산업동향
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1112" >
+							                					산업단지현황지도
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">입찰/임대/수의계약 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1002" >
+							                					입찰공고
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1003" >
+							                					임대/분양
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1055" >
+							                					수의계약 견적제출
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">시설물 안내/예약 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/plgrnd/plgrndInfo" >
+							                					서울 디지털 운동장
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/69" >
+							                					지역 체력증진시설/회의실
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/serc/sercInfo" >
+							                					안전장비 대여
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">산업안전 유형진단 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/70" >
+							                					산업안전유형진단이란?
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/incmTypeDig/incmTypeDigList.do" >
+							                					진단참여
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/cmpySearch/cmpySearch.do" >
+							                					등록기업조회
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+									
+				</ul>
+				
+			
+		
+			
+				<ul class="dep02">
+					
+						
+							
+							
+								<li>
+									<button type="button">제안 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardRegist/1047" >
+							                					국민제안
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardRegist/1060" >
+							                					산단안전 제도개선 공모전
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardRegist/1049" >
+							                					국민참여예산
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardRegist/1051" >
+							                					조사·연구과제 상시제안
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardRegist/1057" >
+							                					규제입증요청
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardRegist/1075" >
+							                					용적률 완화 특례 신청
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">고객소리함 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardRegist/1048" >
+							                					Q&amp;A 고객의 소리
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardRegist/1058" >
+							                					정보공개 고객소리함
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardRegist/1024" >
+							                					이사장과의 대화
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">신고센터 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/15" >
+							                					청탁금지법 위반신고
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/16" >
+							                					공익신고
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/17" >
+							                					부패행위신고
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/18" >
+							                					복지·보조금 부정신고
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/19" >
+							                					헬프라인(익명신고)
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardRegist/1061" >
+							                					성희롱 성폭력 사이버신고 센터
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="https://www.safetyreport.go.kr/#safereport/safereport"  target="_blank">
+							                					안전신고
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">규제애로 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardRegist/1056" >
+							                					기업성장응답센터
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+									
+				</ul>
+				
+			
+		
+			
+				<ul class="dep02">
+					
+						
+							
+							
+								<li>
+									<button type="button">디지털·저탄소 산업환경 조성 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/mwrc/mwrcDGIC/1" >
+							                					디지털 산업환경 조성
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/mwrc/mwrcDGIC/2" >
+							                					저탄소·산업 환경 조성
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/mwrc/mwrcDGIC/3" >
+							                					디지털 기반 안전환경 조성
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">입주기업 혁신성장 지원 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/mwrc/mwrcSigtc/1" >
+							                					지역경제 활성화 지원
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/mwrc/mwrcSigtc/2" >
+							                					기업성장 지원
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/mwrc/mwrcSigtc/3" >
+							                					산업 정책 지원
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/mwrc/mwrcSigtc/4" >
+							                					입주지원
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">산업입지조성 및 리모델링 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/mwrc/mwrcCsnis/1" >
+							                					미래전략 산업입지 기획·공급
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/mwrc/mwrcCsnis/2" >
+							                					민간협력 기존 입지공간재편
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/mwrc/mwrcCsnis/3" >
+							                					문화융합 산업단지 조성
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+									
+				</ul>
+				
+			
+		
+			
+				<ul class="dep02">
+					
+						
+							
+							
+								<li>
+									<button type="button">정보공개 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/41" >
+							                					정보공개안내
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/42" >
+							                					관련법령
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/43" >
+							                					정보공개청구
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/44" >
+							                					관련서식
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/45" >
+							                					수수료안내
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="https://kicox.or.kr/boardList/1031?searchCategory=68" >
+							                					정보목록
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">경영공시 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/46" >
+							                					통합공시
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1093" >
+							                					경영공시
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">사전정보공표 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/publict/publictList" >
+							                					사전정보공표
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">공공데이터 개방 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/publicData/publicDataList" >
+							                					데이터기반 행정 제공
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">사업실명제 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1100" >
+							                					사업리스트
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1101" >
+							                					진행사업
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1102" >
+							                					완료사업
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+									
+				</ul>
+				
+			
+		
+			
+				<ul class="dep02">
+					
+						
+							
+							
+								<li>
+									<button type="button">CEO <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/50" >
+							                					CEO 인사말
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">연혁, 비전 및 목표 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/51" >
+							                					설립목적 및 연혁
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/52" >
+							                					미션 및 비전
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/53" >
+							                					핵심가치
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/54" >
+							                					경영방침
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/55" >
+							                					전략체계도
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">CI <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/56" >
+							                					공단 상징
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">조직 및 연락처 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/dept/dept" >
+							                					조직도
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">찾아오시는 길 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/common/otlnMap" >
+							                					공단 위치안내
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">공단 사보 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/cyclb/cyclbList" >
+							                					산단공 사보
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">고객헌장 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/60" >
+							                					고객헌장 전문
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/61" >
+							                					핵심서비스 이행표준
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/62" >
+							                					고객응대서비스 이행표준
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/63" >
+							                					핵심서비스 이행표준점검
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/contents/64" >
+							                					기업민원 보호·서비스헌장
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+					
+						
+							
+							
+								<li>
+									<button type="button">기관채용안내 <i class="micon">add</i></button>
+					                <ul class="dep03">
+					                    
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1019" >
+							                					채용공고
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                    	
+												<li>
+													
+						                        		
+							                			
+							                			
+							                				<a href="/boardList/1052" >
+							                					친인척 채용현황
+							                				</a>
+							                			
+						                			
+												</li>
+											
+										
+					                </ul>
+					            </li>
+							
+						
+									
+				</ul>
+				
+			
+				
+	</div>
+	<button type="button" class="close" title="닫기"><i class="micon">close</i></button>
+</div>
+<!-- //전체메뉴 -->
+<form name="form_chk" id="form_chk" method="post">
+	<input type ="hidden" name="recvMethodType" value ="get">
+	<input type="hidden" name="m" value="checkplusService">						<!-- 필수 데이타로, 누락하시면 안됩니다. -->
+	<input type="hidden" name="EncodeData" id="EncodeData" value="">		<!-- 위에서 업체정보를 암호화 한 데이타입니다. -->
+</form>	
+		
+		<div id="container">
+			<div class="inner">
+				<div id="conArea">
+					<!-- SNB -->
+					
+
+
+<script type="text/javascript">
+	document.addEventListener("DOMContentLoaded", function(){
+		
+	});
+	
+	function snbPageMove(url){		
+		if(url == "" || url == "DIR"){
+			alert("페이지가 연결되지 않은 메뉴입니다.");
+		}else if(url == "BBS"){
+			alert('게시판이 연결되지 않은 메뉴입니다.');
+		}else{
+			location.href = url;
+		}
+	}
+</script>
+<!-- leftMenu -->
+<div id="snb">
+	<p class="snbTit">공지·뉴스</p>
+	<ul class="list">
+		
+			<li class="dep02">
+				
+				
+					<a href="#none" class="txt on">
+						공지사항<i class="micon">keyboard_arrow_down</i>
+					</a>
+					<ul class="dep03 on">
+						
+							<li class="on">
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/boardList/1016')" >공지사항</a>
+									
+								
+							</li>
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/boardList/1062')" >안전자료실</a>
+									
+								
+							</li>
+						
+					</ul>
+				
+			</li>
+		
+			<li class="dep02">
+				
+				
+					<a href="#none" class="txt ">
+						보도 및 해명자료<i class="micon">keyboard_arrow_down</i>
+					</a>
+					<ul class="dep03 ">
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/boardList/1103')" >보도자료</a>
+									
+								
+							</li>
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/boardList/1104')" >해명자료</a>
+									
+								
+							</li>
+						
+					</ul>
+				
+			</li>
+		
+			<li class="dep02">
+				
+				
+					<a href="#none" class="txt ">
+						연구통계<i class="micon">keyboard_arrow_down</i>
+					</a>
+					<ul class="dep03 ">
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/boardList/1106')" >연구보고서</a>
+									
+								
+							</li>
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/boardList/1107')" >산업입지</a>
+									
+								
+							</li>
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/boardList/1108')" >산업입지 Issue&amp;Trend</a>
+									
+								
+							</li>
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/boardList/1109')" >산업입지요람</a>
+									
+								
+							</li>
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/boardList/1110')" >전국산업단지 현황통계</a>
+									
+								
+							</li>
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/boardList/1111')" >국가산업단지 산업동향</a>
+									
+								
+							</li>
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/boardList/1112')" >산업단지현황지도</a>
+									
+								
+							</li>
+						
+					</ul>
+				
+			</li>
+		
+			<li class="dep02">
+				
+				
+					<a href="#none" class="txt ">
+						입찰/임대/수의계약<i class="micon">keyboard_arrow_down</i>
+					</a>
+					<ul class="dep03 ">
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/boardList/1002')" >입찰공고</a>
+									
+								
+							</li>
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/boardList/1003')" >임대/분양</a>
+									
+								
+							</li>
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/boardList/1055')" >수의계약 견적제출</a>
+									
+								
+							</li>
+						
+					</ul>
+				
+			</li>
+		
+			<li class="dep02">
+				
+				
+					<a href="#none" class="txt ">
+						시설물 안내/예약<i class="micon">keyboard_arrow_down</i>
+					</a>
+					<ul class="dep03 ">
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/plgrnd/plgrndInfo')" >서울 디지털 운동장</a>
+									
+								
+							</li>
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/contents/69')" >지역 체력증진시설/회의실</a>
+									
+								
+							</li>
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/serc/sercInfo')" >안전장비 대여</a>
+									
+								
+							</li>
+						
+					</ul>
+				
+			</li>
+		
+			<li class="dep02">
+				
+				
+					<a href="#none" class="txt ">
+						산업안전 유형진단<i class="micon">keyboard_arrow_down</i>
+					</a>
+					<ul class="dep03 ">
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/contents/70')" >산업안전유형진단이란?</a>
+									
+								
+							</li>
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/incmTypeDig/incmTypeDigList.do')" >진단참여</a>
+									
+								
+							</li>
+						
+							<li >
+								
+									
+									
+									
+										<a href="#none" onclick="snbPageMove('/cmpySearch/cmpySearch.do')" >등록기업조회</a>
+									
+								
+							</li>
+						
+					</ul>
+				
+			</li>
+		
+    </ul>
+</div>
+					<!-- // SNB -->
+					<!-- body -->
+		        	<div class="subCon">
+		        		<!-- title -->
+		        		<div class="titleArea">
+		        			<div class="left">
+								<nav class="krds-breadcrumb-wrap" aria-label="현재 경로">
+									<ul class="breadcrumb">
+										<li class="home"><a href="javascript:void(0)" class="txt">홈</a></li>
+										
+										
+										
+											<li><a href="javascript:void(0)" class="txt">공지·뉴스</a></li>
+										
+										
+											<li><a href="javascript:void(0)" class="txt">공지사항</a></li>
+										
+										
+											<li><a href="javascript:void(0)" class="txt">공지사항</a></li>
+										
+									</ul>
+								</nav>
+		        				<h2 class="conTitle">공지사항</h2>
+		        			</div>
+		        				<ul class="right shareBox">
+								<li>
+									<a class="sns_open" onclick="return false;" href="#" aria-expanded="false" title="sns공유 열기">sns공유 열기</a>
+									<div class="snsBox" style="display: none;">
+										<ul>
+											<li><a id="naverSns" href="" onclick="window.open(this.href, '', 'resizable=no,status=no,location=no,toolbar=no,menubar=no,fullscreen=no,scrollbars=no,dependent=no,width=600,height=800'); return false;" title="블로그 공유하기(새창)"><i class="icon-blog"></i></a></li>
+											<li><a id="facebookSns" href="" onclick="window.open(this.href, '', 'resizable=no,status=no,location=no,toolbar=no,menubar=no,fullscreen=no,scrollbars=no,dependent=no,width=600,height=800'); return false;" title="페이스북 공유하기(새창)"><i class="icon-facebook"></i></a></li>
+										</ul>
+										<a onclick="return false;" href="#" class="sns_close"><span class="skip">sns공유</span>닫기</a>
+									</div>
+								</li>
+								<li class="print"><a onclick="return window.print();" href="#" title="인쇄">인쇄</a></li>
+								<li class="copyLink"><a onClick="copyUrl();" href="#" title="주소복사">주소복사</a></li>
+							</ul>
+						</div>
+						<!-- //title -->
+						<!-- 현재 메뉴 뎁스 표출(4뎁스인 경우에 표출) -->
+						
+						<!-- //현재 메뉴 뎁스 표출 -->
+						<!-- 본문영역 -->
+						
+
+
+
+
+
+<script src="/js/check.js"></script>
+<script type="text/javascript">
+	
+	// 카테고리 이동처리
+	function searchCategory(val){
+		const url = "/boardList/1016";
+		document.searchFrm.action = url;
+		document.searchFrm.pageIndex.value = "1";
+		document.searchFrm.searchCategory.value = val;
+		document.searchFrm.submit();
+	}
+	
+	// 검색 처리
+	function searchList(){
+		const url = "/boardList/1016";
+		document.searchFrm.action = url;
+		document.searchFrm.pageIndex.value = "1";		
+		document.searchFrm.submit();
+	}
+	
+	// 검색창 키 체크
+	function keyCheck(e){
+		if(e.keyCode == 13){
+			searchList();
+		}	
+	}
+	
+	// 게시물 상세보기
+	function bbsArticleDet(seq){		
+		const url = "/boardDetail/1016";
+		document.searchFrm.action = url;
+		document.searchFrm.bbsSeq.value = seq;
+		document.searchFrm.submit();
+	}
+	
+	// 페이징 이동 
+	function linkPage(page){		
+		const url = "/boardList/1016";
+		document.searchFrm.action = url;
+		document.searchFrm.pageIndex.value = page;
+		document.searchFrm.submit();
+	}
+	
+	// 공공데이터 수요조사(1059)에서 사용
+	function fnNext(pageGbn, sName, sMobileNo){
+		const url = "/boardRegist/1016";
+		document.searchFrm.action = url;
+		document.searchFrm.regNm.value = sName;
+		document.searchFrm.regTel.value = sMobileNo;
+		document.searchFrm.submit();
+	}
+</script>
+<!-- 게시판 카테고리 표출 -->
+
+<!-- //게시판 카테고리 표출 -->
+
+
+<!-- 공공데이터 수요조사(1059) 컨텐츠 -->
+
+<!-- //공공데이터 수요조사(1059) 컨텐츠 -->
+
+<!-- 검색조건 -->
+<form name="searchFrm" id="searchFrm" method="get">
+	<input type="hidden" name="bbsSeq" />
+	<input type="hidden" name="pageIndex" value="1" />
+	<input type="hidden" name="searchCategory" value="" />
+	
+	<div class="resultFilt">
+		<div class="alignBase">
+			<p class="totalBoard">총 <span class="num point">1042</span>건</p>
+			<p class="currentPage">현재 페이지 <span class="num current">1</span><span class="num total"> / 105</span></p>
+		</div>
+		<div class="srhSort">
+			<label for="searchType" class="tit skip">검색조건</label>
+			<select id="searchType" name="searchType">
+		         <option value="title" >제목</option>
+		         <option value="content" >내용</option>
+		     </select>
+		     <div class="inpWrap">
+		     	<label class="txtinp" title="검색어">
+		     		<input type="text" placeholder="검색어를 입력하세요" id="searchText" name="searchText" value="" onKeyUp="keyCheck(event);" />
+		     	</label>
+		     	<button class="search" onClick="searchList();"><i class="micon">search</i></button>
+		     </div>
+		</div>
+	</div>
+</form>
+<!-- //검색조건 -->
+<!-- 게시판 종류에 따라 표출 -->
+
+	
+	
+	
+	
+	
+		<!-- 게시판 목록 - 공통 -->
+		<table class="board">
+			<caption>게시판 목록</caption>
+			<colgroup>
+				<col style="width: 6%">
+				<col>
+				
+				<col style="width: 10%">
+				<col style="width: 6%">
+				<col style="width: 6%">
+			</colgroup>
+			<thead>
+				<tr>
+					<th scope="col" class="first">번호</th>
+					<th scope="col">제목</th>
+					
+					<th scope="col">등록일</th>
+					<th scope="col">첨부</th>
+					<th scope="col">조회수</th>
+				</tr>
+			</thead>
+			<tbody>
+				
+					<!-- 상단 공지 -->
+					
+						
+						
+							<tr>
+								<td class="web"><img src="/images/common/icon_notice.svg" alt="공지"></td>
+								<td class="cont">
+									<a href="#none" onClick="bbsArticleDet('49427')">2026년 산업단지 에너지 자급자족형 인프라 구축 및 운영사업 2차 재공고</a>
+								</td>
+								<td data-cell-header="등록일" class="b_date">2026-08-24</td>
+								<td data-cell-header="첨부">
+									
+								</td>
+								<td data-cell-header="조회">355</td>
+							</tr>
+						
+					
+					<!-- 상단 공지 -->
+					
+						
+						
+							<tr>
+								<td class="web"><img src="/images/common/icon_notice.svg" alt="공지"></td>
+								<td class="cont">
+									<a href="#none" onClick="bbsArticleDet('48974')">2026년도 산업단지환경조성(출연) 공모(1차) 알림</a>
+								</td>
+								<td data-cell-header="등록일" class="b_date">2026-07-20</td>
+								<td data-cell-header="첨부">
+									
+								</td>
+								<td data-cell-header="조회">1070</td>
+							</tr>
+						
+					
+					<!-- 상단 공지 -->
+					
+						
+						
+							<tr>
+								<td class="web"><img src="/images/common/icon_notice.svg" alt="공지"></td>
+								<td class="cont">
+									<a href="#none" onClick="bbsArticleDet('48825')">2026년 스마트그린산단 지원사업(스마트물류플랫폼, 제조AX산학혁신파크) 재공고</a>
+								</td>
+								<td data-cell-header="등록일" class="b_date">2026-06-29</td>
+								<td data-cell-header="첨부">
+									
+								</td>
+								<td data-cell-header="조회">1142</td>
+							</tr>
+						
+					
+					<!-- 상단 공지 -->
+					
+						
+						
+							<tr>
+								<td class="web"><img src="/images/common/icon_notice.svg" alt="공지"></td>
+								<td class="cont">
+									<a href="#none" onClick="bbsArticleDet('48824')">2026년 한국산업단지공단 국민참여예산 공모 접수 안내</a>
+								</td>
+								<td data-cell-header="등록일" class="b_date">2026-06-29</td>
+								<td data-cell-header="첨부">
+									
+								</td>
+								<td data-cell-header="조회">427</td>
+							</tr>
+						
+					
+					<!-- 상단 공지 -->
+					
+						
+						
+							<tr>
+								<td class="web"><img src="/images/common/icon_notice.svg" alt="공지"></td>
+								<td class="cont">
+									<a href="#none" onClick="bbsArticleDet('48695')">2026년 스마트그린산단 지원사업(산학혁신파크, 물류) 통합 재공고</a>
+								</td>
+								<td data-cell-header="등록일" class="b_date">2026-06-09</td>
+								<td data-cell-header="첨부">
+									
+								</td>
+								<td data-cell-header="조회">667</td>
+							</tr>
+						
+					
+					<!-- 상단 공지 -->
+					
+						
+						
+							<tr>
+								<td class="web"><img src="/images/common/icon_notice.svg" alt="공지"></td>
+								<td class="cont">
+									<a href="#none" onClick="bbsArticleDet('48359')">2026년 스마트그린산업단지 지원사업 통합 공고(수정)</a>
+								</td>
+								<td data-cell-header="등록일" class="b_date">2026-04-29</td>
+								<td data-cell-header="첨부">
+									
+								</td>
+								<td data-cell-header="조회">5449</td>
+							</tr>
+						
+					
+					<!-- 상단 공지 -->
+					
+						
+						
+							<tr>
+								<td class="web"><img src="/images/common/icon_notice.svg" alt="공지"></td>
+								<td class="cont">
+									<a href="#none" onClick="bbsArticleDet('48357')">2026년 지역산업 균형발전 유공 포상계획 연장 공고</a>
+								</td>
+								<td data-cell-header="등록일" class="b_date">2026-04-28</td>
+								<td data-cell-header="첨부">
+									
+								</td>
+								<td data-cell-header="조회">300</td>
+							</tr>
+						
+					
+					<!-- 상단 공지 -->
+					
+						
+						
+							<tr>
+								<td class="web"><img src="/images/common/icon_notice.svg" alt="공지"></td>
+								<td class="cont">
+									<a href="#none" onClick="bbsArticleDet('48073')">2026년 지역산업 균형발전 유공 포상계획 공고</a>
+								</td>
+								<td data-cell-header="등록일" class="b_date">2026-04-01</td>
+								<td data-cell-header="첨부">
+									
+								</td>
+								<td data-cell-header="조회">475</td>
+							</tr>
+						
+					
+				
+				
+					<!-- 본문 -->
+					<tr>
+						<td class="web">1042</td>
+						<td class="cont">
+							<a href="#none" onClick="bbsArticleDet('49468')">한국산업단지공단-KB국민은행 협력 산업단지 입주기업 지원 협약보증 안내</a>
+						</td>
+						
+						<td data-cell-header="등록일" class="b_date">2026-08-26</td>
+						<td data-cell-header="첨부">
+							
+						</td>
+						<td data-cell-header="조회">67</td>
+					</tr>
+					
+					<!-- 본문 -->
+					<tr>
+						<td class="web">1041</td>
+						<td class="cont">
+							<a href="#none" onClick="bbsArticleDet('49431')">울산미포 에너지자급자족형 인프라 구축사업 수요기업 모집공고(상시)</a>
+						</td>
+						
+						<td data-cell-header="등록일" class="b_date">2026-08-24</td>
+						<td data-cell-header="첨부">
+							
+								<img src="/images/common/icon_file.svg" alt="첨부파일">
+							
+						</td>
+						<td data-cell-header="조회">59</td>
+					</tr>
+					
+					<!-- 본문 -->
+					<tr>
+						<td class="web">1040</td>
+						<td class="cont">
+							<a href="#none" onClick="bbsArticleDet('49417')">한국의료기기안전정보원-G밸리의료기기개발지원센터 2026년 의료기기 혁신성장 세미나 개최 안내(2026.9.3.(목))</a>
+						</td>
+						
+						<td data-cell-header="등록일" class="b_date">2026-08-24</td>
+						<td data-cell-header="첨부">
+							
+								<img src="/images/common/icon_file.svg" alt="첨부파일">
+							
+						</td>
+						<td data-cell-header="조회">32</td>
+					</tr>
+					
+					<!-- 본문 -->
+					<tr>
+						<td class="web">1039</td>
+						<td class="cont">
+							<a href="#none" onClick="bbsArticleDet('49268')">[2차 모집] 2026년 반월시화형 AX기업지원프로그램 AI솔루션 도입 지원사업 참여기업 모집</a>
+						</td>
+						
+						<td data-cell-header="등록일" class="b_date">2026-08-12</td>
+						<td data-cell-header="첨부">
+							
+								<img src="/images/common/icon_file.svg" alt="첨부파일">
+							
+						</td>
+						<td data-cell-header="조회">181</td>
+					</tr>
+					
+					<!-- 본문 -->
+					<tr>
+						<td class="web">1038</td>
+						<td class="cont">
+							<a href="#none" onClick="bbsArticleDet('49267')">계양산업단지 지원시설용지 분양 관련 사전 수요조사(설문조사)</a>
+						</td>
+						
+						<td data-cell-header="등록일" class="b_date">2026-08-12</td>
+						<td data-cell-header="첨부">
+							
+								<img src="/images/common/icon_file.svg" alt="첨부파일">
+							
+						</td>
+						<td data-cell-header="조회">73</td>
+					</tr>
+					
+					<!-- 본문 -->
+					<tr>
+						<td class="web">1037</td>
+						<td class="cont">
+							<a href="#none" onClick="bbsArticleDet('49260')">2026 KB굿잡 부산 잡(JOB) 페스티벌 구인기업 모집 안내</a>
+						</td>
+						
+						<td data-cell-header="등록일" class="b_date">2026-08-11</td>
+						<td data-cell-header="첨부">
+							
+								<img src="/images/common/icon_file.svg" alt="첨부파일">
+							
+						</td>
+						<td data-cell-header="조회">95</td>
+					</tr>
+					
+					<!-- 본문 -->
+					<tr>
+						<td class="web">1036</td>
+						<td class="cont">
+							<a href="#none" onClick="bbsArticleDet('49255')">2026년 광주지역 중소기업 정보보호 지원사업 수요기업 모집 안내</a>
+						</td>
+						
+						<td data-cell-header="등록일" class="b_date">2026-08-11</td>
+						<td data-cell-header="첨부">
+							
+								<img src="/images/common/icon_file.svg" alt="첨부파일">
+							
+						</td>
+						<td data-cell-header="조회">57</td>
+					</tr>
+					
+					<!-- 본문 -->
+					<tr>
+						<td class="web">1035</td>
+						<td class="cont">
+							<a href="#none" onClick="bbsArticleDet('49251')">2026년 산업단지 ESG 기업지원사업 참여기업 모집</a>
+						</td>
+						
+						<td data-cell-header="등록일" class="b_date">2026-08-10</td>
+						<td data-cell-header="첨부">
+							
+								<img src="/images/common/icon_file.svg" alt="첨부파일">
+							
+						</td>
+						<td data-cell-header="조회">144</td>
+					</tr>
+					
+					<!-- 본문 -->
+					<tr>
+						<td class="web">1034</td>
+						<td class="cont">
+							<a href="#none" onClick="bbsArticleDet('49217')">2026년 하반기 산단환경개선펀드 사업 주간사업자 모집 공고</a>
+						</td>
+						
+						<td data-cell-header="등록일" class="b_date">2026-08-06</td>
+						<td data-cell-header="첨부">
+							
+								<img src="/images/common/icon_file.svg" alt="첨부파일">
+							
+						</td>
+						<td data-cell-header="조회">379</td>
+					</tr>
+					
+					<!-- 본문 -->
+					<tr>
+						<td class="web">1033</td>
+						<td class="cont">
+							<a href="#none" onClick="bbsArticleDet('49216')">2026년 구조고도화 대행사업자 모집공고(민간대행사업)</a>
+						</td>
+						
+						<td data-cell-header="등록일" class="b_date">2026-08-06</td>
+						<td data-cell-header="첨부">
+							
+								<img src="/images/common/icon_file.svg" alt="첨부파일">
+							
+						</td>
+						<td data-cell-header="조회">263</td>
+					</tr>
+					
+				
+			</tbody>
+		</table>
+		<!-- //게시판 목록 - 공통 -->
+	
+
+<!-- //게시판 종류에 따라 표출 -->
+<!-- 페이지네이션 -->
+<div class="pagination">
+	<div class="pageLink">
+		<a href="#none" class="pageNavi prev disabled" onclick="return false;"><i class="micon">keyboard_arrow_left</i>이전</a><div class="pageLink"><a href="#none" class="active" onclick="return false;">1</a><a href="#none" onclick="linkPage(2);return false;">2</a><a href="#none" onclick="linkPage(3);return false;">3</a><a href="#none" onclick="linkPage(4);return false;">4</a><a href="#none" onclick="linkPage(5);return false;">5</a><a href="#none" onclick="linkPage(6);return false;">6</a><a href="#none" onclick="linkPage(7);return false;">7</a><a href="#none" onclick="linkPage(8);return false;">8</a><a href="#none" onclick="linkPage(9);return false;">9</a><a href="#none" onclick="linkPage(10);return false;">10</a><span class="linkDot"><i class="micon">more_horiz</i></span><a href="#none" onclick="linkPage(105);return false;" title="마지막 페이지로 이동">105</a></div><a href="#none" onclick="linkPage(2);return false;" class="pageNavi next">  다음<i class="micon">keyboard_arrow_right</i></a>
+
+	</div>
+</div>                    
+<!-- //페이지네이션 -->
+						<!-- //본문영역 -->
+						<!-- 담당부서 & 담당부서 연락처 -->
+						
+						<!-- //담당부서 & 담당부서 연락처 -->
+						<!-- 만족도 평가 영역 -->
+						
+							<div class="research">
+								<form id="stsfdgForm" name="stsfdgForm">
+									<input type="hidden" name="menuId" value="MENU_00000262"/>
+									<p>
+										
+										
+											
+											
+												열람하신 정보에 만족하십니까?
+											
+										
+									</p>
+									<div class="clearfix">
+										<ul>
+											<li><input type="radio" name="imeNo" id="point5" value="5" checked="checked"><label for="point5">매우만족</label></li>
+											<li><input type="radio" name="imeNo" id="point4" value="4"><label for="point4">만족</label></li>
+											<li><input type="radio" name="imeNo" id="point3" value="3"><label for="point3">보통</label></li>
+											<li><input type="radio" name="imeNo" id="point2" value="2"><label for="point2">불만족</label></li>
+											<li><input type="radio" name="imeNo" id="point1" value="1"><label for="point1">매우불만족</label></li>
+										</ul>
+										<div class="memo">
+											<label for="opatclCn" class="skip">여러분의 소중한 의견을 보내주세요</label>
+											<input type="text" id="opatclCn" name="opatclCn" placeholder="여러분의 소중한 의견을 보내주세요.">
+											<button type="button" class="btn lg submit" onclick="fnStsfdgIndict();">의견등록</button>
+										</div>
+									</div>
+								</form>
+							</div>
+						
+		        	</div>
+		        	<!-- //body -->
+				</div>
+			</div>
+		</div>
+		<!-- Footer Imnport -->
+		
+
+<div id="footer">
+    <div class="fotTop">
+        <div class="inner">
+            <ul class="siteList">
+                <li>
+                    <a href="#none">유관기관</a>
+                    <ul class="list">
+						<li><a href="http://www.gov.kr/portal/main" target="_blank" title="정부24 새창열림">정부24</a></li>
+						<li><a href="https://www.epeople.go.kr" target="_blank" title="국민신문고 새창열림">국민신문고</a></li>
+						<!-- <li><a href="http://www.egov.go.kr" target="_blank" title="민원24 새창열림">민원24</a></li> -->
+						<li><a href="https://www.epeople.go.kr/nep/pttn/negativePttn/NegativePttnCotents.npaid" target="_blank" title="소극행정신고센터바로가기 새창열림">소극행정신고센터바로가기</a></li>
+						<li><a href="https://sandbox.kiat.or.kr/" target="_blank" title="샌드박스 새창열림">샌드박스</a></li>
+						<li><a href="http://www.alio.go.kr/" target="_blank" title="공공기관 경영정보 공개시스템 ALIO 새창열림">ALIO</a></li>
+						<li><a href="http://www.motie.go.kr" target="_blank" title="산업통상부 새창열림">산업통상부</a></li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="#none">패밀리사이트</a>
+                    <ul class="list">
+						<li><a href="https://www.kicox.or.kr/kfactory" target="_blank" title="스마트산단 공유플랫폼 새창열림">스마트산단 공유플랫폼</a></li>
+						<!-- <li><a href="https://www.kicox.or.kr/kicoxjob" target="_blank" title="산업단지 일자리 매칭시스템 새창열림">산업단지 일자리 매칭시스템</a></li> -->
+						<li><a href="http://www.kicox.or.kr/cluster" target="_blank" title="클러스터사업관리시스템 새창열림">클러스터사업관리시스템</a></li>
+						<li><a href="https://www.comis.go.kr" target="_blank" title="기업 투자지원시스템 새창열림">기업 투자지원시스템</a></li>
+						<!-- <li><a href="https://card.kicox.or.kr" target="_blank" title="청년동행카드 새창열림">청년동행카드</a></li> -->
+						<li><a href="https://www.factoryon.go.kr" target="_blank" title="공장설립 온라인지원시스템 새창열림">공장설립 온라인지원시스템</a></li>
+						<li><a href="https://www.kicox.or.kr/renovation" target="_blank" title="산단환경개선펀드 새창열림">산단환경개선펀드</a></li>
+						<li><a href="https://www.kicox.or.kr/netzerofin" target="_blank" title="탄소중립 융자지원사업 새창열림">탄소중립 융자지원사업</a></li>
+
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+	<div class="inner">
+        <div class="fotBot">
+			<div class="fotImg">		
+	            <a href="#none" class="fotLogo"><img src="/api/common/getFile/LOGO" alt="한국산업단지공단"></a>
+				<ul class="snsDir">
+					<li><a href="https://blog.naver.com/kicox1964" target="_blank" title="블로그 새창열림"><img src="/images/common/Social media link_base.png"alt="블로그"></a></li>
+					<li><a href="https://www.facebook.com/withkicox" target="_blank" title="페이스북 새창열림"><img src="/images/common/Social media link_base-1.png" alt="페이스북"></a></li>
+					<li><a href="https://www.youtube.com/c/kicox1964" target="_blank" title="유튜브 새창열림"><img src="/images/common/Social media link_base-2.png" alt="유튜브"></a></li>
+					<li><a href="https://www.instagram.com/kicox.or.kr" target="_blank" title="인스타그램 새창열림"><img src="/images/common/Social media link_base-3.png" alt="인스타그램"></a></li>
+				</ul>
+			</div>
+            <div class="fotTxt">
+                <div class="txt">
+                    <p>(41068) 대구광역시 동구 첨단로 39 (신서동) 한국산업단지공단</p>
+                    <p>
+                        <span><b>대표전화 070-8895-7000</b> (유료, 평일 09시~18시)</span>
+                        <span><b>팩스 070-4850-9031</b> (유료, 평일 09시~18시)</span>
+                    </p>
+                </div>
+				<div class="link">
+					<a href="/common/otlnMap">찾아오시는길</a>
+				</div>
+            </div>
+			<div class="fotDs">
+				<div>
+					<ul>
+						<li><a href="/common/sitemap">사이트맵</a></li>
+						<li><a href="/contents/67">영상정보처리기기 운영･관리 방침</a></li>
+						<li><a href="/polcy/processPolcy" class="yel">개인정보처리방침</a></li>
+					</ul>
+					<p class="copyright">COPYRIGHT© KOREA INDUSTRIAL COMPLEX CORP. ALL RIGHTS RESERVED.</p>
+				</div>
+				<div>
+					<a href="http://webwatch.or.kr" target="_blank" title="WA 품질인증 마크, 웹와치(WebWatch) 2026.3.27 ~ 2027.3.26 사이트 새창열기"><img src="/images/common/wa_icon.png" alt="과학기술정보통신부 WA(WEB접근성) 품질인증 마크, 웹와치(WebWatch) 2026.3.27 ~ 2027.3.26"></a>
+				</div>
+			</div>
+            <div class="krdsIdentifier">
+                <img src="/images/common/krdsFooter.svg" alt="산업통상부">
+                <span class="ban-txt">이 누리집은 산업통상부 산하기관 누리집입니다.</span>
+            </div>
+        </div>
+	</div>
+</div>
+		<!-- //Footer Imnport -->
+		
+		<div id="mask"></div>
+		<!--To TOP 버튼-->
+		<div id="totop">
+			<a href="#none" class="totop" title="페이지 상단 이동"><i class="micon">arrow_upward</i></a>
+		</div>		
+	</body>
+</html>

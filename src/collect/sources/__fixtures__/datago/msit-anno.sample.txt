@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<response>
+	<header>
+		<resultCode>00</resultCode>
+		<resultMsg>NORMAL_CODE</resultMsg>
+	</header>
+	<body>
+		<items>
+			<item>
+				<subject>2026년도 하반기 방송통신정책연구 신규지원 대상과제 공고</subject>
+				<viewUrl>https://www.msit.go.kr/bbs/view.do?sCode=user&amp;mId=311&amp;mPid=121&amp;bbsSeqNo=100&amp;nttSeqNo=3186863</viewUrl>
+				<deptName>정보통신정책총괄과</deptName>
+				<managerName>이진수</managerName>
+				<managerTel>044-202-6112</managerTel>
+				<pressDt>2026-08-25</pressDt>
+				<files>
+					<file>
+						<fileName>1. 2026년도 하반기 방송통신정책연구 신규지원 대상과제 공고문.hwp</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54866&amp;fileOrd=1</fileUrl>
+					</file>
+					<file>
+						<fileName>1. 2026년도 하반기 방송통신정책연구 신규지원 대상과제 공고문.odt</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54866&amp;fileOrd=2</fileUrl>
+					</file>
+					<file>
+						<fileName>1. 2026년도 하반기 방송통신정책연구 신규지원 대상과제 공고문.hwpx</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54866&amp;fileOrd=3</fileUrl>
+					</file>
+					<file>
+						<fileName>2. 2026년도 하반기 방송통신정책연구 신규지원 대상과제 RFP.hwpx</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54866&amp;fileOrd=4</fileUrl>
+					</file>
+					<file>
+						<fileName>2. 2026년도 하반기 방송통신정책연구 신규지원 대상과제 RFP.odt</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54866&amp;fileOrd=5</fileUrl>
+					</file>
+					<file>
+						<fileName>2. 2026년도 하반기 방송통신정책연구 신규지원 대상과제 RFP.hwp</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54866&amp;fileOrd=6</fileUrl>
+					</file>
+					<file>
+						<fileName>3. 신청서식.zip</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54866&amp;fileOrd=7</fileUrl>
+					</file>
+					<file>
+						<fileName>4. 국가연구개발혁신법 및 주요 부속 규정.zip</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54866&amp;fileOrd=8</fileUrl>
+					</file>
+					<file>
+						<fileName>5. IRIS 전산접수 매뉴얼.zip</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54866&amp;fileOrd=9</fileUrl>
+					</file>
+				</files>
+			</item>
+			<item>
+				<subject>2026년도 과학기술정보통신부 기초연구사업 2차 신규과제 선정 공고</subject>
+				<viewUrl>https://www.msit.go.kr/bbs/view.do?sCode=user&amp;mId=311&amp;mPid=121&amp;bbsSeqNo=100&amp;nttSeqNo=3186862</viewUrl>
+				<deptName>기초연구진흥과</deptName>
+				<managerName>서동근</managerName>
+				<managerTel>044-202-4537</managerTel>
+				<pressDt>2026-08-25</pressDt>
+				<files>
+					<file>
+						<fileName>붙임. 공고문, 이의신청 안내 등.zip</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54865&amp;fileOrd=1</fileUrl>
+					</file>
+				</files>
+			</item>
+			<item>
+				<subject>2026년도 AI 기반 대학 과학기술 혁신사업(연구센터) 신규과제 선정결과 공고</subject>
+				<viewUrl>https://www.msit.go.kr/bbs/view.do?sCode=user&amp;mId=311&amp;mPid=121&amp;bbsSeqNo=100&amp;nttSeqNo=3186861</viewUrl>
+				<deptName>과학기술인공지능혁신과</deptName>
+				<managerName>김선용</managerName>
+				<managerTel>044-202-4757</managerTel>
+				<pressDt>2026-08-25</pressDt>
+				<files>
+					<file>
+						<fileName>[공고] 2026년도 AI 기반 대학 과학기술 혁신사업(연구센터) 신규과제 선정결과 공고.hwp</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54857&amp;fileOrd=1</fileUrl>
+					</file>
+					<file>
+						<fileName>[공고] 2026년도 AI 기반 대학 과학기술 혁신사업(연구센터) 신규과제 선정결과 공고.odt</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54857&amp;fileOrd=2</fileUrl>
+					</file>
+					<file>
+						<fileName>[공고] 2026년도 AI 기반 대학 과학기술 혁신사업(연구센터) 신규과제 선정결과 공고.hwpx</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54857&amp;fileOrd=3</fileUrl>
+					</file>
+					<file>
+						<fileName>[참고1] 이의신청 첨부자료 서식(IRIS).hwp</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54857&amp;fileOrd=4</fileUrl>
+					</file>
+					<file>
+						<fileName>[참고1] 이의신청 첨부자료 서식(IRIS).odt</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54857&amp;fileOrd=5</fileUrl>
+					</file>
+					<file>
+						<fileName>[참고1] 이의신청 첨부자료 서식(IRIS).hwpx</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54857&amp;fileOrd=6</fileUrl>
+					</file>
+				</files>
+			</item>
+			<item>
+				<subject>2026년도 한-EU 공동연구지원사업 신규과제 공모</subject>
+				<viewUrl>https://www.msit.go.kr/bbs/view.do?sCode=user&amp;mId=311&amp;mPid=121&amp;bbsSeqNo=100&amp;nttSeqNo=3186860</viewUrl>
+				<deptName>구주아프리카협력담당관</deptName>
+				<managerName>김영재</managerName>
+				<managerTel>044-202-4351</managerTel>
+				<pressDt>2026-08-24</pressDt>
+				<files>
+					<file>
+						<fileName>2026년도 한-EU 공동연구지원사업 신규과제 공고문(안).hwp</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54852&amp;fileOrd=1</fileUrl>
+					</file>
+					<file>
+						<fileName>2026년도 한-EU 공동연구지원사업 신규과제 공고문(안).odt</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54852&amp;fileOrd=2</fileUrl>
+					</file>
+					<file>
+						<fileName>2026년도 한-EU 공동연구지원사업 신규과제 공고문(안).hwpx</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54852&amp;fileOrd=3</fileUrl>
+					</file>
+				</files>
+			</item>
+			<item>
+				<subject>과학기술전문사관 제13기 학사 후보생 및 제2기·3기(예비) 석사 후보생 모집·선발 공고</subject>
+				<viewUrl>https://www.msit.go.kr/bbs/view.do?sCode=user&amp;mId=311&amp;mPid=121&amp;bbsSeqNo=100&amp;nttSeqNo=3186859</viewUrl>
+				<deptName>미래인재양성과</deptName>
+				<managerName>유지은</managerName>
+				<managerTel>044-202-4833</managerTel>
+				<pressDt>2026-08-18</pressDt>
+				<files>
+					<file>
+						<fileName>과학기술전문사관 후보생 모집선발 공고(과기정통부 제 2026-0885호).hwp</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54774&amp;fileOrd=1</fileUrl>
+					</file>
+					<file>
+						<fileName>과학기술전문사관 후보생 모집선발 공고(과기정통부 제 2026-0885호).odt</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54774&amp;fileOrd=2</fileUrl>
+					</file>
+					<file>
+						<fileName>과학기술전문사관 후보생 모집선발 공고(과기정통부 제 2026-0885호).hwpx</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54774&amp;fileOrd=3</fileUrl>
+					</file>
+					<file>
+						<fileName>과학기술전문사관 후보생 모집선발 요강(과기정통부 제 2026-0885호).hwp</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54774&amp;fileOrd=4</fileUrl>
+					</file>
+					<file>
+						<fileName>과학기술전문사관 후보생 모집선발 요강(과기정통부 제 2026-0885호).odt</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54774&amp;fileOrd=5</fileUrl>
+					</file>
+					<file>
+						<fileName>과학기술전문사관 후보생 모집선발 요강(과기정통부 제 2026-0885호).hwpx</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54774&amp;fileOrd=6</fileUrl>
+					</file>
+				</files>
+			</item>
+			<item>
+				<subject>독자 AI파운데이션 모델프로젝트 공동활용 데이터 지원사업(2차) 공고</subject>
+				<viewUrl>https://www.msit.go.kr/bbs/view.do?sCode=user&amp;mId=311&amp;mPid=121&amp;bbsSeqNo=100&amp;nttSeqNo=3186858</viewUrl>
+				<deptName>인공지능데이터정책과</deptName>
+				<managerName>김성찬</managerName>
+				<managerTel>044-202-6582</managerTel>
+				<pressDt>2026-08-12</pressDt>
+				<files>
+					<file>
+						<fileName>붙임1_독자 AI파운데이션 모델프로젝트 공동활용 데이터 지원사업(2차) 공고문.hwp</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54751&amp;fileOrd=1</fileUrl>
+					</file>
+					<file>
+						<fileName>붙임1_독자 AI파운데이션 모델프로젝트 공동활용 데이터 지원사업(2차) 공고문.odt</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54751&amp;fileOrd=2</fileUrl>
+					</file>
+					<file>
+						<fileName>붙임1_독자 AI파운데이션 모델프로젝트 공동활용 데이터 지원사업(2차) 공고문.hwpx</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54751&amp;fileOrd=3</fileUrl>
+					</file>
+					<file>
+						<fileName>붙임2_사업수행계획서 등 관련 서식.hwp</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54751&amp;fileOrd=4</fileUrl>
+					</file>
+					<file>
+						<fileName>붙임2_사업수행계획서 등 관련 서식.odt</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54751&amp;fileOrd=5</fileUrl>
+					</file>
+					<file>
+						<fileName>붙임2_사업수행계획서 등 관련 서식.hwpx</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54751&amp;fileOrd=6</fileUrl>
+					</file>
+					<file>
+						<fileName>붙임3_관련 법령, 규정, 지침 등.zip</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54751&amp;fileOrd=7</fileUrl>
+					</file>
+				</files>
+			</item>
+			<item>
+				<subject>2026년 블록체인 신뢰인프라(K-BTF) 활용·확산사업 모집 재공고</subject>
+				<viewUrl>https://www.msit.go.kr/bbs/view.do?sCode=user&amp;mId=311&amp;mPid=121&amp;bbsSeqNo=100&amp;nttSeqNo=3186857</viewUrl>
+				<deptName>디지털사회기획과</deptName>
+				<managerName>전예솔</managerName>
+				<managerTel>044-202-6138</managerTel>
+				<pressDt>2026-08-11</pressDt>
+				<files>
+					<file>
+						<fileName>1. [재공고문] 2026년 블록체인 신뢰인프라(K-BTF) 활용·확산사업.hwpx</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54748&amp;fileOrd=1</fileUrl>
+					</file>
+					<file>
+						<fileName>1. [재공고문] 2026년 블록체인 신뢰인프라(K-BTF) 활용·확산사업.odt</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54748&amp;fileOrd=2</fileUrl>
+					</file>
+					<file>
+						<fileName>1. [재공고문] 2026년 블록체인 신뢰인프라(K-BTF) 활용·확산사업.hwp</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54748&amp;fileOrd=3</fileUrl>
+					</file>
+					<file>
+						<fileName>2. [공모안내서] 2026년 블록체인 신뢰인프라(K-BTF) 활용·확산사업.hwpx</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54748&amp;fileOrd=4</fileUrl>
+					</file>
+					<file>
+						<fileName>2. [공모안내서] 2026년 블록체인 신뢰인프라(K-BTF) 활용·확산사업.odt</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54748&amp;fileOrd=5</fileUrl>
+					</file>
+					<file>
+						<fileName>2. [공모안내서] 2026년 블록체인 신뢰인프라(K-BTF) 활용·확산사업.hwp</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54748&amp;fileOrd=6</fileUrl>
+					</file>
+					<file>
+						<fileName>3. [공모서식] 2026년 블록체인 신뢰인프라(K-BTF) 활용·확산사업.hwpx</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54748&amp;fileOrd=7</fileUrl>
+					</file>
+					<file>
+						<fileName>3. [공모서식] 2026년 블록체인 신뢰인프라(K-BTF) 활용·확산사업.odt</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54748&amp;fileOrd=8</fileUrl>
+					</file>
+					<file>
+						<fileName>3. [공모서식] 2026년 블록체인 신뢰인프라(K-BTF) 활용·확산사업.hwp</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54748&amp;fileOrd=9</fileUrl>
+					</file>
+				</files>
+			</item>
+			<item>
+				<subject>2026년도 4차 국민생활안전 긴급대응연구(2단계) 기술개발 및 실증 신규과제 공모</subject>
+				<viewUrl>https://www.msit.go.kr/bbs/view.do?sCode=user&amp;mId=311&amp;mPid=121&amp;bbsSeqNo=100&amp;nttSeqNo=3186856</viewUrl>
+				<deptName>지역과학기술진흥과</deptName>
+				<managerName>박유준</managerName>
+				<managerTel>044-202-4597</managerTel>
+				<pressDt>2026-08-10</pressDt>
+				<files>
+					<file>
+						<fileName>2026년 4차 국민생활안전 긴급대응연구(2단계) 기술개발 및 실증 신규과제 공고문.zip</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54732&amp;fileOrd=1</fileUrl>
+					</file>
+				</files>
+			</item>
+			<item>
+				<subject>2026년 하반기 정보보호 전문서비스 기업 지정에 관한 공고</subject>
+				<viewUrl>https://www.msit.go.kr/bbs/view.do?sCode=user&amp;mId=311&amp;mPid=121&amp;bbsSeqNo=100&amp;nttSeqNo=3186850</viewUrl>
+				<deptName>정보보호산업과</deptName>
+				<managerName>최준희</managerName>
+				<managerTel>044-202-6452</managerTel>
+				<pressDt>2026-08-10</pressDt>
+				<files>
+					<file>
+						<fileName>2026년 하반기 정보보호 전문서비스 기업 지정에 관한 공고.hwpx</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54664&amp;fileOrd=1</fileUrl>
+					</file>
+					<file>
+						<fileName>2026년 하반기 정보보호 전문서비스 기업 지정에 관한 공고.odt</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54664&amp;fileOrd=2</fileUrl>
+					</file>
+					<file>
+						<fileName>2026년 하반기 정보보호 전문서비스 기업 지정에 관한 공고.hwp</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54664&amp;fileOrd=3</fileUrl>
+					</file>
+				</files>
+			</item>
+			<item>
+				<subject>2026년도 가속기핵심기술개발사업 신규과제 공모</subject>
+				<viewUrl>https://www.msit.go.kr/bbs/view.do?sCode=user&amp;mId=311&amp;mPid=121&amp;bbsSeqNo=100&amp;nttSeqNo=3186855</viewUrl>
+				<deptName>연구인프라혁신과</deptName>
+				<managerName>이예원</managerName>
+				<managerTel>044-202-4663</managerTel>
+				<pressDt>2026-08-07</pressDt>
+				<files>
+					<file>
+						<fileName>2026년도 가속기핵심기술개발사업 신규과제 공모 공고문.hwpx</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54716&amp;fileOrd=1</fileUrl>
+					</file>
+					<file>
+						<fileName>2026년도 가속기핵심기술개발사업 신규과제 공모 공고문.odt</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54716&amp;fileOrd=2</fileUrl>
+					</file>
+					<file>
+						<fileName>2026년도 가속기핵심기술개발사업 신규과제 공모 공고문.hwp</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54716&amp;fileOrd=3</fileUrl>
+					</file>
+					<file>
+						<fileName>붙임1. 과제제안요구서(RFP)_저장링 입사요동 저감을 위한 비선형 킥커 (Non-Linear Kicker) 시스템 개발.hwpx</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54716&amp;fileOrd=4</fileUrl>
+					</file>
+					<file>
+						<fileName>붙임1. 과제제안요구서(RFP)_저장링 입사요동 저감을 위한 비선형 킥커 (Non-Linear Kicker) 시스템 개발.odt</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54716&amp;fileOrd=5</fileUrl>
+					</file>
+					<file>
+						<fileName>붙임1. 과제제안요구서(RFP)_저장링 입사요동 저감을 위한 비선형 킥커 (Non-Linear Kicker) 시스템 개발.hwp</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54716&amp;fileOrd=6</fileUrl>
+					</file>
+					<file>
+						<fileName>붙임2. 연구개발계획서 양식.zip</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54716&amp;fileOrd=7</fileUrl>
+					</file>
+					<file>
+						<fileName>붙임3. 별첨자료 양식.zip</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54716&amp;fileOrd=8</fileUrl>
+					</file>
+					<file>
+						<fileName>붙임4. 신청 시 참고자료.zip</fileName>
+						<fileUrl>https://www.msit.go.kr/ssm/file/fileDown.do?atchFileNo=54716&amp;fileOrd=9</fileUrl>
+					</file>
+				</files>
+			</item>
+			<numOfRows>10</numOfRows>
+			<pageNo>1</pageNo>
+			<totalCount>4234</totalCount>
+		</items>
+	</body>
+</response>
+

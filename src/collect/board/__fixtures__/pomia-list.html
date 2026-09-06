@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POMIA  (재)포항소재산업진흥원</title>
+	<link rel="icon" href="/favicon.ico">
+	<!--<meta property="og:url" content="https://pomia2024.mycafe24.com" />-->
+	<meta name="description" content="산·학·연·관 유기적인 협력하여 지역의 철강 및 친환경 에너지 소재·부품·장비산업 클러스터 구축 및 지역 경제 활성화 및 지역 산업 발전에 기여">
+	<meta name="keyword" content="포항소재산업진흥원, 포항금속소재산업진흥원, 포미아, 소재산업진흥원, 포스코">
+	<meta property="og:title" content="POMIA | 포항소재산업진흥원" />
+	<meta property="og:description" content="POMIA | 포항소재산업진흥원" />
+	<meta property="og:image" content="/image/pomia_thumnail.png" />
+	
+	<meta name="naver-site-verification" content="1f0d2385c4c311ee2aa49f40eaa7d9c06ff6d0a1" />
+    <!-- font -->
+    <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+    <!-- css -->
+    <link rel="stylesheet" href="/css/reset.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/swiper-bundle.min.css">
+    <link rel="stylesheet" href="/css/aos.css">
+	<!-- 폰트 어썸 -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+        integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- js -->
+    <script src="/js/jquery-3.3.1.min.js"></script>
+    <!--<script src="https://kit.fontawesome.com/30cd323daa.js" crossorigin="anonymous"></script>-->
+    <script src="/js/swiper-bundle.min.js"></script>
+    <script src="/js/aos.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/ScrollTrigger.min.js"></script>
+     <script  class="daum_roughmap_loader_script" src="https://ssl.daumcdn.net/dmaps/map_js_init/roughmapLoader.js"></script>
+    <script src="/js/script.js"></script>
+    <script>
+        AOS.init();
+    </script>
+</head>
+
+<body>
+    <!-- 헤더 -->
+    <header class="">
+        <div class="container">
+            <h1>
+                <a href="/index.html"><img src="/image/logo_black.png" alt="포항소재산업진흥원" /></a>
+            </h1>
+			<script>
+				const currentPath = window.location.pathname;
+				if (currentPath.includes('index_main.html')) {
+					$('header h1 a').attr('href', '/index.html');
+					$('header h1 img').attr('src', '/image/logo_white.png');
+				} else {
+					$('header h1 a').attr('href', '/index_main.html');
+				}
+			</script>
+            <nav>
+                <ul>
+                    <li>
+                        <a href="/sub/greeting01.html">POMIA소개</a>
+                        <ul class="twoth">
+                            <li><a href="/sub/greeting01.html">인사말</a></li>
+                            <li><a href="/sub/history.html">설립목적 및 연혁</a></li>
+                            <li><a href="/sub/vision.html">비전</a></li>
+                            <li><a href="/sub/organization.html">조직도</a></li>
+                            <li><a href="/sub/anvil.html">CI소개</a></li>
+<!--                             <li><a href="/sub/partner.html">협력파트너</a></li> -->
+                            <li><a href="/sub/location.html">찾아오시는길</a></li>
+                        </ul>
+                    </li>
+                    <!--<li>
+                        <a href="#none">business</a>
+                        <ul class="twoth">
+                            <li><a href="#none">홈페이지</a></li>
+                            <li><a href="#none">UI / UX</a></li>
+                            <li><a href="#none">SNS대행</a></li>
+                            <li><a href="#none">행사 / 전시</a></li>
+                        </ul>
+                    </li>-->
+                    <li>
+                        <a href="/sub/research_secondary_cell.html">연구분야</a>
+                        <ul class="twoth">
+                            <li><a href="/sub/research_secondary_cell.html">이차전지</a></li>
+                            <li><a href="/sub/research_metal.html">금속소재</a></li>
+                            <li><a href="/sub/research_future.html">미래전략산업</a></li>
+                            <li><a href="/sub/research_technic.html">강관기술센터</a></li>
+                            <li><a href="/sub/research_high_technic.html">고기능금속기술센터</a></li>
+                        </ul>
+                    </li>
+                    <li>
+						<a href="/sub/board_buisness.html">기업지원</a>
+						<ul class="twoth">
+							<li><a href="/sub/board_buisness.html">사업공고</a></li>
+							<li><a href="/sub/equipment.html">보유장비현황</a></li>
+							<li><a href="/sub/kolas.html">KOLAS</a></li>							
+							<li><a href="/member/exam.html">시험분석신청</a></li>
+<!--
+							<li><a href="http://www.pomia.or.kr:8080/pomia/memberLogin">시험분석신청</a></li>
+-->
+						</ul>
+					</li>
+                    <li>
+						<a href="/sub/info.html">정보공개</a>
+						<ul class="twoth">
+							<li><a href="/sub/info.html">정보공개제도</a></li>
+							<li><a href="/sub/board_Disclosure01.html">경영공시</a></li>
+							<li><a href="/sub/board_Disclosure02.html">윤리경영</a></li>
+							<li><a href="/sub/board_Disclosure03.html">인권경영</a></li>
+							<li><a href="/sub/board_Disclosure04.html">안전경영</a></li>
+							<li><a href="/sub/clean_center.html">클린신고센터</a></li>
+						</ul>
+					</li>
+                    <li>
+						<a href="/sub/board_notice.html">알림마당</a>
+						<ul class="twoth">
+							<li><a href="/sub/board_notice.html">공지사항</a></li>
+							<li><a href="/sub/board_hire.html">채용공고</a></li>
+							<li><a href="/sub/board_bid.html">입찰공고</a></li>
+							<li><a href="/sub/board_news.html">언론보도</a></li>
+							<li><a href="/sub/pomia_photo.html">POMIA Photo</a></li>
+							<li><a href="/sub/promotion.html">POMIA 홍보관</a></li>
+							<li><a href="/sub/board_related.html">유관기관 소식</a></li>
+						</ul>
+					</li>
+                </ul>
+                <div class="ham">
+                    <span class="top"></span>
+                    <span class="mid"></span>
+                    <span class="bot"></span>
+                </div>
+            </nav>
+        </div>
+        <div class="slideheader">
+			<img src="/image/header_slide_right.png" alt="" style="position: absolute; bottom: 5px; right: 30px;"/>
+        </div>
+    </header>
+    <!-- //헤더 -->
+
+    <!-- 햄버거메뉴 -->
+    <div class="hammenu">
+        <ul>
+            <li><a href="#none">POMIA소개 <span><img src="/img/ham_arrow.png" alt=""></span></a>
+                <ul>
+                    <li><a href="/sub/greeting01.html">인사말</a></li>
+                    <li><a href="/sub/history.html">설립목적 및 연혁</a></li>
+                    <li><a href="/sub/vision.html">비전</a></li>
+                    <li><a href="/sub/organization.html">조직도</a></li>
+                    <li><a href="/sub/anvil.html">CI소개</a></li>
+					<li><a href="/sub/partner.html">협력파트너</a></li>
+                    <li><a href="/sub/location.html">찾아오시는길</a></li>
+                </ul>
+            </li>
+            <li><a href="#none">연구분야 <span><img src="/img/ham_arrow.png" alt=""></span></a>
+                <ul>
+                    <li><a href="/sub/research_secondary_cell.html">이차전지</a></li>
+                    <li><a href="/sub/research_metal.html">금속소재</a></li>
+                    <li><a href="/sub/research_future.html">미래전략산업</a></li>
+                    <li><a href="/sub/research_technic.html">강관기술센터</a></li>
+                    <li><a href="/sub/research_working.html">고기능금속기술센터</a></li>
+                </ul>
+            </li>
+            <li><a href="#none">기업지원 <span><img src="/img/ham_arrow.png" alt=""></span></a>
+                <ul>
+                    <li><a href="/sub/board_buisness.html">사업공고</a></li>
+					<li><a href="/sub/equipment.html">보유장비현황</a></li>
+					<li><a href="/sub/kolas.html">KOLAS</a></li>
+					<li><a href="http://115.68.193.254:8080">시험분석신청</a></li>
+                </ul>
+            </li>
+            <li><a href="#none">정보공개 <span><img src="/img/ham_arrow.png" alt=""></span></a>
+                <ul>
+					<li><a href="/sub/info.html">정보공개제도</a></li>
+					<li><a href="/sub/board_Disclosure01.html">경영공시</a></li>
+					<li><a href="/sub/board_Disclosure02.html">윤리경영</a></li>
+					<li><a href="/sub/board_Disclosure03.html">인권경영</a></li>
+					<li><a href="/sub/board_Disclosure04.html">안전경영</a></li>
+					<li><a href="/sub/clean_center.html">클린신고센터</a></li>
+                </ul>
+            </li>
+            <li><a href="#none">알림마당 <span><img src="/img/ham_arrow.png" alt=""></span></a>
+                <ul>
+					<li><a href="/sub/board_notice.html">공지사항</a></li>
+					<li><a href="/sub/board_hire.html">채용공고</a></li>
+					<li><a href="/sub/board_bid.html">입찰공고</a></li>
+					<li><a href="/sub/board_news.html">언론보도</a></li>
+					<li><a href="/sub/pomia_photo.html">POMIA Photo</a></li>
+					<li><a href="/sub/promotion.html">POMIA 홍보관</a></li>
+					<li><a href="/sub/board_related.html">유관기관 소식</a></li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+    <script>
+        // 헤더
+        $('header nav > ul > li').mouseover(function () {
+            $('.twoth').css({
+                display: 'flex'
+            })
+            //$('.twoth').slideDown()
+            $('.slideheader').stop(true).slideDown(200);
+        })
+        $('header').mouseleave(function () {
+            $('.twoth').css({
+                display: 'none'
+            });
+            $('.slideheader').stop(true).slideUp();
+        })
+
+		let nowh1Img = '';
+		let nowhamBg = '';
+
+        $('header .container nav > .ham').click(function () {
+            $(this).toggleClass('on');
+            if ($(this).hasClass('on')) {
+				nowh1Img = $('header h1 img').attr('src');
+				nowhamBg = $('header .ham span').css('backgroundColor');
+                $('header').css({
+                    backgroundColor: '#000'
+                })
+				$('header .ham span').css({backgroundColor: '#fff'});
+				$('header h1 img').attr('src', '/image/logo_white.png');
+                $('.hammenu').css({
+                    left: '0'
+                });
+            } else {
+                $('.hammenu').css({
+                    left: '100%'
+                })
+				$('header .ham span').css({backgroundColor: nowhamBg});
+				$('header h1 img').attr('src', nowh1Img);
+				console.log(nowhamBg, nowh1Img) 
+                if (window.location.href.indexOf('sub') != -1) {
+                    $('header').css({
+                        backgroundColor: '#fff'
+                    })
+                } else {
+                    $('header').css({
+                        backgroundColor: 'transparent'
+                    })
+                }
+            }
+        })
+
+
+        $('.hammenu ul > li').click(function () {
+            $(this).toggleClass('open');
+            $('.hammenu ul > li').find('ul').stop(true).slideUp();
+            $('.hammenu ul > li').find('img').css({
+                transform: 'rotate(0deg)'
+            })
+            $('.hammenu ul > li').not(this).removeClass('open');
+            if ($('.hammenu ul > li').hasClass('open')) {
+                $(this).find('ul').stop(true).slideDown();
+                $(this).find('img').css({
+                    transform: 'rotate(90deg)'
+                })
+            } else {
+                $('.hammenu ul > li').find('ul').stop(true).slideUp();
+                $(this).find('img').css({
+                    transform: 'rotate(0deg)'
+                })
+            }
+        })
+    </script>
+    <!-- //햄버거메뉴 -->
+<link rel="stylesheet" type="text/css" href="/css/default3.css">
+    <!-- //include_top// -->
+    <!-- sub_common -->
+    <link rel="stylesheet" href="/css/sub.css">
+    <div class="sub_header">
+        <h2 class="sub_header_tit01 font">사업공고</h2>
+        <div class="sub_header_img">
+            <div><img src="/image/sub_common_banner02.png" alt=""></div>
+        </div>
+    </div>
+    <div class="sub_header_location">
+        <ul class="container">
+            <li class="home">
+                <a href="/index_main.html"><i class="fa-solid fa-house"></i></a>
+            </li>
+            <li class="twodp">
+                <p>
+						기업지원 <i class="fa-solid fa-angle-down"></i>
+                    <ul class="sub_header_location_dropdown">
+                        <li><a href="/sub/board_buisness.html">사업공고</a></li>
+                        <li><a href="/sub/equipment.html">보유장비현황</a></li>
+                        <li><a href="/sub/equipment.html">KOLAS</a></li>
+                        <li><a href="/sub/equipment.html">시험분석신청</a></li>
+                    </ul>
+                </p>
+            </li>
+            <li class="thrdp" id="content100">
+                <p>
+                    사업공고
+                </p>
+            </li>
+        </ul>
+        <script>
+            $('.sub_header_location .container > li').click(function () {
+                $(this).toggleClass('menu');
+
+                if ($(this).hasClass('menu')) {
+                    $('.sub_header_location .container > li').removeClass('menu');
+                    $(this).addClass('menu');
+                    $('.sub_header_location_dropdown').stop(true).slideUp();
+                    $(this).find('.sub_header_location_dropdown').stop(true).slideDown();
+                } else {
+                    $('.sub_header_location_dropdown').stop(true).slideUp();
+                }
+            })
+        </script>
+    </div>
+    <!-- //sub_common// -->
+    <!-- sub_start -->
+    <div class="board">
+        <div class="container">
+            <h3 class="board_tit01 font">사업공고</h3>
+			<div class="board_cap_wrap">
+			   <p class="board_cap01">
+					포항소재산업진흥원의 최신 사업공고를 확인해 보세요.
+				</p>
+					<div class="board_cap_wrap_select" style="display:flex;width:280px;">
+						<select name="scate" id="scate" onchange="scateChg()">
+							<option value="">전체</option>
+							<option value="사업화지원" >사업화지원</option>
+							<option value="인력양성" >인력양성</option>
+							<option value="경영컨설팅" >경영컨설팅</option>
+							<option value="기술지원" >기술지원</option>
+							<option value="통합지원" >통합지원</option>
+							<option value="기타" >기타</option>
+						</select>
+						
+						<select name="sstatus" id="sstatus" onchange="statusChg()">
+							<option value="">접수현황 전체</option>
+							<option value="접수중" >접수중</option>
+							<option value="접수마감" >접수마감</option>
+						</select>
+					</div>
+            </div>
+ 
+
+            <div class="board_scroll_container">
+                <ul class="board_con_wrap">
+                    <li class="board_header font">
+                        <p class="num">번호</p>
+                        <p class="num">분류</p>
+                        <p class="tit">제목</p>
+                        <p class="who">작성자</p>
+                        <p class="date">등록일</p>
+                        <p class="see">조회수</p>
+                        <p class="see">접수현황</p>
+						
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=108&page=1&search=&keyword=&scate=">
+                            <p class="num">공지</p>
+                            <p class="num">[통합지원]</p>
+                            <p class="tit"> 2026년 포항소재산업진흥원 기업지원사업 통합공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.04.09</p>
+                            <p class="see">503</p>
+                            <p class="see">&nbsp;</p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=107&page=1&search=&keyword=&scate=">
+                            <p class="num">공지</p>
+                            <p class="num">[인력양성]</p>
+                            <p class="tit"> 2026년 경북 포항시 지역산업위기대응 맞춤형 지원사업 인력양성 재직자 교육생 기업 모집 공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.04.09</p>
+                            <p class="see">378</p>
+                            <p class="see">&nbsp;</p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=135&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">130</p>
+                            <p class="num">통합지원</p>
+                            <p class="tit"> 2026년 이차전지 전시회 참가 홍보관 운영사업 참여기업 모집공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.08.31</p>
+                            <p class="see">35</p>
+                            <p class="see1"><span style="text-align:center;">접수중</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=134&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">129</p>
+                            <p class="num">사업화지원</p>
+                            <p class="tit"> 2026 경북 K-차세대 전기추진선박 글로벌혁신 규제자유특구 사업설명회 안내 및 특구사업자 추가 모집 공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.08.06</p>
+                            <p class="see">228</p>
+                            <p class="see1"><span style="text-align:center;">접수중</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=132&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">128</p>
+                            <p class="num">인력양성</p>
+                            <p class="tit"> 2026년 철강산업 실무 맞춤형 취업 역량 강화과정 교육생 모집공고 
+							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.07.28</p>
+                            <p class="see">175</p>
+                            <p class="see1"><span style="text-align:center;">접수중</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=131&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">127</p>
+                            <p class="num">인력양성</p>
+                            <p class="tit"> 2026년 미래신산업 전문인력 양성과정 교육생 모집 공고 
+							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.07.20</p>
+                            <p class="see">138</p>
+                            <p class="see1"><span style="text-align:center;">접수중</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=129&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">126</p>
+                            <p class="num">인력양성</p>
+                            <p class="tit"> 2026년 글로벌 철강 미래인재 양성과정 교육생 모집 공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.07.11</p>
+                            <p class="see">611</p>
+                            <p class="see1"><span style="text-align:center;">접수중</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=128&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">125</p>
+                            <p class="num">인력양성</p>
+                            <p class="tit"> 철강 제조산업 고숙련 기술자격 전문인력 양성과정 교육생 모집 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.07.03</p>
+                            <p class="see">197</p>
+                            <p class="see1"><span style="text-align:center;">접수중</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=127&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">124</p>
+                            <p class="num">사업화지원</p>
+                            <p class="tit"> 2026년 전기추진선박 글로벌 특구 참여기업 모집 공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.06.29</p>
+                            <p class="see">266</p>
+                            <p class="see1"><span style="text-align:center;">접수중</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=126&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">123</p>
+                            <p class="num">통합지원</p>
+                            <p class="tit"> 2026년 지역 이차전지산업 업종전환 지원사업 컨설팅 업체 모집 공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.06.17</p>
+                            <p class="see">175</p>
+                            <p class="see2"><span style="text-align:center;">접수마감</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=125&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">122</p>
+                            <p class="num">통합지원</p>
+                            <p class="tit"> 2026년 이차전지 업종전환 수혜기업 선정평가위원 모집 공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.06.12</p>
+                            <p class="see">175</p>
+                            <p class="see2"><span style="text-align:center;">접수마감</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=124&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">121</p>
+                            <p class="num">통합지원</p>
+                            <p class="tit"> 26년도 디지털트윈 시범구역 조성(농어촌형) 제안서 평가위원(후보자) 모집 공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.06.04</p>
+                            <p class="see">154</p>
+                            <p class="see2"><span style="text-align:center;">접수마감</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=123&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">120</p>
+                            <p class="num">사업화지원</p>
+                            <p class="tit"> 2026년 이차전지 전시회 참가 홍보관 운영사업 참여기업 모집공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.05.27</p>
+                            <p class="see">104</p>
+                            <p class="see2"><span style="text-align:center;">접수마감</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=122&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">119</p>
+                            <p class="num">통합지원</p>
+                            <p class="tit"> 2026년 철강·금속 디지털전환(DX) 리트로핏 시범기업 모집 재공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.05.26</p>
+                            <p class="see">159</p>
+                            <p class="see2"><span style="text-align:center;">접수마감</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=121&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">118</p>
+                            <p class="num">통합지원</p>
+                            <p class="tit"> 2026 경북 동해안 철강벨트 경쟁력 강화사업 수혜기업 모집(기한연장) 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.06.25</p>
+                            <p class="see">414</p>
+                            <p class="see1"><span style="text-align:center;">접수중</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=120&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">117</p>
+                            <p class="num">통합지원</p>
+                            <p class="tit"> 2026년 철강·금속 디지털전환(DX) 리트로핏 컨설팅업체 모집공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.05.18</p>
+                            <p class="see">120</p>
+                            <p class="see2"><span style="text-align:center;">접수마감</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=119&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">116</p>
+                            <p class="num">사업화지원</p>
+                            <p class="tit"> 철강·금속 디지털전환(DX) 리트로핏 시범기업 모집 재공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.05.18</p>
+                            <p class="see">97</p>
+                            <p class="see2"><span style="text-align:center;">접수마감</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=118&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">115</p>
+                            <p class="num">통합지원</p>
+                            <p class="tit"> 2026년 지역 이차전지 업종전환지원사업 수혜기업모집 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.05.18</p>
+                            <p class="see">110</p>
+                            <p class="see2"><span style="text-align:center;">접수마감</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=116&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">114</p>
+                            <p class="num">통합지원</p>
+                            <p class="tit">  2026년 철강·금속 DX리트로핏 시범 지원사업 1차 컨설팅 수혜기업 선정평가위원 모집 공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.05.18</p>
+                            <p class="see">83</p>
+                            <p class="see2"><span style="text-align:center;">접수마감</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=115&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">113</p>
+                            <p class="num">통합지원</p>
+                            <p class="tit"> 2026년 철강금속 디지털전환(DX) 실증센터 시범기업 모집 연장공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.05.15</p>
+                            <p class="see">287</p>
+                            <p class="see2"><span style="text-align:center;">접수마감</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=114&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">112</p>
+                            <p class="num">통합지원</p>
+                            <p class="tit"> 2026년「지역 푸드테크 산업 생태계 조성 사업」 2차 모집 공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.05.15</p>
+                            <p class="see">132</p>
+                            <p class="see2"><span style="text-align:center;">접수마감</span></p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="board_detail_buisness.html?no=113&page=1&search=&keyword=&scate=&sstatus=">
+                            <p class="num">111</p>
+                            <p class="num">통합지원</p>
+                            <p class="tit"> 2026년 철강·금속 디지털전환(DX) 시범기업 모집 공고 
+&nbsp;<img src='/img/ic_file_01.jpg' align='absmiddle'>							
+							</p>
+                            <p class="who">POMIA</p>
+                            <p class="date">2026.05.11</p>
+                            <p class="see">216</p>
+                            <p class="see2"><span style="text-align:center;">접수마감</span></p>
+                        </a>
+                    </li>
+
+                </ul>
+
+
+				<div style="display: flex;justify-content: center;margin:10px 0;">
+	<nav aria-label="Page">
+<ul class="pagination justify-content-center">
+<td><li class="page-item active" aria-current="page"><span class="page-link bg-primary" style="border:solid 1px #51CBCE;">1<span class="sr-only">(current)</span></span></li>
+<li class="page-item"><a href="/sub/board_buisness.html?search=&keyword=&scate=&sstatus=&page=2" class="page-link text-primary">2</a></li>
+<li class="page-item"><a href="/sub/board_buisness.html?search=&keyword=&scate=&sstatus=&page=3" class="page-link text-primary">3</a></li>
+<li class="page-item"><a href="/sub/board_buisness.html?search=&keyword=&scate=&sstatus=&page=4" class="page-link text-primary">4</a></li>
+<li class="page-item"><a href="/sub/board_buisness.html?search=&keyword=&scate=&sstatus=&page=5" class="page-link text-primary">5</a></li>
+<li class="page-item"><a href="/sub/board_buisness.html?search=&keyword=&scate=&sstatus=&page=6" class="page-link text-primary">6</a></li>
+<li class="page-item"><a href="/sub/board_buisness.html?search=&keyword=&scate=&sstatus=&page=7" class="page-link text-primary">7</a></li>
+</td>
+<li class="page-item">
+<a href="/sub/board_buisness.html?search=&keyword=&scate=&sstatus=&page=7" class="page-link text-primary" aria-label="Next"><span aria-hidden="true">&raquo;</span></a>
+</li>
+</ul>
+</nav>
+				</div>
+
+
+            </div>
+        </div>
+    </div>
+    <script src="/js/sub.js"></script>
+    <!-- sub_end -->
+    <!-- end -->
+<script>
+function scateChg() {
+	var gap = document.getElementById("scate").value;
+	location.href="?sstatus=&scate=" + gap + "#content100";
+}
+function statusChg() {
+	var gap = document.getElementById("sstatus").value;
+	location.href="?scate=&sstatus=" + gap + "#content100";
+}
+</script>
+<footer class="swiper-slide">
+    <div class="container">
+        <div class="footer_top">
+            <div>POMIA</div>
+            <div class="footer_logo"><img src="/image/footer_logo.png" alt=""></div>
+        </div>
+        <ul class="footer_menu">
+            <li><a href="/sub/agree_privacy.html">개인정보처리방침</a></li>
+            <li><a href="/sub/agree_email.html">이메일무단수집거부</a></li>
+            <li><a href="/sub/location.html">오시는길</a></li>
+            <li><a href="http://115.68.193.254:8080">시험분석신청</a></li>
+            <li><a href="http://115.68.193.254:8080">SEM사용신청</a></li>
+            <li><a href="/sub/clean_center.html">클린신고센터</a></li>
+        </ul>
+        <p class="footer_info_text01">
+            [37666] 경상북도 포항시 남구 지곡로 56 / TEL. 054-279-9415 / FAX. 054-279-9419<br>
+            Copyright 2020-2026 ⓒ POMIA. All rights reserved.
+        </p>
+    </div>
+</footer>
+<style>
+	footer {margin-top: 80px;}
+</style>
+</body>
+
+</html>

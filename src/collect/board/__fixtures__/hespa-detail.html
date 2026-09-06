@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta name="title" content="공지사항" />
+<meta property="og:title" content="공지사항" /> 
+<meta property="twitter:title" content="공지사항" /> 
+
+<meta name=description content="공지사항"> 
+<meta name="twitter:description" content="공지사항"> 
+<meta name="og:description" content="공지사항"> 
+
+<meta property="og:type" content="website" />
+
+<meta name="copyright" content="헬스케어스파산업진흥원" />
+<meta name="keywords" content="공지사항" />
+
+<meta property="og:image" content="http://hespa.or.kr/main/images/logo.png">
+<meta property="og:url" content="http://hespa.or.kr/main/">
+
+<link rel="canonical" href="http://hespa.or.kr/main/">
+
+<meta name="title" content="(재)헬스케어스파산업진흥원" />
+<meta name="description" content="온천, 바이오헬스, 첨단 ICT 융복합 산업 생태계 조성" /> 
+<meta name="copyright" content="(재)헬스케어스파산업진흥원 홈페이지입니다." />
+<meta name="keywords" content="온천, 바이오헬스, 첨단 ICT 융복합 산업 생태계 조성" />
+
+<og:title content="(재)헬스케어스파산업진흥원" />
+<og:description content="온천, 바이오헬스, 첨단 ICT 융복합 산업 생태계 조성" /> 
+
+<meta name="naver-site-verification" content="23654fb5c77e6e0d59b0e9ad68eb5b6b6e8fa201" />
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="format-detection" content="telephone=no"/>
+<title>공지사항 | (재)헬스케어스파산업진흥원 홈페이지입니다.</title>
+<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1.0, maximum-scale=2.0, user-scalable=yes" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css" />
+<link rel="stylesheet" type="text/css" href="../css/common.css">
+<link rel="stylesheet" type="text/css" href="../css/main_con.css?ver=0.0.6">
+<link rel="stylesheet" type="text/css" href="../css/sub_con.css?ver=0.0.6">
+<link rel="stylesheet" type="text/css" href="../css/slick.css"/>
+<!-- <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2020.3.1118/styles/kendo.bootstrap-v4.min.css" /> -->
+<link rel="stylesheet" href="https://kendo.cdn.telerik.com/2021.1.330/styles/kendo.bootstrap-v4.min.css" />
+
+<script src="../js/jquery-1.12.4.min.js"></script>
+<script src="../js/menu.js"></script>
+
+
+<!-- <script src="https://kendo.cdn.telerik.com/2020.3.1118/js/jquery.min.js"></script>
+<script src="https://kendo.cdn.telerik.com/2020.3.1118/js/kendo.all.min.js"></script> -->
+<script src="https://kendo.cdn.telerik.com/2021.1.330/js/jquery.min.js"></script>
+<script src="https://kendo.cdn.telerik.com/2021.1.330/js/kendo.all.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.js"></script>
+<script src="../js/common.js"></script>
+<script src="../js/slick.min.js"></script>
+<!--[if lt IE 10]><script type="text/javascript" src="js/consolefix.js"></script><![endif]-->
+<!--[if lt IE 9]><script type="text/javascript" src="js/html5.js"></script><![endif]-->
+<!--[if lt IE 7]><script type="text/javascript" src="js/unitpngfix.js"></script><![endif]-->
+<script>
+if(! Number.isNumber) {
+	Number.isNumber = function(s){ 
+	  s += ''; // 문자열로 변환
+	  s = s.replace(/^\s*|\s*$/g, ''); // 좌우 공백 제거
+	  if (s == '' || isNaN(s)) return false;
+	  return true;
+	}
+}
+
+if(! Number.isInteger) {
+	Number.isInteger = function(value){
+		return !isNaN(value) && (function(x) { return (x | 0) === x; })(parseFloat(value));
+	}
+}
+</script>
+<script>
+function _nav_menu()
+{
+	var m1_id = '3', m2_id = '23';
+	var m1_title = '알림마당', m2_title = '공지사항';
+	var mnu1, mnu2, mnu_find_ok = false;
+	
+	mnu1 = $('div.gnb ul.menuNav');
+	
+	if(mnu1) {
+		$('div.nav .location ul:eq(0)').empty().html( mnu1.html() );
+		$('div.nav .location >li:eq(0) >a').html(m1_title);
+	}
+	
+	// 2차 메뉴 찾기
+	$('div.gnb .depth2 ul').each(function(idx, menu){
+		if(mnu_find_ok) {
+			return false;
+		}
+		
+		$(this).find('li a').each(function(idx2, li_obj){
+			//if( li_obj.href.search('m_cd='+m2_id) > -1 ) {
+			if( $(this).text() == m2_title) {
+				mnu2 = $(this).parents('ul');
+				mnu_find_ok = true;
+				$('div.nav .location >li:eq(1) ul:eq(0)').empty().html( mnu2.html() );
+				$('div.nav .location >li:eq(1) >a').html(m2_title);
+				console.log('mnu2', mnu2.html(), '//', $('div.nav .location >li:eq(1) >a').html());
+				 
+				return false;
+			}
+		});
+	});
+}
+
+$(function(){
+	setTimeout(_nav_menu,10);
+	//_nav_menu();
+});
+</script>
+
+<!--
+<script src="../js/jquery.viewbox.min.js"></script>
+<script>
+$(function(){
+	if( $('.image-link') .length ) {
+		$('.image-link').viewbox();
+	}
+});
+</script>
+-->
+
+<xscript src="../js/common_js.js"></xscript>
+</head>
+
+<body>
+<header>
+	<div class="menu-btn"></div>
+	<nav class="pushy pushy-right">
+		<div id="cssmenu">
+			<a href="../main/" class="mobile_logo"><span class="blind">(재)헬스케어스파산업진흥원 홈페이지입니다.</span></a>
+      <ul>
+        <li class="has-sub"><a href="#">진흥원소개</a>
+
+          <ul>
+            <li class="has-sub"><a href="#">인사말</a>
+				<ul>
+					<li><a href="./index.php?m_cd=35">이사장</a></li>
+					<li><a href="./index.php?m_cd=36">원장</a></li>
+				</ul>
+            </li>
+            <li><a href="./index.php?m_cd=7">비전전략</a></li>
+            <li><a href="./index.php?m_cd=6">주요연혁</a></li>
+            <li><a href="./index.php?m_cd=46">진흥원CI</a></li>
+            <li><a href="./index.php?m_cd=10">조직도</a></li>
+            <li><a href="./index.php?m_cd=11">오시는길</a></li>
+          </ul>
+        <li class="has-sub"><a href="#">주요사업</a>
+
+          <ul>
+            <li><a href="./index.php?m_cd=82">온천 건강 프로그램 운영</a></li>
+            <li><a href="./index.php?m_cd=83">온천수 수질·성분 분석</a></li>
+            <li><a href="./index.php?m_cd=84">온천 산업의 표준화</a></li>
+            <li><a href="./index.php?m_cd=85">헬스케어 제품 시험분석</a></li>
+            <li><a href="./index.php?m_cd=86">기업지원 프로그램 운영</a></li>
+          </ul>
+        <li class="has-sub"><a href="#">알림마당</a>
+
+          <ul>
+            <li><a href="./index.php?m_cd=23">공지사항</a></li>
+            <li><a href="./index.php?m_cd=24">입찰정보</a></li>
+            <li><a href="./index.php?m_cd=25">채용공고</a></li>
+            <li><a href="./index.php?m_cd=26">진흥원소식</a></li>
+            <li><a href="./index.php?m_cd=27">자료실</a></li>
+            <li><a href="./index.php?m_cd=28">고객의소리</a></li>
+            <li><a href="./index.php?m_cd=31">보도자료</a></li>
+          </ul>
+        <li class="has-sub"><a href="#">시설장비</a>
+
+          <ul>
+            <li><a href="http://online.hespa.or.kr/" target="_blank">장비현황</a></li>
+            <li><a href="./index.php?m_cd=30">이용안내</a></li>
+          </ul>
+        <li class="has-sub"><a href="#">정보공개</a>
+
+          <ul>
+            <li class="has-sub"><a href="#">경영공시</a>
+				<ul>
+					<li><a href="./index.php?m_cd=12">경영정보 및 운영계획</a></li>
+					<li><a href="./index.php?m_cd=13">예산정보</a></li>
+					<li><a href="./index.php?m_cd=14">결산정보</a></li>
+					<li><a href="./index.php?m_cd=15">임원운영인력현황</a></li>
+				</ul>
+            </li>
+            <li class="has-sub"><a href="#">경영정보</a>
+				<ul>
+					<li><a href="./index.php?m_cd=17">경영실적평가결과</a></li>
+					<li><a href="./index.php?m_cd=20">기관장 성과계약</a></li>
+					<li><a href="./index.php?m_cd=18">업무추진비</a></li>
+					<li><a href="./index.php?m_cd=19">계약정보</a></li>
+					<li><a href="./index.php?m_cd=78">협상에의한계약평가결과</a></li>
+					<li><a href="./index.php?m_cd=91">안전보건 투자실적</a></li>
+				</ul>
+            </li>
+            <li class="has-sub"><a href="#">윤리경영</a>
+				<ul>
+					<li><a href="./index.php?m_cd=42">윤리헌장</a></li>
+					<li><a href="./index.php?m_cd=68">인권경영</a></li>
+					<li><a href="./index.php?m_cd=69">ESG경영</a></li>
+					<li><a href="./index.php?m_cd=76">임직원 친인척 수</a></li>
+				</ul>
+            </li>
+            <li class="has-sub"><a href="#">부패공익신고센터</a>
+				<ul>
+					<li><a href="./index.php?m_cd=63">부패공익신고센터 바로가기</a></li>
+					<li><a href="./index.php?m_cd=65">신고자 보호제도 안내</a></li>
+				</ul>
+            </li>
+          </ul>
+        <li class="has-sub"><a href="#">스파·헬스케어 통합예약</a>
+
+          <ul>
+            <li class="has-sub"><a href="#">스파·헬스케어 전문인력 양성 교육과정</a>
+				<ul>
+					<li><a href="./index.php?m_cd=94">스파∙헬스케어 지도사</a></li>
+					<li><a href="./index.php?m_cd=95">교육일정 및 접수안내 </a></li>
+					<li><a href="./index.php?m_cd=96">교육진행</a></li>
+				</ul>
+            </li>
+            <li><a href="https://hespa.or.kr/edu/" target="_blank">시민건강 스파·헬스케어 프로그램</a></li>
+          </ul>
+        <li class="pushy-link"><a href="http://www.hespasupport.or.kr/" target="_blank">기업지원</a></li>
+      </ul>
+
+
+    	</div>
+	</nav><!-- 모바일 메뉴 end-->
+	<!--추가된 부분-->
+
+	<section id="hd_bot">
+		<div class="inner">
+			<nav id="gnb">
+				<a href="../main/" class="logo"><span class="blind">(재)헬스케어스파산업진흥원 홈페이지입니다.</span></a>
+				<ul id="main_menu" class="count4">
+<li class="depth_01"><a href="">진흥원소개</a>
+						<div class="main_sub_menu" style="display: none;">
+							<div class="depth_title"><strong>진흥원소개</strong>
+								<p>대한민국 온천·헬스케어 산업의 <br>메카가 되겠습니다.</p>
+								<ul>
+									<li><a href="./index.php?m_cd=35">인사말</a>
+										<ul>
+											<li><a href="./index.php?m_cd=35"><span>이사장</span></a></li>
+											<li><a href="./index.php?m_cd=36"><span>원장</span></a></li>
+										</ul>
+									</li>
+									<li><a href="./index.php?m_cd=7"><span>비전전략</span></a></li>
+									<li><a href="./index.php?m_cd=6"><span>주요연혁</span></a></li>
+									<li><a href="./index.php?m_cd=46"><span>진흥원CI</span></a></li>
+									<li><a href="./index.php?m_cd=10"><span>조직도</span></a></li>
+									<li><a href="./index.php?m_cd=11"><span>오시는길</span></a></li>
+								</ul>
+							</div>
+						</div>
+					</li>
+<li class="depth_01"><a href="">주요사업</a>
+						<div class="main_sub_menu" style="display: none;">
+							<div class="depth_title"><strong>주요사업</strong>
+								<p>바이오헬스산업 발전전략을 통해 <br>헬스케어산업 육성합니다.</p>
+								<ul>
+									<li><a href="./index.php?m_cd=82"><span>온천 건강 프로그램 운영</span></a></li>
+									<li><a href="./index.php?m_cd=83"><span>온천수 수질·성분 분석</span></a></li>
+									<li><a href="./index.php?m_cd=84"><span>온천 산업의 표준화</span></a></li>
+									<li><a href="./index.php?m_cd=85"><span>헬스케어 제품 시험분석</span></a></li>
+									<li><a href="./index.php?m_cd=86"><span>기업지원 프로그램 운영</span></a></li>
+								</ul>
+							</div>
+						</div>
+					</li>
+<li class="depth_01"><a href="">알림마당</a>
+						<div class="main_sub_menu" style="display: none;">
+							<div class="depth_title"><strong>알림마당</strong>
+								<p>관련 산업의 통합적 정보 지원으로 <br>기업지원 프로그램을 수행합니다.</p>
+								<ul>
+									<li><a href="./index.php?m_cd=23"><span>공지사항</span></a></li>
+									<li><a href="./index.php?m_cd=24"><span>입찰정보</span></a></li>
+									<li><a href="./index.php?m_cd=25"><span>채용공고</span></a></li>
+									<li><a href="./index.php?m_cd=26"><span>진흥원소식</span></a></li>
+									<li><a href="./index.php?m_cd=27"><span>자료실</span></a></li>
+									<li><a href="./index.php?m_cd=28"><span>고객의소리</span></a></li>
+									<li><a href="./index.php?m_cd=31"><span>보도자료</span></a></li>
+								</ul>
+							</div>
+						</div>
+					</li>
+<li class="depth_01"><a href="http://online.hespa.or.kr/" target="_blank">시설장비</a>
+						<div class="main_sub_menu" style="display: none;">
+							<div class="depth_title"><strong>시설장비</strong>
+								<p>혁신을 꿈꾸고 성장하며 <br>미래사회의 중심이 되겠습니다.</p>
+								<ul>
+									<li><a href="http://online.hespa.or.kr/" target="_blank"><span>장비현황</span></a></li>
+									<li><a href="./index.php?m_cd=30"><span>이용안내</span></a></li>
+								</ul>
+							</div>
+						</div>
+					</li>
+<li class="depth_01"><a href="">정보공개</a>
+						<div class="main_sub_menu" style="display: none;">
+							<div class="depth_title"><strong>정보공개</strong>
+								<p></p>
+								<ul>
+									<li><a href="./index.php?m_cd=12">경영공시</a>
+										<ul>
+											<li><a href="./index.php?m_cd=12"><span>경영정보 및 운영계획</span></a></li>
+											<li><a href="./index.php?m_cd=13"><span>예산정보</span></a></li>
+											<li><a href="./index.php?m_cd=14"><span>결산정보</span></a></li>
+											<li><a href="./index.php?m_cd=15"><span>임원운영인력현황</span></a></li>
+										</ul>
+									</li>
+									<li><a href="./index.php?m_cd=17">경영정보</a>
+										<ul>
+											<li><a href="./index.php?m_cd=17"><span>경영실적평가결과</span></a></li>
+											<li><a href="./index.php?m_cd=20"><span>기관장 성과계약</span></a></li>
+											<li><a href="./index.php?m_cd=18"><span>업무추진비</span></a></li>
+											<li><a href="./index.php?m_cd=19"><span>계약정보</span></a></li>
+											<li><a href="./index.php?m_cd=78"><span>협상에의한계약평가결과</span></a></li>
+											<li><a href="./index.php?m_cd=91"><span>안전보건 투자실적</span></a></li>
+										</ul>
+									</li>
+									<li><a href="./index.php?m_cd=42">윤리경영</a>
+										<ul>
+											<li><a href="./index.php?m_cd=42"><span>윤리헌장</span></a></li>
+											<li><a href="./index.php?m_cd=68"><span>인권경영</span></a></li>
+											<li><a href="./index.php?m_cd=69"><span>ESG경영</span></a></li>
+											<li><a href="./index.php?m_cd=76"><span>임직원 친인척 수</span></a></li>
+										</ul>
+									</li>
+									<li><a href="./index.php?m_cd=63">부패공익신고센터</a>
+										<ul>
+											<li><a href="./index.php?m_cd=63"><span>부패공익신고센터 바로가기</span></a></li>
+											<li><a href="./index.php?m_cd=65"><span>신고자 보호제도 안내</span></a></li>
+										</ul>
+									</li>
+								</ul>
+							</div>
+						</div>
+					</li>
+<li class="depth_01"><a href="">스파·헬스케어 통합예약</a>
+						<div class="main_sub_menu" style="display: none;">
+							<div class="depth_title"><strong>스파·헬스케어 통합예약</strong>
+								<p></p>
+								<ul>
+									<li><a href="./index.php?m_cd=94">스파·헬스케어 전문인력 양성 교육과정</a>
+										<ul>
+											<li><a href="./index.php?m_cd=94"><span>스파∙헬스케어 지도사</span></a></li>
+											<li><a href="./index.php?m_cd=95"><span>교육일정 및 접수안내 </span></a></li>
+											<li><a href="./index.php?m_cd=96"><span>교육진행</span></a></li>
+										</ul>
+									</li>
+									<li><a href="https://hespa.or.kr/edu/" target="_blank"><span>시민건강 스파·헬스케어 프로그램</span></a></li>
+								</ul>
+							</div>
+						</div>
+					</li>
+<li class="depth_01"><a href="http://www.hespasupport.or.kr/" target="_blank">기업지원</a>
+						<div class="main_sub_menu" style="display: none;">
+							<div class="depth_title"><strong>기업지원</strong>
+								<p></p>
+							</div>
+						</div>
+					</li>
+
+
+				</ul>
+<!--2025-10-21-추가-->
+<a href="https://www.youtube.com/@hespa2021" target="blank" title="(재)헬스케어스파산업진흥원 유튜브 공식 채널" class="youtube">
+
+<svg xmlns="http://www.w3.org/2000/svg" id="yt-ringo2-svg_yt11" width="93" height="20" viewBox="0 0 93 20" focusable="false" aria-hidden="true" style="pointer-events: none; display: inherit; width: 100%; height: 100%;">
+  <g>
+    <path d="M14.4848 20C14.4848 20 23.5695 20 25.8229 19.4C27.0917 19.06 28.0459 18.08 28.3808 16.87C29 14.65 29 9.98 29 9.98C29 9.98 29 5.34 28.3808 3.14C28.0459 1.9 27.0917 0.94 25.8229 0.61C23.5695 0 14.4848 0 14.4848 0C14.4848 0 5.42037 0 3.17711 0.61C1.9286 0.94 0.954148 1.9 0.59888 3.14C0 5.34 0 9.98 0 9.98C0 9.98 0 14.65 0.59888 16.87C0.954148 18.08 1.9286 19.06 3.17711 19.4C5.42037 20 14.4848 20 14.4848 20Z" fill="#FF0033"></path>
+    <path d="M19 10L11.5 5.75V14.25L19 10Z" fill="white"></path>
+  </g>
+  <g id="youtube-paths_yt11">
+    <path d="M37.1384 18.8999V13.4399L40.6084 2.09994H38.0184L36.6984 7.24994C36.3984 8.42994 36.1284 9.65994 35.9284 10.7999H35.7684C35.6584 9.79994 35.3384 8.48994 35.0184 7.22994L33.7384 2.09994H31.1484L34.5684 13.4399V18.8999H37.1384Z"></path>
+    <path d="M44.1003 6.29994C41.0703 6.29994 40.0303 8.04994 40.0303 11.8199V13.6099C40.0303 16.9899 40.6803 19.1099 44.0403 19.1099C47.3503 19.1099 48.0603 17.0899 48.0603 13.6099V11.8199C48.0603 8.44994 47.3803 6.29994 44.1003 6.29994ZM45.3903 14.7199C45.3903 16.3599 45.1003 17.3899 44.0503 17.3899C43.0203 17.3899 42.7303 16.3499 42.7303 14.7199V10.6799C42.7303 9.27994 42.9303 8.02994 44.0503 8.02994C45.2303 8.02994 45.3903 9.34994 45.3903 10.6799V14.7199Z"></path>
+    <path d="M52.2713 19.0899C53.7313 19.0899 54.6413 18.4799 55.3913 17.3799H55.5013L55.6113 18.8999H57.6012V6.53994H54.9613V16.4699C54.6812 16.9599 54.0312 17.3199 53.4212 17.3199C52.6512 17.3199 52.4113 16.7099 52.4113 15.6899V6.53994H49.7812V15.8099C49.7812 17.8199 50.3613 19.0899 52.2713 19.0899Z"></path>
+    <path d="M62.8261 18.8999V4.14994H65.8661V2.09994H57.1761V4.14994H60.2161V18.8999H62.8261Z"></path>
+    <path d="M67.8728 19.0899C69.3328 19.0899 70.2428 18.4799 70.9928 17.3799H71.1028L71.2128 18.8999H73.2028V6.53994H70.5628V16.4699C70.2828 16.9599 69.6328 17.3199 69.0228 17.3199C68.2528 17.3199 68.0128 16.7099 68.0128 15.6899V6.53994H65.3828V15.8099C65.3828 17.8199 65.9628 19.0899 67.8728 19.0899Z"></path>
+    <path d="M80.6744 6.26994C79.3944 6.26994 78.4744 6.82994 77.8644 7.73994H77.7344C77.8144 6.53994 77.8744 5.51994 77.8744 4.70994V1.43994H75.3244L75.3144 12.1799L75.3244 18.8999H77.5444L77.7344 17.6999H77.8044C78.3944 18.5099 79.3044 19.0199 80.5144 19.0199C82.5244 19.0199 83.3844 17.2899 83.3844 13.6099V11.6999C83.3844 8.25994 82.9944 6.26994 80.6744 6.26994ZM80.7644 13.6099C80.7644 15.9099 80.4244 17.2799 79.3544 17.2799C78.8544 17.2799 78.1644 17.0399 77.8544 16.5899V9.23994C78.1244 8.53994 78.7244 8.02994 79.3944 8.02994C80.4744 8.02994 80.7644 9.33994 80.7644 11.7299V13.6099Z"></path>
+    <path d="M92.6517 11.4999C92.6517 8.51994 92.3517 6.30994 88.9217 6.30994C85.6917 6.30994 84.9717 8.45994 84.9717 11.6199V13.7899C84.9717 16.8699 85.6317 19.1099 88.8417 19.1099C91.3817 19.1099 92.6917 17.8399 92.5417 15.3799L90.2917 15.2599C90.2617 16.7799 89.9117 17.3999 88.9017 17.3999C87.6317 17.3999 87.5717 16.1899 87.5717 14.3899V13.5499H92.6517V11.4999ZM88.8617 7.96994C90.0817 7.96994 90.1717 9.11994 90.1717 11.0699V12.0799H87.5717V11.0699C87.5717 9.13994 87.6517 7.96994 88.8617 7.96994Z"></path>
+  </g>
+</svg></a>
+			</nav>
+		</div>
+	</section>
+	<!-- PC_주요메뉴:E -->
+	<div class="transBg trans" style="display: none;">
+		<div class="gnb_bg"></div>
+	</div>
+
+</header>
+<main>
+	<section id="location">
+		<div class="inner1 location_inner">
+			<div class="home">
+				<a href="../main/"><span class="sp_comm"></span></a>
+			</div>
+			<div class="depth01">
+				<a href="#none">알림마당<span class="sp_comm"></span></a>
+				<ul class="depth02" style="display: none;">
+					<li><a href="/main/index.php?m_cd=35" xonclick="return false;">진흥원소개</a></li>
+					<li><a href="/main/index.php?m_cd=8" xonclick="return false;">주요사업</a></li>
+					<li><a href="/main/index.php?m_cd=23" xonclick="return false;">알림마당</a></li>
+					<li><a href="/main/index.php?m_cd=29" xonclick="return false;">시설장비</a></li>
+					<li><a href="/main/index.php?m_cd=12" xonclick="return false;">정보공개</a></li>
+					<li><a href="/main/index.php?m_cd=94" xonclick="return false;">스파·헬스케어 통합예약</a></li>
+					<li><a href="/main/index.php?m_cd=94" xonclick="return false;">기업지원</a></li>
+				</ul>
+			</div>
+			<div class="depth01">
+				<a href="#none">공지사항<span class="sp_comm"></span></a>
+				<ul class="depth02" style="display: none;">
+					<li><a href="/main/index.php?m_cd=23" xonclick="return false;">공지사항</a></li>
+					<li><a href="/main/index.php?m_cd=24" xonclick="return false;">입찰정보</a></li>
+					<li><a href="/main/index.php?m_cd=25" xonclick="return false;">채용공고</a></li>
+					<li><a href="/main/index.php?m_cd=26" xonclick="return false;">진흥원소식</a></li>
+					<li><a href="/main/index.php?m_cd=27" xonclick="return false;">자료실</a></li>
+					<li><a href="/main/index.php?m_cd=28" xonclick="return false;">고객의소리</a></li>
+					<li><a href="/main/index.php?m_cd=31" xonclick="return false;">보도자료</a></li>
+				</ul>
+			</div>
+
+			
+			<ul class="sub_util">
+				<li class="print" onclick="return false;">
+					<a href="#pring" onclick="window.print();">
+						<i class="ui icon print"></i>
+						<span>인쇄하기</span>
+					</a>
+				</li>
+			</ul>
+		</div>
+	</section>
+
+	<section id="sub_body">
+		<div class="inner3 sub_tit">
+			<h2 class="tit">공지사항</h2>
+			<p class="con">혁신을 꿈꾸고 성장하며, 대한민국 온천·헬스케어 <br>산업의 메카가 되겠습니다.</p>
+		</div>
+<!--[TAB_MENU]-->
+		<div class="inner2 margin_80">
+			<div class="block">
+
+<div id="bbs_view" class="bbs_block"></div>
+
+<script id="view-tmpl" type="text/kendo-ui-template">
+				<div class="bbs_header">
+					<h1>#= b_subj#</h1>
+# if(b_writer != '') { #					<span class="writer">#= b_writer#</span># } #
+					<span class="hit">조회 #= b_hit#</span>
+					<span class="date">등록일 #= b_regdt#</span>
+				</div>
+# if(b_link != "") { #
+						<div class="bbs_link">
+							<i class="ui icon external share"></i><a href="#=b_link #"> #=b_link #</a>
+						</div>
+# } #
+# if(f_list != '') { #
+					<div class="bbs_file">
+						<ul>
+#= f_list#
+						</ul>
+					</div>
+# } #
+				
+				<div class="bbs_con">
+#= b_cont#
+				</div>
+
+
+					<div class="bbs_bottom">
+						<dl class="next">
+							<dt>다음글 <i class="icon angle up"></i></dt>
+							<dd><a href="/main/index.php?m_cd=23&page=1&sp=2&b_id=2026072017652815">[2026 어린이 온천과학캠프] 참여자 모집</a></dd>
+						</dl>
+						<dl class="prev">
+							<dt>이전글 <i class="icon angle down"></i></dt>
+							<dd><a href="/main/index.php?m_cd=23&page=1&sp=2&b_id=20260313109900425">[유관기관] KTL AI기반 Age-Tech 산업 중심의 디지털의료제품 지원 바이오데이터 및 알고리즘 실증 기술서비스 모집 통합공고</a></dd>
+						</dl>
+					</div>
+                
+				<div class="btn_center margin_60"><!--일반 사용자일때-->
+					<button class="ui button big blue b_list">목록</button>
+				</div>
+</script>
+
+<form name="delFrm" method="post" action="../bbs2/bbs_proc.php">
+<input type="hidden" name="cmd" value="b_del">
+<input type="hidden" name="st_id" value="1">
+<input type="hidden" name="pm_id" value="23">
+<input type="hidden" name="rtn_url" value="/main/index.php?m_cd=23">
+<input type="hidden" name="b_id" value="">
+</form>
+
+<script type="text/javascript"> 
+var validator = $("#bbs_input").kendoValidator().data("kendoValidator"),
+status = $(".status");
+
+ $(document).ready(function() {
+	// create Editor from textarea HTML element with default set of tools
+	$("#content").kendoEditor({ resizable: {
+		content: true,
+		toolbar: true
+	}});
+});
+</script>
+
+<script>
+var r_data = {"pm_id":"23","b_id":"20260615083905479","ca_id":"0","b_notice":"0","b_secret":"0","b_subj":"2026\ub144 \u300c\uad7f\uc2a4\ud30c \uc778\uc99d\uc81c\ub3c4\u300d \ucc38\uc5ec\uae30\uc5c5 \ubaa8\uc9d1 \uacf5\uace0","b_cont":"<img src=\"..\/service\/ImageBrowser.php?id=Image&amp;path=popup/main/a5bcde21/화면 캡처 2026-06-15 083706.png\" alt=\"\" \/>","b_link":"","b_writer":"","b_mb_id":"site_adm","b_grp_id":"10","b_grpOrd":"0","b_grpDepth":"0","b_hit":280,"b_regdt":"2026-06-15 08:40:52","f_list":"\t\t\t\t\t\t\t<li><i class=\"ui icon save\"><\/i><a href=\"..\/bbs2\/file_download.php?fname=f20260615104931_[\uacf5\uace0\ubb38] \uad7f\uc2a4\ud30c \uc778\uc99d \ucc38\uc5ec\uae30\uc5c5 \ubaa8\uc9d1.hwpx\" title=\"\"> [\uacf5\uace0\ubb38] \uad7f\uc2a4\ud30c \uc778\uc99d \ucc38\uc5ec\uae30\uc5c5 \ubaa8\uc9d1.hwpx <\/a><\/li>\n\t\t\t\t\t\t\t<li><i class=\"ui icon save\"><\/i><a href=\"..\/bbs2\/file_download.php?fname=f20260615104931_\ubcc4\ucca81. \uad7f\uc2a4\ud30c \uc778\uc99d \uc2e0\uccad\uc11c \ubc0f \ubcc4\uc9c0(\uc591\uc2dd)_\uc6cc\ud130_\uc11c\ube44\uc2a4.hwp\" title=\"\"> \ubcc4\ucca81. \uad7f\uc2a4\ud30c \uc778\uc99d \uc2e0\uccad\uc11c \ubc0f \ubcc4\uc9c0(\uc591\uc2dd)_\uc6cc\ud130_\uc11c\ube44\uc2a4.hwp <\/a><\/li>\n\t\t\t\t\t\t\t<li><i class=\"ui icon save\"><\/i><a href=\"..\/bbs2\/file_download.php?fname=f20260615104931_\ubcc4\ucca81. \uad7f\uc2a4\ud30c \uc778\uc99d \uc2e0\uccad\uc11c \ubc0f \ubcc4\uc9c0(\uc591\uc2dd)_\uc81c\ud488.hwp\" title=\"\"> \ubcc4\ucca81. \uad7f\uc2a4\ud30c \uc778\uc99d \uc2e0\uccad\uc11c \ubc0f \ubcc4\uc9c0(\uc591\uc2dd)_\uc81c\ud488.hwp <\/a><\/li>\n","cmt_list":[]};
+
+console.log('data: ', r_data);
+function bbs_view()
+{
+	var tmpl2 = kendo.template( $('#view-tmpl').html() );
+	
+	if(r_data) {
+		$('.bbs_block').append( tmpl2(r_data) );
+	} else {
+		$('.bbs_block').append('<p>해당 글이 없습니다.</p>');
+	}
+}
+
+bbs_view();
+
+$(function(){
+	var reply_show = false;
+	
+	$('.button.b_list').on('click', function(){
+		window.location = '/main/index.php?m_cd=23';
+	});
+	
+	$('.button.b_edit').on('click', function(){
+		window.location = '/main/index.php?m_cd=23&cmd=edit&b_id='+r_data.b_id;
+	});
+	
+	if(reply_show) {
+		$('.button.b_reply').on('click', function(){
+			window.location = '/main/index.php?m_cd=23&cmd=reply&b_id='+r_data.b_id;
+		});
+		
+	} else {
+		$('.button.b_reply').hide(0);
+	}
+	
+	$('.button.b_del').on('click', function(){
+		var frm, ask = '';
+		
+		ask = confirm('현재 게시글을 삭제하겠습니까?');
+		
+		if(ask) {
+			frm = document.forms['delFrm'];
+			frm.b_id.value = r_data.b_id;
+			frm.submit();
+		}
+	});
+});
+</script>
+			</div>
+		</div>
+
+
+	</section>
+
+</main>
+<footer>
+	<div class="inner1">
+		<ul class="footer_menu">
+			<li><a href="index.php?m_cd=7">진흥원소개</a></li>
+			<!--<li><a href="index.php?m_cd=33">이메일주소무단수집거부</a></li>-->
+			<li><a href="index.php?m_cd=34">개인정보처리방침</a></li>
+                       <li><!--2025-10-21-추가-->
+<a href="https://www.youtube.com/@hespa2021" target="blank" title="(재)헬스케어스파산업진흥원 유튜브 공식 채널" style="position: relative; display: block; height: 24px; width: 90px;">
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 691 169.2" style="enable-background:new 0 0 691 169.2;position: relative; top: 5px;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#FF0033;}
+	.st1{fill:#FFFFFF;}
+</style>
+<g>
+	<path class="st0" d="M56.8,150.4c-8.5-2.3-15.1-9.1-17.6-17.4c-4-15.4-4-47.5-4-47.5s0-32.1,4-47.4c2.4-8.5,9.1-15.1,17.6-17.4
+		c15.3-4.2,76.9-4.2,76.9-4.2s61.8,0,77,4.2c8.6,2.3,15.1,8.9,17.4,17.4c4.2,15.3,4.2,47.4,4.2,47.4s0,32.1-4.2,47.5
+		c-2.3,8.4-8.8,15.1-17.4,17.4c-15.3,4.2-77,4.2-77,4.2S72.1,154.5,56.8,150.4z M114.1,115.1l51.1-29.7l-51.1-29.5V115.1z"/>
+	<polygon class="st1" points="114.1,115.1 165.3,85.4 114.1,55.9 	"/>
+	<path class="st1" d="M274.3,146.1v-37.8l-22.8-83.2h19.8l8.2,36.9c1.9,8.5,3.8,20.7,4.7,25.1h0.1c0.9-4.2,2.7-16.4,4.7-24.9l8.5-37
+		h19.8l-23.1,83.2v37.8H274.3z"/>
+	<path class="st1" d="M365.6,98.2v7.1c0,31.4-6.9,42.1-27.5,42.1c-21.2,0-27.5-10.9-27.5-42.1v-7.1c0-32.1,8.2-42.3,27.9-42.3
+		C358.3,55.9,365.6,66.6,365.6,98.2z M345.5,91.5c0-17-1.6-21.9-7.2-21.9c-5.8,0-7.5,4.9-7.5,21.9v20.3c0,17.6,1.7,22,7.2,22
+		c5.9,0,7.5-4.5,7.5-22V91.5z"/>
+	<path class="st1" d="M374,124V57.6h19.9v64.3c0,7.8,1.7,11.2,5.8,11.2c3.1,0,6.1-1.4,8.3-7.1V57.6h19.9v88.3H411l-1.2-11.9h-0.1
+		c-2.4,8.4-7.3,13.6-17.3,13.6C379.2,147.6,374,139.1,374,124z"/>
+	<path class="st1" d="M441.8,145.9V42.1h-19.7v-17h59.2v17h-19.7v103.8H441.8z"/>
+	<path class="st1" d="M475.9,124V57.6h19.9v64.3c0,7.8,1.7,11.2,5.8,11.2c3.1,0,6.1-1.4,8.3-7.1V57.6h19.9v88.3h-16.8l-1.2-11.9
+		h-0.1c-2.4,8.4-7.3,13.6-17.3,13.6C481.1,147.6,475.9,139.1,475.9,124z"/>
+	<path class="st1" d="M595.9,94.9v11.8c0,28.5-6,40.5-19.4,40.5c-8.1,0-14.3-3.6-17.4-9.6H559l-1.3,8.4h-17.3V20.6h19.2V46
+		c0,6.6,0.1,13.2-0.4,21.2h0.2c3.3-6.6,9-11.2,17.9-11.2C590.1,55.9,595.9,64.3,595.9,94.9z M575.6,94.9c0-20.4-1.7-24.9-7.3-24.9
+		c-3.7,0-7.3,3.3-8.8,9.6v48.7c1.7,3.4,4.8,4.8,7.9,4.8c6,0,8.1-6.3,8.1-25.5V94.9z"/>
+	<path class="st1" d="M656.2,108.1h-32.9v4.8c0,15.6,0.4,20.9,6.8,20.9c6.3,0,7.8-4.9,7.9-15l17.5,0.8c1.3,19.2-8.6,27.7-25.5,27.7
+		c-20.5,0-26.5-13.4-26.5-37.7V94.2c0-25.6,6.8-38.2,27.1-38.2c20.4,0,25.6,10.7,25.6,37.3V108.1z M623.3,90.3V97h13.1v-6.7
+		c0-16.3-0.6-20.9-6.6-20.9S623.3,74.2,623.3,90.3z"/>
+</g>
+</svg>
+
+</a></li>
+		</ul>
+
+		<div class="ui selection dropdown upward" tabindex="0">
+			<input type="hidden" name="site">
+			<div class="default text">관련 사이트</div>
+			<i class="dropdown icon"></i>
+			<div class="menu transition hidden" tabindex="-1">
+				<div data-value="http://www.asan.go.kr" class="item">아산시청</div>
+				<div data-value="http://www.chungnam.go.kr" class="item">충청남도</div>
+				<div data-value="https://ctp.or.kr/" class="item">충남테크노파크</div>
+			</div>
+		</div>
+		<script>
+			$('.ui.dropdown')
+				  .dropdown({
+					clearable: true,
+					onChange: function(value, text, $selectedItem) {
+						  // custom action
+						  if( value != "" ) {
+							  window.open(value, '_blank');
+						  }
+						 console.log('drop: '+value+'/'+text)
+					}
+				  });
+		</script> 
+	</div>
+	<hr>
+	<div class="inner1">
+		<div class="copy_info">
+			<span class="copy_span">
+				(우) 31442 충남 아산시 음봉면 염치산단1길 84  <span class="nbsp">/</span>   041.425.0147, 온천건강프로그램 문의 010-7449-0372  <br>
+				Copyright (c)(재)헬스케어스파산업진흥원. All rights reserved. <span id="adm_btn"></span>
+			</span>
+		</div>
+	</div>
+</footer>
+
+<!--추가된 부분-->
+<!-- Site Overlay -->
+<div class="site-overlay"></div>
+
+<!--MOBILE용 메뉴버전-->
+<script src="../js/pushy.min.js"></script>
+<script src="../js/addJs.js"></script>
+<!--추가된 부분-->
+<script>
+$(function(){
+	/*
+	$('div.top_zone .top_menu li:eq(1)').css({'display':'none'}).hide(0);
+	$('div.top_zone .top_menu li .adm_edit_btn').parent().css({'display':'none'}).hide(0);
+	*/
+	$('header .member_link li').each(function(idx, elm) {
+		if( $(this).find('.icon.search').length ) {
+			return;
+		}
+		if(idx == 0) {
+			$(this).find('a').on('click', function(e){
+				e.preventDefault();
+				
+				login_popup();
+			});
+		} else {
+			$(this).hide(0);
+		}
+	});
+});
+</script>
+<!--<a href="#" class="ui button tiny" onClick="login_popup(); return false;">로그인</a>
+<a href="../member/mb_join_form.php" class="ui button tiny">회원가입</a>-->
+
+<div id="window" class="ui modal mini" style="width:440px;">
+        
+        <div class="login_body sns_login">
+        <p class="login_text">SNS 로그인</p>
+		<ul>
+			<li><button type="button" onclick="naver_login();" class="ui naver button">
+				  <i class="icon"></i> 네이버 계정으로 로그인
+				</button></li>
+			<li><button type="button" onclick="kakao_login();" class="ui cacao button">
+				  <i class=" icon"></i> 카카오톡 계정으로 로그인
+				</button></li>
+			<li><button type="button" onclick="facebook_login();" class="ui fbook button">
+				  <i class="icon"></i> Facebook 계정으로 로그인
+				</button></li>
+			<!--<li><li><button type="button" onclick="alert('통합로그인');" class="ui asan button">
+				  <i class="icon"></i> 아산시 통합 로그인
+				</button></li>-->
+		</ul>
+        </div>
+</div><!--window end-->
+
+<script src="../js/naverLogin_implicit-1.0.1.js"></script>
+<script src="//developers.kakao.com/sdk/js/kakao.min.js"></script><!--http://developers.kakao.com/sdk/js/kakao.min.js-->
+<script src="https://apis.google.com/js/api:client.js"></script>
+
+<script>
+var facebook = {}, nv_naver = {}, kakao = {}, google2 = {};
+var sns_login = false;
+var nv_domain = '', naver_callback= '';
+var r_url = '/main/index.php?m_cd=23', callback_func = null;
+
+nv_domain = "hespa.or.kr";
+naver_callback= "http://"+nv_domain+"/youth/naver_callback.php";
+
+</script>
+<script type="text/javascript" src="../js/sns_login.js"></script>
+
+<script>
+function getCookie( name )
+{
+	var nameOfCookie = name + "=";
+	var x = 0;
+	while ( x <= document.cookie.length )
+	{
+		var y = (x+nameOfCookie.length);
+		if ( document.cookie.substring( x, y ) == nameOfCookie ) 
+		{
+			if ( (endOfCookie=document.cookie.indexOf( ";", y )) == -1 )
+			endOfCookie = document.cookie.length;
+			return unescape( document.cookie.substring( y, endOfCookie ) );
+		}
+			x = document.cookie.indexOf( " ", x ) + 1;
+			if ( x == 0 )
+		{
+			break;
+		}
+	}
+	return "";
+}
+
+function setCookie( name, value, expiredays )
+{
+	var todayDate = new Date();
+	todayDate.setDate( todayDate.getDate() + expiredays );
+	document.cookie = name + "=" + escape( value ) + "; path=/; expires=" + todayDate.toGMTString() + ";"
+}
+
+ $('#window').modal({
+    onDeny    : function(){
+      //window.alert('취소!');
+      //return false;
+    },
+    onApprove : function() {
+      window.alert('로그인 처리!');
+    } 
+ });
+ 
+ function login_proc(frm)
+ {
+	var frm = document.forms['layer_login_frm'];
+	
+	 if(frm.mb_id.value == '') {
+		 alert('아이디를 입력하세요.');
+		 return false;
+	 }
+	 else if(frm.mb_passwd.value == '') {
+		 alert('비밀번호를 입력하세요.');
+		 return false;
+	 } else {
+		 frm.submit();
+	 }
+ }
+ 
+function login_popup()
+{
+	 $('#window').modal('show')	
+	/*
+ $('.sns_login.modal')
+        .modal('setting', 'transition', value)
+        .modal('show')	
+	*/
+}
+</script>
+
+<!--<script src="../js/kendo.all.min.js"></script>-->
+<xscript src="../js/jquery.popupoverlay.js"></xscript>
+<script>
+function go_site(sObj)
+{
+  var s_val = sObj.value;
+
+  if(s_val != '') {
+    window.open(s_val);
+  }
+
+}
+</script>
+
+<script>
+function sns_share()
+{
+	var sns_title = encodeURIComponent('공지사항');
+	var sns_url = encodeURIComponent(window.location.href);
+	
+	$('ul.sns_block >li:eq(0) a').on('click', function(e){
+		e.preventDefault();
+		
+		var __fbwin = window.open('http://www.facebook.com/share.php?u=' + sns_url + '&title=' + sns_title, '', 'width=400,height=300');
+		__fbwin.focus();
+	});
+	
+	$('ul.sns_block >li:eq(1) a').parent().on('click', function(e){
+		e.preventDefault();
+		
+		var __twwin = window.open('https://twitter.com/intent/tweet?text=' + sns_title + '&url='+ sns_url, '', 'width=450,height=540');
+		__twwin.focus();
+	});
+	
+	$('ul.sns_block >li:eq(2) a').parent().on('click', function(e){
+		e.preventDefault();
+		
+		Kakao.Story.share({
+			url: window.location.href,
+			text: '공지사항'
+		});
+	});
+	
+	$('.sub_body .icon.print').parent().on('click', function(e){
+		e.preventDefault();
+		
+		//window.print();
+		var win = '';
+		
+		win = window.open('popup_1.html', 'print_win','toobars=no,menu=no');
+		
+		if(win) {
+			//$(win).find('.sub_container').html( $('.sub_container').html() );
+			win.focus();
+		}
+	});
+	
+	/*
+		// 구글+ 링크
+		var __gowin = window.open('https://plus.google.com/share?url=' + __snsurl , '', 'width=500,height=600');
+		__gowin.focus();
+		
+		// 라인 링크
+		var __linewin= window.open('http://line.me/R/msg/text/?' + __snstitle + ' ' + __snsurl, '', 'width=500,height=600');
+		__linewin.focus();
+		
+		// 네이버 밴드 링크
+		var __bawin = window.open('http://band.us/plugin/share?body=' + __snsurl + ' ' + __snstitle , '', 'width=500,height=600');
+		__bawin.focus();
+		
+		// 카카오스토리 링크?
+	    $("#bt1kakao").click(function(){
+	    	Kakao.Story.share({
+	            url: document.location.href.replace(/#/g, ''),
+	            text: document.title
+	          });
+		});
+	    
+	    $("#bt1kakaolink").click(function(){
+	    	Kakao.Link.sendTalkLink({
+		          label: __snstitle + ' ' + __snsurl
+		        });
+		});
+	*/
+}
+
+$(function(){
+	setTimeout('sns_share();', 0)
+});
+</script>
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-YCKN995DDV"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-YCKN995DDV');
+</script>
+
+</body>
+</html>

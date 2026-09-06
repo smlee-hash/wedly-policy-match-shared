@@ -1,0 +1,1945 @@
+
+
+
+<!DOCTYPE html>
+<html lang="ko">
+	<head>
+		<meta charset="utf-8">
+		<!-- <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" /> -->
+		<title>창조경제혁신센터</title>
+		
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />    
+<meta name="google-site-verification" content="5qmrlOjk08rjB5e5yXNMuAzd4k_3KN-vFGyVj81-4rA" />
+
+<meta name="robots" content="noindex, follow">
+
+<link rel="shortcut icon" href="/resources/images/ccei_favicon.ico" type="image/x-icon">
+<link rel="icon" href="/resources/images/ccei_favicon.ico" type="image/x-icon">
+
+<!-- <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/nanumsquare.css">
+<link rel="stylesheet" type="text/css" href="//cdn.rawgit.com/innks/NanumSquareRound/master/nanumsquareround.min.css"> -->
+<link rel="stylesheet" type="text/css" href="/resources/common/css/nanumsquare.css">
+<link rel="stylesheet" type="text/css" href="/resources/common/css/nanumsquareround.min.css">
+
+<link rel="stylesheet" type="text/css" href="/resources/common/css/ccei.css">
+<link rel="stylesheet" type="text/css" href="/resources/common/css/jquery-ui.min.css">
+<link rel="stylesheet" type="text/css" href="/resources/common/css/jquery.fancybox.css" />
+<link rel="stylesheet" type="text/css" href="/resources/common/css/jquery.bxslider.css" />
+<link rel="stylesheet" type="text/css" href="/resources/common/css/print.css" />
+<!-- <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css"> -->
+<link rel="stylesheet" type="text/css" href="/resources/common/css/jquery-ui.css" />
+
+<!--[if lt IE 9]>
+<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+<script src="https://raw.github.com/scottjehl/Respond/master/respond.min.js"></script>
+<![endif]-->
+<script type="text/javascript" src="/resources/common/js/jquery-1.11.2.min.js"></script>
+<script type="text/javascript" src="/resources/common/js/common.js"></script>
+<script type="text/javascript" src="/resources/common/js/jquery.fancybox.js"></script>
+<script type="text/javascript" src="/resources/common/js/jquery.bxslider.js"></script>
+<script type="text/javascript" src="/resources/common/js/jquery.scrollfollow.js"></script>
+<script type="text/javascript" src="/resources/common/js/jquery-ui.js"></script>
+<script type="text/javascript" src="/resources/common/js/jquery.select2.js"></script>
+
+<script type="text/javascript" src="/resources/js/Map.js"></script>
+<script type="text/javascript" src="/resources/js/config.js"></script>
+<script type="text/javascript" src="/resources/js/jquery.validate.js"></script>
+<script type="text/javascript" src="/resources/js/common.js"></script>
+<script type="text/javascript" src="/resources/js/jquery.cookie.js"></script>
+<script type="text/javascript" src="/resources/js/jquery-migrate-1.2.1.min.js"></script>
+<script type="text/javascript" src="/resources/js/jquery-ui.min.js"></script>
+<script type="text/javascript" src="/resources/js/calender.js"></script>
+<script type="text/javascript" src="/resources/js/jquery.simplemodal-1.4.4.js"></script>
+<script type="text/javascript" src="/resources/js/jquery.form.js"></script>
+<script type="text/javascript" src="/resources/js/jquery.fitvids.js"></script>
+
+<script type="text/javascript" src="/resources/js/jquery.bpopup.js"></script>
+
+<!-- 나모 웹 에디터(s) -->
+<script type="text/javascript" src="/crosseditor/js/namo_scripteditor.js"></script>   
+<!-- 나모 웹 에디터(e) -->
+
+<!-- main 홍보관 이미지 전환 s -->
+<script type="text/javascript" src="/resources/common/js/swiper.min.js"></script>
+<!-- main 홍보관 이미지 전환 e -->
+
+<script type="text/javascript">
+	var script_CONTEXT = '';
+</script>
+		<script type="text/javascript">
+			$(document).ready(function() {
+			    $(this).keydown(function (key) {
+			        if(key.keyCode == 13){//키가 13이면 실행 (엔터는 13)
+			        	eventList(1);
+			        }
+			    });
+				
+			});
+			
+			
+		</script>
+	</head>
+	<body>
+	<div class="skip">
+		<a href="#contents">본문바로가기</a>
+	</div>
+	<div class="wrap">
+		
+
+
+
+
+
+
+<!--  로컬에선 주석처리 --> 
+<script src="https://developers.kakao.com/sdk/js/kakao.js"></script>
+<script type="text/javascript" src="https://static.nid.naver.com/js/naverLogin_implicit-1.0.3.js" charset="utf-8"></script>
+<!-- 23.06.26 주석 처리 : js 외부 연결 
+<script type="text/javascript" src="/resources/common/js/kakao.js"></script>
+<script type="text/javascript" src="/resources/common/js/naverLogin_implicit-1.0.3.js"></script>  -->
+
+	<link rel="stylesheet" type="text/css" href="/resources/common/css/login.css">
+	<script type="text/javascript">
+		$(document).ready(function() {
+			
+			var get = getRequest();
+			var stc = get['stc'];
+			var tk = get['tk'];
+			var jo = get['join'];
+			var id_chk = get['id_chk'];
+			var intg_sso = get['intg_sso'];
+			var ssoUuid = get['ssoUuid'];
+			var registerYn = get['registerYn'];
+			
+			//
+			if(registerYn == "Y"){
+				location.href = '/json/sso/login.json'; // 기존 "통합회원 로그인" 버튼과 동일한 URL
+			}
+			//
+			if(id_chk){
+				alert("이미 로그인된 아이디가 있습니다.\n로그인 후 기존 세션은 종료됩니다");	
+			}
+			if(id_chk){
+				location.href = "/";
+			}
+			//
+			if(stc == 'Y'){
+				alert("가입되지 않은 회원입니다.\n회원가입을 위해서는 본인인증을 필수로 진행하셔야 합니다.");
+				openPccCert();
+			}
+			//
+			if (intg_sso == 'Y') {
+				$.ajax({
+					type:"POST",
+					url:"/json/sso/getMapInfo.json",
+					data:"ssoUuid=" + ssoUuid,
+					cache:false,
+					dataType:"json",
+					success:function(data){
+						if(data.result == "SUCCESS") {
+							openUsrInfoPopSso(data.LOGIN_ID, data.NAME, data.PHONE, data.BIRTHDAY, data.EMAIL, "unify", "", "", "",data.CI_VAL);
+						} else {
+							alert("통합회원을 통한 가입이 실패하였습니다.");
+							location.href = "/";
+						}
+					},
+					error: function(request, status, error) {
+						// 통신 에러 발생 시 실행할 코드
+						console.log("에러 발생 코드: " + request.status);
+					}
+				});
+			}
+			//
+			if(jo == 'Y'){
+				var req = getRequest();
+				var retInfo = req['retInfo'];
+				var reqNum  = req['reqNum'];
+				var gu	  = req['gu']
+				var id_chk  = req['id_chk'] 
+				$.ajax({
+					type:"POST",
+					url:"/json/common/getPccInfo.json",
+					data:"retInfo=" + retInfo + "&reqNum=" + reqNum,
+					cache:false,
+					dataType:"json",
+					success:function(data){
+						if(data.reqCiCheck == null){
+							alert("정상적인 접근 경로가 아닙니다. 홈페이지로 이동합니다.")
+							location.href = "/";
+						}else{
+							/* 회원정보 수정 탭으로 이동 */
+							alert("회원정보 수정 페이지로 이동합니다.")
+							openUsrInfoPopCall2();
+						}
+					}
+				});
+			}
+		
+			$(".lay01").fancybox({href : '#LayerAlert'});
+			$("#loginOff").css('display', 'none');
+			$("#pccCert").css('display', 'none');
+			$("#operationRe2Go").fancybox({href : '#Layer-enquiry'});
+			$('div.maptxt > ul > li > a').hover(
+				function(e) {
+					$('[id^=map]').hide();
+					var f = $(e.target).attr('class');
+					$('#' + f).show();
+				}
+			);
+
+			var uri = location.pathname;
+			
+			if(uri.indexOf('.do')!=-1){
+				uri = uri.substring(0 , uri.indexOf('.'));
+			}
+			
+			$.ajax({
+				type : "POST",
+				url : "/json/common/users_record.json",
+				data : "access_url=" + uri,
+				cache : false,
+				dataType : "json",
+				success : function(data) {
+				}
+				, complete : function() {
+				}
+			});
+			
+			//알림
+			$.ajax({
+				type : "POST",
+				url : "/json/main/promoList.json",
+				data : {"num" : "1"},
+				cache : false,
+				dataType : "json",
+				success : function(data){
+					var result = data.result;
+					if(result){
+									var list = result.list;
+						var index = list.length;
+						if (index > 4) index = 4;
+						var tmp = "<div>";
+						if(index > 0){
+							for(var i = 0; i < index; i++){
+								if(list[i]["TYPE"]=="1"){
+									tmp += "<a href='/promotion/pr_board_one.do?seq="+list[i]["SEQ"]+"' class='notice_roll'><span class='con'>";
+								}else{
+									tmp += "<a href='"+list[i]["LINK_URL"]+"' target='_blank' class='notice_roll'><span class='con'>";
+								}
+								if(typeof list[i]["COUNTRY_NAME"] == "undefined"){
+									tmp += "<span style='color:#FFFFFF;'>통합</span>";
+								}else{
+									tmp += "<span style='color:#FFFFFF;'>" + list[i]["COUNTRY_NAME"] + "</span>";
+								}
+								if(list[i]["TYPE"]=="1"){
+									tmp += "<span style='color:#92B3B7' > [보도자료] </span>" + list[i]["TITLE"] + "</span>";
+								}else{
+									tmp += "<span style='color:#92B3B7' > [스크랩] </span>" + list[i]["TITLE"] + "</span>";
+								}
+								tmp += "<span class='grey text-right'>" + list[i]["REG_DATE"] + "</span></a>";
+							}
+						}
+						tmp += "</div>";
+						$(".RollDiv").html(tmp);
+						rollingNotice(0);
+						$("#roll_prev").click(function() {
+							goMove(0);
+						});
+						$("#roll_next").click(function() {
+							goMove(1);
+						});
+					}
+				}
+			});
+
+			var sesConfirm  = 'false';
+			var userId = '';
+			var showSsoNoAgency = '';
+			var ssoMemberNoCcei = '';
+			var showSsoRegGuide = '';
+			var ssoUuid = '';
+			var ssologinyn = '';
+			var isLoggedIn = (sesConfirm === 'true' && userId !== '');
+			var showIntgGuide = '';
+			var clientIp = '58.231.242.75';
+
+			// ① 팝업1: 로그인 안 된 상태에서만 표시
+			if (showSsoNoAgency === 'Y' && !isLoggedIn) {
+				$('#ssoNoAgencyModal').css('display', 'flex');
+				$.ajax({ type: 'POST', url: '/json/common/clearSsoNoAgencyFlag.json', cache: false });
+			}
+
+			// ② 팝업2: 로그인 완료 + 통플 회원이나 CCEI 유관기관 미등록
+			// - 기존 CCEI 회원이 SNS 로그인한 경우
+			// - 신규 CCEI 회원가입 후 자동 로그인된 경우
+			// 두 케이스 모두 SSO_MEMBER_NO_CCEI=Y + 로그인 완료 조건으로 처리
+			if (isLoggedIn && ssoMemberNoCcei === 'Y') {
+				$('#ssoRegGuideModal').css('display', 'flex');
+				$.ajax({ type: 'POST', url: '/json/common/clearSsoMemberNoCceiFlag.json', cache: false });
+			}
+
+			// ③ 팝업2 (컨트롤러에서 SHOW_SSO_REG_GUIDE 세팅된 경우 대비 - 안전장치)
+			if (isLoggedIn && showSsoRegGuide === 'Y') {
+				$('#ssoRegGuideModal').css('display', 'flex');
+				$.ajax({ type: 'POST', url: '/json/common/clearSsoRegGuideFlag.json', cache: false });
+			}
+
+			// 팝업1 버튼 (유관시스템등록 팝업  > 등록하기 버튼 클릭 시  )
+			$('#btnSsoNoAgencyLogin').on('click', function() {
+				$('#ssoNoAgencyModal').hide();
+				location.href = 'https://onepass.smes.go.kr/mypage-member/information?redirect_uri=https%3A%2F%2Fccei.creativekorea.or.kr%2Fjson%2Fsso%2Fcallback.json&client_id=ccei-creative-prd&uuid=';
+			});
+			$('#btnSsoNoAgencyClose').on('click', function() {
+				$('#ssoNoAgencyModal').hide();
+			});
+
+			// 확인 → 통합회원 버튼과 동일하게 이동
+			$('#btnSsoRegGuideOk').on('click', function() {
+				$('#ssoRegGuideModal').hide();
+				location.href = 'https://onepass.smes.go.kr/mypage-member/information?redirect_uri=https%3A%2F%2Fccei.creativekorea.or.kr%2Fjson%2Fsso%2Fcallback.json&client_id=ccei-creative-prd&uuid=';
+			});
+
+			// 취소 → 그냥 닫기
+			$('#btnSsoRegGuideCancel').on('click', function() {
+				$('#ssoRegGuideModal').hide();
+			});
+
+			// JSP 세션 플래그 확인
+			if (showIntgGuide === 'Y') {
+				// 모달 표시
+				$('#intgGuideModal').css('display', 'flex');
+
+				// 세션 플래그 즉시 초기화 (새로고침 시 재노출 방지)
+				$.ajax({
+					type: 'POST',
+					url: '/json/common/clearIntgGuideFlag.json',
+					cache: false
+				});
+			}
+
+			// 예 → 통합회원 전환하기 페이지로 이동
+			$('#btnIntgYes').on('click', function() {
+				$('#intgGuideModal').hide();
+				location.href = '/json/sso/conversion.json'; // 기존 "통합회원 전환하기" 버튼과 동일한 URL
+			});
+
+			// 아니오 → 모달 닫고 일반 로그인 완료
+			$('#btnIntgNo').on('click', function() {
+				$('#intgGuideModal').hide();
+			});
+		});
+		
+		$.daejeonTransModalOption = function() {
+			$("#daejeonTransModal").modal({
+				overlayCss:{"background-color":"#000000"},
+				onShow: function (dialog) {
+					// 닫기 버튼
+					$("#daejeonTransModalClose").click(function() {
+						$.modal.close();
+					});
+					$("#daejeonTransModalClose1").click(function() {
+						$.modal.close();
+					});
+
+					// 확인 버튼
+					$("#daejeonTransModalBtn").click(function() {
+						$.modal.close();
+						location.href="/daejeon/";
+					});
+				}
+			});
+		};
+
+		$.daejeonModalOption = function() {
+			$("#daejeonModal").modal({
+				overlayCss:{"background-color":"#000000"},
+				onShow: function (dialog) {
+					// 닫기 버튼
+					$("#agreeNo").click(function() {
+						alert('회원 등록에 실패 하셨습니다. 서비스 이용을 위해서는 약관에 동의해 주세요.');
+						var path1 = location.pathname;
+						$.modal.close();
+					});
+
+					// 확인 버튼
+					$("#agreeOk").click(function() {
+						if(!$("#agree").is(":checked")) {
+							alert("약관에 동의해주세요.");
+							$("#agree").focus();
+							return false;
+						}
+
+						$.ajax({
+							type : "POST",
+							url : "/json/login/daejeonMember.json",
+							data : "",
+							cache : false,
+							dataType : "json",
+							success : function(data) {
+								var result = data.result;
+
+								if(result){
+									$.modal.close();
+									location.reload();
+								}else{
+									alert("잠시후 다시 이용해 주세요.");
+								}
+							}
+							, complete : function() {
+							}
+						})
+					});
+				}
+			});
+		};
+
+		// 충남 서비스 알림
+		$.chungnamTransModalOption = function() {
+			$("#chungnamTransModal").modal({
+				overlayCss:{"background-color":"#000000"},
+				onShow: function (dialog) {
+					// 닫기 버튼
+					$("#chungnamTransModalClose").click(function() {
+						$.modal.close();
+					});
+					$("#chungnamTransModalClose1").click(function() {
+						$.modal.close();
+					});
+
+					// 확인 버튼
+					$("#chungnamTransModalBtn").click(function() {
+						$.modal.close();
+						location.href="/chungnam/";
+					});
+				}
+			});
+		};
+		// 충남 서비스 알림
+		
+		function loginProcess(form){
+			if(form == 0){
+				if($.trim($('#userid').val()) == "") {
+					$('#userid').focus();
+					return;
+				}
+
+				if($.trim($('#password').val()) == "") {
+					$('#password').focus();
+					return;
+				}
+
+				// 로그인 인증
+				if (dataValidateCheck("login_form")) {
+
+					var loginFormData = $("#login_form").serialize();
+
+					$.ajax({
+						type : "POST",
+						async : false,
+						url : "/loginProcess.json",
+						data : loginFormData+"&f_type="+form,
+						cache : false,
+						dataType : "json",
+						success : function(data) {
+							var result = data.result;
+							var user = data.user;
+
+							if(result == 1 || result == 2) {
+								alert("정보 확인 후 다시 입력해 주세요.");
+							} else {
+								//로그인 확인
+								$("#login_YN").val('Y');
+								
+								if($("#s_path").val() == "login") {
+									location.reload();
+								} else {
+									location.href = $("#s_path").val();
+								}
+
+								//아이디 기억하기 체크유무 확인 후 아이디 쿠키에 저장 또는 삭제
+								if($("#idSave").prop("checked")) {
+									$.savUsrId($("#userid").val(), 365);
+								} else {
+									$.savUsrId($("#userid").val(), -1);
+								}
+								
+								//alert('로그인에 성공하였습니다.');
+								$.fancybox.close();
+								$("#loginLi").html('<a href="/logout.do">로그아웃</a>');
+								$("#user_name").html('<p><strong class="user_nick">'+user+'</strong>님 안녕하세요.</p>');
+								$("#mobile_login_btns").html('<a class="join_go"  href="/myPage/myProgram_list.do?&page=1" >마이페이지</a><a class="login_go"  href="/logout.do" >로그아웃</a>');
+								$("#mypageLi").show();
+							}
+						}
+					})
+				}
+			}else{
+				if($.trim($('#userid2').val()) == "") {
+					$('#userid2').focus();
+					return;
+				}
+
+				if($.trim($('#password2').val()) == "") {
+					$('#password2').focus();
+					return;
+				}
+
+				// 로그인 인증
+				if (dataValidateCheck("login_form2")) {
+
+					var loginFormData = $("#login_form2").serialize();
+
+					$.ajax({
+						type : "POST",
+						url : "/loginProcess.json",
+						data : loginFormData+"&f_type="+form,
+						cache : false,
+						dataType : "json",
+						success : function(data) {
+							var result = data.result;
+							var user = data.user;
+
+							if(result == 1 || result == 2){
+								alert("정보 확인 후 다시 입력해 주세요.");
+							}else{
+								//로그인 확인
+								$("#login_YN").val('Y');
+								
+								//아이디 기억하기 체크유무 확인 후 아이디 쿠키에 저장
+								if($("#idSave2").prop("checked")) {
+									$.savUsrId($("#userid2").val(), 365);
+								} else {
+									$.savUsrId($("#userid2").val(), -1);
+								}
+								
+								//alert('로그인에 성공하였습니다.');
+								$.fancybox.close();
+								$("#loginLi").html('<a href="/logout.do">로그아웃</a>');
+								$("#user_name").html('<p><strong class="user_nick">'+user+'</strong>님 안녕하세요.</p>');
+								$("#mobile_login_btns").html('<a class="join_go"  href="/myPage/myProgram_list.do?&page=1" >마이페이지</a><a class="login_go"  href="/logout.do" >로그아웃</a>');
+								$("#mypageLi").show();
+							}
+						}
+						, complete : function() {
+						}
+					})
+				}
+			} // else
+
+		}
+
+		function openModal(class_nm,path){
+			if(confirm('로그인 후 이용 가능합니다.\n로그인 하시겠습니까?')){
+				$("#s_path").val(path);
+				location.href = '/json/sso/login.json';
+			}
+		}
+
+		function close_login() {
+			$.fancybox.close();
+			location.href = '/main.do';
+		}
+
+		//로그인 아이디 저장 및 제거
+		$.savUsrId = function(usrId, expiredays) {
+			var todayDate = new Date();
+			todayDate.setDate(todayDate.getDate() + expiredays);
+			document.cookie = "cceiUsrId=" + escape( usrId ) + "; path=/; expires=" +   todayDate.toUTCString() + ";";
+		}
+
+		//저장된 id 불러오기
+		$.getLoginId = function () {
+			var cook = document.cookie + ";";
+			var idx = cook.indexOf("cceiUsrId", 0);
+			var val = "";
+
+			if(idx != -1) {
+				cook = cook.substring(idx, cook.length);
+				begin = cook.indexOf("=", 0) + 1;
+				end = cook.indexOf(";", begin);
+				val = unescape(cook.substring(begin, end));
+			}
+			return val;
+		}
+		
+	</script>
+
+	<input type="hidden" name="login_YN" id="login_YN" 
+		
+			
+			
+				value="N"
+			
+		
+	 />
+
+	<input type="hidden" name="intg_sso" id="intg_sso"/>
+
+	<header class="pc_header">
+		<form name="form10" id="form10" method="POST">
+			<input type="hidden" name="no" id="no1" />
+		</form>
+		<div class="notice_wrap">
+			<div class="notice">
+				<div class="arrow">
+					<span class="line-r"><a href="javascript:;" id="roll_prev"><img src="/resources/images/common/prev-arrow.jpg" alt="이전" /></a></span>
+					<span><a href="javascript:;" id="roll_next"><img src="/resources/images/common/next-arrow.jpg" alt="다음" /></a></span>
+				</div>
+				<div class="flow">
+					<span class="tit">
+
+						NEWS
+					</span>
+					<div class="RollDiv">
+					</div>
+				</div>
+				<div class="notice_right">
+					<div class="link-go startbiz">
+						<a href="https://www.startbiz.go.kr/index.do" target="_blank">바로가기</a>
+					</div>
+					<div class="link-go Kstartup">
+						<a href="https://www.k-startup.go.kr/main.do" target="_blank">바로가기</a>
+					</div>
+					<ul>
+						<li class="drop2" id="loginLi">
+							
+
+								
+								
+
+								
+								
+
+								
+								
+
+									
+									
+
+									
+									<li class="drop2">
+										<a href="/json/sso/login.json">
+											통합회원 로그인
+										</a>
+									</li>
+									
+									
+
+								
+
+							
+
+						
+						<li class="drop2" id="mypageLi" style="display:none;">
+							<a href="/myPage/myProgram_list.do?&page=1">
+						 		마이페이지
+						 	</a>
+						</li>
+						<li class="drop lng">
+							<a href="#self"> 
+
+								LANGUAGE
+							</a>
+							<div id="self"></div>
+							<ul class="lng_chck" style="display: none;">
+								<li><a href="/service/business_view.do"><img src="/resources/images/common/snb-korean.png" alt="korean" /></a></li>
+								<li><a href="/eng/service/business_view.do"><img src="/resources/images/common/snb-english.png" alt="english" /></a></li>
+							</ul>
+						</li>
+					</ul>
+					<!-- 20230220 통합검색 주석 처리 -->
+					
+				</div>
+			</div>
+		</div>
+		
+		<div class="header_wrap">
+			<div class="header">
+				<h1><a href="/"><img src="/resources/images/common/header_logo.png" alt="창조경제혁신센터" /></a></h1>
+				<div class="gnb_wrap">
+					<div class="gnb" id="gnb">
+						<div class="gnb_chil" >
+							<a href="/center/info.do">혁신센터</a>
+						</div>
+						<div class="gnb_chil">
+							<a href="/service/education_list.do">창업지원안내</a>
+							
+						</div>
+						<div class="gnb_chil">
+							<a href="/counsel/online_counsel.do">지원서비스 신청</a>
+						</div>
+						<div class="gnb_chil">
+							<a href="/custom/notice_list.do">고객센터</a>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="sub_menu_wrap">
+				<div>
+					<ul class="sub_menu">
+						<li><a href="/center/info.do">혁신센터소개</a></li>
+						<li><a href="/center/plan_day.do">주요일정</a></li>
+						<li><a href="/promotion/pr_board_list.do">홍보관</a></li>
+						<li><a href="/video/video_list.do">영상관</a></li>
+					</ul>
+					<ul class="sub_menu">
+						<li><a href="/service/education_list.do">교육정보</a></li>
+						<li><a href="/service/event_list.do">행사정보</a></li>
+						<li><a href="/service/business_list.do">지원사업공고</a></li>
+						<li><a href="/custom/cceiInvest_view.do">CCEI 투자</a></li>
+
+					</ul>
+					<ul class="sub_menu">
+						<li><a href="/counsel/online_counsel.do">온라인 상담신청</a></li>
+						<li><a href="/counsel/offline_counsel.do">오프라인 상담신청</a></li>
+						<li><a href="/apply/apply_education_list.do">교육신청</a></li>
+						<li><a href="/apply/apply_business_list.do">사업신청</a></li>
+						<li><a href="/service/reserve_place.do">입주공간</a></li>
+						<li><a href="/service/reserve_step1.do">시설장비대관</a></li>
+					</ul>		
+					<ul class="sub_menu">
+						<li><a href="/custom/notice_list.do">공지사항</a></li>
+						<li><a href="/custom/question_list.do">Q&A</a></li>
+					</ul>
+				</div>
+			</div>
+		</div>
+		
+	</header>
+	
+	<!-- 반응형 gnb -->
+	
+	<div class="mheader_wrap">
+		<header>
+			<div class="header_area">
+				<h1><a href="/"><img class="logo_m" src="/resources/images/common/white_logo.png" alt="창조경제혁신센터" /></a></h1>
+				<div class="gnb_go is_ico isi_ham" id="gnb_go"></div>
+			</div>
+			<!-- 20230220 통합검색 주석 처리 -->
+			
+			<div class="m_gnb" id="m_gnb">
+				<div class="m_gnb_area">
+					<a class="home is_ico isi_home"  href="/">창조경제혁신센터</a>
+					<a class="user_btn_close is_ico isi_close_m" id="user_btn_close"></a>
+					
+					<div class="userinfo">
+						<div id="user_name">
+							
+								
+								
+									<p>로그인하여<br>더 많은 정보를 확인해 보세요</p>
+								
+							
+						</div>
+					<!-- <p><strong class="user_nick">닉네임</strong>님</a></p> -->
+						<div class="btns" id="mobile_login_btns">
+							
+								
+								
+									<!-- 모바일 CCEI 로그인 비활성화 -->
+									
+
+									
+									<a style="background:#9f9a96;" href="/json/sso/login.json">
+										통합로그인
+									</a>
+								
+							
+						</div>
+					</div>
+					
+					<nav class="m_nav_wrap">
+						<ul class="m_nav" id="accordion">
+							<li class="accordion_pick">
+								<a class="link">
+									혁신센터
+									<span class="submenu_indicator">+</span>
+								</a>	
+								<ul class="sub_menu">
+									<li><a href="/center/info.do">혁신센터소개</a></li>
+									<li><a href="/center/plan_day.do">주요일정</a></li>
+									<li><a href="/promotion/pr_board_list.do">홍보관</a></li>
+									<li><a href="/video/video_list.do">영상관</a></li>
+								</ul>
+							</li>	
+							<li>
+								<a class="link">
+									창업지원안내
+									<span class="submenu_indicator">+</span>
+								</a>	
+								<ul class="sub_menu">
+									<li><a href="/service/education_list.do">교육정보</a></li>
+									<li><a href="/service/event_list.do">행사정보</a></li>
+									<li><a href="/service/business_list.do">지원사업공고</a></li>
+									<li><a href="/custom/cceiInvest_view.do">CCEI 투자</a></li>
+								</ul>
+							</li>	
+							<li>
+								<a class="link">
+									지원서비스 신청
+									<span class="submenu_indicator">+</span>
+								</a>	
+								<ul class="sub_menu">
+									<li><a href="/counsel/online_counsel.do">온라인 상담신청</a></li>
+									<li><a href="/counsel/offline_counsel.do">오프라인 상담신청</a></li>
+									<li><a href="/apply/apply_education_list.do">교육신청</a></li>
+									<li><a href="/apply/apply_business_list.do">사업신청</a></li>
+									<li><a href="/service/reserve_place.do">입주공간</a></li>
+									<li><a href="/service/reserve_step1.do">시설장비대관</a></li>
+								</ul>
+							</li>
+							<li>
+								<a class="link">
+									고객센터
+									<span class="submenu_indicator">+</span>
+								</a>
+								<ul class="sub_menu">
+									<li><a href="/custom/notice_list.do">공지사항</a></li>
+									<li><a href="/custom/question_list.do">Q&A</a></li>
+								</ul>
+							<li>
+						</ul>
+					</nav>
+					
+					<div class="m_footer">
+						<select class="select_go m_lng_chck" title="언어" onchange="javascript:location.href=this.value;">
+							<option value="/service/business_view.do" selected>KOREAN</option>
+							<option value="/eng/service/business_view.do">ENGLISH</option>
+						</select>
+						<select class="select_go" name="center" title="센터" onchange="if(this.value) location.href=this.value;">
+							<option value="https://ccei.creativekorea.or.kr">창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/seoul/">서울 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/busan/">부산 창조경제혁신센터</option>	
+							<option value="https://ccei.creativekorea.or.kr/daegu/">대구 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/gwangju/">광주 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/daejeon/">대전 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/incheon/">인천 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/ulsan/">울산 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/sejong/">세종 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/gyeonggi/">경기 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/gangwon/">강원 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/chungnam/">충남 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/chungbuk/">충북 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/gyeongnam/">경남 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/gyeongbuk/">경북 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/jeonnam/">전남 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/jeonbuk/">전북 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/jeju/">제주 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/pohang/">포항 창조경제혁신센터</option>
+							<option value="https://ccei.creativekorea.or.kr/bitgaram/">빛가람 창조경제혁신센터</option>
+						</select>
+						<p>센터 바로가기</p>
+					</div>
+				</div>
+			</div>
+		</header>
+	</div>
+	
+	
+	<!-- 로그인 layer -->
+	<div class="popup_box" id="LayerAlert" style="display:none">
+		<div class="laybox login_box">
+			<div class="modal_header">
+				<h1>
+					<img src="/resources/images/login/white_logo.png" alt="창조경제혁신센터 통합회원 통합로그인" />
+				</h1>
+				<p class="close"><a href="javascript:closeBoxSet();" class="layclose"> <img src="/resources/images/common/btn_popup_close.png" alt="닫기" /></a></p>
+			</div>
+			<div id="loginOn" class="popup_content1">
+				<ul class="sns_login">
+					
+					<li>
+						<div id="sns_naver">
+							<a href="https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=f5HHLEKUQy7Bjbz6bHbA&redirect_uri=https%3A%2F%2Fccei.creativekorea.or.kr%2FnaverLoginCallback&state=640161078332950365254580744551311233668" class="loginBtn">
+								<span class="icon"></span>
+								<span class="buttonText">네이버 로그인</span>
+							</a>
+						</div>
+					</li>
+					<li>
+						<div id="sns_kakao">
+							<a href="javascript:kakaoLogin();" class="loginBtn">
+								<span class="icon"></span>
+								<span class="buttonText">카카오 로그인</span>
+							</a>
+						</div>
+					</li>
+					
+				</ul>
+			</div>
+			
+			<div id="loginOff" class="popup_content2">
+				<h3 class="tit_text" style="text-align:center;">지원하지 않는 브라우저 입니다!</h3>
+				<p style="text-align:center;">추천 브라우저를 사용해주세요.</p>
+				<p style="text-align:center;">Chrome, Microsoft Edge, Safari 브라우저를 지원합니다.</p>
+				<ul class="btn_item">
+					<li><a href="https://www.google.com/chrome/" target="_blank">Google Chrome</a></li>
+					<li><a href="https://www.microsoft.com/windows/microsoft-edge" target="_blank">Microsoft Edge</a></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+	<!-- //로그인 layer -->
+	
+	<!-- 본인인증 layer -->
+	<div class="popup_box" id="LayerAlert2" style="display:none">
+		<div class="laybox login_box">
+			<div class="modal_header">
+				<h1>
+					<img src="/resources/images/login/white_logo.png" alt="창조경제혁신센터 본인인증" />
+				</h1>
+				<p class="close"><a href="javascript:closeBoxSet();" class="layclose"> <img src="/resources/images/common/btn_popup_close.png" alt="닫기" /></a></p>
+			</div>
+			<div class="self_list">
+				<div class="list_inner">
+					<p class="tit">휴대전화 본인확인</p>
+					<p class="txt">개인정보보호법에 의거 휴대전화를 통하여<br> 본인 확인 후 회원정보를 수정하고 있습니다.</p>
+					<ul>
+						<li>휴대폰인증시 ‘PASS’앱 설치/가입을 원하지 않으시면 문자인증을 이용하세요.</li>
+						<li>당일 기준 5회 초과시 자정 이후에 초기화됩니다. 문의사항은 Siren24 고객센터 1577-1006에 문의하시기 바랍니다. </li>
+					</ul>
+					<div class="btn_wrap">
+						<button class="btn org_btn" onclick="javascript:certPccSms2();">휴대폰 인증</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- //본인인증 layer -->
+
+	
+	<div id="intgGuideModal"
+		 style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+							background:rgba(0,0,0,0.6); z-index:99999;
+							align-items:center; justify-content:center;">
+		<style>
+			#popup-container button:hover {background: #b3ceff !important; color: #256EF4 !important; border-color: transparent !important;}
+			#popup-container button:hover i {background-color: #256EF4 !important;}
+
+			@media screen and (max-width: 768px) {
+				#popup-container {left: 50% !important; transform: translateX(-50%); top: 5% !important; width: 95% !important;}
+			}
+		</style>
+		<div id="popup-container1" style="position: relative; z-index: 100000; max-width: 500px; width: 90%; border-radius: 8px; background: #eee; border: 1px solid #ddd; letter-spacing: -.6px;  min-width: 320px;">
+			<div style="padding: 30px clamp(20px, 3vw, 30px); display: flex; flex-direction: column; text-align: center;">
+				<h2 style="font-size: clamp(17px, 3vw, 20px); font-weight: 600; margin: 0; margin-bottom: clamp(20px, 3vw, 30px)">통합로그인</h2>
+				<figure style="margin: 0 auto 20px; max-width: 45%;"><img style="width: 100%;" src="/resources/images/modal_integrated_login_img.png" alt="image"></figure>
+				<div style="margin: 0 0 20px; display: flex; flex-direction: column; gap: 8px; word-break: keep-all;">
+					<p style="margin: 0; font-size: clamp(20px, 2vw, 24px); color: #256EF4; font-weight: 700;">통합회원 전환</p>
+					<p style="margin: 0; font-size: 15px; line-height: 1.6;"><strong style="font-weight: 700;">하나의 아이디로 중소벤처기업부 유관기관 서비스를 모두 이용해 보세요.</strong><Br> 기존 계정을 통합로그인으로 전환하시면, 사이트마다 로그인할 필요 없이 더욱 편리하고 안전하게 서비스를 이용하실 수 있습니다.</p>
+					<button id="btnIntgYes" type="button"
+							style="transition: .5s ease; cursor: pointer; letter-spacing: -.6px; outline: none; padding: 0 12px 0 20px; border-radius: 8px; background: #256EF4; border: none; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 15px; font-weight: 500; color: #fff !important; height: 40px;">
+						<span style="color: #fff;">통합회원 전환 바로가기</span>
+						<i style="display: block; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center center; -webkit-mask-size: contain; mask-repeat: no-repeat; mask-position: center center; mask-size: contain; -webkit-mask-image: url(/resources/images/ico_chevron_forward.svg); mask-image: url(/resources/images/ico_chevron_forward.svg); background-color: #fff; width: 20px; height: 20px;"></i>
+					</button>
+				</div>
+				<button id="btnIntgNo" type="button" style="transition: .5s ease; cursor: pointer; letter-spacing: -.6px; outline: none; border: none; padding: 0 12px 0 20px; border-radius: 8px; background: #fff; border: 1px solid #256ef4; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 15px; font-weight: 500; color: #256EF4; height: 40px;"><span>다음에 전환하기</span><i style="display: block; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center center; -webkit-mask-size: contain; mask-repeat: no-repeat; mask-position: center center; mask-size: contain; -webkit-mask-image: url(/resources/images/ico_chevron_forward.svg); mask-image: url(/resources/images/ico_chevron_forward.svg); background-color: #256EF4; width: 20px; height: 20px;"></i></button>
+			</div>
+		</div>
+	</div>
+
+
+	
+	<div id="ssoNoAgencyModal"
+		 style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+								background:rgba(0,0,0,0.6); z-index:99999;
+								align-items:center; justify-content:center;">
+		<style>
+			#popup-container button:hover {background: #b3ceff !important; color: #256EF4 !important; border-color: transparent !important;}
+			#popup-container button:hover i {background-color: #256EF4 !important;}
+
+			@media screen and (max-width: 768px) {
+				#popup-container {left: 50% !important; transform: translateX(-50%); top: 5% !important; width: 95% !important;}
+			}
+		</style>
+		<div id="popup-container3" style="position: relative; z-index: 100000; max-width: 500px; width: 90%; border-radius: 8px; background: #eee; border: 1px solid #ddd; letter-spacing: -.6px;  min-width: 320px;">
+			<div style="padding: 30px clamp(20px, 3vw, 30px); display: flex; flex-direction: column; text-align: center;">
+				<h2 style="font-size: clamp(17px, 3vw, 20px); font-weight: 600; margin: 0; margin-bottom: clamp(20px, 3vw, 30px)">창경홈 유관기관 등록 안내</h2>
+				<figure style="margin: 0 auto 20px; max-width: 45%;"><img style="width: 100%;" src="/resources/images/modal_integrated_login_img.png" alt="image"></figure>
+				<div style="margin: 0 0 20px; display: flex; flex-direction: column; gap: 8px; word-break: keep-all;">
+					<p style="margin: 0; font-size: clamp(20px, 2vw, 24px); color: #256EF4; font-weight: 700;">유관기관 등록 안내</p>
+					<p style="margin: 0; font-size: 15px; line-height: 1.6;"><strong style="font-weight: 700;">현재 통합플랫폼 회원이나 창조경제혁신센터를 유관기관으로 등록하지 않으셨습니다.</strong><Br> 통합회원 관리 페이지에서 유관기관으로 등록해주세요.</p>
+					<button id="btnSsoNoAgencyLogin" type="button"
+							style="transition: .5s ease; cursor: pointer; letter-spacing: -.6px; outline: none; padding: 0 12px 0 20px; border-radius: 8px; background: #256EF4; border: none; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 15px; font-weight: 500; color: #fff !important; height: 40px;">
+						<span style="color: #fff;">유관기관 등록하기</span>
+						<i style="display: block; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center center; -webkit-mask-size: contain; mask-repeat: no-repeat; mask-position: center center; mask-size: contain; -webkit-mask-image: url(/resources/images/ico_chevron_forward.svg); mask-image: url(/resources/images/ico_chevron_forward.svg); background-color: #fff; width: 20px; height: 20px;"></i>
+					</button>
+				</div>
+				<button id="btnSsoNoAgencyClose" type="button" style="transition: .5s ease; cursor: pointer; letter-spacing: -.6px; outline: none; border: none; padding: 0 12px 0 20px; border-radius: 8px; background: #fff; border: 1px solid #256ef4; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 15px; font-weight: 500; color: #256EF4; height: 40px;"><span>닫기</span><i style="display: block; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center center; -webkit-mask-size: contain; mask-repeat: no-repeat; mask-position: center center; mask-size: contain; -webkit-mask-image: url(/resources/images/ico_chevron_forward.svg); mask-image: url(/resources/images/ico_chevron_forward.svg); background-color: #256EF4; width: 20px; height: 20px;"></i></button>
+			</div>
+		</div>
+	</div>
+	
+
+	
+	<div id="ssoRegGuideModal"
+		 style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+								background:rgba(0,0,0,0.6); z-index:99999;
+								align-items:center; justify-content:center;">
+		<style>
+			#popup-container button:hover {background: #b3ceff !important; color: #256EF4 !important; border-color: transparent !important;}
+			#popup-container button:hover i {background-color: #256EF4 !important;}
+
+			@media screen and (max-width: 768px) {
+				#popup-container {left: 50% !important; transform: translateX(-50%); top: 5% !important; width: 95% !important;}
+			}
+		</style>
+		<div id="popup-container2" style="position: relative; z-index: 100000; max-width: 500px; width: 90%; border-radius: 8px; background: #eee; border: 1px solid #ddd; letter-spacing: -.6px;  min-width: 320px;">
+			<div style="padding: 30px clamp(20px, 3vw, 30px); display: flex; flex-direction: column; text-align: center;">
+				<h2 style="font-size: clamp(17px, 3vw, 20px); font-weight: 600; margin: 0; margin-bottom: clamp(20px, 3vw, 30px)">통합로그인</h2>
+				<figure style="margin: 0 auto 20px; max-width: 45%;"><img style="width: 100%;" src="/resources/images/modal_integrated_login_img.png" alt="image"></figure>
+				<div style="margin: 0 0 20px; display: flex; flex-direction: column; gap: 8px; word-break: keep-all;">
+					<p style="margin: 0; font-size: clamp(20px, 2vw, 24px); color: #256EF4; font-weight: 700;">통합회원 전환</p>
+					<p style="margin: 0; font-size: 15px; line-height: 1.6;"><strong style="font-weight: 700;">하나의 아이디로 중소벤처기업부 유관기관 서비스를 모두 이용해 보세요.</strong><Br> 기존 계정을 통합로그인으로 전환하시면, 사이트마다 로그인할 필요 없이 더욱 편리하고 안전하게 서비스를 이용하실 수 있습니다.</p>
+					<button id="btnSsoRegGuideOk" type="button"
+							style="transition: .5s ease; cursor: pointer; letter-spacing: -.6px; outline: none; padding: 0 12px 0 20px; border-radius: 8px; background: #256EF4; border: none; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 15px; font-weight: 500; color: #fff !important; height: 40px;">
+						<span style="color: #fff;">통합회원 전환 바로가기</span>
+						<i style="display: block; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center center; -webkit-mask-size: contain; mask-repeat: no-repeat; mask-position: center center; mask-size: contain; -webkit-mask-image: url(/resources/images/ico_chevron_forward.svg); mask-image: url(/resources/images/ico_chevron_forward.svg); background-color: #fff; width: 20px; height: 20px;"></i>
+					</button>
+				</div>
+				<button id="btnSsoRegGuideCancel" type="button" style="transition: .5s ease; cursor: pointer; letter-spacing: -.6px; outline: none; border: none; padding: 0 12px 0 20px; border-radius: 8px; background: #fff; border: 1px solid #256ef4; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 15px; font-weight: 500; color: #256EF4; height: 40px;"><span>다음에 전환하기</span><i style="display: block; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center center; -webkit-mask-size: contain; mask-repeat: no-repeat; mask-position: center center; mask-size: contain; -webkit-mask-image: url(/resources/images/ico_chevron_forward.svg); mask-image: url(/resources/images/ico_chevron_forward.svg); background-color: #256EF4; width: 20px; height: 20px;"></i></button>
+			</div>
+		</div>
+	</div>
+	
+
+		<!-- 개인정보추가입력 layer START -->
+	<!--
+	<div class="popup_box" id="layerUserInfo" style="display:none">
+		<div class="laybox login_box" style="width: 800px;">
+			<div class="modal_header">
+				<h1>
+					<img src="/resources/images/login/white_logo.png" alt="창조경제혁신센터 통합로그인" />
+				</h1>
+				<p class="close"><a href="javascript:setLeload();" class="layclose"> <img src="/resources/images/common/btn_popup_close.png" alt="닫기" /></a></p>
+			</div>
+			<p class="txt" style="font-size: 24px; font-weight: bold;">개인정보 추가입력</p>
+			<div class="popup_content3">
+				<form id="loginInfo_form">
+					<fieldset>
+						<input type="hidden" name="sysGubun" id="sysGubun" value="" />
+						<input type="hidden" name="ste" id="ste" value="" />
+						<input type="hidden" name="retInfo" id="retInfo" value="" />
+	 					<input type="hidden" name="reqNum" id="reqNum" value="" />
+						<input type="hidden" name="reqCi" id="reqCi" value="" />
+						<table  class="tb_join">
+							<caption>개인정보 추가입력</caption>
+							<colgroup>
+								<col class="view_title" style="width:15%;">
+								<col>
+							</colgroup>
+							<tbody>
+								<tr>
+									<th scope="row">이름(필수)</th>
+									<td>
+										<input type="text" name="usrName" id="usrName" value="" title="이름" readonly="readonly"/>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row">가입구분</th>
+									<td>
+										<input type="radio" name="entrSysSe" id="entrSysSe1" value="naver" disabled="disabled"/><label for="entrSysSe1">Naver	 </label>
+										<input type="radio" name="entrSysSe" id="entrSysSe2" value="kakao" disabled="disabled"/><label for="entrSysSe2">KAKAO	 </label>
+										<input type="hidden" name="entrSysSeVal" id="entrSysSeVal" value=""/>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row">이메일</th>
+									<td>
+										<input type="text" name="gnbemail" id="gnbemail" value="" title="이메일" placeholder="이메일 입력 "/>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row">휴대전화번호</th>
+									<td>
+										<input type="text" name="tel" id="tel" value="" title="휴대전화" placeholder="휴대전화 입력 " readonly="readonly"/>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row">생년월일</th>
+									<td>
+										<input type="text" name="brth" id="brth" value="" readonly="readonly" title="생년월일" placeholder="생년월일 입력"/>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row">성별</th>
+									<td>
+										<input type="radio" name="sex" id="sex1" value="M"/><label for="sex1">남	</label>
+										<input type="radio" name="sex" id="sex2" value="F"/><label for="sex2">여	</label>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row">주소</th>
+									<td>
+										<input type="text" class="postNo" placeholder="우편번호" title="우편번호 입력" id="zipNo" name="zipNo" value="" readonly="readonly">
+										<button type="button" class="zip_btn" onclick="javascript:openJusoPopup()"></button>
+										<div class="clearfix">
+											<span class="addr_left"><input type="text" class="addr" placeholder="기본주소 입력" title="기본주소 입력" id="addr" name="addr" value="" readonly="readonly"></span>
+											<span class="addr_right"><input type="text" class="addr " placeholder="상세주소 입력" title="상세주소 입력" id="addrDtl" name="addrDtl" value="" readonly="readonly"></span>
+										</div>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row">문자/메일 수신</th>
+									<td>
+										<input type="checkbox" name="sendSms" id="sendSms" value="1"/><label for="sendSms">문자수신	</label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+										<input type="hidden" name="sendSmsVal" id="sendSmsVal" value=""/>
+										<input type="checkbox" name="sendEmail" id="sendEmail" value="1"/><label for="sendEmail">이메일수신	</label>
+										<input type="hidden" name="sendEmailVal" id="sendEmailVal" value=""/>
+										<p class="txt" style="margin-top: 10px; text-align: left;">창조경제혁신센터에서 제공하는 서비스의 문자와 메일 수신에 동의합니다.</p>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row">이용약관</th>
+									<td>
+									 <input type="checkbox" name="useCla" id="useCla" value="1"/><label for="useCla"> 창조경제혁신센터 이용약관에 동의합니다.(필수)	</label>
+									 <button type="button" class="use_btn" onclick="openAgreePopup()"></button>
+									</td>
+								   </tr>
+								   <tr>
+									<th scope="row">개인정보수집/이용안내</th>
+									<td>
+									 <input type="checkbox" name="perInfo" id="perInfo" value="1"/><label for="perInfo"> 개인정보 수집 및 이용에 대한 안내에 동의합니다.(필수)	</label>
+									 <button type="button" class="use_btn" onclick="openPersonAgreePopup()"></button>
+									</td>
+							   </tr>
+							</tbody>
+						</table>
+					</fieldset>
+				</form>
+				<div class="btn_wrap clearfix">
+					<a class="join_btn" href="javascript:void(0);" onclick="saveUserInfo()">저장</a>
+				</div>
+
+			</div>
+		</div>
+	</div>
+	-->
+	<!-- 개인정보추가입력 layer END -->
+<!-- 공지사항// -->
+<script type="text/javascript">
+
+	$("#brth2").datepicker({dateFormat: 'yy.mm.dd',
+		changeYear : true,
+		changeMonth : true, 
+		showMonthAfterYear : true,
+		yearRange: "c-80:c+0",
+		yearSuffix : "년 ",
+		dayNames : ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'],
+		dayNamesMin : ['월', '화', '수', '목', '금', '토', '일'], 
+		monthNamesShort : ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
+		monthNames : ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
+		nextText : '다음 달',
+		prevText : '이전 달'});
+		
+	var moveType = 0;
+	var moveSpeed = 7000;
+	var moveWork = false;
+	var movePause = false;
+	
+	function imgMove(){
+		if(moveWork==false){
+		  if(moveType==0){
+			var aWidth = $(".RollDiv > div > a:first").width();
+			$(".RollDiv > div").append("<a href=\""+$(".RollDiv > div > a:first").attr("href")+"\">" + $(".RollDiv > div > a:first").html()+"</a>");
+			$(".RollDiv > div > a:first").animate({marginLeft:-aWidth},{duration:moveSpeed,step:function(){
+				if(movePause==true){
+				$(this).stop();
+			 	}
+			},complete:function(){
+				$(this).remove();
+			 	imgMove();
+			}});
+		  }else{
+			var aWidth = $(".RollDiv > div > a:last").width();
+		 	$("<a href=\"" + $(".RollDiv > div > a:last").attr("href")+ "\" style=\"margin-left:-" + aWidth + "px\">" + $(".RollDiv > div > a:last").html()+"</a>").insertBefore(".RollDiv > div > a:first")
+			$(".RollDiv > div > a:first").animate({marginLeft:0},{duration:moveSpeed,step:function(){
+		 		if(movePause==true){
+				$(this).stop();
+		 		}
+		 	},complete:function(){
+		 		$(".RollDiv > div > a:last").remove();
+		 		imgMove();
+			}});
+	 		}
+	 	}
+	}
+	
+	function rollingNotice(type) {
+		moveType = type;
+		imgMove();
+	}
+	
+	function goMove(type){
+	  moveType = type;
+	  movePause=false;
+	  if(moveType==0){
+		 imgMove();
+		 }else{
+		 $(".RollDiv > div > a:first").animate({marginLeft:0},{duration:moveSpeed,step:function(){
+		 if(movePause==true){
+			$(this).stop();
+		}
+		 },complete:function(){
+		imgMove();
+		 }});
+		}
+	}
+
+	function openUsrInfoPopSso(id, name, phone, brth, email, system, ste, retInfo, reqNum, reqCi){
+
+		/* 추가정보 입력 페이지 */
+		const form = document.createElement("form");
+		form.method = "post";
+		form.action = "/include/UserInfo.do";
+
+		const params = {
+			id: id,
+			usrName: name,
+			email: email,
+			tel: phone.replace(/(^02.{0}|^01.{1}|[0-9]{3})([0-9]+)([0-9]{4})/,"$1-$2-$3"),
+			brth: brth,
+			sysGubun: system,
+			entrSysSe: system,
+			ste: ste,
+			retInfo: retInfo,
+			reqNum: reqNum,
+			reqCi: reqCi
+		};
+
+		for (const key in params) {
+			const input = document.createElement("input");
+			input.type = "hidden";
+			input.name = key;
+			input.value = params[key];
+			form.appendChild(input);
+		}
+
+		document.body.appendChild(form);
+		form.submit();
+	}
+
+	function openUsrInfoPop(name, phone, brth, email, system, ste, retInfo, reqNum, reqCi){
+		const form = document.createElement("form");
+		form.method = "post";
+		form.action = "/include/UserInfo.do";
+
+		const params = {
+			usrName: name,
+			tel: phone.replace(/(^02.{0}|^01.{1}|[0-9]{3})([0-9]+)([0-9]{4})/,"$1-$2-$3"),
+			brth: brth,
+			sysGubun: system,
+			entrSysSe: system,
+			ste: ste,
+			retInfo: retInfo,
+			reqNum: reqNum,
+			reqCi: reqCi
+		};
+
+		for (const key in params) {
+			const input = document.createElement("input");
+			input.type = "hidden";
+			input.name = key;
+			input.value = params[key];
+			form.appendChild(input);
+		}
+
+		document.body.appendChild(form);
+		form.submit();
+	}
+
+
+	//로그인 닫기버튼
+	function closeBoxSet() {
+		$.fancybox.close();
+		location.href = "/";
+	}
+	
+	//화면리로딩
+	function setLeload() {
+		//location.reload();
+		alert('회원가입을 취소하였습니다.');
+		location.href = "/";
+	}
+	
+	function facebookLogin() {
+		alert("서비스 적용 준비중입니다.");
+	}
+	
+	//카카오로그인
+	Kakao.init('df7c8f174dd962e92e7f772def537ac1');
+	
+	function kakaoLogin() {
+		var agent = navigator.userAgent.toLowerCase();
+		if((navigator.appName == "Netscape" && navigator.userAgent.search("Trident") != -1) || (agent.indexOf("msie") != -1)){
+			alert("Internet Explorer에서는 카카오로그인을 지원하지 않습니다.\n네이버간편로그인을 이용해 주세요.");
+		}else{
+		var ste = "";
+		//Kakao.Auth.login({ //로그인 시 로그인기록있으면 로그인창 안열리고 바로 로그인처리
+		Kakao.Auth.loginForm({ //로그인타입 A
+			success: function(authObj) {
+			Kakao.API.request({
+				url: '/v2/user/me',
+				success: function(res) {
+						ste = JSON.stringify(authObj.access_token).replace(/\"/g, "");
+					$.ajax({
+						type : "POST",
+						url : "/kakaoLoginProcess.json",
+						data : "&ste=" + ste ,
+						cache : false,
+						dataType : "json",
+						success : function(data) {
+							var result = data.result;
+							var user = data.user;
+							var id_chk = data.id_chk;
+							if(result == 1 || result == 2) {
+								location.href="/main.do?stc=Y&gub=Y&tk="+ste;
+							}else {
+								if(id_chk){
+									alert("이미 로그인된 아이디가 있습니다.\n로그인 후 기존 세션은 종료됩니다");
+								}
+								$("#login_YN").val('Y');
+								$.fancybox.close();
+								$("#loginLi").html('<a href="/logoutSns.do">로그아웃</a>');
+								$("#user_name").html('<p><strong class="user_nick">'+user+'</strong>님 안녕하세요.</p>');
+								$("#mobile_login_btns").html('<a class="join_go"  href="/myPage/myProgram_list.do?&page=1" >마이페이지</a><a class="login_go"  href="/logoutSns.do" >로그아웃</a>');
+								$("#mypageLi").show();
+								location.reload();
+							}
+						}
+						, complete : function() {
+							
+						}
+					}) 
+			  },
+			  fail: function(error) {
+					alert(
+					'login success, but failed to request user information: ' +
+					JSON.stringify(error)
+					)
+				  },
+				})
+			
+			},
+			fail: function(err) {
+				alert( 'login fail: '+JSON.stringify(err))
+			},
+		  })
+		}
+	}	
+
+	function saveUserInfo(){
+		var sysGubun = $.trim($("#sysGubun").val());
+		var ste = $.trim($("#ste").val());
+		var urlGubun = null;
+		if(sysGubun == 'kakao'){
+			urlGubun = "/kakaoLoginProcess.json";
+		}else{
+			urlGubun = "/naverLoginProcess.json";
+		}	
+		 
+		 //가입구분
+		 $("#entrSysSeVal").val($("input[name='entrSysSe']:checked").val());
+		 
+		 // 이메일
+		 var email = $.trim($("#gnbemail").val());
+		 if(email == ""){
+		  alert("이메일을 입력하세요.");
+		  $("#gnbemail").focus();
+		  return false;
+		 }else{
+		  var regCheck = RegExp(/^[0-9a-zA-Z]([-_\.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_\.]?[0-9a-zA-Z])*\.[a-zA-Z]{2,3}$/i);
+		  if(!regCheck.test(email)){	//이메일규칙 외 입력될 경우 false
+		   alert("이메일을 올바르게 입력하세요.");
+		   $("#gnbemail").focus();
+		   return false;	
+		  }
+		 }
+		 
+		 // 전화번호
+		 var tel = $.trim($("#tel").val());
+		 if(tel == ""){
+		  alert("전화번호를 입력하세요.");
+		  $("#tel").focus();
+		  return false;
+		 }else{
+		  var regCheck =  RegExp(/^\d{2,3}-\d{3,4}-\d{4}$/);
+		  if(!regCheck.test(tel)){
+		   alert("전화번호를 올바르게 입력하세요.");
+		   return false;
+		  }
+		 }
+		 
+		 // 생년월일
+		 if($.trim($("#brth").val()) == ""){
+		  alert("생년월일를 입력하세요.");
+		  $("#brth").focus();
+		  return false;
+		 }
+		 
+		 // 성별
+		 if($("input[name='sex']:checked").val() == undefined || $("input[name='sex']:checked").val() == ""){
+		  alert("성별을 선택하세요.");
+		  $("#sex").focus();
+		  return false;
+		 }
+	
+		 //주소
+		 var addr = $("#zipNo").val() + $("#addr").val() + $("#addrDtl").val();
+		 if($.trim(addr) == ""){
+		  alert("주소를 입력하세요.");
+		  $(".zip_btn").focus();
+		  return false;
+		 }
+		 
+		 //문자수신여부
+		 var sendSms = $("#sendSms:checked").val();
+		 if(sendSms == undefined){
+		  $("#sendSmsVal").val("");
+		 }else{
+		  $("#sendSmsVal").val(sendSms);
+		 }
+		 
+		 //이메일수신여부
+		 var sendEmail = $("#sendEmail:checked").val();
+		 if(sendEmail == undefined){
+		  $("#sendEmailVal").val("");
+		 }else{
+		  $("#sendEmailVal").val(sendEmail);
+		 }
+		 
+		//이용약관 여부
+		var useCla = $("#useCla:checked").val();
+		if(useCla == undefined){
+			alert("이용약관 여부 동의는 필수입니다.");
+			return false;
+		}
+			
+		//개인정보 수집동의
+		var perInfo = $("#perInfo:checked").val();
+		if(perInfo == undefined){
+			alert("개인정보수집/이용안내 여부 동의는 필수입니다.");
+			return false;
+		}
+	
+		 $.ajax({
+		  type : "POST",   
+		  url : "/json/login/usrInfoSave.json",
+		  data : $("#loginInfo_form").serialize(),
+		  cache : false,
+		  dataType : "json",
+		  success : function(data){
+		   var result = data.result;
+		   var resultStatus = data.resultStatus;
+		   var resultMessage = data.resultMessage;
+		   if(result){
+			alert("회원가입 되었습니다.");
+			$.fancybox.close();
+				$.ajax({
+					type : "POST",
+					url : urlGubun ,
+					data : "&ste=" + ste,
+					cache : false,
+					dataType : "json",
+					success : function(data) {
+						var result = data.result;
+						var user = data.user;
+						if(result == 1 || result == 2) {
+								   openUsrInfoPop("", "", "", sysGubun, ste);
+						} else {
+							$("#login_YN").val('Y');
+							$.fancybox.close();
+							$("#loginLi").html('<a href="/logoutSns.do">로그아웃</a>');
+							$("#user_name").html('<p><strong class="user_nick">'+user+'</strong>님 안녕하세요.</p>');
+							$("#mobile_login_btns").html('<a class="join_go"  href="/myPage/myProgram_list.do?&page=1" >마이페이지</a><a class="login_go"  href="/logoutSns.do" >로그아웃</a>');
+							$("#mypageLi").show();
+							location.href="/";
+						}
+					}
+					, complete : function() {
+					}
+				}) 
+		   } else{
+			   if(resultStatus == "ciValueChk") {
+				   alert(resultMessage);
+				   location.href="/";
+			   } else {
+				   alert("요청중 에러가 발생하였습니다.");
+				   location.href="/";
+			   }
+	 		}
+		}	
+	 	});
+	}
+
+	function openJusoPopup() {
+		//window.name="jusoPopup";
+		var pop = window.open("/common/juso/jusoPopup.do?jsk=U01TX0FVVEgyMDIwMDUxODE4MTEwMzEwOTc2OTQ=&jsek=U01TX0FVVEgyMDIwMDUyMjE1MTIxNzEwOTc4OTA=","pop","width=570,height=420, scrollbars=yes, resizable=yes");
+	}
+	
+	function openAgreePopup() {
+		//window.name="jusoPopup";
+		window.open("/common/persInfoAgree.do","_blank", "width=570,height=580, scrollbars=yes, resizable=yes");
+	}
+	
+	function openPersonAgreePopup() {
+		//window.name="jusoPopup";
+		window.open("/common/accessTerms.do","_blank", "width=570,height=580, scrollbars=yes, resizable=yes");
+	}
+	
+	function openPccCert() {
+		$.fancybox({href : '#LayerAlert2'
+			,keys : {close : null} //esc 키 닫힘 막음
+		});
+	}
+	
+	function jusoCallBack(roadFullAddr,roadAddrPart1,addrDetail,roadAddrPart2,engAddr, jibunAddr, zipNo, admCd, rnMgtSn, bdMgtSn,detBdNmList,bdNm,bdKdcd,siNm,sggNm,emdNm,liNm,rn,udrtYn,buldMnnm,buldSlno,mtYn,lnbrMnnm,lnbrSlno,emdNo){
+		$("#zipNo").val(zipNo);
+		$("#addr").val(roadAddrPart1);
+		$("#addrDtl").val(addrDetail);
+	}
+
+	function openUsrInfoPopCall2(){
+		$.ajax({
+			type : "POST",
+			url : "/json/login/usrInfoSelect.json",
+			data : "",
+			cache : false,
+			dataType : "json",
+			success:function(data) {
+				var result = data.result;
+				var id = result["id"];
+				var name = result["name"];
+				var email = result["email"];
+				var sysGubun = result["entr_sys_se"];
+				var tel = result["phone"];
+				var brth = result["birthday"];
+				var yyyy = brth.substr(0,4);
+				var mm = brth.substr(4,2);
+				var dd = brth.substr(6,2);
+				var birthDay = yyyy+'.'+mm+'.'+dd;
+				var sex = result["sex"];
+				var zip = result["zip_no"] ?? "";
+				var addr1 = result["addr1"] ?? "";
+				var addr2 = result["addr2"] ?? "";
+				var sendSmsVal = result["sms_recp_yn"];
+				var sendEmailVal = result["email_recp_yn"];
+				openUsrInfoUpdPop2(name, id, email, sysGubun, tel, birthDay, sex, zip, addr1, addr2, sendSmsVal, sendEmailVal);
+			}
+		});
+	}
+
+	function openUsrInfoUpdPop2(name, id, email, system, tel, birthDay, sex, zip, addr1, addr2, sendSmsVal, sendEmailVal) {
+
+		console.log("gnbjsp - openUsrInfoUpdPop2&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
+
+		const form = document.createElement("form");
+		form.method = "post";
+		form.action = "/myPage/UserInfoUpd.do"; // 이동할 경로 (jsp가 아니라 controller 매핑)
+
+		// 전달할 값들을 hidden input 으로 추가
+		const params = {
+			usrName_: name,
+			id_: id,
+			gnbemail_: email,
+			sysGubun_: system,
+			tel_: tel.replace(/(^02.{0}|^01.{1}|[0-9]{3})([0-9]+)([0-9]{4})/, "$1-$2-$3"),
+			brth_: birthDay,
+			sex_: sex,
+			zipNo_: zip,
+			addr_: addr1,
+			addrDtl_: addr2,
+			sendSmsVal_: sendSmsVal,
+			sendEmailVal_: sendEmailVal
+		};
+
+		if(sendSmsVal == "1"){
+			$("input:checkbox[name='sendSms_']").prop("checked",true);
+		}
+		if(sendEmailVal == "1"){
+			$("input:checkbox[name='sendEmail_']").prop("checked",true);
+		}
+
+		$("input[name='entrSysSe_']").each(function(idx, obj){
+			if($(obj).val() == system){
+				$(obj).prop("checked", true);
+			}
+		});
+		$("input[name='sex_']").each(function(idx, obj){
+			if($(obj).val() == sex){
+				$(obj).prop("checked", true);
+			}
+		});
+
+		for (const key in params) {
+			const input = document.createElement("input");
+			input.type = "hidden";
+			input.name = key;
+			input.value = params[key];
+			form.appendChild(input);
+		}
+
+		// 폼을 body에 추가한 후 submit
+		document.body.appendChild(form);
+		form.submit();
+
+	}
+
+</script>
+<!-- 본인실명확인서비스 요청 form --------------------------->
+<form name="reqPCCForm2" method="post" onsubmit="return openPCCWindow2()">
+	<input type="hidden" name="reqInfo2" >
+	<input type="hidden" name="retUrl2"  >
+	<input type="hidden" name="verSion2" value = "2"> <!--모듈 버전정보-->
+	<input type="hidden" name="addVar2" >
+	<input type="hidden" name="reqNum2" >
+	<input type="submit" value="" title="새창열림" class="submit" />
+</form>
+<!-- 본인실명확인서비스 요청 form --------------------------->
+		<div class="container">
+			<div class="sub-visual-wrap">
+				<div class="sub-visual">
+					<h1>창업지원안내</h1>
+					<div class="page_chcNlct">
+						<nav>
+							<ul class="tab01">
+								<li><a href="/service/education_list.do">교육정보</a></li>
+								<li><a href="/service/event_list.do">행사정보</a></li>
+								<li class="on"><a href="/service/business_list.do">지원사업공고</a></li>
+								<li><a href="/custom/cceiInvest_view.do">CCEI 투자</a></li>
+							</ul>
+						</nav>
+					
+						<div class="location">
+							<span class="home">
+								<i class="fa fa-home"></i>
+							</span>
+							<span>창업지원안내</span>
+							<span>지원사업공고</span>
+						</div>			
+					</div>	
+				</div>
+			</div>
+			
+			<div class="contents event_view">
+				<div class="title">
+					<h2>
+						<img alt="지원사업공고" src="/resources/images/service/tit_business_list.png">
+					</h2>
+				</div>
+				
+				<div class="substance">
+					<form name="form1" id="form1" method="POST">
+						<div class="">
+							<section class="">
+							<div class="brd_area">
+								<table style="width: 100%" class="tb04">
+									<caption>게시물 상세정보</caption>
+									<colgroup>
+										<col class="tb_cell">
+										<col>
+									</colgroup>
+									<thead>
+										<tr>
+											<th scope="row" class="tb_cell">제목</th>
+											<td>
+												<span>
+													<span class="txt_icon_wrap">
+														<i class="txt_icon bg_01">사업공고</i>
+													</span>
+													2026 창업도시 울산 스타트업 정주지원 플랫폼(STAY-UP) 사업 공고
+												</span>
+											</td>
+										</tr>
+										<tr>
+											<th scope="row">지원자격</th>
+											<td>
+												<span>
+													
+													
+														예비창업자, 7년이내 기업
+													
+												</span>
+											</td>
+										</tr>
+										<tr>
+											<th scope="row">지원사항</th>
+											<td><span>자금지원</span></td>
+										</tr>
+										
+										<tr>
+											<th scope="row">프로그램 기간</th>
+											<td><span>2026.08.24 ~ 2026.09.11</span></td>
+										</tr>
+										
+									</thead>
+								</table>
+								<div class="brd_viewer">
+									<div class="vw_article"><p>
+  <span style="font-family: 휴먼명조;">공 고 제</span>
+  <span style="font-family: HCI Poppy;">2026 - 103</span>
+  <span style="font-family: 휴먼명조;">호</span></p>
+ <p style="text-align: center;">
+  <strong> </strong></p>
+ <p style="text-align: center;">
+  <span style="font-family: 휴먼명조;">
+    <strong>2026 창업도시 울산 </strong></span></p>
+ <p style="text-align: center;">
+  <span style="font-family: 휴먼명조;">
+    <strong>스타트업 정주지원 플랫폼(STAY-UP) 사업 시행</strong></span></p>
+ <p style="text-align: center;">
+  <strong> </strong></p>
+ <p>
+  <span style="font-family: 휴먼명조;">2026 창업도시 울산으로 이전‧창업하는 우수 기술‧창업 기업 및
+    핵심 인재를 대상으로 주거비 지원을 통해 울산지역 내 성장‧안착을 촉진하기 위해 아래와 같이 본 사업을 시행하오니 많은
+    신청 바랍니다.</span></p>
+ <p>
+  <strong> </strong></p>
+ <p style="text-align: center;">
+  <span style="font-family: 휴먼명조;">2026년  8월 24일</span></p>
+ <p style="text-align: right;">
+  <span style="font-family: 휴먼명조;">
+    <strong>울산창조경제혁신센터장</strong></span></p>
+ <p style="text-align: right;"> </p>
+ <p style="text-align: right;"> </p>
+ <p style="text-align: right;"> </p>
+ <p style="text-align: right;"> </p>
+ <ul> <li>상세내용은 첨부파일 공고문 참고</li> <li>신청 링크 : <a
+  href="https://forms.gle/8RayYuRHhwxtMmsg9">https://forms.gle/8RayYuRHhwxtMmsg9</a></li>
+    <li>문의처 : <a href="mailto:kby7788@ccei.kr">kby7788@ccei.kr</a> /
+  052-230-3410</li> </ul>
+ <p>
+  <img
+    src="https://ccei.creativekorea.or.kr/ce3/images/000965/20260825153059697_TBU33BUP.png"
+    title="external_image" alt="external_image" style="vertical-align: baseline;border: 0.0px solid rgb(0,0,0);" /></p></div>
+									
+										<div class="vw_download">
+											
+												<a href="/json/common/fileDown.download?uuid=20260824152549c128ab59-ebb0-42e1-9c2c-24347a1063bd">
+													<span>
+														<i class="is_ico isi_clip">첨부파일</i>
+													</span>
+													<span class="dwnname">2026년 창업도시 스타트업 정주지원 플랫폼 사업 공고문.hwp</span>
+												</a>
+											
+												<a href="/json/common/fileDown.download?uuid=2026082415255821bcd9e3-82f7-4f78-8a19-34894600e832">
+													<span>
+														<i class="is_ico isi_clip">첨부파일</i>
+													</span>
+													<span class="dwnname">2026년 창업도시 스타트업 정주지원 플랫폼 사업 공고문.pdf</span>
+												</a>
+											
+										</div>
+																
+								</div>
+								<div>
+									<div class="btn_area">
+										<a href="javascript:;" onclick="pageGo()" class="btn brown_btn">목록</a>
+										
+									</div>	
+								</div>
+								<div class="vw_pagectrl" >
+									<table style="width:100%" class="tb04">
+										<caption>이전글, 다음글 미리보기</caption>
+										<colgroup>
+											<col class="view_title">
+											<col>
+										</colgroup>
+										<tbody>
+											<tr>
+												<th scope="row">이전글</th>
+												<td>
+													
+														<span>이전글이 없습니다.</span>
+													
+													
+												</td>
+											</tr>
+											<tr>
+												<th scope="row">다음글</th>
+												<td>
+													
+													
+														<a href="javascript:;
+" onClick="viewBoard('4407','1');">먼데이피칭</a>
+
+													
+												</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+							</section>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+
+	
+ <footer class="footer">
+	<div class="f-logo">
+		<a href="/main.do"><img src="/resources/images/common/footer_logo.png" alt="창조경제혁신센터" /></a>
+	</div>
+	<div class="f-contents">
+		<ul>
+			<li><a href="/center/info.do">센터소개</a></li>
+			<li><a href="/include/agree.do">이용약관</a></li>
+			 <li><a href="/include/personal.do" style="color: yellow;">개인정보처리방침</a></li>
+		</ul>
+		<p class="address">
+			주관 : 중소벤처기업부 / 운영 : 창업진흥원
+		</p>
+		<p class="Copyright">
+			COPYRIGHT (C) 2019. 창조경제혁신센터 ALL RIGHTS RESERVED.
+		</p>
+		<p class="Flaticon_link">Icons provided by Flaticon www.flaticon.com</p>
+	</div>
+	<aside class="side_bar">
+		<div class="center_quick_wrap">
+			<div class="center_quick">
+				<span>19개 CCEI <br> 바로가기</span>
+				<button class="open_map_bt">〈&ensp;펼쳐보기</button>			
+			</div>
+		</div>
+		<script type="text/javascript">
+		 	function changeImg(img) {
+				var mapimg = document.getElementById('whole_country');
+				mapimg.src = img;
+		      }
+		      function changeImg1(obj,img){
+		    	var mapimg1 = document.getElementByid(map1);
+		    	mapimg1.src=img;
+		    } 
+		</script>
+		<div class="show_map">
+			<button class="close_map_bt">닫기&ensp;〉</button>
+			
+			<!-- 기본 이미지 -->
+			<div class="show_map_area">
+				<img id="whole_country" alt="" src="/resources/images/centermap/center_map00.gif" usemap="#whole_country">
+				<!-- 지역별 이미지 -->		
+				<map name="whole_country">
+					<area shape="rect" alt="incheon" coords="104,94,134,134" onmouseover="changeImg('/resources/images/centermap/center_map01.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/incheon/" target="_blank">
+					<area shape="rect" alt="seoul" coords="140,84,171,129" onmouseover="changeImg('/resources/images/centermap/center_map02.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/seoul/" target="_blank">
+					<area shape="rect" alt="gyeonggi" coords="168,93,204,145" onmouseover="changeImg('/resources/images/centermap/center_map03.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/gyeonggi/" target="_blank">
+					<area shape="rect" alt="gangwon" coords="253,63,290,109" onmouseover="changeImg('/resources/images/centermap/center_map04.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/gangwon/" target="_blank">
+					<area shape="rect" alt="chungnam" coords="121,206,149,254" onmouseover="changeImg('/resources/images/centermap/center_map05.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/chungnam/" target="_blank">
+					<area shape="rect" alt="sejong" coords="156,195,190,230" onmouseover="changeImg('/resources/images/centermap/center_map06.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/sejong/" target="_blank">
+					<area shape="rect" alt="chungbuk" coords="198,176,230,224" onmouseover="changeImg('/resources/images/centermap/center_map07.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/chungbuk/" target="_blank">
+					<area shape="rect" alt="daejeon" coords="176,237,207,276" onmouseover="changeImg('/resources/images/centermap/center_map08.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/daejeon/" target="_blank">
+					<area shape="rect" alt="gyeongbuk" coords="318,200,347,239" onmouseover="changeImg('/resources/images/centermap/center_map09.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/gyeongbuk/" target="_blank">
+					<area shape="rect" alt="jeonbuk" coords="160,296,190,338" onmouseover="changeImg('/resources/images/centermap/center_map10.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/jeonbuk/" target="_blank">
+					<area shape="rect" alt="daegu" coords="285,278,317,323" onmouseover="changeImg('/resources/images/centermap/center_map11.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/daegu/" target="_blank">
+					<area shape="rect" alt="pohang" coords="361,270,393,309" onmouseover="changeImg('/resources/images/centermap/center_map12.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/pohang/" target="_blank">
+					<area shape="rect" alt="gwangju" coords="126,357,155,398" onmouseover="changeImg('/resources/images/centermap/center_map13.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/gwangju/" target="_blank">
+					<area shape="rect" alt="bitgaram" coords="164,374,193,421" onmouseover="changeImg('/resources/images/centermap/center_map14.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/bitgaram/" target="_blank">
+					<area shape="rect" alt="gyeongnam" coords="254,346,280,386" onmouseover="changeImg('/resources/images/centermap/center_map15.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/gyeongnam/" target="_blank">
+					<area shape="rect" alt="ulsan" coords="340,311,369,353" onmouseover="changeImg('/resources/images/centermap/center_map16.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/ulsan/" target="_blank">
+					<area shape="rect" alt="jeonnam" coords="113,403,142,445" onmouseover="changeImg('/resources/images/centermap/center_map17.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/jeonnam/" target="_blank">
+					<area shape="rect" alt="busan" coords="321,354,352,396" onmouseover="changeImg('/resources/images/centermap/center_map18.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/busan/" target="_blank">
+					<area shape="rect" alt="jeju" coords="96,502,129,541" onmouseover="changeImg('/resources/images/centermap/center_map19.gif')" onmouseout="changeImg('/resources/images/centermap/center_map00.gif')" href="https://ccei.creativekorea.or.kr/jeju/" target="_blank">
+				</map>
+			</div>
+		</div>
+		<div class="top_btn">
+			<a class="" id="top_btn">
+				TOP
+			</a>
+		</div>
+	</aside>
+</footer>
+	<form id="form2" name="form2" action="/service/event_view.do" method="post">
+		<input type="hidden" id="seq" name="seq" value="10563">
+		<input type="hidden" id="rownum" name="rownum" value="">
+		<input type="hidden" id="sNum" name="sNum" value="">
+		<input type="hidden" id="pn" name="pn" value="">
+		<input type="hidden" name="sPtime" id="sPtime" value="" />
+		<input type="hidden" name="sdate" id="sdate" value="" />
+		<input type="hidden" name="edate" id="edate" value="" />
+		<input type="hidden" name="k_word" id="k_word" value="" />
+		<input type="hidden" name="keyword" id="keyword" value="" />
+		<input type="hidden" id="page" name="page" value="">
+		<input type="hidden" id="eng_pages" name="eng_pages" value="false">
+	</form>
+	<form id="form3" name="form3" method="post">
+		<input type="hidden" id="apply_seq" name="apply_seq" value="">
+	</form>
+	<script>
+		$(document).ready(function() {
+			viewBoardChk();
+		});
+		
+		function viewBoard(row, rnum){
+			$("#seq").val(row);
+			$("#rownum").val(rnum);
+			$("#form2").attr("action", "/service/business_view.do");
+			$("#form2").submit();
+		}
+		
+		// 상세 페이지 이동
+		function viewBoardChk(){
+			$.ajax({
+			    type:'POST',
+			    url:"/service/business_view_data.do",
+			    data:$("#form2").serialize(),
+			    dataType : "json",
+				cache : false,
+	            success:function(result){
+	   				if(result.resultStatus == "success") {
+
+	   				} else if(result.resultStatus == "fail") {
+	   					alert(result.resultMessage);
+	   					location.href = "/service/business_list.do";
+	   				}
+	            }, error:function(error, textStatus){
+					alert("시스템에 문제가 발생했습니다. 관리자에게 문의하세요.");
+				}
+				
+			});
+		}
+		
+		function pageGo(){
+			$("#form2").attr("action", "/service/business_list.do");
+			$("#form2").submit();
+		}
+		
+		function applyGo(seq){
+			if ($("#login_YN").val() == 'N') {
+    			if(confirm('로그인이 필요합니다.\n로그인 하시겠습니까?')){
+					location.href = '/json/sso/login.json'; return;
+				}
+			}else{
+				$("#apply_seq").val(seq);
+				$.ajax({
+					type : "POST",
+			        url : "/apply/apply_overlap.json",
+			        data : $("#form3").serialize(),
+			        cache : false,
+			        dataType : "json",
+			        success : function(data){
+			        	var check = data.check;
+			        	
+			        	if(check != 0){
+			        		alert("이미 신청하셨습니다. ");
+			        		return;
+			        	}else{
+			        		if(new Date().format("yyyy.MM.dd") <= '2026.09.11'){
+			        			$("#form3").attr("action","/apply/apply_business_view.do");
+			        			$("#form3").submit();
+							}else{
+								alert('종료된 프로그램 입니다.');
+								return;
+							}
+			        	}
+			        }
+				});
+			}
+		}
+	</script>
+</body>
+</html>

@@ -1,0 +1,1151 @@
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="format-detection" content="telephone=no" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<meta name="description" content="사업공고" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="사업공고" />
+<meta property="og:url" content="http://wfi.or.kr/communication/?b=B_1_14" />
+<meta property="og:site_name" content="원주미래산업진흥원" />
+<meta property="og:description" content="사업공고" />
+<meta property="og:image" content="" />
+<meta property="og:updated_time" content="2025-03-28T09:58:22+00:00" />
+<meta property="fb:admins" content="" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="사업공고" />
+<meta name="twitter:description" content="사업공고" />
+<meta name="twitter:image" content="" />
+<meta name="twitter:creator" content="원주미래산업진흥원" />
+<meta name="keywords" content="사업공고" />
+
+<link rel="shortcut icon" href="/manager/images/mobile.png" />
+<link rel="apple-touch-icon" href="/manager/images/mobile.png" />
+
+<link rel="icon" href="/mobile.png" type="image/png">
+<link rel="shortcut icon" href="/mobile.png" type="image/png">
+
+<title>사업공고 | 원주미래산업진흥원</title>
+
+<link rel="stylesheet" type="text/css" href="/assets/css/WFI.css?v=1781861614" />
+
+<script src="/assets/js/libs/jquery.min.js?v=1755240759"></script>
+<script src="/assets/js/libs/librurys.min.js?v=1755240759"></script>
+<script src="/assets/js/ui/ui.common.js?v=1755240759"></script>
+
+
+<!-- Swiper Librarys -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+
+<!-- fullcalendar -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+<script src="/assets/js/libs/index.global.js?v=1755240759"></script>
+<script src="/assets/js/libs/index.global.min.js?v=1755240759"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales-all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/locales-all.js"></script>
+
+<script src="/assets/js/fontzoom.js?v=1738290216"></script>
+<script src="/assets/js/jquery.form.js?v=1738290217"></script>
+<script src="/assets/js/common.js?v=1738290216"></script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-74F08PRTEN"></script>
+<script nonce="">
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-74F08PRTEN');
+</script>
+<!-- Google tag (gtag.js) -->
+
+<!-- 페이지 스크립트 영역 -->
+<script></script>
+</head>
+<body>
+	<!-- 레이아웃 유형구분
+		메인: main-wrapper,
+		서브: sub-wrapper,
+		기타: [기타]-wrapper
+	 -->
+    <div class="wrapper sub-wrapper">
+<script nonce="">
+	$(function(){
+		// PC Header
+		$('#input_search_header').on('keydown', function (event) {
+			if (event.key === 'Enter') {
+				$('#btn_search_header').trigger('click');
+			}
+		});
+
+		$('#btn_search_header').on('click', function (event) {
+			const searchKeyword = $("#input_search_header").val();
+			// 디버깅 로그 추가
+			console.log("PC Header searchKeyword:", searchKeyword);  // searchKeyword 값 출력
+			
+			if (!searchKeyword) {
+				alert('검색어를 입력해주세요.');
+				return;
+			} else {
+				$("#input_hidden_search_header").val($("#input_search_header").val());
+				console.log("Form will be submitted with searchKeyword:", searchKeyword); // 폼 제출 전 로그
+				searchForm.submit();
+			}
+		});
+
+		// Mobile Header
+		$('#mobile_input_search_header').on('keydown', function (event) {
+			if (event.key === 'Enter') {
+				$('#mobile_btn_search_header').trigger('click');
+			}
+		});
+
+		$('#mobile_btn_search_header').on('click', function (event) {
+			const searchKeyword = $("#mobile_input_search_header").val();
+			// 디버깅 로그 추가
+			console.log("Mobile Header searchKeyword:", searchKeyword);  // searchKeyword 값 출력
+			
+			if (!searchKeyword) {
+				alert('검색어를 입력해주세요.');
+				return;
+			} else {
+				$("#input_hidden_search_header").val($("#mobile_input_search_header").val());
+				console.log("Mobile Form will be submitted with searchKeyword:", searchKeyword); // 모바일 폼 제출 전 로그
+				searchForm.submit();
+			}
+		});
+	});
+</script>
+
+
+<header class="header">
+	<div class="header-skip">
+		<a href="#content">본문 바로가기</a>
+	</div>
+
+	<!-- PC Header -->
+	<div class="header-pc-sec">
+		<!-- Member 영역 -->
+		<!-- <div class="mem-area">
+		<button type="button" class="ui-btn">
+			<div class="icn" aria-hidden=""></div>
+			<span>로그인</span>
+		</button>
+		<button type="button" class="ui-btn">
+			<div class="icn" aria-hidden=""></div>
+			<span>회원가입</span>
+		</button>
+	</div> -->
+		<!-- // Member 영역 -->
+
+		<!-- Global 영역 -->
+		<div class="gnb-area">
+			<!-- 로고 -->
+			<div class="header-logo">
+				<a href="/">
+					<img class="down" src="/assets/images/common/img-logo-wh.svg" alt="WFI (재)원주미래산업진흥원" />
+					<img class="up" src="/assets/images/common/img-logo-bk.svg" alt="WFI (재)원주미래산업진흥원" />
+					<span class="blind">WFI (재)원주미래산업진흥원</span>
+				</a>
+			</div>
+			<!-- // 로고 -->
+
+			<!-- 메뉴 -->
+			<nav class="header-nav">
+				<ul class="dep1-list">
+												<li class="dep1-item">
+								<a href="/intro/greetings_chairman.do"  class="dep1-link">진흥원 소개</a>
+																	<div class="dep2-list-wrap">
+										<ul class="dep2-list">
+																								<li class="dep2-item"><a href="/intro/greetings_chairman.do" 															class="dep2-link">인사말</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																									<li class="dep2-item"><a href="/intro/vision.do" 															class="dep2-link">미션 및 비전</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																									<li class="dep2-item"><a href="/intro/history.do" 															class="dep2-link">연혁</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																									<li class="dep2-item"><a href="/intro/organization.do" 															class="dep2-link">조직도</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																									<li class="dep2-item"><a href="/intro/intro_ci.do" 															class="dep2-link">CI 소개</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																									<li class="dep2-item"><a href="/intro/find_map.do" 															class="dep2-link">찾아오시는 길</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																						</ul>
+																	</div>
+							</li>
+													<li class="dep1-item">
+								<a href="/communication/?b=B_1_1"  class="dep1-link">소통마당</a>
+																	<div class="dep2-list-wrap">
+										<ul class="dep2-list">
+																								<li class="dep2-item"><a href="/communication/?b=B_1_1" 															class="dep2-link">공지사항</a>
+
+
+														<!--  3뎁스 처리 시작-->
+														<ul class="dep3-list">																		<li class="dep3-item">
+																			<a href="/communication/?b=B_1_1&m_type=COMMON"  class="dep3-link">
+																				일반사항																			</a>
+																		</li>
+																																				<li class="dep3-item">
+																			<a href="/communication/?b=B_1_1&m_type=EMPLOYMENT"  class="dep3-link">
+																				채용공고																			</a>
+																		</li>
+																																				<li class="dep3-item">
+																			<a href="/communication/?b=B_1_1&m_type=BID"  class="dep3-link">
+																				입찰공고																			</a>
+																		</li>
+																																				<li class="dep3-item">
+																			<a href="/communication/?b=B_1_1&m_type=OTORG"  class="dep3-link">
+																				타 기관 공고																			</a>
+																		</li>
+																		</ul>														<!-- 3뎁스 처리 끝 !-->
+													</li>
+																									<li class="dep2-item"><a href="/communication/?b=B_1_2" 															class="dep2-link">보도자료</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																									<li class="dep2-item"><a href="/communication/?b=B_1_3" 															class="dep2-link">경영공시</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																									<li class="dep2-item"><a href="/communication/?b=B_1_13" 															class="dep2-link">자료실</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																									<li class="dep2-item"><a href="/communication/?b=B_1_15" 															class="dep2-link">기관소식</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																						</ul>
+																	</div>
+							</li>
+													<li class="dep1-item">
+								<a href="/task/digital_industry.do"  class="dep1-link">사업안내</a>
+																	<div class="dep2-list-wrap">
+										<ul class="dep2-list">
+																								<li class="dep2-item"><a href="/task/digital_industry.do" 															class="dep2-link">주요사업</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																									<li class="dep2-item"><a href="/communication/?b=B_1_5" 															class="dep2-link">국가R&D통합공고</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																									<li class="dep2-item"><a href="/communication/?b=B_1_12" 															class="dep2-link">연구보고서</a>
+
+
+														<!--  3뎁스 처리 시작-->
+														<ul class="dep3-list">																		<li class="dep3-item">
+																			<a href="/communication/?b=B_1_12&m_type=WFI_REPORT"  class="dep3-link">
+																				원주미래산업리포트																			</a>
+																		</li>
+																																				<li class="dep3-item">
+																			<a href="/communication/?b=B_1_12&m_type=FI_BRIEF"  class="dep3-link">
+																				미래산업 이슈브리프																			</a>
+																		</li>
+																		</ul>														<!-- 3뎁스 처리 끝 !-->
+													</li>
+																									<li class="dep2-item"><a href="/communication/?b=B_1_14" 															class="dep2-link">사업공고</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																						</ul>
+																	</div>
+							</li>
+													<li class="dep1-item">
+								<a href="/facility/reservation_form.do"  class="dep1-link">시설안내</a>
+																	<div class="dep2-list-wrap">
+										<ul class="dep2-list">
+																								<li class="dep2-item"><a href="/communication/?b=B_1_4" 															class="dep2-link">시설 및 입주 안내</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																									<li class="dep2-item"><a href="/facility/reservation_form.do" 															class="dep2-link">시설 예약</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																									<li class="dep2-item"><a href="/facility/reservation_status.do" 															class="dep2-link">예약 현황</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																									<li class="dep2-item"><a href="/facility/resident_company.do" 															class="dep2-link">입주기업 소개​</a>
+
+
+														<!--  3뎁스 처리 시작-->
+																												<!-- 3뎁스 처리 끝 !-->
+													</li>
+																						</ul>
+																	</div>
+							</li>
+										</ul>
+				<div class="header-nav-bg" aria-hidden="false"></div>
+			</nav>
+			<!-- // 메뉴 -->
+			<!-- snb메뉴 -->
+			<div class="snb-wrap">
+				<ul class="util pc">
+					<li>
+											</li>
+					<li>
+													<!-- 비로그인 상태 -->
+							<div class="btn-log-wrap">
+								<a href="/member/login.do" class="btn-log"><span class="blind">로그인</span></a>
+							</div>
+						
+					</li>
+					<li>
+						<!-- 2024-12-06 헤더 검색 피시 수정 -->
+						<a href="javascript:void(0)" class="ui-btn btn-search" aria-expanded="false">
+							<span class="blind">검색</span>
+						</a>
+						<!-- 검색 -->
+						
+						<div class="header-search">
+							<div class="search_wrap">
+								<div class="input">
+									<input id="input_search_header" type="search" name="searchKeyword" placeholder="검색어를 입력하세요">
+									<!-- <span class="delete"><span class="blind">delete</span></span>  -->
+									<button id="btn_search_header" type="submit" class="btn_search"><span class="blind">seatton>
+								</div>
+							</div>
+						</div>
+
+						<!-- // 검색 -->
+					</li>
+					<li>
+						<!-- 2024-12-06 헤더 피시 모바일 전체메뉴 병합 -->
+						<a href="javascript:void(0)" class="btn-gnb" data-bs-toggle="modal" data-bs-target="#mobileNavModal">
+							<span></span>
+							<span></span>
+							<span></span>
+						</a>
+					</li>
+				</ul>
+			</div>
+						
+		</div>
+		<!-- // Global 영역 -->
+	</div>
+	<!-- // PC Header -->
+	<form id="searchForm" action="/comm/search_list.do" method="GET">
+		<input type="hidden" id="input_hidden_search_header" type="search" name="searchKeyword">
+	</form>
+	<!-- Mobile Header -->
+	<div class="header-mobile-sec">
+		<div class="gnb-area">
+			<div class="header-logo">
+				<a href="/">
+					<img class="down" src="/assets/images/common/img-logo-wh.svg" alt="WFI (재)원주미래산업진흥원 로고">
+					<img class="up" src="/assets/images/common/img-logo-bk.svg" alt="WFI (재)원주미래산업진흥원 로고">
+					<span class="blind">WFI (재)원주미래산업진흥원</span>
+				</a>
+			</div>
+			<div class="header-btns">
+				<!-- 2024-12-06 헤더 검색 모바일 수정 -->
+				<button type="button" class="ui-btn btn-search" aria-expanded="false">
+					<span class="blind">검색</span>
+				</button>
+				<button type="button" class="ui-btn btn-gnb" data-bs-toggle="modal" data-bs-target="#mobileNavModal">
+					<span class="blind">전체메뉴</span>
+				</button>
+				<!-- 검색 -->
+				<div class="header-search">
+					<div class="search_wrap">
+						<div class="input">
+							<input id="mobile_input_search_header" type="search" name="" placeholder="검색어를 입력하세요">
+							<!-- <span class="delete"><span class="blind">delete</span></span>  -->
+							<button id="mobile_btn_search_header" type="button" class="btn_search"><span class="blind">search</span></button>
+						</div>
+					</div>
+				</div>
+				<!-- // 검색 -->
+
+			</div>
+		</div>
+	</div>
+	<!-- // Mobile Header -->
+
+	<!-- Mobile Nav Modal -->
+	<!-- 2024-12-06 헤더 피시 모바일 전체메뉴 병합 -->
+	<div class="modal fade mobile-nav-modal" id="mobileNavModal" tabindex="-1" role="dialog" data-bs-backdrop="static"
+		aria-labelledby="mobileNavModalLabel" aria-hidden="true">
+		<!-- 모바일 메뉴 -->
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<h2 id="mobileNavModalLabel" class="blind">전체메뉴</h2>
+				<!-- Member 영역 -->
+				<!-- Case 로그인 전 -->
+				<!-- <div class="mem-area">
+				<h3>로그인이 필요합니다.</h3>
+				<div class="mem-area-btn-wrap">
+					<button type="button" class="ui-btn login">
+						<span>로그인</span>
+					</button>
+					<button type="button" class="ui-btn join">
+						<span>회원가입</span>
+					</button>
+				</div>
+			</div> -->
+				<!-- // Case 로그인 전 -->
+				<!-- Case 로그인 후 -->
+				<div class="mem-area">
+											<!-- 비로그인 상태 -->
+						<h3>로그인이 필요합니다.</h3>
+						<div class="mem-area-btn-wrap">
+							<button type="button" class="ui-btn login" onclick="location.href='/member/login.do'">
+								<span><a href="/member/login.do">로그인</a></span>
+							</button>
+							<button type="button" class="ui-btn join" onclick="location.href='/member/member_form.do'">
+								<span><a href="/member/member_form.do">회원가입</a></span>
+							</button>
+						</div>
+									</div>
+				<!-- // Case 로그인 후 -->
+				<!-- // Member 영역 -->
+
+				<!-- Global 영역 -->
+				<div class="gnb-area">
+					<nav class="mobile-nav">
+						<ul class="dep1-list accordionExample" id="accordionExample">
+																<li class="dep1-item">
+										<a href="/intro/greetings_chairman.do"  class="dep1-link">진흥원 소개</a>
+										<button type="button" class="dep2-open collapsed" data-bs-toggle="collapse"
+											data-bs-target="#dep2-1" aria-controls="dep2-1">
+											<span class="blind">열기</span>
+										</button>
+										<div class="dep2-list-wrap accordion-collapse collapse" id="dep2-1" data-bs-parent="#accordionExample">
+																							<ul class="dep2-list">
+																												<li class="dep2-item"><a href="/intro/greetings_chairman.do" 																	class="dep2-link">인사말</a></li>
+																													<li class="dep2-item"><a href="/intro/vision.do" 																	class="dep2-link">미션 및 비전</a></li>
+																													<li class="dep2-item"><a href="/intro/history.do" 																	class="dep2-link">연혁</a></li>
+																													<li class="dep2-item"><a href="/intro/organization.do" 																	class="dep2-link">조직도</a></li>
+																													<li class="dep2-item"><a href="/intro/intro_ci.do" 																	class="dep2-link">CI 소개</a></li>
+																													<li class="dep2-item"><a href="/intro/find_map.do" 																	class="dep2-link">찾아오시는 길</a></li>
+																										</ul>
+																					</div>
+									</li>
+																	<li class="dep1-item">
+										<a href="/communication/?b=B_1_1"  class="dep1-link">소통마당</a>
+										<button type="button" class="dep2-open collapsed" data-bs-toggle="collapse"
+											data-bs-target="#dep2-2" aria-controls="dep2-2">
+											<span class="blind">열기</span>
+										</button>
+										<div class="dep2-list-wrap accordion-collapse collapse" id="dep2-2" data-bs-parent="#accordionExample">
+																							<ul class="dep2-list">
+																												<li class="dep2-item"><a href="/communication/?b=B_1_1" 																	class="dep2-link">공지사항</a></li>
+																													<li class="dep2-item"><a href="/communication/?b=B_1_2" 																	class="dep2-link">보도자료</a></li>
+																													<li class="dep2-item"><a href="/communication/?b=B_1_3" 																	class="dep2-link">경영공시</a></li>
+																													<li class="dep2-item"><a href="/communication/?b=B_1_13" 																	class="dep2-link">자료실</a></li>
+																													<li class="dep2-item"><a href="/communication/?b=B_1_15" 																	class="dep2-link">기관소식</a></li>
+																										</ul>
+																					</div>
+									</li>
+																	<li class="dep1-item">
+										<a href="/task/digital_industry.do"  class="dep1-link">사업안내</a>
+										<button type="button" class="dep2-open collapsed" data-bs-toggle="collapse"
+											data-bs-target="#dep2-3" aria-controls="dep2-3">
+											<span class="blind">열기</span>
+										</button>
+										<div class="dep2-list-wrap accordion-collapse collapse" id="dep2-3" data-bs-parent="#accordionExample">
+																							<ul class="dep2-list">
+																												<li class="dep2-item"><a href="/task/digital_industry.do" 																	class="dep2-link">주요사업</a></li>
+																													<li class="dep2-item"><a href="/communication/?b=B_1_5" 																	class="dep2-link">국가R&D통합공고</a></li>
+																													<li class="dep2-item"><a href="/communication/?b=B_1_12" 																	class="dep2-link">연구보고서</a></li>
+																													<li class="dep2-item"><a href="/communication/?b=B_1_14" 																	class="dep2-link">사업공고</a></li>
+																										</ul>
+																					</div>
+									</li>
+																	<li class="dep1-item">
+										<a href="/facility/reservation_form.do"  class="dep1-link">시설안내</a>
+										<button type="button" class="dep2-open collapsed" data-bs-toggle="collapse"
+											data-bs-target="#dep2-4" aria-controls="dep2-4">
+											<span class="blind">열기</span>
+										</button>
+										<div class="dep2-list-wrap accordion-collapse collapse" id="dep2-4" data-bs-parent="#accordionExample">
+																							<ul class="dep2-list">
+																												<li class="dep2-item"><a href="/communication/?b=B_1_4" 																	class="dep2-link">시설 및 입주 안내</a></li>
+																													<li class="dep2-item"><a href="/facility/reservation_form.do" 																	class="dep2-link">시설 예약</a></li>
+																													<li class="dep2-item"><a href="/facility/reservation_status.do" 																	class="dep2-link">예약 현황</a></li>
+																													<li class="dep2-item"><a href="/facility/resident_company.do" 																	class="dep2-link">입주기업 소개​</a></li>
+																										</ul>
+																					</div>
+									</li>
+																					</ul>
+						<div class="header-nav-bg" aria-hidden="false"></div>
+					</nav>
+				</div>
+				<button type="button" class="ui-btn btn-gnb-close" data-bs-dismiss="modal">
+					<i class="icn" aria-label="메뉴닫기">메뉴닫기</i>
+				</button>
+			</div>
+		</div>
+		<!-- // 모바일 메뉴 -->
+
+		<!-- 전체메뉴 -->
+		<!-- 2024-12-06 헤더 피시 모바일 전체메뉴 병합 -->
+		<div class="modal-dialog sitemap">
+			<div class="modal-content">
+				<h2 class="sitemap-logo">
+					<a href="/">
+						<img class="up" src="/assets/images/common/img-logo-bk.svg" alt="WFI (재)원주미래산업진흥원 로고">
+						<span class="blind">WFI (재)원주미래산업진흥원</span>
+					</a>
+				</h2>
+				<div class="wrap">
+					<div class="all-gnb-intro">
+						<p class="category"><!--Site Map--></p>
+						<h3 class="welcome">
+							원주미래산업진흥원에<br />
+							오신 것을 환영합니다
+						</h3>
+						<div class="login-menu">
+							<ul class="login-list">
+																	<!-- 비로그인 상태 -->
+									<li>
+										<a href="/member/login.do">로그인</a>
+									</li>
+									<li>
+										<a href="/member/member_form.do">회원가입</a>
+									</li>
+															</ul>
+						</div>
+					</div>
+					<div class="all-gnb-menu">
+						<ul class="all-gnb-menu-list">
+															<li>
+										<a href="/intro/greetings_chairman.do" 											class="dep1">진흥원 소개</a>
+																					<ul class="dep2-menu-list">
+																										<li><a href="/intro/greetings_chairman.do"  class="dep2">인사말</a></li>
+																											<li><a href="/intro/vision.do"  class="dep2">미션 및 비전</a></li>
+																											<li><a href="/intro/history.do"  class="dep2">연혁</a></li>
+																											<li><a href="/intro/organization.do"  class="dep2">조직도</a></li>
+																											<li><a href="/intro/intro_ci.do"  class="dep2">CI 소개</a></li>
+																											<li><a href="/intro/find_map.do"  class="dep2">찾아오시는 길</a></li>
+																								</ul>
+																			</li>
+																	<li>
+										<a href="/communication/?b=B_1_1" 											class="dep1">소통마당</a>
+																					<ul class="dep2-menu-list">
+																										<li><a href="/communication/?b=B_1_1"  class="dep2">공지사항</a></li>
+																											<li><a href="/communication/?b=B_1_2"  class="dep2">보도자료</a></li>
+																											<li><a href="/communication/?b=B_1_3"  class="dep2">경영공시</a></li>
+																											<li><a href="/communication/?b=B_1_13"  class="dep2">자료실</a></li>
+																											<li><a href="/communication/?b=B_1_15"  class="dep2">기관소식</a></li>
+																								</ul>
+																			</li>
+																	<li>
+										<a href="/task/digital_industry.do" 											class="dep1">사업안내</a>
+																					<ul class="dep2-menu-list">
+																										<li><a href="/task/digital_industry.do"  class="dep2">주요사업</a></li>
+																											<li><a href="/communication/?b=B_1_5"  class="dep2">국가R&D통합공고</a></li>
+																											<li><a href="/communication/?b=B_1_12"  class="dep2">연구보고서</a></li>
+																											<li><a href="/communication/?b=B_1_14"  class="dep2">사업공고</a></li>
+																								</ul>
+																			</li>
+																	<li>
+										<a href="/facility/reservation_form.do" 											class="dep1">시설안내</a>
+																					<ul class="dep2-menu-list">
+																										<li><a href="/communication/?b=B_1_4"  class="dep2">시설 및 입주 안내</a></li>
+																											<li><a href="/facility/reservation_form.do"  class="dep2">시설 예약</a></li>
+																											<li><a href="/facility/reservation_status.do"  class="dep2">예약 현황</a></li>
+																											<li><a href="/facility/resident_company.do"  class="dep2">입주기업 소개​</a></li>
+																								</ul>
+																			</li>
+																					</ul>
+					</div>
+				</div>
+				<button type="button" class="menuClose btn-close" data-bs-dismiss="modal" aria-label="Close">
+					<span class="blind">닫기</span>
+				</button>
+			</div>
+		</div>
+		<!-- 전체메뉴 -->
+	</div>
+	<!-- Mobile Nav Modal -->
+
+	<!-- s: 전체메뉴 -->
+	<!-- <div class="area-siteMap modal" id="sitemap"  data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+
+</div> -->
+	<!-- e: 전체메뉴 -->
+</header>
+<!-- Container -->
+<main role="main" class="container">
+	<!-- content -->
+	<div id="content" class="content notice-list-page">
+		<!-- content-header -->
+		<div class="content-header">
+	<!-- Sub Visual -->
+	<div class="visual-wrap visual-03">
+		<div class="inner">
+			<h1>사업안내</h1>
+			<div class="location">
+				<span class="lc-home"><span class="blind">홈</span></span>
+				<span class="lc-split"><span class="blind">&gt;</span></span>
+				<span class="lc-cate"><span>사업안내</span></span>
+				<span class="lc-split"><span class="blind">&gt;</span></span>
+				<span class="lc-current" aria-current="page">사업공고</span>
+			</div>
+		</div>
+	</div>
+	<!-- // Sub Visual -->
+	<!-- Sub Nav -->
+	<div class="snb-wrap">
+		<nav class="nav dep2-nav swiper">
+			<ul class="dep2-list swiper-wrapper">
+							<li class="dep2-item swiper-slide">
+					<a href="/task/digital_industry.do"  class="dep2-link ">주요사업</a>
+				</li>
+							<li class="dep2-item swiper-slide">
+					<a href="/communication/?b=B_1_5"  class="dep2-link ">국가R&D통합공고</a>
+				</li>
+							<li class="dep2-item swiper-slide">
+					<a href="/communication/?b=B_1_12"  class="dep2-link ">연구보고서</a>
+				</li>
+							<li class="dep2-item swiper-slide">
+					<a href="/communication/?b=B_1_14"  class="dep2-link is-current">사업공고</a>
+				</li>
+			
+			</ul>
+		</nav>
+	</div>
+	<!-- // Sub Nav -->
+</div>
+		
+		 
+		
+		 
+		<!-- // content-header -->
+
+		<!-- content-body -->
+		<div class="content-body">
+			<!-- 게시판목록 페이지 -->
+			<!-- <div class="board-list-page"> -->
+				<!-- 타이틀 영역 -->
+				<div class="title-wrap">
+									<h2 class="title">사업공고</h2>
+								</div>
+				<!-- // 타이틀 영역 -->
+
+				<!-- 게시판목록 영역 --> 
+				<div class="board-list-wrap">
+					<div class="board-toolbar">
+					
+												<p class="board-count">전체 <em>13</em>건</p>
+						
+						<form class="board-srch" id="form" name="frm" onSubmit="js_board_search();" method="get">
+							<input type="hidden" name="b" id="b" value="B_1_14" />
+							<input type="hidden" name="bn" id="bn" value="" />
+							<input type="hidden" name="nPage" id="nPage" value="1" />
+							<input type="hidden" name="m_type" id="m_type" value="" />
+
+															<div class="frm-sel h-48">
+									<select name="f" id="f" onChange="blur();" title="검색 구분" class="sel">
+										<option value="ALL" >전체</option>
+										<option value="TITLE" >제목</option>
+										<option value="WRITER_ID" >작성자</option>
+										<option value="CONTENTS" >내용</option>
+									</select>
+								</div>
+							
+						 
+														<div class="frm-inp h-48 has-on-right">
+								<input type="text" name="s" id="s" value="" autocomplete="off" placeholder="검색어를 입력해주세요." title="검색 키워드" class="inp" />
+								<div class="on-right">
+									<button type="button" class="btn-srch" onclick="js_board_search();">
+										<span class="blind">검색</span>
+									</button>
+								</div>
+							</div>
+													</form>
+					</div>
+				
+
+					<div class="board-list">
+						
+					
+					
+											
+											
+																					<div class="board-list">
+    <table class="tbl">
+        <caption>
+            <strong>공지사항 목록</strong>
+            <p>No., 제목, 작성자, 등록일, 조회수 순서로 구성됨</p>
+        </caption>
+        <colgroup>
+            <col style="width:120rem">
+            <col style="width:auto">
+            <col style="width:200rem">
+            <col style="width:120rem">
+            <col style="width:120rem">
+        </colgroup>
+        <thead>
+            <tr>
+                <th scope="col">No.</th>
+                <th scope="col">제목</th>
+                <th scope="col">작성자</th>
+                <th scope="col">등록일</th>
+                <th scope="col">조회수</th>
+            </tr>
+        </thead>
+        <tbody>
+                                <tr>
+                        <td class="tbl-no">
+                            <p>13</p>
+                        </td>
+                        <td class="tbl-tit">
+                            <p>
+                                <a href="view.do?b=B_1_14&bn=518&m_type=&nPage=1"
+                                    class="link">
+                                    ⌈2026년 강원 앵커사업 [미래모빌리티 분과]⌋ 2026년 미래모빌리티 기술사업화 지원사업 공고                                </a>
+                                                                    <a href="view.do?b=B_1_14&bn=518&m_type=&nPage=1&f=&s="
+                                        class="file"><span class="blind">첨부파일</span></a>
+                                                            </p>
+                        </td>
+                        <td class="tbl-writer">
+                            <p>원주미래산업진흥원</p>
+                        </td>
+                        <td class="tbl-date">
+                            <p>2026.08.18</p>
+                        </td>
+                        <td class="tbl-views">
+                            <p>78</p>
+                        </td>
+                    </tr>
+                                        <tr>
+                        <td class="tbl-no">
+                            <p>12</p>
+                        </td>
+                        <td class="tbl-tit">
+                            <p>
+                                <a href="view.do?b=B_1_14&bn=515&m_type=&nPage=1"
+                                    class="link">
+                                    2026 모빌리티 국제표준인증(ISO) 지원사업 참여기업 추가 모집 공고                                </a>
+                                                                    <a href="view.do?b=B_1_14&bn=515&m_type=&nPage=1&f=&s="
+                                        class="file"><span class="blind">첨부파일</span></a>
+                                                            </p>
+                        </td>
+                        <td class="tbl-writer">
+                            <p>원주미래산업진흥원</p>
+                        </td>
+                        <td class="tbl-date">
+                            <p>2026.08.13</p>
+                        </td>
+                        <td class="tbl-views">
+                            <p>53</p>
+                        </td>
+                    </tr>
+                                        <tr>
+                        <td class="tbl-no">
+                            <p>11</p>
+                        </td>
+                        <td class="tbl-tit">
+                            <p>
+                                <a href="view.do?b=B_1_14&bn=487&m_type=&nPage=1"
+                                    class="link">
+                                    제3차 드론특별자유화구역 참여기업(4차) 모집 공고                                </a>
+                                                                    <a href="view.do?b=B_1_14&bn=487&m_type=&nPage=1&f=&s="
+                                        class="file"><span class="blind">첨부파일</span></a>
+                                                            </p>
+                        </td>
+                        <td class="tbl-writer">
+                            <p>원주미래산업진흥원</p>
+                        </td>
+                        <td class="tbl-date">
+                            <p>2026.07.21</p>
+                        </td>
+                        <td class="tbl-views">
+                            <p>82</p>
+                        </td>
+                    </tr>
+                                        <tr>
+                        <td class="tbl-no">
+                            <p>10</p>
+                        </td>
+                        <td class="tbl-tit">
+                            <p>
+                                <a href="view.do?b=B_1_14&bn=474&m_type=&nPage=1"
+                                    class="link">
+                                    [AI 대전환 지원사업] 강원 바이오·헬스케어 「AI 대전환 지원사업」공고                                </a>
+                                                                    <a href="view.do?b=B_1_14&bn=474&m_type=&nPage=1&f=&s="
+                                        class="file"><span class="blind">첨부파일</span></a>
+                                                            </p>
+                        </td>
+                        <td class="tbl-writer">
+                            <p>원주미래산업진흥원</p>
+                        </td>
+                        <td class="tbl-date">
+                            <p>2026.07.08</p>
+                        </td>
+                        <td class="tbl-views">
+                            <p>156</p>
+                        </td>
+                    </tr>
+                                        <tr>
+                        <td class="tbl-no">
+                            <p>9</p>
+                        </td>
+                        <td class="tbl-tit">
+                            <p>
+                                <a href="view.do?b=B_1_14&bn=389&m_type=&nPage=1"
+                                    class="link">
+                                    2026 원주시 중소기업 화재보험 지원 참가기업 모집 공고                                </a>
+                                                                    <a href="view.do?b=B_1_14&bn=389&m_type=&nPage=1&f=&s="
+                                        class="file"><span class="blind">첨부파일</span></a>
+                                                            </p>
+                        </td>
+                        <td class="tbl-writer">
+                            <p>원주미래산업진흥원</p>
+                        </td>
+                        <td class="tbl-date">
+                            <p>2026.04.17</p>
+                        </td>
+                        <td class="tbl-views">
+                            <p>357</p>
+                        </td>
+                    </tr>
+                                        <tr>
+                        <td class="tbl-no">
+                            <p>8</p>
+                        </td>
+                        <td class="tbl-tit">
+                            <p>
+                                <a href="view.do?b=B_1_14&bn=463&m_type=&nPage=1"
+                                    class="link">
+                                    [강원테크노파크 공통] 강원 바이오-헬스케어 AI 대전환 수요기업 모집 공고                                </a>
+                                                                    <a href="view.do?b=B_1_14&bn=463&m_type=&nPage=1&f=&s="
+                                        class="file"><span class="blind">첨부파일</span></a>
+                                                            </p>
+                        </td>
+                        <td class="tbl-writer">
+                            <p>원주미래산업진흥원</p>
+                        </td>
+                        <td class="tbl-date">
+                            <p>2026.06.29</p>
+                        </td>
+                        <td class="tbl-views">
+                            <p>122</p>
+                        </td>
+                    </tr>
+                                        <tr>
+                        <td class="tbl-no">
+                            <p>7</p>
+                        </td>
+                        <td class="tbl-tit">
+                            <p>
+                                <a href="view.do?b=B_1_14&bn=462&m_type=&nPage=1"
+                                    class="link">
+                                    [강원테크노파크 공동] 강원 바이오-헬스케어 AI 대전환 실증기업 모집 공고                                </a>
+                                                                    <a href="view.do?b=B_1_14&bn=462&m_type=&nPage=1&f=&s="
+                                        class="file"><span class="blind">첨부파일</span></a>
+                                                            </p>
+                        </td>
+                        <td class="tbl-writer">
+                            <p>원주미래산업진흥원</p>
+                        </td>
+                        <td class="tbl-date">
+                            <p>2026.06.29</p>
+                        </td>
+                        <td class="tbl-views">
+                            <p>160</p>
+                        </td>
+                    </tr>
+                                        <tr>
+                        <td class="tbl-no">
+                            <p>6</p>
+                        </td>
+                        <td class="tbl-tit">
+                            <p>
+                                <a href="view.do?b=B_1_14&bn=431&m_type=&nPage=1"
+                                    class="link">
+                                    2026 모빌리티 국제표준인증(ISO)획득 기업 모집 공고(재공고)                                </a>
+                                                                    <a href="view.do?b=B_1_14&bn=431&m_type=&nPage=1&f=&s="
+                                        class="file"><span class="blind">첨부파일</span></a>
+                                                            </p>
+                        </td>
+                        <td class="tbl-writer">
+                            <p>원주미래산업진흥원</p>
+                        </td>
+                        <td class="tbl-date">
+                            <p>2026.05.22</p>
+                        </td>
+                        <td class="tbl-views">
+                            <p>104</p>
+                        </td>
+                    </tr>
+                                        <tr>
+                        <td class="tbl-no">
+                            <p>5</p>
+                        </td>
+                        <td class="tbl-tit">
+                            <p>
+                                <a href="view.do?b=B_1_14&bn=405&m_type=&nPage=1"
+                                    class="link">
+                                    2026 모빌리티 국제표준인증(ISO)획득 기업 모집 공고                                </a>
+                                                                    <a href="view.do?b=B_1_14&bn=405&m_type=&nPage=1&f=&s="
+                                        class="file"><span class="blind">첨부파일</span></a>
+                                                            </p>
+                        </td>
+                        <td class="tbl-writer">
+                            <p>원주미래산업진흥원</p>
+                        </td>
+                        <td class="tbl-date">
+                            <p>2026.05.10</p>
+                        </td>
+                        <td class="tbl-views">
+                            <p>144</p>
+                        </td>
+                    </tr>
+                                        <tr>
+                        <td class="tbl-no">
+                            <p>4</p>
+                        </td>
+                        <td class="tbl-tit">
+                            <p>
+                                <a href="view.do?b=B_1_14&bn=295&m_type=&nPage=1"
+                                    class="link">
+                                    2026년 지역 디지털 기초체력지원사업 제안과제 발굴을 위한 강원지역(춘천, 원주) 공고                                </a>
+                                                                    <a href="view.do?b=B_1_14&bn=295&m_type=&nPage=1&f=&s="
+                                        class="file"><span class="blind">첨부파일</span></a>
+                                                            </p>
+                        </td>
+                        <td class="tbl-writer">
+                            <p>원주미래산업진흥원</p>
+                        </td>
+                        <td class="tbl-date">
+                            <p>2025.12.09</p>
+                        </td>
+                        <td class="tbl-views">
+                            <p>540</p>
+                        </td>
+                    </tr>
+                                        <tr>
+                        <td class="tbl-no">
+                            <p>3</p>
+                        </td>
+                        <td class="tbl-tit">
+                            <p>
+                                <a href="view.do?b=B_1_14&bn=195&m_type=&nPage=1"
+                                    class="link">
+                                    2025년 신성장투자 세액공제 사업설명회                                </a>
+                                                                    <a href="view.do?b=B_1_14&bn=195&m_type=&nPage=1&f=&s="
+                                        class="file"><span class="blind">첨부파일</span></a>
+                                                            </p>
+                        </td>
+                        <td class="tbl-writer">
+                            <p>원주미래산업진흥원</p>
+                        </td>
+                        <td class="tbl-date">
+                            <p>2025.07.11</p>
+                        </td>
+                        <td class="tbl-views">
+                            <p>499</p>
+                        </td>
+                    </tr>
+                                        <tr>
+                        <td class="tbl-no">
+                            <p>2</p>
+                        </td>
+                        <td class="tbl-tit">
+                            <p>
+                                <a href="view.do?b=B_1_14&bn=184&m_type=&nPage=1"
+                                    class="link">
+                                    2025년 원주시 교육발전특구 첨단분야 진로체험 여름방학 교육생 모집(신청 기간 연장)                                </a>
+                                                                    <a href="view.do?b=B_1_14&bn=184&m_type=&nPage=1&f=&s="
+                                        class="file"><span class="blind">첨부파일</span></a>
+                                                            </p>
+                        </td>
+                        <td class="tbl-writer">
+                            <p>원주미래산업진흥원</p>
+                        </td>
+                        <td class="tbl-date">
+                            <p>2025.06.27</p>
+                        </td>
+                        <td class="tbl-views">
+                            <p>622</p>
+                        </td>
+                    </tr>
+                                        <tr>
+                        <td class="tbl-no">
+                            <p>1</p>
+                        </td>
+                        <td class="tbl-tit">
+                            <p>
+                                <a href="view.do?b=B_1_14&bn=135&m_type=&nPage=1"
+                                    class="link">
+                                    2025 원주시 중소기업 화재보험 지원사업 참가기업 모집 공고(자금 소진 완료)                                </a>
+                                                                    <a href="view.do?b=B_1_14&bn=135&m_type=&nPage=1&f=&s="
+                                        class="file"><span class="blind">첨부파일</span></a>
+                                                            </p>
+                        </td>
+                        <td class="tbl-writer">
+                            <p>원주미래산업진흥원</p>
+                        </td>
+                        <td class="tbl-date">
+                            <p>2025.04.09</p>
+                        </td>
+                        <td class="tbl-views">
+                            <p>650</p>
+                        </td>
+                    </tr>
+                            </tbody>
+    </table>
+</div> 
+										
+																									<div class='board-page'>
+<button type='button' class='btn-page-first' disabled><span class='blind'>처음 페이지</span></button><button type='button' class='btn-page-prev' disabled><span class='blind'>이전 페이지</span></button><button type='button' class='btn-page-number is-current' aria-current='page'>1<span class='blind'>&nbsp;페이지</span></button><button type='button' class='btn-page-next' disabled><span class='blind'>다음 페이지</span></button><button type='button' class='btn-page-last' disabled><span class='blind'>마지막 페이지</span></button></div>											
+				</div>
+				<!-- // 게시판목록 영역 -->
+			</div>
+			<!-- // 게시판목록 페이지 -->
+		</div>
+	</div>
+		<!-- // content-body -->
+	</div>
+	<!-- // content -->
+</main>
+<!-- // Container -->
+
+<!-- include_footer.html -->
+<footer class="footer">
+	<div class="footer-sec">
+	<div class="footer-logo">
+		<span class="blind">WFI (재)원주미래산업진흥원</span>
+	</div>
+
+	<div class="footer-nav">
+		<ul>
+			<li><a href="../comm/terms.do" class="nav-link">이용약관</a></li>
+			<li><a href="javascript:void(0)" class="nav-link" id="emailPolicyModalLink" data-bs-toggle="modal" data-bs-target="#emailPolicyModal">이메일무단수집거부</a></li>
+			<li><a href="../comm/policy.do" class="nav-link bold">개인정보처리방침</a></li>
+		</ul>
+	</div>
+
+	<div class="footer-contact">
+		<ul>
+			<li>주소 : (26395) 강원특별자치도 원주시 마재2로 10 창업지원허브 2층</li>
+			<li>대표자 : 조영희</li>
+			<li>대표번호 : 033-764-3160​</li>
+		</ul>
+	</div>
+
+	<div class="footer-copyright">
+		<p>Copyright ⓒ WFI. All rights reserved.</p>
+	</div>
+</div>
+<div class="topBtn">
+	<a href="#" class="btn_top">
+		<img src="/assets/images/main/icn-48-topbtn.svg" alt="">
+		<!-- <img class="hover" src="../../assets/images/main/icn-48-topbtn.svg" alt=""> -->
+		<span class="blind">TOP</span>
+	</a>
+</div>
+
+<div class="modal fade policy-modal" id="emailPolicyModal" tabindex="-1" role="dialog" aria-labelledby="emailPolicyModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-basic">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h1 class="modal-title blind" id="mainEmailPolicyModalLabel">이메일무단수집거부</h1>
+				<button type="button" class="ui-btn btn-close" data-bs-dismiss="modal" aria-label="Close"><span class="blind">닫기</span></button>
+			</div>
+			<div class="modal-body">
+				<div class="text-content">
+					<p class="bold">원주미래산업진흥원 이메일무단수집거부</p>
+					<p>본 웹사이트에 게시된 이메일 주소가 전자우편 수집 프로그램이나 그 밖의 기술적 장치를 이용하여 무단으로 수집되는 것을 거부하며 이를 위반 시 정보통신방법에 의해 형사처벌됨을 유념하시기 바랍니다.</p>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<div class="btn-wrap">
+					<button type="button" class="btn-basic h-56 primary center-w200" data-bs-dismiss="modal">
+						<span>확인</span>
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+</footer>
+<!-- // include_footer.html -->
+</div>
+</body>
+
+</html>
+
+<script>
+
+	function js_board_search() {
+		var frm = document.frm
+		frm.nPage.value = "1";
+		frm.submit();
+	}
+	
+	function js_desk() {
+		event.preventDefault();  // 기본 동작 방지
+
+		// 로그인 상태 확인
+		if (!false) {
+			var userConfirmed = confirm("로그인이 필요합니다. 로그인 페이지로 이동 하시겠습니까?");
+			if (userConfirmed) {
+				var currentUrl = encodeURIComponent(window.location.href);
+				window.location.href = '/member/login.do?redirect=' + currentUrl; // 로그인 페이지로 리디렉션
+			}
+			return; // 함수 종료
+		}
+		window.location.href = 'contact_write.do'
+	}
+
+
+</script>

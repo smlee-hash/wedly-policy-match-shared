@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POMIA  (재)포항소재산업진흥원</title>
+	<link rel="icon" href="/favicon.ico">
+	<!--<meta property="og:url" content="https://pomia2024.mycafe24.com" />-->
+	<meta name="description" content="산·학·연·관 유기적인 협력하여 지역의 철강 및 친환경 에너지 소재·부품·장비산업 클러스터 구축 및 지역 경제 활성화 및 지역 산업 발전에 기여">
+	<meta name="keyword" content="포항소재산업진흥원, 포항금속소재산업진흥원, 포미아, 소재산업진흥원, 포스코">
+	<meta property="og:title" content="POMIA | 포항소재산업진흥원" />
+	<meta property="og:description" content="POMIA | 포항소재산업진흥원" />
+	<meta property="og:image" content="/image/pomia_thumnail.png" />
+	
+	<meta name="naver-site-verification" content="1f0d2385c4c311ee2aa49f40eaa7d9c06ff6d0a1" />
+    <!-- font -->
+    <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+    <!-- css -->
+    <link rel="stylesheet" href="/css/reset.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/swiper-bundle.min.css">
+    <link rel="stylesheet" href="/css/aos.css">
+	<!-- 폰트 어썸 -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+        integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- js -->
+    <script src="/js/jquery-3.3.1.min.js"></script>
+    <!--<script src="https://kit.fontawesome.com/30cd323daa.js" crossorigin="anonymous"></script>-->
+    <script src="/js/swiper-bundle.min.js"></script>
+    <script src="/js/aos.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/ScrollTrigger.min.js"></script>
+     <script  class="daum_roughmap_loader_script" src="https://ssl.daumcdn.net/dmaps/map_js_init/roughmapLoader.js"></script>
+    <script src="/js/script.js"></script>
+    <script>
+        AOS.init();
+    </script>
+</head>
+
+<body>
+    <!-- 헤더 -->
+    <header class="">
+        <div class="container">
+            <h1>
+                <a href="/index.html"><img src="/image/logo_black.png" alt="포항소재산업진흥원" /></a>
+            </h1>
+			<script>
+				const currentPath = window.location.pathname;
+				if (currentPath.includes('index_main.html')) {
+					$('header h1 a').attr('href', '/index.html');
+					$('header h1 img').attr('src', '/image/logo_white.png');
+				} else {
+					$('header h1 a').attr('href', '/index_main.html');
+				}
+			</script>
+            <nav>
+                <ul>
+                    <li>
+                        <a href="/sub/greeting01.html">POMIA소개</a>
+                        <ul class="twoth">
+                            <li><a href="/sub/greeting01.html">인사말</a></li>
+                            <li><a href="/sub/history.html">설립목적 및 연혁</a></li>
+                            <li><a href="/sub/vision.html">비전</a></li>
+                            <li><a href="/sub/organization.html">조직도</a></li>
+                            <li><a href="/sub/anvil.html">CI소개</a></li>
+<!--                             <li><a href="/sub/partner.html">협력파트너</a></li> -->
+                            <li><a href="/sub/location.html">찾아오시는길</a></li>
+                        </ul>
+                    </li>
+                    <!--<li>
+                        <a href="#none">business</a>
+                        <ul class="twoth">
+                            <li><a href="#none">홈페이지</a></li>
+                            <li><a href="#none">UI / UX</a></li>
+                            <li><a href="#none">SNS대행</a></li>
+                            <li><a href="#none">행사 / 전시</a></li>
+                        </ul>
+                    </li>-->
+                    <li>
+                        <a href="/sub/research_secondary_cell.html">연구분야</a>
+                        <ul class="twoth">
+                            <li><a href="/sub/research_secondary_cell.html">이차전지</a></li>
+                            <li><a href="/sub/research_metal.html">금속소재</a></li>
+                            <li><a href="/sub/research_future.html">미래전략산업</a></li>
+                            <li><a href="/sub/research_technic.html">강관기술센터</a></li>
+                            <li><a href="/sub/research_high_technic.html">고기능금속기술센터</a></li>
+                        </ul>
+                    </li>
+                    <li>
+						<a href="/sub/board_buisness.html">기업지원</a>
+						<ul class="twoth">
+							<li><a href="/sub/board_buisness.html">사업공고</a></li>
+							<li><a href="/sub/equipment.html">보유장비현황</a></li>
+							<li><a href="/sub/kolas.html">KOLAS</a></li>							
+							<li><a href="/member/exam.html">시험분석신청</a></li>
+<!--
+							<li><a href="http://www.pomia.or.kr:8080/pomia/memberLogin">시험분석신청</a></li>
+-->
+						</ul>
+					</li>
+                    <li>
+						<a href="/sub/info.html">정보공개</a>
+						<ul class="twoth">
+							<li><a href="/sub/info.html">정보공개제도</a></li>
+							<li><a href="/sub/board_Disclosure01.html">경영공시</a></li>
+							<li><a href="/sub/board_Disclosure02.html">윤리경영</a></li>
+							<li><a href="/sub/board_Disclosure03.html">인권경영</a></li>
+							<li><a href="/sub/board_Disclosure04.html">안전경영</a></li>
+							<li><a href="/sub/clean_center.html">클린신고센터</a></li>
+						</ul>
+					</li>
+                    <li>
+						<a href="/sub/board_notice.html">알림마당</a>
+						<ul class="twoth">
+							<li><a href="/sub/board_notice.html">공지사항</a></li>
+							<li><a href="/sub/board_hire.html">채용공고</a></li>
+							<li><a href="/sub/board_bid.html">입찰공고</a></li>
+							<li><a href="/sub/board_news.html">언론보도</a></li>
+							<li><a href="/sub/pomia_photo.html">POMIA Photo</a></li>
+							<li><a href="/sub/promotion.html">POMIA 홍보관</a></li>
+							<li><a href="/sub/board_related.html">유관기관 소식</a></li>
+						</ul>
+					</li>
+                </ul>
+                <div class="ham">
+                    <span class="top"></span>
+                    <span class="mid"></span>
+                    <span class="bot"></span>
+                </div>
+            </nav>
+        </div>
+        <div class="slideheader">
+			<img src="/image/header_slide_right.png" alt="" style="position: absolute; bottom: 5px; right: 30px;"/>
+        </div>
+    </header>
+    <!-- //헤더 -->
+
+    <!-- 햄버거메뉴 -->
+    <div class="hammenu">
+        <ul>
+            <li><a href="#none">POMIA소개 <span><img src="/img/ham_arrow.png" alt=""></span></a>
+                <ul>
+                    <li><a href="/sub/greeting01.html">인사말</a></li>
+                    <li><a href="/sub/history.html">설립목적 및 연혁</a></li>
+                    <li><a href="/sub/vision.html">비전</a></li>
+                    <li><a href="/sub/organization.html">조직도</a></li>
+                    <li><a href="/sub/anvil.html">CI소개</a></li>
+					<li><a href="/sub/partner.html">협력파트너</a></li>
+                    <li><a href="/sub/location.html">찾아오시는길</a></li>
+                </ul>
+            </li>
+            <li><a href="#none">연구분야 <span><img src="/img/ham_arrow.png" alt=""></span></a>
+                <ul>
+                    <li><a href="/sub/research_secondary_cell.html">이차전지</a></li>
+                    <li><a href="/sub/research_metal.html">금속소재</a></li>
+                    <li><a href="/sub/research_future.html">미래전략산업</a></li>
+                    <li><a href="/sub/research_technic.html">강관기술센터</a></li>
+                    <li><a href="/sub/research_working.html">고기능금속기술센터</a></li>
+                </ul>
+            </li>
+            <li><a href="#none">기업지원 <span><img src="/img/ham_arrow.png" alt=""></span></a>
+                <ul>
+                    <li><a href="/sub/board_buisness.html">사업공고</a></li>
+					<li><a href="/sub/equipment.html">보유장비현황</a></li>
+					<li><a href="/sub/kolas.html">KOLAS</a></li>
+					<li><a href="http://115.68.193.254:8080">시험분석신청</a></li>
+                </ul>
+            </li>
+            <li><a href="#none">정보공개 <span><img src="/img/ham_arrow.png" alt=""></span></a>
+                <ul>
+					<li><a href="/sub/info.html">정보공개제도</a></li>
+					<li><a href="/sub/board_Disclosure01.html">경영공시</a></li>
+					<li><a href="/sub/board_Disclosure02.html">윤리경영</a></li>
+					<li><a href="/sub/board_Disclosure03.html">인권경영</a></li>
+					<li><a href="/sub/board_Disclosure04.html">안전경영</a></li>
+					<li><a href="/sub/clean_center.html">클린신고센터</a></li>
+                </ul>
+            </li>
+            <li><a href="#none">알림마당 <span><img src="/img/ham_arrow.png" alt=""></span></a>
+                <ul>
+					<li><a href="/sub/board_notice.html">공지사항</a></li>
+					<li><a href="/sub/board_hire.html">채용공고</a></li>
+					<li><a href="/sub/board_bid.html">입찰공고</a></li>
+					<li><a href="/sub/board_news.html">언론보도</a></li>
+					<li><a href="/sub/pomia_photo.html">POMIA Photo</a></li>
+					<li><a href="/sub/promotion.html">POMIA 홍보관</a></li>
+					<li><a href="/sub/board_related.html">유관기관 소식</a></li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+    <script>
+        // 헤더
+        $('header nav > ul > li').mouseover(function () {
+            $('.twoth').css({
+                display: 'flex'
+            })
+            //$('.twoth').slideDown()
+            $('.slideheader').stop(true).slideDown(200);
+        })
+        $('header').mouseleave(function () {
+            $('.twoth').css({
+                display: 'none'
+            });
+            $('.slideheader').stop(true).slideUp();
+        })
+
+		let nowh1Img = '';
+		let nowhamBg = '';
+
+        $('header .container nav > .ham').click(function () {
+            $(this).toggleClass('on');
+            if ($(this).hasClass('on')) {
+				nowh1Img = $('header h1 img').attr('src');
+				nowhamBg = $('header .ham span').css('backgroundColor');
+                $('header').css({
+                    backgroundColor: '#000'
+                })
+				$('header .ham span').css({backgroundColor: '#fff'});
+				$('header h1 img').attr('src', '/image/logo_white.png');
+                $('.hammenu').css({
+                    left: '0'
+                });
+            } else {
+                $('.hammenu').css({
+                    left: '100%'
+                })
+				$('header .ham span').css({backgroundColor: nowhamBg});
+				$('header h1 img').attr('src', nowh1Img);
+				console.log(nowhamBg, nowh1Img) 
+                if (window.location.href.indexOf('sub') != -1) {
+                    $('header').css({
+                        backgroundColor: '#fff'
+                    })
+                } else {
+                    $('header').css({
+                        backgroundColor: 'transparent'
+                    })
+                }
+            }
+        })
+
+
+        $('.hammenu ul > li').click(function () {
+            $(this).toggleClass('open');
+            $('.hammenu ul > li').find('ul').stop(true).slideUp();
+            $('.hammenu ul > li').find('img').css({
+                transform: 'rotate(0deg)'
+            })
+            $('.hammenu ul > li').not(this).removeClass('open');
+            if ($('.hammenu ul > li').hasClass('open')) {
+                $(this).find('ul').stop(true).slideDown();
+                $(this).find('img').css({
+                    transform: 'rotate(90deg)'
+                })
+            } else {
+                $('.hammenu ul > li').find('ul').stop(true).slideUp();
+                $(this).find('img').css({
+                    transform: 'rotate(0deg)'
+                })
+            }
+        })
+    </script>
+    <!-- //햄버거메뉴 -->
+    <!-- //include_top// -->
+    <!-- sub_common -->
+    <link rel="stylesheet" href="/css/sub.css">
+    <!-- //sub_common// -->
+    <!-- sub_start -->
+    <div class="board_detail">
+        <div class="container">
+            <div class="board_detail_header">
+                <div class="board_detail_header_top">
+					<div class=" buisness_span">
+					<ul>
+						<li class="buisness_tit_list">
+							<span>통합지원</span><span>접수중</span>
+						</li>
+						<li>
+							<div style="display: flex; align-items: center;">
+								<h3 class="board_detail_tit01 font">2026년 이차전지 전시회 참가 홍보관 운영사업 참여기업 모집공고</h3>
+								<div class="share_btn" style="margin-left: 15px;"><i class="fa-solid fa-share"></i></div>
+							</div>
+						</li>
+					</ul>
+					</div>
+                    
+                    <script>
+                        let nowUrl = window.location.href;
+                        $('.share_btn').click(function () {
+                            navigator.clipboard.writeText(nowUrl).then(res => {
+                                alert("주소가 복사되었습니다!");
+                            })
+                        })
+                    </script>
+                </div>
+                <div class="board_detail_header_bt">
+<!--                    <p><span>번호 : </span>1</p>-->
+                    <p><span>작성일 : </span>2026.08.31</p>
+                    <p><span>작성자 : </span>POMIA</p>
+                    <p><span>조회수 : </span>36</p>
+                </div>
+            </div>
+            <div class="board_detail_con">
+
+
+
+                <p style="text-align: center; " align="center"><img src="/smarteditor2/upload/2026083113531722682153.jpg" title="vert.jpg"><br style="clear:both;">&nbsp;</p>            </div>
+
+            <div class="board_detail_con_file">
+                <p class="board_detail_con_file_tit">첨부파일 다운로드</p>
+                <ul class="board_detail_con_file_a">
+<li><a href='../inc/download4.php?fn=1788152032_2538.hwp&dir=board_data7&ext=1&fn2=%5B%EA%B3%B5%EA%B3%A0%5D2026%EB%85%84+%EC%9D%B4%EC%B0%A8%EC%A0%84%EC%A7%80+%EC%A0%84%EC%8B%9C%ED%9A%8C+%EC%B0%B8%EA%B0%80+%ED%99%8D%EB%B3%B4%EA%B4%80+%EC%9A%B4%EC%98%81%EC%82%AC%EC%97%85+%EC%B0%B8%EC%97%AC%EA%B8%B0%EC%97%85+%EB%AA%A8%EC%A7%91%EA%B3%B5%EA%B3%A0_260828.hwp' download='[공고]2026년 이차전지 전시회 참가 홍보관 운영사업 참여기업 모집공고_260828.hwp'><font style='font-size:16px'>[공고]2026년 이차전지 전시회 참가 홍보관 운영사업 참여기업 모집공고_260828.hwp</font> (170 KB)</a></li><li><a href='../inc/download4.php?fn=1788152032_586.hwp&dir=board_data7&ext=1&fn2=%5B%EC%96%91%EC%8B%9D%5D2026%EB%85%84+%EC%9D%B4%EC%B0%A8%EC%A0%84%EC%A7%80+%EC%A0%84%EC%8B%9C%ED%9A%8C+%EC%B0%B8%EA%B0%80+%ED%99%8D%EB%B3%B4%EA%B4%80+%EC%9A%B4%EC%98%81%EC%82%AC%EC%97%85+%EC%B0%B8%EA%B0%80%EC%8B%A0%EC%B2%AD%EC%84%9C.hwp' download='[양식]2026년 이차전지 전시회 참가 홍보관 운영사업 참가신청서.hwp'><font style='font-size:16px'>[양식]2026년 이차전지 전시회 참가 홍보관 운영사업 참가신청서.hwp</font> (59 KB)</a></li>
+                </ul>
+            </div>
+            <a href="/sub/board_buisness.html?page=1&search=&keyword=&scate=&sstatus=" class="board_detail_golist font">목록 보기</a>
+        </div>
+    </div>
+    <script src="/js/sub.js"></script>
+    <!-- sub_end -->
+    <!-- end -->
+    <!-- //include_bottom// -->
+<script>
+function open_type1(url,name,width,height){
+	window.open(url,name,'toolbar=no, location=no, directories=no, status=no, menubar=no, resizable=no,top=200,left=300,scrollbars=yes,width='+width+',height='+height);
+
+}
+</script>
+	<footer class="swiper-slide">
+    <div class="container">
+        <div class="footer_top">
+            <div>POMIA</div>
+            <div class="footer_logo"><img src="/image/footer_logo.png" alt=""></div>
+        </div>
+        <ul class="footer_menu">
+            <li><a href="/sub/agree_privacy.html">개인정보처리방침</a></li>
+            <li><a href="/sub/agree_email.html">이메일무단수집거부</a></li>
+            <li><a href="/sub/location.html">오시는길</a></li>
+            <li><a href="http://115.68.193.254:8080">시험분석신청</a></li>
+            <li><a href="http://115.68.193.254:8080">SEM사용신청</a></li>
+            <li><a href="/sub/clean_center.html">클린신고센터</a></li>
+        </ul>
+        <p class="footer_info_text01">
+            [37666] 경상북도 포항시 남구 지곡로 56 / TEL. 054-279-9415 / FAX. 054-279-9419<br>
+            Copyright 2020-2026 ⓒ POMIA. All rights reserved.
+        </p>
+    </div>
+</footer>
+<style>
+	footer {margin-top: 80px;}
+</style>
+</body>
+
+</html>

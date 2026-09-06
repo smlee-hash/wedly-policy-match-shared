@@ -1,0 +1,1285 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="ko">
+
+
+<head>
+<style>
+body {
+	position: relative;
+}
+
+.skip a {
+	position: absolute;
+	background: rgba(0, 0, 0, 0.7); /* 반투명한 배경 */
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=#90000000,
+		endColorstr=#90000000); /* IE8에서 반투명한 배경 적용 */
+	width: 100%;
+	height: 40px;
+	text-align: center; /* text 가로 중앙 정렬 */
+	color: #fff;
+	z-index: 100;
+	line-height: 40px; /* text 세로 중앙 정렬 */
+	top: -40px; /* 우선 안보이게 감추기 */
+	opacity: 0; /* 우선 안보이게 감추기 */
+}
+</style>
+<meta charset="utf-8">
+<meta name="description" content="한국로봇산업진흥원 홈페이지 입니다.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="한국로봇산업진흥원">
+<meta property="og:description" content="한국로봇산업진흥원 홈페이지 입니다.">
+<meta property="og:image" content="">
+<meta property="og:url" content="">
+<!-- <meta http-equiv="imagetoolbar" content="no"> -->
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>한국로봇산업진흥원</title>
+
+<script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js"></script>
+<script>
+  WebFont.load({
+    google: {
+      families: ['Noto Sans KR']
+    }
+  })
+</script>
+
+<link rel="stylesheet"
+	href="/css/kiria/portal/common.css">
+<!-- <link rel="stylesheet" href="css/common.css"> -->
+<link rel="stylesheet"
+	href="/css/kiria/portal/sub.css">
+<link rel="stylesheet"
+	href="/css/kiria/portal/layout.css">
+<link rel="stylesheet"
+	href="/css/kiria/portal/owl.carousel.min.css">
+<link rel="stylesheet"
+	href="/css/kiria/portal/owl.theme.default.min.css">
+
+<link rel="stylesheet" type="text/css"
+	href="/css/kiria/common/jquery-ui.css">
+<link rel="stylesheet" type="text/css"
+	href="/css/kiria/common/font-awesome.min.css" />
+<link rel="stylesheet" type="text/css"
+	href="/css/kiria/common/MonthPicker.css">
+
+<link rel="stylesheet" type="text/css"
+	href="/css/kiria/common/jquery.timepicker.css">
+<!--파비콘 -->
+<link rel="shortcut icon"
+	href="/images/kiria/portal/favicon.png">
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async
+	src="https://www.googletagmanager.com/gtag/js?id=UA-175295648-1"></script>
+<script>
+	window.dataLayer = window.dataLayer || [];
+	function gtag() {
+		dataLayer.push(arguments);
+	}
+	gtag('js', new Date());
+
+	gtag('config', 'UA-175295648-1');
+</script>
+
+<script src="/js/kiria/jquery.min.js"></script>
+<script src="/js/kiria/jquery-ui.js"></script>
+<script
+	src="/js/kiria/jquery.MultiFile.min.js"></script>
+<script
+	src="/js/kiria/jquery.form.min.js"></script>
+<script
+	src="/js/kiria/portal/owl.carousel.min.js"></script>
+<script
+	src="/js/kiria/prefixfree.min.js"></script>
+<script
+	src="/js/kiria/bootstrap.min.js"></script>
+<script
+	src="/js/kiria/jquery.cookie.js"></script>
+<script
+	src="/js/kiria/ieetu.cookie.js"></script>
+
+<script
+	src="/js/kiria/common/ieetu.jquery.date.js"></script>
+<script src="/js/kiria/MonthPicker.js"></script>
+
+<script
+	src="/js/kiria/jquery.timepicker.min.js"></script>
+
+<script>
+	$(function() {
+		$(".depth_three li").click(function(e) {
+			e.stopPropagation();
+		});
+
+		/* var arrExceptClass = ['main_visual'];
+		var isExcept = true;
+		
+		var tabindex = 1;
+		$('li,div,input,h3,select,p').each(function() {
+		    if (this.type != "hidden") {
+		    	for(var i=0 ; i < arrExceptClass.length ; i++){
+					if(arrExceptClass[i] == this.className)
+						$input.attr("tabindex", -1);
+						isExcept = false;
+		    	}
+		    	
+		    	if(isExcept){
+		            var $input = $(this);
+		            $input.attr("tabindex", tabindex);
+		            tabindex++;
+		    	}
+		    	
+		    	isExcept = true;
+		    }
+		}); */
+
+	});
+</script>
+<script>
+	$('#totalSearchWrd').on('keypress', function(e) {
+		if (e.which === 13) {
+			$('#totalSearch').submit();
+		}
+	});
+</script>
+<script>
+	/* 탭키로 탑메뉴에 포커스 이동 시 메뉴 처리 스크립트 */
+	$(document).ready(function() {
+		$('.top_menu a').on('focus', function() {
+			$('.lnb-wrap').stop(true).slideDown(350);
+		});
+
+		$('.top_menu a').on('focusout', function() {
+			$('.lnb-wrap').stop(true).slideUp(350);
+		});
+	});
+
+	/*pc메뉴*/
+	$(document).ready(
+			function() {
+				$('.top_navi > ul > li').on('mouseover', function() {
+					$('.lnb-wrap').stop(true).slideDown(350);
+				});
+				$('.navigation, .top_navi, .navigation ul, .navigation ul li')
+						.on('mouseout', function() {
+							$('.lnb-wrap').stop(true).slideUp(350);
+						});
+			});
+</script>
+<script>
+	/* 본문 바로가기 스크립트 */
+	$(document).ready(function() {
+		$('.skip a').on('focus', function() {
+			$(this).stop().animate({
+				"top" : 0,
+				"opacity" : 1
+			});
+		});
+		$('.skip a').on('click', function() {
+			$(this).stop().animate({
+				"top" : "-48px",
+				"opacity" : 0
+			});
+		});
+		$('.skip a').on('focusout', function() {
+			$(this).stop().animate({
+				"top" : "-48px",
+				"opacity" : 0
+			});
+		});
+	});
+</script>
+<script>
+	/* 페이지 타이틀 처리 스크립트 */
+	$(document).ready(
+			function() {
+				var title = $(document).attr("title");
+				if ($(".header_name").text() != "") {
+					/* if($(".page_tab")[0] != undefined) {
+						$(document).attr("title", $(".page_tab > .on").text() + " | " + title);
+					} else {
+						$(document).attr("title", $(".header_name").text() + " | " + title);
+					} */
+					$(document).attr("title",
+							$(".header_name").text() + " | " + title);
+				}
+			});
+</script>
+<script>
+	function fn_total_clearSearch() {
+		var $input = $("input[name='totalSearchWrd']");
+		if ($input.length) {
+			$input.val('');
+			$input.trigger('input');
+			$input.focus()
+		}
+	}
+	$(function() {
+		var $input = $("input[name='totalSearchWrd']");
+		var $clear = $(".total_clear_btn");
+		function updateClear() {
+			var val = $input.val() || "";
+			$clear.toggle(val.length > 0);
+
+		}
+		updateClear();
+		$input.on("input change paste", updateClear);
+	});
+</script>
+</head>
+
+
+
+
+
+<body>
+	<header>
+
+		<div class="head_quickMenu_wrap">
+			<div class="skip">
+<!-- 				<a href="#LINK" -->
+<!-- 					onclick="javascript:setTimeout(function() { $('#contents_first_index').focus(); }, 1);">본문 -->
+<!-- 					바로가기</a> -->
+				<a href="#contents"
+					onclick="javascript:{ $('#contents_first_index').focus(); }">본문
+					바로가기</a>
+			</div>
+
+			<form name="totalSearch" id="totalSearch"
+				action="/portal/search/portalTotalSearch.do;jsessionid=0704E137235E670EA63434FAAB88E568"
+				method="get">
+				<div class="head_quickMenu">
+					<a class="go_main" href="/portal/main.do;jsessionid=0704E137235E670EA63434FAAB88E568">메인화면으로</a>
+
+					<div class="quick-right">
+						<input type="text" name="totalSearchWrd" id="totalSearchWrd" class="total_search" 
+							placeholder="검색어를 입력해주세요"
+							title="검색어를 입력해주세요" value="">
+						<button type="button" class="total_clear_btn" onclick="javascript:fn_total_clearSearch();"><i class="fa fa-close"></i></button>
+						<button type="submit" class="total_search_btn">검색</button>
+
+						<a class="go_eng" href="/eng/main.do;jsessionid=0704E137235E670EA63434FAAB88E568">ENGLISH</a>
+
+						<div class="quick-sns">
+							<a href="http://blog.naver.com/robotkiria" target="_blank" title="새창열림"><img
+								src="/images/kiria/naver_logo.png"
+								alt="네이버블로그"></a> <a
+								href="http://www.facebook.com/RobotKIRIA" target="_blank" title="새창열림"><img
+								src="/images/kiria/facebook_logo.png"
+								alt="페이스북"></a>
+						</div>
+					</div>
+				</div>
+			</form>
+
+			<div class="navigation">
+				<nav class="top_navi">
+					<h1>
+						<a href="/portal/main.do;jsessionid=0704E137235E670EA63434FAAB88E568"><img
+							src="/images/kiria/portal/top_logo.png"
+							alt="한국로봇산업진흥원"></a>
+					</h1>
+					<ul class="top_menu">
+						<li
+							><a
+							href="/portal/intro/portalIntGreet.do;jsessionid=0704E137235E670EA63434FAAB88E568">기관소개</a>
+							<div class="lnb-wrap">
+								<ul class="depth_two">
+									<li><a
+										href="/portal/intro/portalIntGreet.do;jsessionid=0704E137235E670EA63434FAAB88E568">기관소개</a></li>
+									<li><a
+										href="/portal/intro/portalIntInfoIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">정보공개</a></li>
+									<li><a
+										href="/portal/intro/portalIntManage.do;jsessionid=0704E137235E670EA63434FAAB88E568">경영공시</a></li>
+									<li><a
+										href="/portal/intro/portalIntCusCharter.do;jsessionid=0704E137235E670EA63434FAAB88E568">고객헌장</a></li>
+									<li><a
+										href="/portal/intro/portalIntSuggest.do;jsessionid=0704E137235E670EA63434FAAB88E568">고객제안</a></li>
+									<li><a
+										href="/portal/intro/portalIntFacIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">부대시설
+										이용안내</a></li>
+									<li><a
+										href="/portal/intro/portalIntPolice.do;jsessionid=0704E137235E670EA63434FAAB88E568">KIRIA
+										신문고</a></li>
+									<li><a
+										href="/portal/inform/portalIntEthicsHmRight.jsp;jsessionid=0704E137235E670EA63434FAAB88E568">윤리 및 인권경영</a></li>
+									<li><a
+											href="/portal/inform/portalInfoSafetyReport.jsp;jsessionid=0704E137235E670EA63434FAAB88E568">안전 제안신고 제도</a></li>
+<li><a
+											href="/portal/inform/portalInfoPartnerComm.jsp;jsessionid=0704E137235E670EA63434FAAB88E568">협력업체 소통게시판</a></li>
+								</ul>
+							</div></li>
+						<li
+							><a
+							href="/portal/policysut/portalPlcyAlliance.do;jsessionid=0704E137235E670EA63434FAAB88E568">정책개발</a>
+							<div class="lnb-wrap">
+								<ul class="depth_two">
+									<li><a
+										href="/portal/policysut/portalPlcyAlliance.do;jsessionid=0704E137235E670EA63434FAAB88E568">기본계획수립</a></li>
+									<li><a
+										href="/portal/policysut/portalPlcyInquiry.do;jsessionid=0704E137235E670EA63434FAAB88E568">로봇산업실태조사</a></li>
+									<li><a
+										href="/portal/policysut/portalPlcyReguImprove.do;jsessionid=0704E137235E670EA63434FAAB88E568">로봇규제
+										개선</a></li>
+								</ul>
+							</div></li>
+						<li
+							><a
+							href="/portal/cert/portalCertEstiKS.do;jsessionid=0704E137235E670EA63434FAAB88E568">인증평가</a>
+							<div class="lnb-wrap">
+								<ul class="depth_two">
+									<li><a
+										href="/portal/cert/portalCertEstiSafe.do;jsessionid=0704E137235E670EA63434FAAB88E568">인증/표준화</a></li>
+									<li><a
+										href="/portal/cert/portalCertEvalTest.do;jsessionid=0704E137235E670EA63434FAAB88E568">시험평가</a></li>
+									<li><a
+										href="/portal/cert/portalCertManuSupt.do;jsessionid=0704E137235E670EA63434FAAB88E568">제조지원</a></li>
+									<li><a
+										href="/portal/cert/portalCertConformityAssKC.do;jsessionid=0704E137235E670EA63434FAAB88E568">적합성평가(KC)</a></li>
+								</ul>
+							</div></li>
+						<li
+							><a
+							href="/portal/bizsupt/portalBsuptRoCreIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">기업지원</a>
+							<div class="lnb-wrap">
+								<ul class="depth_two">
+									<li><a 
+										href="/portal/bizsupt/portalBsuptRoCreProduct.do;jsessionid=0704E137235E670EA63434FAAB88E568">첨단제조로봇<br>실증사업</a>
+									</li>
+									<li><a
+										href="/portal/bizsupt/portalBsuptProcInnoIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">로봇활용<br>제조혁신 지원사업
+									</a></li>
+									<li><a
+										href="/portal/bizsupt/portalBsuptRoCreIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">서비스로봇<br>실증사업
+									</a></li>
+<!-- 									<li><a -->
+
+<!-- 									</a></li> -->
+									<li><a
+										href="/portal/bizsupt/portalBsuptRoDevSup.do;jsessionid=0704E137235E670EA63434FAAB88E568">규제혁신<br> 로봇 실증사업
+									</a></li>
+									<li><a 
+										href="/portal/bizsupt/portalBsuptRoFuIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">대규모융합 <br>로봇 실증사업
+									</a></li>
+									<li><a
+										href="/portal/bizsupt/portalBsuptRoInduGlo.do;jsessionid=0704E137235E670EA63434FAAB88E568">로봇산업글로벌화</a></li>
+<!-- 									<li><a -->
+
+<!-- 									</a></li> -->
+									<!--<li><a
+										href="/portal/bizsupt/portalBsuptProTechIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">유망기술<br>사업화촉진지원
+									</a></li>-->
+									<li><a
+											href="/portal/bizsupt/portalBsuptProTechIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">로봇스타트업<br>지원사업
+									</a></li>
+									<li><a
+										href="/portal/bizsupt/portalBsuptComRecru.do;jsessionid=0704E137235E670EA63434FAAB88E568">입주기업모집</a></li>
+									<li><a
+                                        					href="/portal/bizsupt/portalBsuptRoFlagship.jsp;jsessionid=0704E137235E670EA63434FAAB88E568">로봇플래그쉽 지역거점<br>구축사업</a></li>
+								</ul>
+							</div></li>
+						<li
+							><a
+							href="/portal/culture/portalCulRoInnovation.do;jsessionid=0704E137235E670EA63434FAAB88E568">인력양성</a>
+							<div class="lnb-wrap">
+								<ul class="depth_two">
+									<!-- 2025/08/19 삭제요청 <li><a
+										href="/portal/culture/portalCulRoCreaEdu.do;jsessionid=0704E137235E670EA63434FAAB88E568">로봇창의교육사업
+									</a></li> -->
+									<li><a
+										href="/portal/culture/portalCulRoInnovation.do;jsessionid=0704E137235E670EA63434FAAB88E568">첨단로봇산업<br>전문인력양성사업
+									</a></li>
+									
+									<!-- 2025/08/19 명칭변경 <li><a
+										href="/portal/culture/portalCulContest.do;jsessionid=0704E137235E670EA63434FAAB88E568">경진대회</a></li>-->
+									<li><a
+											href="/portal/culture/portalCulContest.do;jsessionid=0704E137235E670EA63434FAAB88E568">국제로봇콘테스트</a></li>
+									<li><a href="/portal/culture/portalCulAiClass.jsp;jsessionid=0704E137235E670EA63434FAAB88E568">AI 로봇 창의교실 체험관(초등학생)</a></li>
+									<li><a href="/portal/culture/portalCulEdu.jsp;jsessionid=0704E137235E670EA63434FAAB88E568">로봇직업교육센터</a></li>
+								</ul>
+
+							</div></li>
+						<li
+							class="on"><a
+							href="/portal/info/portalInfoNotiList.do;jsessionid=0704E137235E670EA63434FAAB88E568">알림마당</a>
+							<div class="lnb-wrap">
+								<ul class="depth_two">
+									<li><a
+										href="/portal/info/portalInfoNotiList.do;jsessionid=0704E137235E670EA63434FAAB88E568">공지사항</a></li>
+									<li><a
+										href="/portal/info/portalInfoBusinessList.do;jsessionid=0704E137235E670EA63434FAAB88E568">사업공고</a></li>
+									<li><a
+										href="/portal/info/portalInfoTenderList.do;jsessionid=0704E137235E670EA63434FAAB88E568">입찰공고</a></li>
+									<!--li><a
+										href="/portal/info/portalInfoEduList.do;jsessionid=0704E137235E670EA63434FAAB88E568">교육정보</a></li-->
+									<li><a
+										href="/portal/info/portalInfoEventList.do;jsessionid=0704E137235E670EA63434FAAB88E568">행사정보</a></li>
+									<li><a
+										href="/portal/info/portalInfoJobList.do;jsessionid=0704E137235E670EA63434FAAB88E568">채용공고</a></li>
+									<li><a
+										href="/portal/info/portalInfoNewsClipMainList.do;jsessionid=0704E137235E670EA63434FAAB88E568">홍보소식
+									</a></li>
+									<li><a
+										href="/portal/info/portalInfoPrivacyInformation.do;jsessionid=0704E137235E670EA63434FAAB88E568">개인정보처리방침</a></li>
+									<li><a
+										href="/portal/info/portalInfoEmailProtect.do;jsessionid=0704E137235E670EA63434FAAB88E568">이메일무단수집거부</a></li>
+								</ul>
+							</div></li>
+						<li
+							><a
+
+							href="/portal/reference/portalRefTrendList.do;jsessionid=0704E137235E670EA63434FAAB88E568">자료실</a>
+							<div class="lnb-wrap">
+								<ul class="depth_two">
+<!-- 									<li><a -->
+
+<!-- 										ISSUE<br> REPORT -->
+<!-- 									</a></li> -->
+<!-- 									<li><a -->
+
+<!-- 										및 동향자료</a></li> -->
+									<li><a
+										href="/portal/reference/portalRefTrendList.do;jsessionid=0704E137235E670EA63434FAAB88E568">KIRIA ISSUE REPORT 정책 및 동향자료</a></li>
+
+									<li><a
+										href="/portal/reference/portalRefContentsList.do;jsessionid=0704E137235E670EA63434FAAB88E568">사진자료</a></li>
+									<li><a
+										href="https://www.youtube.com/c/KIRIAonair/videos" target="_blank" title="새창열림">동영상자료</a></li>
+									<li><a
+										href="/portal/info/portalInfoNewsClipSideList.do;jsessionid=0704E137235E670EA63434FAAB88E568">보도자료</a></li>
+									<li><a
+										href="/portal/reference/portalRefRuleList.do;jsessionid=0704E137235E670EA63434FAAB88E568">규정 및 서식</a></li>
+									<li><a
+										href="/portal/reference/portalRefCi.do;jsessionid=0704E137235E670EA63434FAAB88E568">CI 자료실</a></li>
+								</ul>
+							</div></li>
+					</ul>
+				</nav>
+			</div>
+
+			<div class="navigation_m">
+				<nav class="top_navi">
+					<h1 onclick="location.href='/portal/main.do;jsessionid=0704E137235E670EA63434FAAB88E568'">한국로봇산업진흥원</h1>
+				</nav>
+				<script>
+					$(document)
+							.ready(
+									function() {
+
+										dh = $(document).height()
+										- $("head_quickMenu").height()
+										- $(".top_navi").height();
+
+										$(".btn_m_menu").click(function() {
+										$(".sub_menu_m").css("height", dh);
+										$(".sub_menu_m").toggle("slide", {
+										direction : "right"
+										}, 500);
+										$(this).toggleClass("btn_m_close");
+										})
+
+										$(".sub_menu_m .depth_one > li")
+										.click(
+										function() {
+										km = $(this)
+										.find(
+										".depth_two");
+										if ($(km).css(
+										"display") == "none") {
+										$(
+										".depth_one > li > .depth_two")
+										.not(km)
+										.slideUp();
+										$(km)
+										.slideDown();
+										} else {
+										$(km).slideUp();
+										}
+										$("body")
+										.bind(
+										'touchmove',
+										function(
+										e) {
+										e
+										.preventDefault()
+										});
+										})
+
+										if ($(document).width() >= 768) {
+										$(window)
+										.scroll(
+										function() {
+										if ($(this)
+										.scrollTop() < 128) {
+										$(
+										".sub_menu_m")
+										.css(
+										"position",
+										"absolute")
+										.css(
+										"top",
+										"128px");
+										} else if ($(
+										this)
+										.scrollTop() >= 128) {
+										$(
+										".sub_menu_m")
+										.css(
+										"position",
+										"fixed")
+										.css(
+										"top",
+										"0");
+										}
+										});
+										} else if ($(document).width() <= 768) {
+										$(window)
+										.scroll(
+										function() {
+										if ($(this)
+										.scrollTop() < 60) {
+										$(
+										".sub_menu_m")
+										.css(
+										"position",
+										"absolute")
+										.css(
+										"top",
+										"60px");
+										} else if ($(
+										this)
+										.scrollTop() >= 60) {
+										$(
+										".sub_menu_m")
+										.css(
+										"position",
+										"fixed")
+										.css(
+										"top",
+										"0");
+										}
+										});
+										}
+
+									})
+
+					$(document).ready(function() {
+						$('#lnb').bind('mouseleave', function() {
+							$('.top_snb').css({
+								display : 'none'
+							});
+							$(".top_bg").hide();
+						});
+
+						$("#lnb li").mouseover(function() {
+							var obj = $(this).children(".top_snb");
+							$('.top_snb').css({
+								"display" : "none",
+							});
+							obj.show();
+						});
+
+					});
+				</script>
+
+				<button type="button" onclick="" class="btn_m_menu">menu</button>
+				<div class="sub_menu_m">
+					<ul class="depth_one">
+						<li>
+							<p>기관소개</p>
+							<ul class="depth_two" style="display: none;">
+								<li class="use_depth"><a
+									href="/portal/intro/portalIntGreet.do;jsessionid=0704E137235E670EA63434FAAB88E568">기관소개</a>
+									<ul class="depth_three">
+
+
+										<li><a
+												href="/portal/intro/portalIntGreet.do;jsessionid=0704E137235E670EA63434FAAB88E568">인사말</a></li>
+										<li><a
+										href="/portal/intro/portalIntHistory.do;jsessionid=0704E137235E670EA63434FAAB88E568">설립목적
+										및 연혁</a></li>
+										<li><a href="/portal/intro/portalIntVision.do;jsessionid=0704E137235E670EA63434FAAB88E568">미션 및 비전</a></li>
+										<li><a
+										href="/portal/inform/portalIntPolicy.jsp;jsessionid=0704E137235E670EA63434FAAB88E568">경영방침</a></li>
+										<li><a
+										href="/portal/intro/portalIntOrgnzt.do;jsessionid=0704E137235E670EA63434FAAB88E568">조직도</a></li>
+										<li><a
+										href="/portal/intro/portalIntMap.do;jsessionid=0704E137235E670EA63434FAAB88E568">찾아오시는
+										길</a></li>
+									</ul></li>
+								<li><a
+									href="/portal/intro/portalIntInfoIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">정보공개</a>
+									<ul class="depth_three">
+										<li><a
+										href="/portal/intro/portalIntInfoIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">정보공개제도안내</a></li>
+										<li><a
+										href="/portal/intro/portalIntInfoProc.do;jsessionid=0704E137235E670EA63434FAAB88E568">공공데이터</a></li>
+										<li><a
+										href="/portal/intro/portalIntInfoAdPub.do;jsessionid=0704E137235E670EA63434FAAB88E568">사전정보공개</a></li>
+										<li><a
+										href="/portal/intro/portalIntInfoPubList.do;jsessionid=0704E137235E670EA63434FAAB88E568">공개자료</a></li>
+										<li><a
+										href="/portal/intro/portalIntInfoReName.do;jsessionid=0704E137235E670EA63434FAAB88E568">사업실명제</a></li>
+									</ul></li>
+								<li><a
+									href="/portal/intro/portalIntManage.do;jsessionid=0704E137235E670EA63434FAAB88E568">경영공시</a></li>
+								<li><a
+									href="/portal/intro/portalIntCusCharter.do;jsessionid=0704E137235E670EA63434FAAB88E568">고객헌장</a></li>
+								<li><a
+									href="/portal/intro/portalIntSuggest.do;jsessionid=0704E137235E670EA63434FAAB88E568">고객제안</a></li>
+								<li><a
+									href="/portal/intro/portalIntFacIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">부대시설
+										이용안내</a></li>
+								<li><a
+									href="/portal/intro/portalIntPolice.do;jsessionid=0704E137235E670EA63434FAAB88E568">KIRIA
+										신문고</a></li>
+								<li><a
+									href="/portal/inform/portalIntEthicsHmRight.jsp;jsessionid=0704E137235E670EA63434FAAB88E568">윤리 및 인권경영</a></li>
+								<li><a
+										href="/portal/inform/portalInfoSafetyReport.jsp;jsessionid=0704E137235E670EA63434FAAB88E568">안전 제안신고 제도</a></li>
+<li><a
+										href="/portal/inform/portalInfoPartnerComm.jsp;jsessionid=0704E137235E670EA63434FAAB88E568">협력업체 소통게시판</a></li>
+							</ul>
+						</li>
+						<li>
+							<p>정책개발</p>
+							<ul class="depth_two" style="display: none;">
+								<li><a
+									href="/portal/policysut/portalPlcyAlliance.do;jsessionid=0704E137235E670EA63434FAAB88E568">기본계획수립</a></li>
+								<li><a
+									href="/portal/policysut/portalPlcyInquiry.do;jsessionid=0704E137235E670EA63434FAAB88E568">로봇산업실태조사</a></li>
+								<li><a
+									href="/portal/policysut/portalPlcyReguImprove.do;jsessionid=0704E137235E670EA63434FAAB88E568">로봇규제
+										개선</a></li>
+							</ul>
+						</li>
+						<li>
+							<p>인증평가</p>
+							<ul class="depth_two" style="display: none;">
+								<li><a
+									href="/portal/cert/portalCertEstiKS.do;jsessionid=0704E137235E670EA63434FAAB88E568">인증/표준화</a></li>
+								<li><a
+									href="/portal/cert/portalCertEvalTest.do;jsessionid=0704E137235E670EA63434FAAB88E568">시험평가</a></li>
+								<li><a
+									href="/portal/cert/portalCertManuSupt.do;jsessionid=0704E137235E670EA63434FAAB88E568">제조지원</a></li>
+								<li><a
+									href="/portal/cert/portalCertConformityAssKC.do;jsessionid=0704E137235E670EA63434FAAB88E568">적합성평가(KC)</a></li>
+							</ul>
+						</li>
+						<li>
+							<p>기업지원</p>
+							<ul class="depth_two" style="display: none;">
+								<!--li><a
+									href="/portal/bizsupt/portalBsuptRoCreIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">서비스로봇<br>실증사업
+								</a></li-->
+								<li><a
+									href="/portal/bizsupt/portalBsuptRoCreProduct.do;jsessionid=0704E137235E670EA63434FAAB88E568">첨단제조로봇<br>실증사업
+									</a>
+									</li>
+ 								<!--li><a>
+ 									href="/portal/bizsupt/portalBsuptPlus.do;jsessionid=0704E137235E670EA63434FAAB88E568">제조로봇<br>
+ 										플러스 실증사업
+ 								</a></li> -->
+								<li><a
+										href="/portal/bizsupt/portalBsuptProcInnoIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">로봇활용 제조혁신<br> 지원사업
+									</a></li>
+								<li><a
+									href="/portal/bizsupt/portalBsuptRoCreIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">서비스로봇<br> 실증사업
+								</a></li>
+
+								<li><a
+									href="/portal/bizsupt/portalBsuptRoDevSup.do;jsessionid=0704E137235E670EA63434FAAB88E568">규제혁신 로봇<br> 실증사업</a></li>
+								<li><a
+									href="/portal/bizsupt/portalBsuptRoFuIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">대규모융합<br>로봇 실증사업
+								</a></li>
+								<li><a
+									href="/portal/bizsupt/portalBsuptRoInduGlo.do;jsessionid=0704E137235E670EA63434FAAB88E568">로봇산업글로벌화
+								</a></li>
+								<li><a
+										href="/portal/bizsupt/portalBsuptProTechIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">로봇 스타트업<br>지원사업
+								</a></li>
+								<li><a
+									href="/portal/bizsupt/portalBsuptComRecru.do;jsessionid=0704E137235E670EA63434FAAB88E568">입주기업모집</a></li>
+								<li><a
+                                    href="/portal/bizsupt/portalBsuptRoFlagship.jsp;jsessionid=0704E137235E670EA63434FAAB88E568">로봇플래그쉽 지역거점<br>구축사업</a></li>
+								<!--li><a
+									href="/portal/policysut/portalPlcyReguImprove.do;jsessionid=0704E137235E670EA63434FAAB88E568">로봇규제 개선</a></li>
+								<li><a
+									href="/portal/bizsupt/portalBsuptRoFuIntro.do;jsessionid=0704E137235E670EA63434FAAB88E568">대규모융합<br>로봇 실증사</a></li-->
+							</ul>
+						</li>
+						<li>
+							<p>인력양성</p>
+							<ul class="depth_two" style="display: none;">
+								<!-- 2025/08/19 삭제요청 <li><a
+									href="/portal/culture/portalCulRoCreaEdu.do;jsessionid=0704E137235E670EA63434FAAB88E568">로봇창의교육사업
+										(초·중학생)</a></li> -->
+								<li><a
+									href="/portal/culture/portalCulRoCreaTalent.do;jsessionid=0704E137235E670EA63434FAAB88E568">산업융합・연계형<br>
+										로봇창의 인재양성사업 (석·박사)
+								</a></li>
+								
+								<!-- 2025/08/19 명칭변경<li><a
+									href="/portal/culture/portalCulContest.do;jsessionid=0704E137235E670EA63434FAAB88E568">경진대회</a></li>-->
+								<li><a
+										href="/portal/culture/portalCulContest.do;jsessionid=0704E137235E670EA63434FAAB88E568">국제로봇콘테스트</a></li>
+								<li><a
+                                        href="/portal/culture/portalCulAiClass.jsp;jsessionid=0704E137235E670EA63434FAAB88E568">AI 로봇 창의교실 체험관(초등학생)</a></li>
+                                				<li><a
+                                        					href="/portal/culture/portalCulEdu.jsp;jsessionid=0704E137235E670EA63434FAAB88E568">로봇직업교육센터</a></li>
+							</ul>
+						</li>
+						<li>
+							<p>알림마당</p>
+							<ul class="depth_two" style="display: none;">
+								<li><a
+									href="/portal/info/portalInfoNotiList.do;jsessionid=0704E137235E670EA63434FAAB88E568">공지사항</a></li>
+								<li><a
+									href="/portal/info/portalInfoBusinessList.do;jsessionid=0704E137235E670EA63434FAAB88E568">사업공고</a></li>
+								<li><a
+									href="/portal/info/portalInfoTenderList.do;jsessionid=0704E137235E670EA63434FAAB88E568">입찰공고</a></li>
+								<!--li><a
+									href="/portal/info/portalInfoEduList.do;jsessionid=0704E137235E670EA63434FAAB88E568">교육정보</a></li-->
+								<li><a
+									href="/portal/info/portalInfoEventList.do;jsessionid=0704E137235E670EA63434FAAB88E568">행사정보</a></li>
+								<li><a
+									href="/portal/info/portalInfoJobList.do;jsessionid=0704E137235E670EA63434FAAB88E568">채용공고</a></li>
+								<li><a
+									href="/portal/info/portalInfoNewsClipMainList.do;jsessionid=0704E137235E670EA63434FAAB88E568">홍보소식</a>
+									<ul class="depth_three">
+<!-- 										<li><a -->
+
+<!-- 										<li><a -->
+
+									</ul></li>
+							</ul>
+						</li>
+						<li>
+							<p>자료실</p>
+							<ul class="depth_two" style="display: none;">
+<!-- 									<li><a -->
+
+<!-- 										ISSUE<br> REPORT -->
+<!-- 									</a></li> -->
+<!-- 									<li><a -->
+
+<!-- 										및 동향자료</a></li> -->
+									<li><a
+										href="/portal/reference/portalRefTrendList.do;jsessionid=0704E137235E670EA63434FAAB88E568">KIRIA ISSUE REPORT 정책 및 동향자료</a></li>
+
+									<li><a
+										href="/portal/reference/portalRefContentsList.do;jsessionid=0704E137235E670EA63434FAAB88E568">사진자료</a></li>
+									<li><a
+										href="https://www.youtube.com/c/KIRIAonair/videos" target="_blank" title="새창열림">동영상자료</a></li>
+									<li><a
+										href="/portal/info/portalInfoNewsClipSideList.do;jsessionid=0704E137235E670EA63434FAAB88E568">보도자료</a></li>
+									<li><a
+										href="/portal/reference/portalRefRuleList.do;jsessionid=0704E137235E670EA63434FAAB88E568">규정 및 서식</a></li>
+									<li><a
+										href="/portal/reference/portalRefCi.do;jsessionid=0704E137235E670EA63434FAAB88E568">CI 자료실</a></li>
+							
+							
+							</ul>
+						</li>
+					</ul>
+				</div>
+				<hr class="nav_bottom">
+			</div>
+
+			<!--  <script>
+	        $(document).ready(function() {
+	            /* 1 */
+	            $(window).scroll( function(){
+	                /* 2 */
+	                $('.top_go').each( function(i){
+	                    var bottom_of_object = $(this).offset().top + $(this).outerHeight();header.jsp
+	                    var bottom_of_window = $(window).scrollTop() + $(window).height();
+	                    /* 3 */
+	                    if( bottom_of_window > bottom_of_object/2 ){
+	                        $(this).animate({'opacity':'1'},500);
+	                    }
+	                }); 
+	                $('.top_go').click(function() {
+	                	$("html,body,.head_quickMenu_wrap").scrollTop(0);
+	                })              
+	                
+	            });            
+	        });
+	        </script> -->
+		</div>
+	</header>
+
+
+    
+<script>
+	
+	function fn_searchKeyPressed(event) {
+		//검색 상자 키 이벤트
+		if (event.keyCode == 13) {
+			fn_search('1');
+		}
+	}
+	
+	function fn_search(){
+
+		document.frm.pageIndex.value = '1';
+		document.frm.action = '/portal/info/portalInfoBusinessList.do;jsessionid=0704E137235E670EA63434FAAB88E568';
+		document.frm.submit();
+	}
+	
+	function fn_list(pageNo) {
+		//페이지 선택
+
+		document.frm.pageIndex.value = pageNo;
+		document.frm.action = '/portal/info/portalInfoBusinessList.do;jsessionid=0704E137235E670EA63434FAAB88E568';
+		document.frm.submit();
+	}
+	
+	function fn_write(){
+
+		document.frm.mode.value = "insert";
+		document.frm.action = '/portal/info/portalInfoBusinessWrite.do;jsessionid=0704E137235E670EA63434FAAB88E568';
+		document.frm.submit();
+	}
+	
+	function fn_update(ibusCode){
+		
+		document.frm.mode.value = "update";
+		document.frm.ibusCode.value = ibusCode ;
+		document.frm.action = '/portal/info/portalInfoBusinessWrite.do;jsessionid=0704E137235E670EA63434FAAB88E568';
+		document.frm.submit();
+		
+	}
+	function fn_clearSearch() {
+		var $input = $("input[name='searchWrd']");
+		if ($input.length) {
+			$input.val('');
+			$input.trigger('input'); // 바인딩된 updateClear()가 실행되어 .default_clear 표시가 갱신됩니다.
+			$input.focus()
+		}
+	}
+	$(function() {
+		var $input = $("input[name='searchWrd']");
+		var $clear = $(".default_clear");
+		function updateClear() {
+			var val = $input.val() || "";
+			$clear.toggle(val.length > 0);
+
+		}
+		updateClear();
+		$input.on("input change paste", updateClear);
+	});
+
+
+	function auto_date2(){ $("#startdate").val(''); }
+	function auto_date3(){ $("#enddate").val(''); }
+	$(document).ready(function(){
+		var search = "";
+		$(".title:contains('"+search+"')").each(function () {
+			var regex = new RegExp(search,'gi');
+			$(this).html( $(this).text().replace(regex, "<span style='color:red'>" + search + "</span>") );
+		});
+	});
+</script>
+
+<div id="contentWrap">
+	
+
+
+
+
+
+<aside id="left_menu">
+    <h2>알림마당</h2>            
+    <ul class="depth_one">
+        <li ><a href="/portal/info/portalInfoNotiList.do;jsessionid=0704E137235E670EA63434FAAB88E568">공지사항</a></li>
+        <li class="on"><a href="/portal/info/portalInfoBusinessList.do;jsessionid=0704E137235E670EA63434FAAB88E568">사업공고</a></li>
+        <li ><a href="/portal/info/portalInfoTenderList.do;jsessionid=0704E137235E670EA63434FAAB88E568">입찰공고</a></li>
+        <!--li ><a href="/portal/info/portalInfoEduList.do;jsessionid=0704E137235E670EA63434FAAB88E568">교육정보</a></li-->
+        <li ><a href="/portal/info/portalInfoEventList.do;jsessionid=0704E137235E670EA63434FAAB88E568">행사정보</a></li>
+        <li ><a href="/portal/info/portalInfoJobList.do;jsessionid=0704E137235E670EA63434FAAB88E568">채용공고</a></li>
+
+
+
+<!--         </li> -->
+		<li ><a href="/portal/info/portalInfoNewsClipMainList.do;jsessionid=0704E137235E670EA63434FAAB88E568">홍보소식</a></li>
+        
+<!--         <li class="li_depths"> -->
+<!--             <ul class="depth_two"> -->
+
+
+<!--             </ul> -->
+<!--         </li> -->
+         <li ><a href="/portal/info/portalInfoPrivacyInformation.do;jsessionid=0704E137235E670EA63434FAAB88E568">개인정보처리방침</a></li>
+         <li ><a href="/portal/info/portalInfoEmailProtect.do;jsessionid=0704E137235E670EA63434FAAB88E568">이메일무단수집거부 </a></li>
+    </ul>
+</aside>
+
+
+	<ul class="current_position m_display_n">
+        <li><a href="/portal/main.do;jsessionid=0704E137235E670EA63434FAAB88E568" id="contents_first_index" tabIndex="0">홈</a></li>
+		<li><a href="/portal/info/portalInfoNotiList.do;jsessionid=0704E137235E670EA63434FAAB88E568">알림마당</a></li>
+		<li><a href="/portal/info/portalInfoBusinessList.do;jsessionid=0704E137235E670EA63434FAAB88E568">사업공고</a></li>       
+    </ul>
+	<section id="contents">
+		<h3 class="header_name">사업공고</h3>  
+		<hr class="nav_bottom contents_start"/>
+		<form name="frm" method="post">
+			<input type="hidden" name="pageIndex" value="1" />
+			<input type="hidden" name="pageUnit" value="10"/>
+			
+			<input type="hidden" id="mode" name="mode" value=""/>
+			<input type="hidden" id="ibusCode" name="ibusCode" value=""/>
+			
+			<span class="page_total">전체 669건 | 페이지 1/67</span>
+			
+			<select name="recordCountPerPage" style="width:110px;" class="default_slct m_display_n" title="글출력갯수">
+				<option value="10" selected>10개씩 보기</option>
+				<option value="20" >20개씩 보기</option>
+				<option value="30" >30개씩 보기</option>
+			</select>
+				
+			<div class="float_right board_input_div">
+				<select class="default_slct width_100px" name="searchCnd2" title="검색조건1">
+					<option value="" >전체 상태</option>
+					<option value="0" >완료</option>
+					<option value="1" >진행중</option>
+				</select>
+				<input type="text" name="searchStartDate" class="default_input width_160px tab_input_size date" title="시작일 예시(yyyy-mm-dd)" onkeyup="auto_date_format(event, this)" onkeypress="auto_date_format(event, this)" placeholder="시작일(yyyy-mm-dd)" maxlength="10" value=""/>
+				<span class="calendar_span">~</span>
+				<input type="text" name="searchEndDate" class="default_input width_160px tab_input_size date" title="종료일 예시(yyyy-mm-dd)" onkeyup="auto_date_format(event, this)" onkeypress="auto_date_format(event, this)" placeholder="종료일(yyyy-mm-dd)" maxlength="10" value=""/>
+				
+				<select class="default_slct width_80px" name="searchCnd" title="검색조건2">
+					<option value=""  selected >전체</option>
+					<option value="0" >제목</option>
+					<option value="1" >내용</option>
+				</select>
+				<div class="default_input_box">
+					<input type="text" name="searchWrd" value="" title="검색어를 입력하세요" onkeypress="javascript:fn_searchKeyPressed(event);" class="default_input width_150px" placeholder="검색어를 입력하세요">
+					<button type="button" class="default_clear" onclick="javascript:fn_clearSearch();"><i class="fa fa-close"></i></button>
+
+				</div>
+
+				<button type="button" class="board_search" onclick="javascript:fn_search('1')">검색</button>
+			</div>
+			
+			<table class="default_board_01 mobile_default_board03">
+				<caption>사업공고 게시글목록입니다. 번호, 제목, 접수기간, 상태, 첨부, 작성자, 작성일, 조회 목록을 제공합니다.</caption>
+				<colgroup>
+					<col class="width_50px">
+					<col style="width:auto;">
+					<col class="width_200px">
+					<col class="width_80px">
+					<col class="width_50px">
+					<col class="width_80px">
+					<col class="width_90px">
+					<col class="width_60px">
+				</colgroup>
+				<thead>
+					<tr>
+						<th scope="col">No</th>
+						<th scope="col">제목</th>
+						<th scope="col">접수기간</th>
+						<th scope="col">상태</th>
+						<th scope="col">첨부</th>
+						<th scope="col">작성자</th>
+						<th scope="col">작성일</th>
+						<th scope="col">조회</th>
+					</tr>
+				</thead>
+				<tbody>
+					
+					
+						
+							<tr>
+								<td> 669 </td>
+								<td><a class="title" href="javascript:fn_update('IBUS_000000000001264')">2026년 한국로봇산업진흥원 연구장비 임대 운영 기업 모집 공고</a> </td>
+								<td> 2026-09-01 ~ 2026-12-31 </td>
+								<td> 
+									
+									 진행중 
+									
+								</td>
+								<td>  <img src="/images/kiria/portal/icon_file.png;jsessionid=0704E137235E670EA63434FAAB88E568" alt="파일있음" />  </td>
+								<td> 관리자 </td>
+								<td> 2026-09-01 </td>
+								<td> 438 </td>
+							</tr>
+						
+							<tr>
+								<td> 668 </td>
+								<td><a class="title" href="javascript:fn_update('IBUS_000000000001263')">로봇분야 예비창업자 및 재창업자를 위한 창업 성장 프로그램 참가자 모집</a> </td>
+								<td> 2026-09-01 ~ 2026-09-30 </td>
+								<td> 
+									
+									 진행중 
+									
+								</td>
+								<td>  <img src="/images/kiria/portal/icon_file.png;jsessionid=0704E137235E670EA63434FAAB88E568" alt="파일있음" />  </td>
+								<td> 관리자 </td>
+								<td> 2026-09-01 </td>
+								<td> 280 </td>
+							</tr>
+						
+							<tr>
+								<td> 667 </td>
+								<td><a class="title" href="javascript:fn_update('IBUS_000000000001262')">2027년 「국제로봇콘테스트(IRC)」 유치 희망 지자체 수요조사 공고</a> </td>
+								<td> 2026-08-11 ~ 2026-08-28 </td>
+								<td> 
+									 완료 
+									
+									
+								</td>
+								<td>  <img src="/images/kiria/portal/icon_file.png;jsessionid=0704E137235E670EA63434FAAB88E568" alt="파일있음" />  </td>
+								<td> 관리자 </td>
+								<td> 2026-08-11 </td>
+								<td> 1263 </td>
+							</tr>
+						
+							<tr>
+								<td> 666 </td>
+								<td><a class="title" href="javascript:fn_update('IBUS_000000000001261')">2026년도 「한-체코 첨단로봇산업 협력센터 구축사업」 지원과제 모집 공고</a> </td>
+								<td> 2026-08-10 ~ 2026-08-19 </td>
+								<td> 
+									 완료 
+									
+									
+								</td>
+								<td>  <img src="/images/kiria/portal/icon_file.png;jsessionid=0704E137235E670EA63434FAAB88E568" alt="파일있음" />  </td>
+								<td> 관리자 </td>
+								<td> 2026-07-20 </td>
+								<td> 2327 </td>
+							</tr>
+						
+							<tr>
+								<td> 665 </td>
+								<td><a class="title" href="javascript:fn_update('IBUS_000000000001260')">2026년도「신뢰성기반활용지원사업」 수시형 2차 참여기업 모집</a> </td>
+								<td> 2026-07-06 ~ 2026-08-03 </td>
+								<td> 
+									 완료 
+									
+									
+								</td>
+								<td>  <img src="/images/kiria/portal/icon_file.png;jsessionid=0704E137235E670EA63434FAAB88E568" alt="파일있음" />  </td>
+								<td> 관리자 </td>
+								<td> 2026-07-08 </td>
+								<td> 2085 </td>
+							</tr>
+						
+							<tr>
+								<td> 664 </td>
+								<td><a class="title" href="javascript:fn_update('IBUS_000000000001259')">2026년 「규제혁신 로봇 실증사업」지원과제 2차 모집 공고</a> </td>
+								<td> 2026-07-20 ~ 2026-08-04 </td>
+								<td> 
+									 완료 
+									
+									
+								</td>
+								<td>  <img src="/images/kiria/portal/icon_file.png;jsessionid=0704E137235E670EA63434FAAB88E568" alt="파일있음" />  </td>
+								<td> 관리자 </td>
+								<td> 2026-07-06 </td>
+								<td> 2914 </td>
+							</tr>
+						
+							<tr>
+								<td> 663 </td>
+								<td><a class="title" href="javascript:fn_update('IBUS_000000000001258')">2026년 「서비스로봇 실증사업」 지원과제 2차 모집 공고</a> </td>
+								<td> 2026-07-20 ~ 2026-08-04 </td>
+								<td> 
+									 완료 
+									
+									
+								</td>
+								<td>  <img src="/images/kiria/portal/icon_file.png;jsessionid=0704E137235E670EA63434FAAB88E568" alt="파일있음" />  </td>
+								<td> 관리자 </td>
+								<td> 2026-07-06 </td>
+								<td> 3178 </td>
+							</tr>
+						
+							<tr>
+								<td> 662 </td>
+								<td><a class="title" href="javascript:fn_update('IBUS_000000000001256')">2026년 제조로봇 실증사업 작업장 안전인증 및 안전컨설팅 지원사업(2차) 모집 공고</a> </td>
+								<td> 2026-07-13 ~ 2026-07-27 </td>
+								<td> 
+									 완료 
+									
+									
+								</td>
+								<td>  <img src="/images/kiria/portal/icon_file.png;jsessionid=0704E137235E670EA63434FAAB88E568" alt="파일있음" />  </td>
+								<td> 관리자 </td>
+								<td> 2026-06-26 </td>
+								<td> 2445 </td>
+							</tr>
+						
+							<tr>
+								<td> 661 </td>
+								<td><a class="title" href="javascript:fn_update('IBUS_000000000001255')">(추경) 2026년도 AI로봇 실증사업 지원과제 추가 모집 공고</a> </td>
+								<td> 2026-06-24 ~ 2026-06-30 </td>
+								<td> 
+									 완료 
+									
+									
+								</td>
+								<td>  <img src="/images/kiria/portal/icon_file.png;jsessionid=0704E137235E670EA63434FAAB88E568" alt="파일있음" />  </td>
+								<td> 관리자 </td>
+								<td> 2026-06-11 </td>
+								<td> 4974 </td>
+							</tr>
+						
+							<tr>
+								<td> 660 </td>
+								<td><a class="title" href="javascript:fn_update('IBUS_000000000001254')">2026년도 「첨단제조로봇 실증사업(2차)」 지원과제 모집 공고</a> </td>
+								<td> 2026-06-16 ~ 2026-06-30 </td>
+								<td> 
+									 완료 
+									
+									
+								</td>
+								<td>  <img src="/images/kiria/portal/icon_file.png;jsessionid=0704E137235E670EA63434FAAB88E568" alt="파일있음" />  </td>
+								<td> 관리자 </td>
+								<td> 2026-06-01 </td>
+								<td> 4926 </td>
+							</tr>
+						
+					
+				</tbody>
+			</table>
+			<div class="page_nav">
+		   		<a href="?pageIndex=1" title="맨처음 페이지" onclick="fn_list(1);return false;" class="ago_prev" tabindex="-1"><em>맨처음페이지</em></a><a href="?pageIndex=1" title="이전페이지" onclick="fn_list(1);return false;" class="prev" tabindex="-1"><em>이전페이지</em></a><a href="#" title="선택된 페이지" class="on" tabindex="-1">1</a><a href="?pageIndex=2" onclick="fn_list(2);return false; ">2</a><a href="?pageIndex=3" onclick="fn_list(3);return false; ">3</a><a href="?pageIndex=4" onclick="fn_list(4);return false; ">4</a><a href="?pageIndex=5" onclick="fn_list(5);return false; ">5</a><a href="?pageIndex=6" onclick="fn_list(6);return false; ">6</a><a href="?pageIndex=7" onclick="fn_list(7);return false; ">7</a><a href="?pageIndex=8" onclick="fn_list(8);return false; ">8</a><a href="?pageIndex=9" onclick="fn_list(9);return false; ">9</a><a href="?pageIndex=10" onclick="fn_list(10);return false; ">10</a><a href="?pageIndex=11" title="다음페이지" onclick="fn_list(11);return false;" class="next" ><em>다음페이지</em></a><a href="?pageIndex=67" title="맨끝 페이지" onclick="fn_list(67);return false;" class="ago_next" ><em>맨끝페이지</em></a>
+
+		    </div>
+		</form>
+	</section>
+</div>
+
+
+
+
+
+
+
+
+	<!-- footer>
+		<div class="foot_link">
+			<ul>
+				<li>개인정보처리방침</li>
+				<li>이메일무단수집거부</li>
+				<li>찾아오시는 길</li>
+			</ul>
+			<button type="button" onclick="" class="co_op">유관기관 홈페이지</button>
+		</div>
+		<div class="co_info">
+			<p>[본원][41496] 대구광역시 북구 노원로 77 T.053-210-9600, F.053-210-9529  [개인정보처리방침] [영상정보처리기기 운영관리방침]<br>[인증평가센터] [41496] 대구광역시 북구 노원로 75 T.053-210-9618, F.053-210-9539</p>                
+		</div>
+	</footer> -->
+
+<script>
+function fn_openNewPage(id){
+	var addrUrl = $(id).attr("href");
+	window.open(addrUrl, "_blank");  
+}
+</script>
+
+
+	<div class="sub_footer">
+        <div class="sub_footer_box">
+            <ul>
+				<li><a href="/portal/info/portalInfoPrivacyInformation.do;jsessionid=0704E137235E670EA63434FAAB88E568">개인정보처리방침</a></li>
+				<li><a href="/portal/info/portalInfoImageEquipment.do;jsessionid=0704E137235E670EA63434FAAB88E568">고정형 영상정보처리기기 운영·관리 방침</a></li>
+				<li><a href="/portal/info/portalInfoEmailProtect.do;jsessionid=0704E137235E670EA63434FAAB88E568">이메일무단수집거부</a></li>
+                
+            </ul>
+            <div class="site_wrap">
+                <button class="site_title" aria-expanded="false">유관기관 및 관련사이트</button>
+                <dl class="site_box">
+                    <dt>관련사이트</dt>
+                    <dd onclick="javascript:fn_openNewPage(fs01);"><a href="http://www.motir.go.kr" target="_blank" title="새창열림" id="fs01" >산업통상부</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs02);"><a href="http://www.kats.go.kr" target="_blank" title="새창열림" id="fs02" >국가기술표준원</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs03);"><a href="https://www.kitech.re.kr" target="_blank" title="새창열림" id="fs03" >한국생산기술연구원</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs04);"><a href="http://www.gjtp.or.kr" target="_blank" title="새창열림" id="fs04" >광주테크노파크</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs05);"><a href="http://www.daejeontp.or.kr" target="_blank" title="새창열림" id="fs05" >대전테크노파크</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs06);"><a href="http://www.gntp.or.kr" target="_blank" title="새창열림" id="fs06" >경남테크노파크</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs07);"><a href="https://www.jbtp.or.kr/" target="_blank" title="새창열림" id="fs07" >전북테크노파크</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs08);"><a href="http://www.jntp.or.kr" target="_blank" title="새창열림" id="fs08" >전남테크노파크</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs09);"><a href="https://www.bizbc.or.kr" target="_blank" title="새창열림" id="fs09" >부천산업진흥재단</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs10);"><a href="http://www.dmi.re.kr" target="_blank" title="새창열림" id="fs10" >대구기계부품연구원</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs11);"><a href="http://www.uipa.or.kr" target="_blank" title="새창열림" id="fs11" >울산정보산업진흥원</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs12);"><a href="http://www.kiro.re.kr" target="_blank" title="새창열림" id="fs12" >한국로봇융합연구원</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs13);"><a href="https://www.ibitp.or.kr" target="_blank" title="새창열림" id="fs13" >인천경제산업정보테크노파크</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs14);"><a href="http://www.gimc.or.kr" target="_blank" title="새창열림" id="fs14" >강원정보문화진흥원</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs15);"><a href="https://www.gbsa.or.kr/" target="_blank" title="새창열림" id="fs15" >경기도경제과학진흥원</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs16);"><a href="http://www.icros.org" target="_blank" title="새창열림" id="fs16" >제어로봇시스템학회</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs17);"><a href="http://www.korearobot.or.kr" target="_blank" title="새창열림" id="fs17" >한국로봇산업협회</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(fs18);"><a href="https://rra.go.kr/ko/index.do" target="_blank" title="새창열림" id="fs18" >국립전파연구원</a></dd>
+                    <dd onclick="javascript:fn_openNewPage(site_box_last_item);"><a href="http://www.seoulrobot.hs.kr" target="_blank" title="새창열림" id="site_box_last_item" >서울로봇고등학교</a></dd>
+                </dl> 
+            </div>
+        </div>
+    </div>
+    <footer>
+        <div class="sub_footer_wrap">
+            <!-- <h1><span class="sr-only">한국로봇산업진흥원</span></h1> -->
+            <p>
+                [본원][41496] 대구광역시 북구 노원로 77 T.053-210-9600, F.053-210-9529<br />
+                [인증평가센터] [41496] 대구광역시 북구 노원로 75 T.053-210-9651, F.053-210-9539<br /><br />
+
+		COPYRIGHT(C) 2018 KIRIA ALL RIGHTS RESERVED.
+            </p>
+            <a title="새창" href="http://www.wa.or.kr/board/list.asp?BoardID=0006" target="_blank">
+            	<img alt="(사)한국장애인단체총연합회 한국웹접근성인증평가원 웹 접근성 우수사이트 인증마크(WA인증마크)" src="/images/kiria/portal/footer_wa2026.png;jsessionid=0704E137235E670EA63434FAAB88E568" class="wa"/>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+    /*유관기관 및 관련사이트 body 클릭했을때 닫히게*/
+    $(function() {
+        $(".site_title").click(function(e) {
+            e.preventDefault();
+            let siteTitle = $(".site_title")
+            siteTitle.css({"background" :"#2d3c54 url(/images/kiria/dbportal/arrow_bottom.png) no-repeat", "background-position" : "90% 50%"});
+            siteTitle.attr("aria-expanded", true);
+            var $toClose = $(".site_box")
+            $toClose.slideToggle(500, function() {
+                if($toClose.is(':visible')) {
+                    $('body').one('click', function(e) {
+                        e.preventDefault();
+                        siteTitle.css({"background" :"#2d3c54 url(/images/kiria/dbportal/arrow_top.png) no-repeat", "background-position" : "90% 50%"});
+			siteTitle.attr("aria-expanded", false);
+                        $toClose.slideUp(500);
+                    });
+                }
+                else {
+                    $('body').unbind('click');
+                }
+            });
+        });
+    });
+    
+	/* 탭키로 유관기관에 포커스 잃을 때 메뉴 처리 스크립트 */
+    $(document).ready(function() {
+		$('#site_box_last_item').on('focusout', function(){
+            let siteTitle = $(".site_title")
+			$('.site_box').slideToggle();
+            siteTitle.css({"background" :"#2d3c54 url(/images/kiria/dbportal/arrow_top.png) no-repeat", "background-position" : "90% 50%"});
+	    siteTitle.attr("aria-expanded", false);
+		});
+    });
+    </script>
+</body>
+</html>

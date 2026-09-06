@@ -1,0 +1,557 @@
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	
+
+
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+<title>충남테크노파크</title>
+<meta name="Keywords" content="충남테크노파크" />
+<meta name="Description" content="" />
+<meta name="robots" content="index,follow"/>
+<meta http-equiv="Author" content="충남테크노파크" />
+<meta http-equiv="Reply-To" content="" />
+<meta property="og:title" content="충남테크노파크">
+<meta property="og:url" content="">
+<meta property="og:type" content="웹사이트/모바일">
+<meta property="og:description" content=""/>
+<meta property="og:image" content="">
+
+<!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"> -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+<link href="/css/egovframework/userpage/font.css" rel="stylesheet" type="text/css" />
+<link href="/css/egovframework/userpage/slick.css" rel="stylesheet" type="text/css" />
+<!-- <link href="/css/egovframework/userpage/slick-theme.css" rel="stylesheet" type="text/css" /> -->
+<script src="/js/userpage/slick.js"></script>
+
+<script src="/js/userpage/datepicker/bootstrap-datepicker.min.js"></script>
+<link href="/js/userpage/datepicker/bootstrap-datepicker.css" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="/css/egovframework/userpage/jquery-ui.css">
+<script src="/js/userpage/jquery-ui.js"></script>   
+<script src="/js/userpage/datepicker/datepicker-ko.js"></script>
+
+<!-- toastr -->
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css" />
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<link href="/css/user.css?v=202511060504" rel="stylesheet" type="text/css" />
+<link href="/css/bootstrap.css?v=202511061010" rel="stylesheet" type="text/css" />
+
+<script src="/js/jquery.validate.js" ></script>
+<script src="/js/common.js?v=2021030202" ></script>
+<script src="/js/userpage/user.js"></script>
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100;300;400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+
+<body>
+	<div id="wrap"> 
+	<!-- Content area -->
+	
+
+
+
+<div id="header" class="main">
+	<div class="d-none d-lg-block header-sns">
+		<div class="container">
+			<ul class="un-style cc-content d-flex align-items-center justify-content-end">
+				<li class="mr-3 fnb">충남테크노파크 누리소통망(SNS)</li>
+				<li class="mx-2"><a href="https://www.instagram.com/ctp.or.kr/" target="_blank"><img src="/css/egovframework/img/userpage/sns-logo1.svg" style="width: 30px;"></a></li>
+				<li class="mx-2"><a href="https://facebook.com/ctp.or.kr" target="_blank"><img src="/css/egovframework/img/userpage/sns-logo2.svg" style="width: 30px;"></a></li>
+				<li class="mx-2"><a href="https://www.youtube.com/@ctp_official" target="_blank"><img src="/css/egovframework/img/userpage/sns-logo3.svg" style="width: 30px;"></a></li>
+				<li class="mx-2"><a href="http://pf.kakao.com/_nRGnG" target="_blank"><img src="/css/egovframework/img/userpage/sns-logo4.svg" style="width: 30px;"></a></li>
+			</ul>
+		</div>
+	</div>
+	<div class="header-content">
+		<div class="container">
+			<div class="row justify-content-between">
+				<div class="d-flex align-items-center header-logo">
+					<a class="logo" href="/main.do"><img class="mw-100 invisible" src="/css/egovframework/img/userpage/header-logo.png"></a>
+					<a id="mopen" class="d-block d-lg-none mr-0 ml-auto"><img class="mw-100 invisible" src="/css/egovframework/img/userpage/m-hamburger.png"></a>
+				</div>
+				<div class="col d-none d-lg-flex">
+					<div class="header-menu mx-auto desktop-menu">
+						<ul class="un-style clearfix main-menu d-flex">
+							<li><a href='/community/notice.do' >알림마당</a><ul class='un-style sub-menu'><li><a href='/community/notice.do' >공지사항</a></li><li><a href='/community/employ.do' >채용공고</a></li><li><a href='/community/bid.do' >입찰공고</a></li><li><a href='/community/education.do' >교육</a></li><li><a href='/community/ctp.do' >CTP 소식</a></li><li><a href='/community/agency.do' >유관기관 소식</a></li><li><a href='/community/news.do' >언론보도</a></li><li><a href='/community/recycling.do' >재활용장터</a></li></ul></li><li><a href='/business/data.do' >지원사업</a><ul class='un-style sub-menu'><li><a href='/business/data.do' >사업공고</a></li><li><a href='/business/unit.do' >주요 지원사업</a></li><li><a href='/business/business.do' >기업지원사업<br />연간일정표</a></li><li><a href='/business/sector.do' >분야별 지원</a></li><li><a href='http://www.cn-jangbi.or.kr/home/index.do' target='_blank'>장비지원(CES)</a></li><li><a href='/business/kolas.do' >KOLAS<br />공인시험지원</a></li><li><a href='/business/ai.do' >충남제조AI혁신센터</a></li></ul></li><li><a href='/moving/complex.do' >입주지원</a><ul class='un-style sub-menu'><li><a href='/moving/complex.do' >단지현황</a></li><li><a href='/moving/guide.do' >입주안내</a></li><li><a href='/moving/company.do' >입주기업</a></li></ul></li><li><a href='/information/policy.do' >정보공개</a><ul class='un-style sub-menu'><li><a href='/information/policy.do' >제도안내</a></li><li><a href='https://www.open.go.kr/com/main/mainView.do' target='_blank'>정보공개</a></li><li><a href='/information/data.do' >경영공시</a></li><li><a href='/information/ethics.do' >윤리경영</a></li><li><a href='/information/human.do' >인권경영</a></li><li><a href='/information/safety.do' >안전보건경영</a></li><li><a href='/information/esg.do' >ESG경영</a></li></ul></li><li><a href='/introduce/greeting.do' >재단소개</a><ul class='un-style sub-menu'><li><a href='/introduce/greeting.do' >인사말</a></li><li><a href='/introduce/vision.do' >비전 및 목표</a></li><li><a href='/introduce/business.do' >주요사업</a></li><li><a href='/introduce/history.do' >연혁</a></li><li><a href='/introduce/organic.do' >조직안내</a></li><li><a href='/introduce/department.do' >부서소개</a></li><li><a href='/introduce/symbol.do' >기관상징</a></li><li><a href='/introduce/data.do' >소개자료</a></li><li><a href='/introduce/map.do' >오시는길</a></li></ul></li>
+						</ul>
+					</div>
+					<div class="d-flex align-items-center mr-0 ml-auto">
+						 <ul class="un-style d-flex header-info align-items-center">
+							<!--<li><a href="https://www.ctp.or.kr/global_site/en/" target="_blank" class='global'><img class="align-initial" src="/css/egovframework/img/userpage/global.png"></a></li>-->
+							<li>
+								<div class="menu">
+						            <input type="checkbox" id="menuIconS" autocomplete="off">
+						            <label for="menuIconS">
+						                <span style="background: #000000;"></span>
+						                <span style="background: #000000;"></span>
+						                <span style="background: #000000;"></span>
+						            </label>
+						        </div>
+							</li>
+						 </ul>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="header-back">
+			<div class="container h-100 d-flex">
+				<ul class="un-style clearfix main-mimg pt-5">
+					<li>
+	<h5><span class='fnsb'>통(通)하는 충남,</span><br>산업 · 기술 혁신의 거점기관</h5>
+	<h3>알림마당</h3>
+</li><li>
+	<h5><span class='fnsb'>통(通)하는 충남,</span><br>산업 · 기술 혁신의 거점기관</h5>
+	<h3>지원사업</h3>
+</li><li>
+	<h5><span class='fnsb'>통(通)하는 충남,</span><br>산업 · 기술 혁신의 거점기관</h5>
+	<h3>입주지원</h3>
+</li><li>
+	<h5><span class='fnsb'>통(通)하는 충남,</span><br>산업 · 기술 혁신의 거점기관</h5>
+	<h3>정보공개</h3>
+</li><li>
+	<h5><span class='fnsb'>통(通)하는 충남,</span><br>산업 · 기술 혁신의 거점기관</h5>
+	<h3>재단소개</h3>
+</li><li>
+	<h5><span class='fnsb'>통(通)하는 충남,</span><br>산업 · 기술 혁신의 거점기관</h5>
+	<h3>질의응답</h3>
+</li><li>
+	<h5><span class='fnsb'>통(通)하는 충남,</span><br>산업 · 기술 혁신의 거점기관</h5>
+	<h3>식단표</h3>
+</li><li>
+	<h5><span class='fnsb'>통(通)하는 충남,</span><br>산업 · 기술 혁신의 거점기관</h5>
+	<h3>셔틀버스</h3>
+</li><li>
+	<h5><span class='fnsb'>통(通)하는 충남,</span><br>산업 · 기술 혁신의 거점기관</h5>
+	<h3>재활용장터</h3>
+</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+
+	<div class="mobile-menu">
+		<div class="mobile-top d-flex align-items-center justify-content-between">
+			<h5 class="fnsb coff cs-content m-0">전체메뉴</h5>
+			<a id="mclose" class="d-block"><img src="/css/egovframework/img/userpage/mclose.png"></a>
+		</div>
+		<ul class="un-style clearfix main-menu position-relative">
+			<li><a href='/community/notice.do' >알림마당</a><ul class='un-style sub-menu'><li><a href='/community/notice.do' >공지사항</a></li><li><a href='/community/employ.do' >채용공고</a></li><li><a href='/community/bid.do' >입찰공고</a></li><li><a href='/community/education.do' >교육</a></li><li><a href='/community/ctp.do' >CTP 소식</a></li><li><a href='/community/agency.do' >유관기관 소식</a></li><li><a href='/community/news.do' >언론보도</a></li><li><a href='/community/recycling.do' >재활용장터</a></li></ul></li><li><a href='/business/data.do' >지원사업</a><ul class='un-style sub-menu'><li><a href='/business/data.do' >사업공고</a></li><li><a href='/business/unit.do' >주요 지원사업</a></li><li><a href='/business/business.do' >기업지원사업<br />연간일정표</a></li><li><a href='/business/sector.do' >분야별 지원</a></li><li><a href='http://www.cn-jangbi.or.kr/home/index.do' target='_blank'>장비지원(CES)</a></li><li><a href='/business/kolas.do' >KOLAS<br />공인시험지원</a></li><li><a href='/business/ai.do' >충남제조AI혁신센터</a></li></ul></li><li><a href='/moving/complex.do' >입주지원</a><ul class='un-style sub-menu'><li><a href='/moving/complex.do' >단지현황</a></li><li><a href='/moving/guide.do' >입주안내</a></li><li><a href='/moving/company.do' >입주기업</a></li></ul></li><li><a href='/information/policy.do' >정보공개</a><ul class='un-style sub-menu'><li><a href='/information/policy.do' >제도안내</a></li><li><a href='https://www.open.go.kr/com/main/mainView.do' target='_blank'>정보공개</a></li><li><a href='/information/data.do' >경영공시</a></li><li><a href='/information/ethics.do' >윤리경영</a></li><li><a href='/information/human.do' >인권경영</a></li><li><a href='/information/safety.do' >안전보건경영</a></li><li><a href='/information/esg.do' >ESG경영</a></li></ul></li><li><a href='/introduce/greeting.do' >재단소개</a><ul class='un-style sub-menu'><li><a href='/introduce/greeting.do' >인사말</a></li><li><a href='/introduce/vision.do' >비전 및 목표</a></li><li><a href='/introduce/business.do' >주요사업</a></li><li><a href='/introduce/history.do' >연혁</a></li><li><a href='/introduce/organic.do' >조직안내</a></li><li><a href='/introduce/department.do' >부서소개</a></li><li><a href='/introduce/symbol.do' >기관상징</a></li><li><a href='/introduce/data.do' >소개자료</a></li><li><a href='/introduce/map.do' >오시는길</a></li></ul></li>
+		</ul>
+	</div>
+</div>
+
+<div class="sitemap">
+	<div class="h-100 d-table mx-auto position-relative">
+		<div class="sitemenu justify-content-center align-items-center flex-column d-flex h-100">
+			<h3 class="btitle fnb mb7 mr-auto position-relative w-100">
+				<span class="cod1">전</span>체메뉴 
+				<a id="sm-close" class="d-block position-absolute" style="right: 35px; top: -8px;" href="#"><img src='/css/egovframework/img/userpage/sitemap-close.png'></a>
+			</h3>
+			<ul class="un-style clearfix">
+				<li><a href='/community/notice.do' >알림마당</a><ul class='un-style sub-menu'><li><a href='/community/notice.do' >공지사항</a></li><li><a href='/community/employ.do' >채용공고</a></li><li><a href='/community/bid.do' >입찰공고</a></li><li><a href='/community/education.do' >교육</a></li><li><a href='/community/ctp.do' >CTP 소식</a></li><li><a href='/community/agency.do' >유관기관 소식</a></li><li><a href='/community/news.do' >언론보도</a></li><li><a href='/community/recycling.do' >재활용장터</a></li></ul></li><li><a href='/business/data.do' >지원사업</a><ul class='un-style sub-menu'><li><a href='/business/data.do' >사업공고</a></li><li><a href='/business/unit.do' >주요 지원사업</a></li><li><a href='/business/business.do' >기업지원사업<br />연간일정표</a></li><li><a href='/business/sector.do' >분야별 지원</a></li><li><a href='http://www.cn-jangbi.or.kr/home/index.do' target='_blank'>장비지원(CES)</a></li><li><a href='/business/kolas.do' >KOLAS<br />공인시험지원</a></li><li><a href='/business/ai.do' >충남제조AI혁신센터</a></li></ul></li><li><a href='/moving/complex.do' >입주지원</a><ul class='un-style sub-menu'><li><a href='/moving/complex.do' >단지현황</a></li><li><a href='/moving/guide.do' >입주안내</a></li><li><a href='/moving/company.do' >입주기업</a></li></ul></li><li><a href='/information/policy.do' >정보공개</a><ul class='un-style sub-menu'><li><a href='/information/policy.do' >제도안내</a></li><li><a href='https://www.open.go.kr/com/main/mainView.do' target='_blank'>정보공개</a></li><li><a href='/information/data.do' >경영공시</a></li><li><a href='/information/ethics.do' >윤리경영</a></li><li><a href='/information/human.do' >인권경영</a></li><li><a href='/information/safety.do' >안전보건경영</a></li><li><a href='/information/esg.do' >ESG경영</a></li></ul></li><li><a href='/introduce/greeting.do' >재단소개</a><ul class='un-style sub-menu'><li><a href='/introduce/greeting.do' >인사말</a></li><li><a href='/introduce/vision.do' >비전 및 목표</a></li><li><a href='/introduce/business.do' >주요사업</a></li><li><a href='/introduce/history.do' >연혁</a></li><li><a href='/introduce/organic.do' >조직안내</a></li><li><a href='/introduce/department.do' >부서소개</a></li><li><a href='/introduce/symbol.do' >기관상징</a></li><li><a href='/introduce/data.do' >소개자료</a></li><li><a href='/introduce/map.do' >오시는길</a></li></ul></li>
+			</ul>
+		</div>
+	</div>
+</div>
+	
+	<div class="content" id="content">
+		<div>
+            <div class="text-center page-top">
+                <h3 class="d-table mx-auto position-relative m-0">지원사업</h3>
+                <span>Support Project</span>
+            </div>
+            
+            <h5 class="d-block d-lg-none fk-menu m-0">사업공고</h5>
+            <div class="container">
+            	
+            	<ul class="un-style d-lg-flex uleft-menu">
+                   <li class='on'><a href='/business/data.do' >사업공고</a></li><li class=''><a href='/business/unit.do' >주요 지원사업</a></li><li class=''><a href='/business/business.do' >기업지원사업 연간일정표</a></li><li class=''><a href='/business/sector.do' >분야별 지원</a></li><li class=''><a href='http://www.cn-jangbi.or.kr/home/index.do' target='_blank'>장비지원(CES)</a></li><li class=''><a href='/business/kolas.do' >KOLAS 공인시험지원</a></li><li class=''><a href='/business/ai.do' >충남제조AI혁신센터</a></li>
+                </ul>
+                <div class="d-flex justify-content-between current-page align-items-end">
+                	<h5 class="m-0">사업공고</h5>
+                		
+                	<ul class="un-style d-flex pagebread align-items-center">
+                		<li><a href='/'><img src='/css/egovframework/img/userpage/home.png'></a></li><li><a href='/business/data.do'>지원사업</a></li><li><a href='/business/data.do'>사업공고</a></li>
+                	</ul>
+                </div>
+            </div>
+        </div>
+		
+
+<script>
+$(document).ready(function() {
+	var bc = getQuerystring().bc;
+	
+	$("#btnSearch").click(function() {
+		var searchType = $("#searchType").val();
+		var searchCondition = $("#searchCondition").val();
+		
+		location.href = "?"+searchType+"="+encodeURI(searchCondition);
+	})
+})
+</script>
+  
+<div class="container">
+    <div class="bdsection">
+        <div class='d-lg-flex justify-content-between align-items-center mb-4'>
+            <p class='total mb-5 mb-lg-0'>Total : <span class='cocd fnsb'>3974</span> (<span class='cocd fnsb'>1</span> / 398 page)</p>
+            <div class='d-md-flex searchBox'>
+                <select id='searchType' name='searchType'>
+                    <option value='boardTitle'>제목</option>
+                    <option value='regUserName'>작성자</option>
+                </select>
+                <div class='searchInput mx-md-2 mt-3 mt-md-0'>
+                    <input type='text' name='searchCondition' id='searchCondition'>
+                </div>
+                <div class='text-center mt-3 mt-md-0'>
+                	<button class='btn btn-ss bk-33' id='btnSearch'>검색</button>
+                </div>
+            </div>
+        </div>
+        <table class='w-100 mb4'>
+            <colgroup>
+                <col class='d-none d-lg-table-column' style='width: 5%'>
+                <col style='width: auto'>
+                <col class='d-none d-lg-table-column' style='width: 15%'>
+                <col class='d-none d-lg-table-column' style='width: 5%'>
+                <col class='d-none d-lg-table-column' style='width: 8%'>
+                <col class='d-none d-lg-table-column' style='width: 10%'>
+                <col class='d-none d-lg-table-column' style='width: 5%'>
+            </colgroup>
+            <thead>
+                <tr>
+                    <th class='d-none d-lg-table-cell'>번호</th>
+                    <th>제목</th>
+                    <th class='d-none d-lg-table-cell'>마감일</th>
+                    <th class='d-none d-lg-table-cell'>첨부</th>
+                    <th class='d-none d-lg-table-cell'>작성자</th>
+                    <th class='d-none d-lg-table-cell'>작성일</th>
+                    <th class='d-none d-lg-table-cell'>조회</th>
+                </tr>
+            </thead>
+            <tbody>
+				<tr>
+   <td class='d-none d-lg-table-cell'>3974</td>
+   <td class='text-left px-lg-4'>
+   		<a  href='datadetail.do?seq=2709413'> 「해양수산 창업투자지원사업」2026년 수혜기업 모집(4차)(2026년 육성기업 상품홍보)</a>
+		<ul class='cs-content d-flex d-lg-none un-style mt-3 co66 mbinfo align-items-center'>			<li><span class='list-ing m-0'>접수중</span></li>			<li>송재오</li>			<li>2026-08-12</li>			<li>646</li>		</ul>   </td>
+   <td class='d-none d-lg-table-cell'>
+   	   <span class='cod1 pr-4'>2026-08-28 17:00</span>
+       <span class='list-ing m-0'>접수중</span>
+   </td>
+   <td class='d-none d-lg-table-cell'><img src='/css/egovframework/img/userpage/file.png'></td>
+   <td class='d-none d-lg-table-cell'>송재오</td>
+   <td class='d-none d-lg-table-cell'>2026-08-12</td>
+   <td class='d-none d-lg-table-cell'>646</td>
+<tr>
+   <td class='d-none d-lg-table-cell'>3973</td>
+   <td class='text-left px-lg-4'>
+   		<a  href='datadetail.do?seq=2709440'> 지역 주도형 AI 대전환사업 기업지원 선정결과 공고 게재</a>
+		<ul class='cs-content d-flex d-lg-none un-style mt-3 co66 mbinfo align-items-center'>			<li><span class='list-ing m-0' style='padding: 6px 15px;'>공지</span></li>			<li>차은배</li>			<li>2026-08-21</li>			<li>239</li>		</ul>   </td>
+   <td class='d-none d-lg-table-cell'>
+   	   <span class='cod1 pr-4'>2026-08-28 18:00</span>
+       <span class='list-ing m-0' style='padding: 6px 15px;'>공지</span>
+   </td>
+   <td class='d-none d-lg-table-cell'></td>
+   <td class='d-none d-lg-table-cell'>차은배</td>
+   <td class='d-none d-lg-table-cell'>2026-08-21</td>
+   <td class='d-none d-lg-table-cell'>239</td>
+<tr>
+   <td class='d-none d-lg-table-cell'>3972</td>
+   <td class='text-left px-lg-4'>
+   		<a  href='datadetail.do?seq=2709346'> 「2026년 지역 거점 정보보호 클러스터 구축사업」 정보보호 성장지원(특화산업 사업화) 과제 모집 재공고</a>
+		<ul class='cs-content d-flex d-lg-none un-style mt-3 co66 mbinfo align-items-center'>			<li><span class='list-ing m-0'>접수중</span></li>			<li>송재우</li>			<li>2026-08-10</li>			<li>1595</li>		</ul>   </td>
+   <td class='d-none d-lg-table-cell'>
+   	   <span class='cod1 pr-4'>2026-08-28 18:00</span>
+       <span class='list-ing m-0'>접수중</span>
+   </td>
+   <td class='d-none d-lg-table-cell'><img src='/css/egovframework/img/userpage/file.png'></td>
+   <td class='d-none d-lg-table-cell'>송재우</td>
+   <td class='d-none d-lg-table-cell'>2026-08-10</td>
+   <td class='d-none d-lg-table-cell'>1595</td>
+<tr>
+   <td class='d-none d-lg-table-cell'>3971</td>
+   <td class='text-left px-lg-4'>
+   		<a  href='datadetail.do?seq=2709345'> 「2026년 지역 거점 정보보호 클러스터 구축사업」정보보호 비즈니스 모델 발굴 및 유망기업 지원 모집 재공고</a>
+		<ul class='cs-content d-flex d-lg-none un-style mt-3 co66 mbinfo align-items-center'>			<li><span class='list-ing m-0'>접수중</span></li>			<li>송재우</li>			<li>2026-08-10</li>			<li>1478</li>		</ul>   </td>
+   <td class='d-none d-lg-table-cell'>
+   	   <span class='cod1 pr-4'>2026-08-28 18:00</span>
+       <span class='list-ing m-0'>접수중</span>
+   </td>
+   <td class='d-none d-lg-table-cell'><img src='/css/egovframework/img/userpage/file.png'></td>
+   <td class='d-none d-lg-table-cell'>송재우</td>
+   <td class='d-none d-lg-table-cell'>2026-08-10</td>
+   <td class='d-none d-lg-table-cell'>1478</td>
+<tr>
+   <td class='d-none d-lg-table-cell'>3970</td>
+   <td class='text-left px-lg-4'>
+   		<a  href='datadetail.do?seq=2709403'> 「2026년 충남 중소기업 밀집지역 위기대응 체계 구축사업」하반기 Stand-up 맞춤지원 모집 공고</a>
+		<ul class='cs-content d-flex d-lg-none un-style mt-3 co66 mbinfo align-items-center'>			<li><span class='list-ing m-0'>접수중</span></li>			<li>이나영</li>			<li>2026-08-10</li>			<li>670</li>		</ul>   </td>
+   <td class='d-none d-lg-table-cell'>
+   	   <span class='cod1 pr-4'>2026-08-31 18:00</span>
+       <span class='list-ing m-0'>접수중</span>
+   </td>
+   <td class='d-none d-lg-table-cell'><img src='/css/egovframework/img/userpage/file.png'></td>
+   <td class='d-none d-lg-table-cell'>이나영</td>
+   <td class='d-none d-lg-table-cell'>2026-08-10</td>
+   <td class='d-none d-lg-table-cell'>670</td>
+<tr>
+   <td class='d-none d-lg-table-cell'>3969</td>
+   <td class='text-left px-lg-4'>
+   		<a  href='datadetail.do?seq=2709431'> 2026년 첨단제조기술(AI-DFAM) 기반 모빌리티 제조 혁신거점 조성사업 기업지원 모집 공고</a>
+		<ul class='cs-content d-flex d-lg-none un-style mt-3 co66 mbinfo align-items-center'>			<li><span class='list-ing m-0'>접수중</span></li>			<li>황보성현</li>			<li>2026-08-19</li>			<li>391</li>		</ul>   </td>
+   <td class='d-none d-lg-table-cell'>
+   	   <span class='cod1 pr-4'>2026-09-01 18:00</span>
+       <span class='list-ing m-0'>접수중</span>
+   </td>
+   <td class='d-none d-lg-table-cell'><img src='/css/egovframework/img/userpage/file.png'></td>
+   <td class='d-none d-lg-table-cell'>황보성현</td>
+   <td class='d-none d-lg-table-cell'>2026-08-19</td>
+   <td class='d-none d-lg-table-cell'>391</td>
+<tr>
+   <td class='d-none d-lg-table-cell'>3968</td>
+   <td class='text-left px-lg-4'>
+   		<a  href='datadetail.do?seq=2709430'> 「해양수산 창업투자지원사업」 2026년 투자상담회 참여 기업 모집</a>
+		<ul class='cs-content d-flex d-lg-none un-style mt-3 co66 mbinfo align-items-center'>			<li><span class='list-ing m-0'>접수중</span></li>			<li>송재오</li>			<li>2026-08-19</li>			<li>235</li>		</ul>   </td>
+   <td class='d-none d-lg-table-cell'>
+   	   <span class='cod1 pr-4'>2026-09-02 15:00</span>
+       <span class='list-ing m-0'>접수중</span>
+   </td>
+   <td class='d-none d-lg-table-cell'><img src='/css/egovframework/img/userpage/file.png'></td>
+   <td class='d-none d-lg-table-cell'>송재오</td>
+   <td class='d-none d-lg-table-cell'>2026-08-19</td>
+   <td class='d-none d-lg-table-cell'>235</td>
+<tr>
+   <td class='d-none d-lg-table-cell'>3967</td>
+   <td class='text-left px-lg-4'>
+   		<a  href='datadetail.do?seq=2709451'> 『규제자유특구혁신사업육성』 &#39;9차 충남(그린암모니아 발전) 기업지원사업&#39; 기업지원 모집 공고(상용화 및 판로개척 지원)</a>
+		<ul class='cs-content d-flex d-lg-none un-style mt-3 co66 mbinfo align-items-center'>			<li><span class='list-ing m-0'>접수중</span></li>			<li>김정훈</li>			<li>2026-08-25</li>			<li>157</li>		</ul>   </td>
+   <td class='d-none d-lg-table-cell'>
+   	   <span class='cod1 pr-4'>2026-09-04 18:00</span>
+       <span class='list-ing m-0'>접수중</span>
+   </td>
+   <td class='d-none d-lg-table-cell'><img src='/css/egovframework/img/userpage/file.png'></td>
+   <td class='d-none d-lg-table-cell'>김정훈</td>
+   <td class='d-none d-lg-table-cell'>2026-08-25</td>
+   <td class='d-none d-lg-table-cell'>157</td>
+<tr>
+   <td class='d-none d-lg-table-cell'>3966</td>
+   <td class='text-left px-lg-4'>
+   		<a  href='datadetail.do?seq=2709434'> 지역에너지 문제해결 프로젝트 지원사업 추가모집 공고</a>
+		<ul class='cs-content d-flex d-lg-none un-style mt-3 co66 mbinfo align-items-center'>			<li><span class='list-ing m-0' style='padding: 6px 15px;'>공지</span></li>			<li>남정훈</li>			<li>2026-08-20</li>			<li>282</li>		</ul>   </td>
+   <td class='d-none d-lg-table-cell'>
+   	   <span class='cod1 pr-4'>2026-09-09 16:00</span>
+       <span class='list-ing m-0' style='padding: 6px 15px;'>공지</span>
+   </td>
+   <td class='d-none d-lg-table-cell'><img src='/css/egovframework/img/userpage/file.png'></td>
+   <td class='d-none d-lg-table-cell'>남정훈</td>
+   <td class='d-none d-lg-table-cell'>2026-08-20</td>
+   <td class='d-none d-lg-table-cell'>282</td>
+<tr>
+   <td class='d-none d-lg-table-cell'>3965</td>
+   <td class='text-left px-lg-4'>
+   		<a  href='datadetail.do?seq=2709433'> 산학공동 에너지프로젝트 지원사업 추가모집 공고</a>
+		<ul class='cs-content d-flex d-lg-none un-style mt-3 co66 mbinfo align-items-center'>			<li><span class='list-ing m-0' style='padding: 6px 15px;'>공지</span></li>			<li>남정훈</li>			<li>2026-08-20</li>			<li>244</li>		</ul>   </td>
+   <td class='d-none d-lg-table-cell'>
+   	   <span class='cod1 pr-4'>2026-09-09 16:00</span>
+       <span class='list-ing m-0' style='padding: 6px 15px;'>공지</span>
+   </td>
+   <td class='d-none d-lg-table-cell'><img src='/css/egovframework/img/userpage/file.png'></td>
+   <td class='d-none d-lg-table-cell'>남정훈</td>
+   <td class='d-none d-lg-table-cell'>2026-08-20</td>
+   <td class='d-none d-lg-table-cell'>244</td>
+
+            </tbody>
+        </table>
+        <ul class='un-styled clearfix pagination d-flex justify-content-center'><li><a href='/business/data.do?&pn=1' title='이전페이지'><img alt='이전 페이지 이동 이미지' src='/css/egovframework/img/userpage/list-prev.png'></a></li><li><a href='/business/data.do?&pn=1' title='이전페이지'><img alt='이전 페이지 이동 이미지' src='/css/egovframework/img/userpage/list-p.png'></a></li><li class='active'><a href='/business/data.do?&pn=1'>1</a></li><li class=''><a href='/business/data.do?&pn=2'>2</a></li><li class=''><a href='/business/data.do?&pn=3'>3</a></li><li class=''><a href='/business/data.do?&pn=4'>4</a></li><li class=''><a href='/business/data.do?&pn=5'>5</a></li><li><a href='/business/data.do?&pn=2' title='다음페이지'><img alt='다음 페이지 이동 이미지' src='/css/egovframework/img/userpage/list-n.png'></a></li><li><a href='/business/data.do?&pn=6' title='다음페이지'><img alt='다음 페이지 이동 이미지' src='/css/egovframework/img/userpage/list-next.png'></a></li></ul>
+    </div>
+</div>
+	</div>
+	
+	<!-- /content area -->
+	
+
+
+<div class="quickmenu">
+	<ul class="un-style">
+		<li class="quicktop">
+			<div class="h-100">
+				<a class="d-flex flex-column justify-content-between align-items-center h-100" href="#">
+					<span>퀵메뉴</span>
+					<span>+</span>
+				</a>
+			</div>
+		</li>
+		<li>
+			<div class="h-100">
+				<a class="d-flex flex-column justify-content-between align-items-center h-100" href="/introduce/organic.do">
+					<span class='qcicon'><img class='mx-100 invisible' src="/css/egovframework/img/userpage/footer/quick-1.png"></span>
+					<span>직원검색</span>
+				</a>
+			</div>
+		</li>
+		<li>
+			<div class="h-100">
+				<a class="d-flex flex-column justify-content-between align-items-center h-100" href="/qna/qna.do">
+					<span class='qcicon'><img class='mx-100 invisible' src="/css/egovframework/img/userpage/footer/quick-2.png"></span>
+					<span>질의응답</span>
+				</a>
+			</div>
+		</li>
+		<li>
+			<div class="h-100">
+				<a class="d-flex flex-column justify-content-between align-items-center h-100" href="/business/ai.do">
+					<span class='qcicon'><img class='mx-100 invisible' src="/css/egovframework/img/userpage/footer/quick-8.png"></span>
+					<span style="font-size: 13px;">충남제조<br>AI혁신센터</span>
+				</a>
+			</div>
+		</li>
+		<li>
+			<div class="h-100">
+				<a class="d-flex flex-column justify-content-between align-items-center h-100" href="/menu/menu.do">
+					<span class='qcicon'><img class='mx-100 invisible' src="/css/egovframework/img/userpage/footer/quick-3.png"></span>
+					<span>식단표</span>
+				</a>
+			</div>
+		</li>
+		<li>
+			<div class="h-100">
+				<a class="d-flex flex-column justify-content-between align-items-center h-100" href="/shuttle/shuttle.do">
+					<span class='qcicon'><img class='mx-100 invisible' src="/css/egovframework/img/userpage/footer/quick-4.png"></span>
+					<span>셔틀버스</span>
+				</a>
+			</div>
+		</li>
+		<li>
+			<div class="h-100">
+				<a class="d-flex flex-column justify-content-between align-items-center h-100" href="/introduce/map.do">
+					<span class='qcicon'><img class='mx-100 invisible' src="/css/egovframework/img/userpage/footer/quick-5.png"></span>
+					<span>오시는길</span>
+				</a>
+			</div>
+		</li>
+		<li>
+			<div class="h-100">
+				<a class="d-flex flex-column justify-content-between align-items-center h-100" href="/community/recycling.do">
+					<span class='qcicon'><img class='mx-100 invisible' src="/css/egovframework/img/userpage/footer/quick-7.png"></span>
+					<span>재활용장터</span>
+				</a>
+			</div>
+		</li>
+	</ul>
+	
+	<div class="quickmenu_on d-block d-lg-none">
+		<a class="d-flex h-100 flex-column justify-content-between align-items-center h-100" href="#">
+			<span>퀵메뉴</span>
+			<span>+</span>
+		</a>
+	</div>
+</div>
+
+<div id="footer">
+   <div style="background-color: #ffffff; border-top: 1px solid #C1C1C1;">
+        <div class="container position-relative">
+        	<a class="fl-btn fl-prev"><img src='/css/egovframework/img/userpage/fl-prev.png'></a>
+            <div class="fl-slick">
+                <div><a href='https://www.healingspacenter.co.kr/' target='_blank'><img class='mw-100' src='/upload/relatedinstitution/202411/4f88b54058cb4139a1676b0ce908c30a.png'></a></div><div><a href='https://cnrems.or.kr/monitor/renewStat' target='_blank'><img class='mw-100' src='/upload/relatedinstitution/202506/97dbf35d473f40fbb9e4355161336683.png'></a></div><div><a href='http://data.ctp.or.kr/login' target='_blank'><img class='mw-100' src='/upload/relatedinstitution/202411/e373c1000bd7423ea7516b445dc77414.png'></a></div><div><a href='http://www.cn-jangbi.or.kr/home/index.do' target='_blank'><img class='mw-100' src='/upload/relatedinstitution/202411/fa8b0a7f589b419a840a4cfa79d117af.png'></a></div><div><a href='	http://www.cn-h2cluster.com/' target='_blank'><img class='mw-100' src='/upload/relatedinstitution/202303/2d149ed2115e4a46b57d83e958f3bc2e.png'></a></div><div><a href='	https://ctpcar.or.kr/index.do' target='_blank'><img class='mw-100' src='/upload/relatedinstitution/202303/5a3f35c785a9481fa81e1b52ad0c09d2.png'></a></div>
+            </div>
+            <a class="fl-btn fl-next"><img src='/css/egovframework/img/userpage/fl-next.png'></a>
+        </div>
+    </div>
+    <div class="ft-page">
+<div class="container">
+<ul class="un-style d-flex flex-wrap justify-content-end align-items-center">
+	<li><a href="/agree.do">이용약관</a></li>
+	<li><a href="/privacy.do">개인정보 처리방침</a></li>
+	<li><a href="/introduce/map.do">찾아오시는길</a></li>
+	<li><a href="https://www.clean.go.kr/index.es?sid=a1" target="_blank">통합신고센터</a></li>
+	<li class="mr-0">
+	<div class="footer-select position-relative">
+	<h5 class="m-0 position-relative">유관기관 바로가기<span><img src="/css/egovframework/img/userpage/footer-select.png" /></span></h5>
+
+	<ul class="un-style">
+		<li><li><a href='https://www.mss.go.kr/site/smba/main.do' target='_blank'>중소벤처기업부</a></li><li><a href='https://www.motie.go.kr/' target='_blank'>산업통상자원부</a></li><li><a href='http://www.chungnam.go.kr/main.do' target='_blank'>충청남도</a></li><li><a href='https://www.mss.go.kr/site/chungnam/main.do' target='_blank'>충남지방중소벤처기업청</a></li><li><a href='https://www.tipa.or.kr/' target='_blank'>중소기업기술정보진흥원</a></li><li><a href='https://www.kiat.or.kr/front/user/main.do' target='_blank'>한국산업기술진흥원</a></li><li><a href='https://www.clean.go.kr/' target='_blank'>국민권익위원회</a></li><li><a href='https://www.nicetradeinfo.com/websquare/websquare.jsp?w2xPath=/ui/buyer/global_buyer_new.xml' target='_blank'>자동차부품 바이어 기업정보조회</a></li><li><a href='http://cttc.ctp.or.kr/' target='_blank'>충남기술이전센터</a></li><li><a href='http://www.gtc.or.kr/' target='_blank'>게임기술개발지원센터</a></li><li><a href='https://www.bizinfo.go.kr/web/index.do' target='_blank'>기업마당</a></li><li><a href='https://www.keit.re.kr/' target='_blank'>한국산업기술평가관리원</a></li><li><a href='https://www.g4b.go.kr:441/svc/main.do' target='_blank'>G4B기업지원플러스</a></li><li><a href='https://www.kicox.or.kr/index.do' target='_blank'>한국산업단지공단</a></li><li><a href='https://www.korea.net/?from=ctp' target='_blank'>코리아넷</a></li><li><a href='https://www.sciencepark.or.th/' target='_blank'>THAILAND SCIENCE PARK </a></li><li><a href='http://aspa.or.kr/' target='_blank'>ASPA</a></li><li><a href=' http://thsp.com.cn/' target='_blank'>Tus Park </a></li><li><a href='https://www.unesco.org/en' target='_blank'>UNESCO</a></li></li>
+	</ul>
+	</div>
+	</li>
+</ul>
+</div>
+</div>
+
+<div class="container ft-info">
+<div class="row">
+<div class="col-lg-3">
+<div class="d-none d-lg-block"><img class="mw-100" src="/css/egovframework/img/userpage/footer-logo.png" /></div>
+</div>
+
+<div class="col-lg-9">
+<div>
+<ul class="un-style d-flex">
+	<li><span>31035 충남 천안시 서북구 직산읍 직산로 136 충남테크노파크</span> <span>전화 041.589.0602</span> <span>팩스 041.589.0629</span> <span class="d-block">이메일 webmaster@ctp.or.kr</span></li>
+</ul>
+
+<ul class="un-style">
+	<li><span>Copyright(c) Chungnam Techno Park. All Rights Reserved.</span></li>
+</ul>
+
+<ul class="un-style cc-content d-flex align-items-center justify-content-end">
+	<li class="mr-3 fnb coff">충남테크노파크 누리소통망(SNS)</li>
+	<li class="mx-2"><a href="https://www.instagram.com/ctp.or.kr/" target="_blank"><img src="/css/egovframework/img/userpage/sns-logo1.svg" style="width: 30px;" /></a></li>
+	<li class="mx-2"><a href="https://facebook.com/ctp.or.kr" target="_blank"><img src="/css/egovframework/img/userpage/sns-logo2.svg" style="width: 30px;" /></a></li>
+	<li class="mx-2"><a href="https://www.youtube.com/@ctp_official" target="_blank"><img src="/css/egovframework/img/userpage/sns-logo3.svg" style="width: 30px;" /></a></li>
+	<li class="mx-2"><a href="http://pf.kakao.com/_nRGnG" target="_blank"><img src="/css/egovframework/img/userpage/sns-logo4.svg" style="width: 30px;" /></a></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+
+<!-- <div class="etcinfozone align-items-center">
+	<div class="container">
+		<div class="mb2 d-flex aling-items-center justify-content-center">
+			<a class="shuttle-close px-1" href="#"><span>닫기</span></a>
+		</div>
+		<div class="row">
+			<div class="col-lg-6">
+				<div class='text-center my-3'>
+					<h2 class="coff text-center mb2">셔틀버스 출근</h2>
+					<div>
+						<img class="mw-100" src="/css/egovframework/img/userpage/gotowork.png">
+					</div>
+				</div>
+			</div>
+			<div class="col-lg-6">
+				<div class='text-center my-3'>
+					<h2 class="coff text-center mb2">셔틀버스 퇴근</h2>
+					<div>
+						<img class="mw-100" src="/css/egovframework/img/userpage/leavework.png">
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+ -->
+	</div>			
+</body>
+</html>

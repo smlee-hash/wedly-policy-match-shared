@@ -1,0 +1,3478 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta charset="utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+	<meta name="Keywords" content="한국환경산업기술원"/>
+	<meta name="Description" content=""/>
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+	<meta name="naver-site-verification" content="18fd1fb3fd7863f744265d2bc03526cd588cdf94"/>
+
+
+	
+		<title>
+		
+			
+				
+								
+				
+				한국환경산업기술원|HOME &gt; 알림/지식마당 &gt; 공지/공고 &gt; 공지/공고
+				
+			
+			
+			
+			
+							
+				   
+				 
+				   
+				
+				   	
+				
+				
+					 >전체
+					
+					
+					
+					
+							
+					
+									
+						   
+						
+							> 목록
+							
+					
+				
+				
+				
+				
+				
+				
+				
+				
+					
+						
+				   		
+					
+			
+			
+			
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+			
+						
+		</title>
+
+	<link rel="shortcut icon" href="/favicon.ico">
+		
+	<link rel="stylesheet" type="text/css" href="/css/keiti/base.css" />
+	<link rel="stylesheet" type="text/css" href="/css/keiti/main.css" />
+	<link rel="stylesheet" type="text/css" href="/css/keiti/menu.css" />
+	<link rel="stylesheet" type="text/css" href="/css/keiti/common.css" />
+	<link rel="stylesheet" type="text/css" href="/css/keiti/contents.css" />
+	
+	<script type="text/javascript" src="/js/keiti/jquery-1.12.4.min.js"></script>
+	<script type="text/javascript" src="/js/keiti/jquery-ui.min.js"></script>
+	<script type="text/javascript" src="/js/keiti/jquery.bxslider.js"></script>
+	<script type="text/javascript" src="/js/keiti/common.js"></script>
+	<!-- Global site tag (gtag.js) - Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=UA-132200055-1"></script> 
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag(){dataLayer.push(arguments);}
+		gtag('js', new Date());
+		
+		gtag('config', 'UA-132200055-1');
+	</script>
+	
+	<span itemscope="" itemtype="http://schema.org/Organization">
+	  <link itemprop="url" href="http://www.keiti.re.kr">
+<!-- 	  <a itemprop="sameAs" href="https://www.facebook.com/keitipr" class="sameAs" title="facebook">페이스북</a> -->
+<!-- 	  <a itemprop="sameAs" href="http://blog.naver.com/lovekeiti" class="sameAs" title="naver">네이버</a> -->
+<!-- 	  <a itemprop="sameAs" href="https://www.instagram.com/love_keiti/" class="sameAs" title="instar">instar</a> -->
+<!-- 	  <a itemprop="sameAs" href="https://www.youtube.com/channel/UCxHS5PPZmSEgT9v7qJNMGbg" class="sameAs" title="youtube">youtube</a> -->
+	 </span>
+	
+	
+		
+</head>
+<body>
+
+
+<script type="text/javascript">
+//<![CDATA[
+	
+    //행정정보공개 담당부서 분리
+	if('277' == '321'){
+		sessionStorage.setItem('ext1','');
+	}
+		
+    function doBbsContentFPagFresh() {
+    	document.BbsContentFVo.searchKeyword.value = "";
+    	document.BbsContentFVo.searchCondition.value = "";
+		$("#BbsContentFVo").attr("action", "/site/keiti/ex/board/List.do?cbIdx=277").submit();
+	}
+	function doBbsContentFForm() {
+		wWidth = 360;
+	    wHight = 120;
+
+	    wX = (window.screen.width - wWidth) / 2;
+	    wY = (window.screen.height - wHight) / 2;
+		//alert(document.qnaVO.searchClCode.value);
+		/*
+		if(document.qnaVO.searchClCode.value != '' ) {
+			document.qnaVO.action = "/site/keiti/ex/board/Form.do";
+			document.qnaVO.submit();
+		} else {
+	   
+		 var w = window.open("/G-PIN/Sample-AuthRequest.jsp", "gPinLoginWin", "directories=no,toolbar=no,left="+wX+",top="+wY+",width="+wWidth+",height="+wHight);
+		}
+		*/
+//	    var w = window.open("http://survey.kipa.re.kr/database/G-PIN/Sample-AuthRequest_kipa.jsp", "gPinLoginWin", "directories=no,toolbar=no,left="+wX+",top="+wY+",width="+wWidth+",height="+wHight);
+
+		//location.href="/site/kipa/ex/board/Form.do?cbIdx=278";
+		
+		//로컬 테스트용
+		//$("#BbsContentFVo").attr("action", "/site/keiti/ex/board/List.do?cbIdx=277").submit();
+			
+		$("#BbsContentFVo").attr("action", "/site/keiti/customer/customerAuth/screen.do?pageNm=customerRegist&cbIdx=277&bcIdx=01").submit();
+		
+		
+	
+	}
+	
+	function doBbsContentFView(bcIdx) {
+		
+		$("#BbsContentFVo").attr("action", "/site/keiti/ex/board/View.do?cbIdx=277&bcIdx="+bcIdx).submit();
+	}
+	
+	function doBbsContentFViewQna(bcIdx, openYn) {
+		//alert(openYn);
+	//로컬테스트 주석 -반영 시 주석해제!!!!	
+		if(openYn =='21000100') {
+			$("#BbsContentFVo").attr("action", "/site/keiti/customer/customerAuth/screen.do?pageNm=customerView&cbIdx=277&bcIdx="+bcIdx).submit();	
+		} else {
+			$("#BbsContentFVo").attr("action", "/site/keiti/ex/board/View.do?cbIdx=277&bcIdx="+bcIdx).submit();
+		}if(bcIdx=='360'){
+			$("#BbsContentFVo").attr("action", "/site/keiti/ex/board/View.do?cbIdx=277&bcIdx="+bcIdx).submit();
+		}
+		
+		//$("#BbsContentFVo").attr("action", "/site/keiti/ex/board/View.do?cbIdx=277&bcIdx="+bcIdx).submit();
+	}
+
+	function doBbsContentFPag(pageIndex) {
+		var oriword = document.BbsContentFVo.searchKeyword.value;
+		oriword = oriword.replace("<", "&lt;");
+		oriword = oriword.replace(">", "&gt;");
+		document.BbsContentFVo.searchKeyword.value = oriword;
+		
+		$("#pageIndex").val(pageIndex);
+		$("#BbsContentFVo").attr("action", "/site/keiti/ex/board/List.do?cbIdx=277").submit();
+	}
+	function fn_go(code){
+		document.BbsContentFVo.pageIndex.value = "1";
+		$("#searchExt1").val(code);
+		$("#BbsContentFVo").attr("action", "/site/keiti/ex/board/List.do?cbIdx=277").submit();
+	}
+	
+	function fn_go2(code, cbIdx){
+		document.BbsContentFVo.pageIndex.value = "1";
+		$("#searchExt1").val(code);
+		$("#BbsContentFVo").attr("action", "/site/keiti/ex/board/List.do?cbIdx=" + cbIdx).submit();
+	}
+//]]>
+</script>
+
+
+
+
+
+
+
+<style type="text/css">
+.menuHover {
+   width: 15% !important;
+} 
+:focus-visible {
+ outline: 3px solid red;
+}
+</style>
+
+<dl class="skipLink pc">
+	<dt>바로가기 메뉴</dt>	
+	<dd><a href="#gnb">주메뉴 바로가기</a></dd>
+	<dd><a href="#subContainer" onclick="$('#subContainer').css('padding-top','100px');">본문 바로가기</a></dd>
+</dl>
+
+<dl class="skipLink mobile">
+	<dt>바로가기 메뉴</dt>	
+	<dd><a href="#btnGnbOpen">주메뉴 바로가기</a></dd>
+	<dd><a href="#subContainer" onclick="$('#subContainer').css('padding-top','80px');">본문 바로가기</a></dd>
+</dl>
+
+	<!-- 상단 -->
+<div id="wrap">	
+	<div id="header">
+		<div class="inner">
+			<h1><a href="/site/keiti/main.do"><img src="/images/keiti/common/logo.png" alt="KEITI 한국환경산업기술원"></a></h1>
+
+
+
+			<!-- topmenu -->
+           <div id="gnb">
+                <div class="deaph1">
+                    <ul>
+
+										<li class="menuHover">
+				
+                            <a href="/site/keiti/01/10101010000002018092810.jsp"   >기관소개</a>
+	
+                            <!--펼쳐지는 메뉴시작-->
+                            <div class="subMenu">                            	
+                  
+								<div class="subNavTitle bg1">		          	
+                                    <span>기관소개</span>
+                                    <p>한국환경산업기술원은 기후에너지환경부 산하 준정부기관으로 <br>국민에게 양질의 환경복지 서비스를 제공하기 위해 <br>노력하고 있습니다.</p>
+                                </div>
+                             
+                                <!--펼쳐지는 2deaph  메뉴박스가 가로 5개일때 dmn5 추가-->
+                                <div class="menu-wr dmn5"> 		
+					                                          
+	
+                                	<ul class="deaph2 col1" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/01/10101010000002018092810.jsp"   >원장</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/01/10101010000002018092810.jsp">인사말</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/01/10101030000002018092810.jsp">역대원장</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=235">기관장 동정</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col2" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/01/10102010000002018092810.jsp"   >비전/가치</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/01/10102010000002018092810.jsp">비전/핵심가치</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/01/10102010000002018092811.jsp">경영목표/전략과제</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col3" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/01/10103010000002018092810.jsp"   >기관개요</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/01/10103010000002018092810.jsp">설립목적</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/01/10102030000002018092810.jsp">연혁</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/01/10103020000002018092810.jsp">기관법 및 정관</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col4" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/01/10104010000002018092810.jsp"   >조직안내</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/01/10104010000002018092810.jsp">조직체계</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/emp/Emp_List.do">구성원</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/01/10106000000002018102601.jsp">찾아오시는길</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col5" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/01/10105010000002018102909.jsp"   >CI소개</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/01/10105010000002018102909.jsp">로고</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/01/10105020000002018102909.jsp">슬로건</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+
+								</div>	 <!-- menu-wr dmn3 -->
+						</div> <!-- subMenu -->
+					</li> <!-- menuHover -->								 
+	
+
+
+										<li class="menuHover">
+				
+                            <a href="/site/keiti/02/10202080000002023101610.jsp"   >주요사업</a>
+	
+                            <!--펼쳐지는 메뉴시작-->
+                            <div class="subMenu">                            	
+                  
+				<div class="subNavTitle bg2">		          	
+                    <span>주요사업</span>
+                    <p>KEITI는 상생의 가치를 실현하기 위해 환경과 <br>사람을 생각하며 쉬지않고 달려왔습니다. <br/>그 시간들이 세계를 움직이는 성과를 <br>이루고 삶의 질을 높이고 있습니다.</p>
+                </div>
+                             
+                                <!--펼쳐지는 2deaph  메뉴박스가 가로 5개일때 dmn5 추가-->
+                                <div class="menu-wr dmn5"> 		
+					                                          
+	
+                                	<ul class="deaph2 col6" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/02/10208000000002018092809.jsp"   >ESG 인프라 지원</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10202080000002023101610.jsp">ESG경영지원</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10202090000002023101610.jsp">녹색투자지원</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10202100000002023101610.jsp">전과정평가</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col7" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/mainB1.do"   >환경기술개발</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10201010000002018092810.jsp">기후대기기술개발 </a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10201020000002018092810.jsp">물·토양기술개발</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10201030000002018092810.jsp">생태·보건기술개발</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10201032000002018092810.jsp">미래순환자원기술개발</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10201040000002018092810.jsp">환경연구개발 성과확산</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10201040000002018092810_2.jsp">환경산업기술 종합정보 제공</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10201060000002025040110.jsp">토양환경센터 운영</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col8" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/02/10202000000002018092809.jsp"   >환경산업육성</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10202010000002018092810.jsp">환경기업육성</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10202050000002018121004.jsp">환경금융지원</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10202020000002018092810.jsp">환경인력육성</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10202050000002018092810.jsp">환경기술 인증</a>
+												</li>
+						 
+									
+						
+						                  
+												<li style="font-size:0.79em;">
+													<a href="/site/keiti/02/10202040000002018092810.jsp">창업·벤처 녹색융합클러스터 운영</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10202030000002018092810.jsp">해외진출지원</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10202060000002020090709.jsp">국제환경협력센터 운영</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col9" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/02/10203000000002018092809.jsp"   >친환경생활촉진</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10203010000002018092810.jsp">환경인증제도</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10203020000002018092810.jsp">친환경 소비촉진</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10203040000002018121311.jsp">자원순환이용</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10203050000002023122011.jsp">순환경제 규제샌드박스</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col10" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/02/10206000000002018092809.jsp"   >환경보건안전</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10206010000002018092810.jsp">생활화학제품 안전관리</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10206040000002019072204.jsp">환경피해구제 지원</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/02/10206030000002018092810.jsp">환경보건·복지 지원</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+
+								</div>	 <!-- menu-wr dmn3 -->
+						</div> <!-- subMenu -->
+					</li> <!-- menuHover -->								 
+	
+
+
+										<li class="menuHover">
+				
+                            <a href="/site/keiti/ex/board/List.do?cbIdx=237"   >열린경영</a>
+	
+                            <!--펼쳐지는 메뉴시작-->
+                            <div class="subMenu">                            	
+                  
+				<div class="subNavTitle bg3">		          	
+                    <span>열린경영</span>
+                    <p>한국환경산업기술원의 임직원은 고객을 최우선으로 <br>생각하는 고객만족 경영을 실현하고,<br> 고객에게 최상의 서비스를 <br>제공하기 위해 노력하겠습니다.</p>
+                </div>
+                             
+                                <!--펼쳐지는 2deaph  메뉴박스가 가로 5개일때 dmn5 추가-->
+                                <div class="menu-wr dmn5"> 		
+					                                          
+	
+                                	<ul class="deaph2 col11" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/ex/board/List.do?cbIdx=237"   >기관소식</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=237">보도자료</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=236">언론보도</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col12" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/ex/board/List.do?cbIdx=274"   >홍보자료실</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=274">홍보책자</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=279">그림자료</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=257">영상자료</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col13" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/03/10308010000002020081403.jsp"   >고객서비스</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/03/10308010000002020081403.jsp">고객헌장</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/03/10308020000002020081403.jsp">기업민원 보호·서비스헌장</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/03/10308030000002020081403.jsp">핵심서비스 이행표준</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/03/10308040000002020081403.jsp">고객응대서비스 이행표준</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col14" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/04/10405020000002018092811.jsp"   >신고센터</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10405010000002018092811.jsp">공익신고자 보호제도 안내</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10413030000002021091004.jsp">사전컨설팅감사 국민청구제</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=320">신고물품 처리결과 공개</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10423030000002021091004.jsp">연구부정행위 신고센터</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col15" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/ex/board/List.do?cbIdx=276"   >소통센터</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=276">자주 묻는 질문</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=281">연구개발 상담센터</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=363">친환경 인증 상담센터</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=365">기업성장 응답센터</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=377">우수직원 칭찬방</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=278">기타 상담센터</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/03/10309050000002018102909.jsp">민원</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col16" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/04/10407010000002020111110.jsp"   >적극행정</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10407010000002020111110.jsp">적극행정 소개</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="http://www.mpm.go.kr/proactivePublicService">적극행정 온(on)</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col17" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/ex/board/List.do?cbIdx=330"   >국민참여</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=330">혁신제안 의견 수렴</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=378">환경 R&D ON</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+
+								</div>	 <!-- menu-wr dmn3 -->
+						</div> <!-- subMenu -->
+					</li> <!-- menuHover -->								 
+	
+
+
+										<li class="menuHover">
+				
+                            <a href="/site/keiti/04/10401010000002018102909.jsp"   >ESG경영</a>
+	
+                            <!--펼쳐지는 메뉴시작-->
+                            <div class="subMenu">                            	
+                  
+				<div class="subNavTitle bg4">		          	
+                    <span>ESG경영</span>
+                    <p>국민에게 신뢰받는 환경 전문기관으로 거듭나기 위해<br/>KEITI는 ESG 경영실천에 앞장서고 있습니다.</p>
+                </div>
+                             
+                                <!--펼쳐지는 2deaph  메뉴박스가 가로 5개일때 dmn5 추가-->
+                                <div class="menu-wr dmn5"> 		
+					                                          
+	
+                                	<ul class="deaph2 col18" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/04/10401010000002018102909.jsp"   >ESG경영</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10401010000002018102909.jsp">ESG 추진체계</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10401010000002023092501.jsp">대표성과</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col19" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/04/10403080000002023100410.jsp"   >E(환경)</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10403080000002023100410.jsp">환경경영 추진체계</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10403090000002023100410.jsp">환경경영 정보</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col20" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/04/10406000000002020012012.jsp"   >S(사회)</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10406000000002020012012.jsp">안전경영</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=334">사회공헌</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10403010000002023092701.jsp">동반성장</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10404020000002021041902.jsp">인권경영</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10406000000002023092701.jsp">일자리 창출</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col21" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/04/10403010000002018102909.jsp"   >G(지배구조)</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10408010000002025031310.jsp">이사회</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10403010000002018102909.jsp">윤리경영</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10413030000002023100401.jsp">지속가능경영보고서</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col22" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/04/10403020000002018092811.jsp"   >경영공시</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10403020000002018092811.jsp">경영현황</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/04/10403030000002018092811.jsp">대내외감사결과</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=316">임원업무추진비</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=280">공용차량 현황</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=311">부패행위 징계현황</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=326">공무국외출장결과 보고서</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/05/10503010000002018092811.jsp">경영공시 안내</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+
+								</div>	 <!-- menu-wr dmn3 -->
+						</div> <!-- subMenu -->
+					</li> <!-- menuHover -->								 
+	
+
+
+										<li class="menuHover">
+				
+                            <a href="/site/keiti/08/10802010000002018092811.jsp"   >정보공개</a>
+	
+                            <!--펼쳐지는 메뉴시작-->
+                            <div class="subMenu">                            	
+                  
+				<div class="subNavTitle bg6">		          	
+                    <span>정보공개</span>
+                    <p>이 서비스는 국민들의 알 권리를 최대한 보장하고 <br> 편리하게 이용할 수 있도록 마련된 공간으로, <br> 저희 한국환경산업기술원이 보유,<br> 관리하는 정보의 공개를 청구하실 수 있습니다.
+                    </p>
+                </div>
+                             
+                                <!--펼쳐지는 2deaph  메뉴박스가 가로 5개일때 dmn5 추가-->
+                                <div class="menu-wr dmn5"> 		
+					                                          
+	
+                                	<ul class="deaph2 col23" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/08/10802010000002018092811.jsp"   >정보공개 제도 안내</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/08/10802010000002018092811.jsp">정보공개제도</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/08/10802010000002018092812.jsp">정보공개처리절차</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/08/10802010000002018092813.jsp">불복구제</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col24" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/ex/board/List.do?cbIdx=321"   >행정정보공개</a>
+
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col25" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/data/openList/screen.do"   >정보목록</a>
+
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col26" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/08/10802040000002018092811.jsp"   >정보공개 청구</a>
+
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col27" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/08/10806050000002020072902.jsp"   >비공개 대상정보 세부기준</a>
+
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col28" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/ex/board/List.do?cbIdx=374"   >주요 공개정보</a>
+
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col29" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/ex/board/List.do?cbIdx=375"   >사전정보 개선건의</a>
+
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col30" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/08/10805000000002018092809.jsp"   >공공데이터 개방</a>
+
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col31" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/ex/publicList/PublicListF.do"   >사전정보공표 목록</a>
+
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col32" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/ex/board/List.do?cbIdx=317"   >사업실명제</a>
+
+										</li>
+ 									</ul>
+
+								</div>	 <!-- menu-wr dmn3 -->
+						</div> <!-- subMenu -->
+					</li> <!-- menuHover -->								 
+	
+
+ 
+										<li class="menuHover" style="width: 20% !important;	"> 
+				
+                            <a href="/site/keiti/ex/board/List.do?cbIdx=277"   >알림/지식마당</a>
+	
+                            <!--펼쳐지는 메뉴시작-->
+                            <div class="subMenu">                            	
+                  
+				<div class="subNavTitle bg5">		          	
+                    <span>알림/지식마당</span>
+                    <p>한국환경산업기술원은 고객서비스 만족을 위한 <br>지원서비스를 제공하고 있습니다.</p>
+                </div>
+                             
+                                <!--펼쳐지는 2deaph  메뉴박스가 가로 5개일때 dmn5 추가-->
+                                <div class="menu-wr dmn5"> 		
+					                                          
+	
+                                	<ul class="deaph2 col33" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/ex/board/List.do?cbIdx=277"   >공지/공고</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=277&searchExt1=24000100">공지</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=277&searchExt1=24000200">채용</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=277&searchExt1=24000300">입찰</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/rnd/selectRndNoticeList.do">연구개발</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=277&searchExt1=24000500">공시송달</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col34" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/rnd/selectRndSubjectList.do"   >환경 연구개발 과제보고서</a>
+
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col35" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/ex/board/List.do?cbIdx=318"   >환경지식</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=318&searchExt1=BIZ010A001">학술자료</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=318&searchExt1=BIZ010A003">세미나</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col36" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/ex/board/List.do?cbIdx=319"   >법률/서식</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=319&searchExt1=BIZ013A001">법률/규정</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/ex/board/List.do?cbIdx=319&searchExt1=BIZ013A002">서식/기타</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+	
+                                	<ul class="deaph2 col37" style="border-bottom: 1px solid #ddd;">
+                                        <li style="padding: 30px 5px;">		
+											<a href="/site/keiti/03/10304000000002018092809.jsp"   >통계</a>
+
+											<ul class="deaph3">	
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/03/10304000000002018092809.jsp">인검증</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/03/10304000000002018092810.jsp">환경표지인증</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/03/10304000000002018092811.jsp">환경성적표지</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/03/10304000000002018092813.jsp">녹색구매</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/03/10304000000002018092814.jsp">해외진출지원</a>
+												</li>
+						 
+									
+						
+						      
+
+		
+												<li>
+													<a href="/site/keiti/03/10304000000002018092815.jsp">금융지원</a>
+												</li>
+						 
+							
+											</ul>	
+						
+										</li>
+ 									</ul>
+
+								</div>	 <!-- menu-wr dmn3 -->
+						</div> <!-- subMenu -->
+					</li> <!-- menuHover -->								 
+	
+
+	                        
+                        
+                        
+                    </ul>
+                </div>
+            </div>		
+
+			<div id="hdLink">
+				<a  id="sitemap" href="/site/keiti/sitemap/sitemap/screen.do" class="sitemap">SITEMAP</a>
+				<div class="language">
+					<a href="#">LANGUAGE</a>
+					<div>	
+						<a href="/site/keiti/main.do" >한국어</a>
+						<a href="/site/eng/main.do" target="_blank" title="새창">ENGLISH</a>
+					</div>
+				</div>
+			</div>
+			<div id="hdSearch">
+				<form method="POST" name="frm" id="frm" onsubmit="doMainSearch(); return false;" >
+					<input type="text" id="query" name="query" value=""  onkeypress="if(event.keyCode==13) {doMainSearch(); return false;}" title="검색어를 입력해 주세요">
+					<input type="submit" value="검색" />
+				</form>
+				<script>	
+				// 통합검색 이동
+				function doMainSearch() {						
+						var searchForm = document.frm; 
+						searchForm.action= "/jsp/search/search.jsp";
+				
+						if (searchForm.query.value == "") {
+							alert("검색어를 입력해 주세요.");
+							searchForm.query.focus();
+							return;
+						}
+						searchForm.submit();
+				}
+				$(document).ready(function(){
+//	 				endMenu
+					$('#sitemap').focus(function() {
+						$('#sitemap').keydown(function(event) {
+							  if (event.keyCode == '9') {
+								  $('.subMenu').attr('style', 'display: none;');
+								  $('#overlay').attr('style', 'display: none;');
+					    		  $('#header').removeClass('scroll');
+					    		  $('#keitiLogo').attr('src', '/images/keiti/common/logo.png');
+					    		  
+							  }
+						});
+					});
+					$('#btnSearchOpen').click(function() {
+
+// 					  $("#hdSearch").show();
+ 					  $('#hdSearch').addClass('active');
+				      $('#hdSearch').removeClass('');
+					  $("#query").focus();
+					});
+					
+						
+				   	/* $(function(){
+						$(":text").keyup(function(e) {		//text입력란에서 키를 눌렀을시 실행되는 이벤트이다
+							alert('tt')
+						});
+					});	 */
+				   	
+				   	$("#hdSearch" ).focusout(function() {
+				    	if($("#query").val() ==''){
+				    		  $('#hdSearch').addClass('');
+				    	      $('#hdSearch').removeClass('active');
+				    	}
+				   	});
+				   	
+				});
+				</script>
+			</div>
+			<button href="#" id="btnSearchOpen">검색열기</button>
+			<button href="#" id="btnGnbOpen"><img src="/images/keiti/common/btn_gnb.png" alt="전체메뉴열기"></button>
+		</div>
+		</div>
+	<!-- 20200730 wrap div end-->	
+		<div id="gnbAll">
+			<span class="title">전체메뉴</span>
+			<!-- // 다국어 셀렉트 버튼 추가 // -->
+			<div class="language">
+				<a href="#">LANGUAGE</a>
+				<div>	
+					<a href="/site/keiti/main.do" target="_blank" title="새창">한국어</a>
+					<a href="/site/eng/main.do"  target="_blank" title="새창" >ENGLISH</a>
+				</div>
+			</div>
+			<!-- // 다국어 셀렉트 버튼 추가 // -->
+			<ul class="deaph1">
+				<li >
+				<a href="#">기관소개</a>
+					<ul class="deaph2">
+						<li >
+							<a href="/site/keiti/01/10101010000002018092810.jsp">원장</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/01/10101010000002018092810.jsp">인사말</a> </li>
+<!-- 								<li > <a href="/site/keiti/01/10101020000002018092810.jsp">소개</a> </li> -->
+								<li > <a href="/site/keiti/01/10101030000002018092810.jsp">역대원장</a> </li>
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=235">기관장 동정</a> </li>
+							</ul>
+						</li>
+						<li >
+							<a href="/site/keiti/01/10102010000002018092810.jsp">비전/가치</a>
+							<ul class="deaph3">
+								<li ><a href="/site/keiti/01/10102010000002018092810.jsp">비전/핵심가치</a></li>
+								<li ><a href="/site/keiti/01/10102010000002018092811.jsp">경영목표/전략과제</a></li>
+								<!-- <li ><a href="/site/keiti/01/10101010000002018092815.jsp">주요 경영과제</a></li> -->
+								<!-- <li > <a href="/site/keiti/01/10102020000002020112001.jsp">비전선언문</a> </li> -->
+							</ul>
+						</li>
+						<li >
+							<a href="/site/keiti/01/10103010000002018092810.jsp">기관개요</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/01/10103010000002018092810.jsp">설립목적</a> </li>
+								<li > <a href="/site/keiti/01/10102030000002018092810.jsp">연혁</a> </li>
+								<li > <a href="/site/keiti/01/10103020000002018092810.jsp">기관법 및 정관</a> </li>
+							</ul>
+						</li>
+						<li >
+							<a href="/site/keiti/01/10104010000002018092810.jsp">조직안내</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/01/10104010000002018092810.jsp">조직체계</a> </li>
+								<li > <a href="/site/keiti/ex/emp/Emp_List.do">구성원</a> </li>
+								<li > <a href="/site/keiti/01/10106000000002018102601.jsp">찾아오시는길</a></li>
+							</ul>
+						</li>
+						<li >
+							<a href="/site/keiti/01/10105010000002018102909.jsp">CI소개</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/01/10105010000002018102909.jsp">로고</a> </li>
+								<li > <a href="/site/keiti/01/10105020000002018102909.jsp">슬로건</a> </li> 
+							</ul>
+						</li>
+					</ul>
+				</li>
+				<li >
+					<a href="#">주요사업</a>
+					<ul class="deaph2">
+						<li >
+							<a href="/site/keiti/02/10208000000002018092809.jsp">ESG 인프라 지원</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/02/10202080000002023101610.jsp">ESG경영지원</a> </li>
+								<li > <a href="/site/keiti/02/10202090000002023101610.jsp">녹색투자지원</a> </li>
+								<li > <a href="/site/keiti/02/10202100000002023101610.jsp">전과정평가</a> </li>
+							</ul>
+						</li>
+						<li >
+							<a href="/site/keiti/mainB1.do">환경기술개발</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/02/10201010000002018092810.jsp">기후대기기술개발</a> </li>
+								<li > <a href="/site/keiti/02/10201020000002018092810.jsp">물·토양기술개발</a> </li>
+								<li > <a href="/site/keiti/02/10201030000002018092810.jsp">생태·보건기술개발</a> </li>
+								<li > <a href="/site/keiti/02/10201032000002018092810.jsp">미래순환자원기술개발</a> </li>
+								<li > <a href="/site/keiti/02/10201040000002018092810.jsp">환경연구개발 성과확산</a> </li>
+								<li > <a href="/site/keiti/02/10201040000002018092810_2.jsp">환경산업기술 종합정보 제공</a> </li>
+								<li > <a href="/site/keiti/02/10201060000002025040110.jsp">토양환경센터 운영</a> </li>
+							</ul>
+						</li>
+						<li >
+							<a href="/site/keiti/02/10202000000002018092809.jsp">환경산업육성</a>
+							<ul class="deaph3">
+<!-- 								<li > <a href="/site/keiti/02/10202080000002023101610.jsp">ESG경영지원</a> </li>
+								<li > <a href="/site/keiti/02/10202090000002023101610.jsp">녹색투자지원</a> </li>
+								<li > <a href="/site/keiti/02/10202100000002023101610.jsp">전과정평가</a> </li> -->
+								<li > <a href="/site/keiti/02/10202010000002018092810.jsp">환경기업육성</a> </li>
+								<li > <a href="/site/keiti/02/10202050000002018121004.jsp">환경금융지원</a> </li>
+								<li > <a href="/site/keiti/02/10202020000002018092810.jsp">환경인력육성</a> </li>
+								<li > <a href="/site/keiti/02/10202050000002018092810.jsp">환경기술 인증</a> </li>
+								<li > <a href="/site/keiti/02/10202040000002018092810.jsp">창업·벤처 녹색융합클러스터 운영</a> </li>
+								<li > <a href="/site/keiti/02/10202030000002018092810.jsp">해외진출지원</a> </li>
+								<li > <a href="/site/keiti/02/10202060000002020090709.jsp">국제환경협력센터 운영</a> </li>
+							</ul>
+						</li>
+						<li >
+							<a href="/site/keiti/02/10203000000002018092809.jsp">친환경생활촉진</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/02/10203010000002018092810.jsp">환경인증제도</a> </li>
+								<li > <a href="/site/keiti/02/10203020000002018092810.jsp">친환경 소비촉진</a> </li>
+								<!-- <li > <a href="/site/keiti/02/10203030000002018092810.jsp">친환경경영 지원</a> </li> -->
+								<li > <a href="/site/keiti/02/10203040000002018121311.jsp">자원순환이용</a> </li>
+                                <li > <a href="/site/keiti/02/10203050000002023122011.jsp">순환경제 규제샌드박스</a></li>								
+							</ul>
+						</li>
+						<li >
+							<a href="/site/keiti/02/10206000000002018092809.jsp">환경보건안전</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/02/10206010000002018092810.jsp">생활화학제품 안전관리</a> </li>
+								<li > <a href="/site/keiti/02/10206040000002019072204.jsp">환경피해구제 지원</a> </li>
+								<li > <a href="/site/keiti/02/10206030000002018092810.jsp">환경보건·복지 지원</a> </li>
+							</ul>
+						</li>
+					</ul>
+				</li>
+				<li  class='big' >
+				<a href="#">열린경영</a>
+					<ul class="deaph2">
+						<li >
+							<a href="/site/keiti/ex/board/List.do?cbIdx=237">기관소식</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=237">보도자료</a> </li>
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=236">언론보도</a> </li>
+							</ul>
+						</li>
+						<li >
+							<a href="/site/keiti/ex/board/List.do?cbIdx=274">홍보자료실</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=274">홍보책자</a> </li>
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=279">그림자료</a> </li>
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=257">영상자료</a> </li>
+<!-- 								<li > <a href="/site/eco/main.do">에코프렌즈 서포터즈</a> </li>  -->
+							</ul>
+						</li>
+						<li >						
+						</li> 					
+						
+						<li >
+							<a href="/site/keiti/03/10308010000002020081403.jsp">고객서비스</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/03/10308010000002020081403.jsp">고객헌장</a> </li>
+								<li > <a href="/site/keiti/03/10308020000002020081403.jsp">기업민원 보호·서비스헌장</a> </li>
+								<li > <a href="/site/keiti/03/10308030000002020081403.jsp">핵심서비스 이행표준</a> </li>
+								<li > <a href="/site/keiti/03/10308040000002020081403.jsp">고객응대서비스 이행표준</a> </li>
+							</ul>
+						</li>
+						<li >
+							<a href="/site/keiti/04/10405020000002018092811.jsp">신고센터</a>
+							<ul class="deaph3">
+								<!-- li > <a href="/site/keiti/03/10311000000002020081403.jsp">신고센터</a> </li-->
+								<li > <a href="/site/keiti/04/10405010000002018092811.jsp">공익신고자 보호제도 안내</a> </li>
+								<li > <a href="/site/keiti/04/10413030000002021091004.jsp">사전컨설팅감사 국민청구제</a> </li>
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=320">신고물품 처리결과 공개</a> </li>
+								<li > <a href="/site/keiti/04/10423030000002021091004.jsp">연구부정행위 신고센터</a> </li>
+                                <!-- li><a href="/site/keiti/04/10405010000002018092811.jsp">공익신고자 보호제도 안내</a></li>
+                                <li><a href="/site/keiti/ex/board/List.do?cbIdx=320">신고물품 처리결과 공개</a></li-->
+                                <!-- li><a href="/site/keiti/04/10413030000002021091004.jsp">사전컨설팅감사 국민청구제</a></li-->
+							</ul>
+						<li >
+							<a href="/site/keiti/ex/board/List.do?cbIdx=276">소통센터</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=276">자주 묻는 질문</a> </li>
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=281">연구개발 상담센터</a> </li>
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=363">친환경 인증 상담센터</a> </li>
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=365">기업성장 응답센터</a> </li>
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=377">우수직원 칭찬방</a> </li>
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=278">기타 상담센터</a> </li>
+								<li > <a href="/site/keiti/03/10309050000002018102909.jsp">민원</a> </li>
+							</ul>
+						</li>
+						<li >
+							<a href="/site/keiti/04/10407010000002020111110.jsp">적극행정</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/04/10407010000002020111110.jsp">적극행정 소개</a> </li>
+								<li > <a href="http://www.mpm.go.kr/proactivePublicService">적극행정 온(on)</a> </li>
+							</ul>
+						</li>
+						<li>
+							<a href="/site/keiti/ex/board/List.do?cbIdx=330">국민참여</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=330">혁신제안 의견 수렴</a> </li> 
+								<li> <a href="/site/keiti/ex/board/List.do?cbIdx=378">환경 R&D ON</a></li>
+							</ul>
+						</li>
+					</ul>
+				</li>
+				<li >
+					<a href="#">ESG경영</a>
+					<ul class="deaph2">
+						<li >
+							<a href="#">ESG경영</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/04/10401010000002018102909.jsp">ESG추진체계</a> </li>
+								<li > <a href="/site/keiti/04/10401010000002023092501.jsp">대표성과</a> </li>
+							</ul>
+						</li>						
+						<li>
+                            <a href="#">E(환경)</a>
+                            <ul class="deaph3">
+                                <li><a href="/site/keiti/04/10403080000002023100410.jsp">환경경영 추진체계</a></li>
+					  <li><a href="/site/keiti/04/10403090000002023100410.jsp">환경경영 정보</a></li>
+                            </ul>
+                        </li> 
+                        <li >
+							<a href="#">S(사회)</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/04/10406000000002020012012.jsp">안전경영</a> </li>
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=334">사회공헌</a> </li>
+								<li > <a href="/site/keiti/04/10403010000002023092701.jsp">동반성장</a> </li>
+								<li > <a href="/site/keiti/04/10404020000002021041902.jsp">인권경영</a> </li>
+								<li > <a href="/site/keiti/04/10406000000002023092701.jsp">일자리 창출</a> </li>
+							</ul>
+						</li>
+						
+						 
+						<li >
+							<a href="#">G(지배구조)</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/04/10408010000002025031310.jsp">이사회</a> </li>
+								<li > <a href="/site/keiti/04/10403010000002018102909.jsp">윤리경영</a> </li>
+								<li > <a href="/site/keiti/04/10413030000002023100401.jsp">지속가능경영보고서</a> </li>
+							</ul>
+						</li>
+						<li >
+							<a href="/site/keiti/04/10405000000002019112011.jsp">경영고시</a>
+							<ul class="deaph3">
+								<li > <a href="/site/keiti/04/10403020000002018092811.jsp">경영현황</a> </li>
+								<li > <a href="/site/keiti/04/10413030000002023100401.jsp">대내외감사결과</a> </li>
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=316">임원업무추진비</a> </li>
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=280">공용차량 현황</a> </li>
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=311">부패행위 징계현황</a> </li>
+								<li > <a href="/site/keiti/ex/board/List.do?cbIdx=326">공무국외출장결과 보고서</a> </li>
+								<li > <a href="/site/keiti/05/10503010000002018092811.jsp">경영고시 안내</a> </li>
+							</ul>
+						</li>
+						
+				</ul>
+			</li>
+			<li >
+				<a href="#">정보공개</a>
+				<ul class="deaph2">
+					<li > <a href="/site/keiti/08/10802010000002018092811.jsp">정보공개 제도 안내</a>
+						<ul class="deaph3">                                            
+						     	<li><a href="/site/keiti/08/10802010000002018092811.jsp">정보공개제도</a></li>
+						     	<li><a href="/site/keiti/08/10802010000002018092812.jsp">정보공개처리절차</a></li>
+						     	<li><a href="/site/keiti/08/10802010000002018092813.jsp">불복구제</a></li>
+						</ul>
+					</li>
+					<li > <a href="/site/keiti/ex/board/List.do?cbIdx=321">행정정보공개</a> </li>
+					<li > <a href="/site/keiti/data/openList/screen.do">정보목록</a> </li>
+					<li > <a href="/site/keiti/08/10802040000002018092811.jsp">정보공개 청구</a> </li>
+					<li > <a href="/site/keiti/08/10806050000002020072902.jsp">비공개 대상정보 세부기준</a> </li>
+					<li > <a href="/site/keiti/ex/board/List.do?cbIdx=374">주요 공개정보</a> </li>
+					<li > <a href="/site/keiti/ex/board/List.do?cbIdx=375">사전정보 개선건의</a> </li>
+					<li > <a href="/site/keiti/08/10805000000002018092809.jsp">공공데이터 개방</a> </li>
+					<li> <a href="/site/keiti/ex/publicList/PublicListF.do">사전정보공표 목록</a> </li>
+					<li ><a href="/site/keiti/ex/board/List.do?cbIdx=317">사업실명제</a></li>	
+				</ul>
+			</li>
+			<li >
+				<a href="#">알림/지식마당</a>
+				<ul class="deaph2">
+						<li > <a href="/site/keiti/ex/board/List.do?cbIdx=277">공지/공고</a> 
+							<ul class="deaph3">                                            
+							     	<li><a href="/site/keiti/ex/board/List.do?cbIdx=277&searchExt1=24000100">공지</a></li>
+							     	<li><a href="/site/keiti/ex/board/List.do?cbIdx=277&searchExt1=24000200">채용</a></li>
+							     	<li><a href="/site/keiti/ex/board/List.do?cbIdx=277&searchExt1=24000300">입찰</a></li>
+							     	<li><a href="/site/keiti/rnd/selectRndNoticeList.do">연구개발</a></li>
+							     	<li><a href="/site/keiti/ex/board/List.do?cbIdx=277&searchExt1=24000500">공시송달</a></li>
+							</ul>
+						</li>
+						<li > <a href="/site/keiti/rnd/selectRndSubjectList.do">환경 연구개발 과제보고서</a>  </li>
+						<li > <a href="/site/keiti/ex/board/List.do?cbIdx=318">환경지식</a>  </li>
+						<!-- <li > <a href="https://www.konetic.or.kr">국가환경산업기술정보시스템</a>  </li>	 -->
+						<li > <a href="/site/keiti/ex/board/List.do?cbIdx=319">법률/서식</a>
+							<ul class="deaph3">                                            
+							     	<li><a href="/site/keiti/ex/board/List.do?cbIdx=319&searchExt1=BIZ013A001">법률/규정</a></li>
+							     	<li><a href="/site/keiti/ex/board/List.do?cbIdx=319&searchExt1=BIZ013A002">서식/기타</a></li>
+							</ul>
+						</li>
+						<li > <a href="/site/keiti/03/10304000000002018092809.jsp">통계</a>
+								<ul class="deaph3">                                            
+							     		<li><a href="/site/keiti/03/10304000000002018092809.jsp">인검증</a></li>
+							     		<li><a href="/site/keiti/03/10304000000002018092810.jsp">환경표지인증</a></li>
+							     		<li><a href="/site/keiti/03/10304000000002018092811.jsp">환경성적표지</a></li>
+							     		<!-- <li><a href="/site/keiti/03/10304000000002018092812.jsp">GR마크</a></li> -->
+							     		<li><a href="/site/keiti/03/10304000000002018092813.jsp">녹색구매</a></li>
+							     		<li><a href="/site/keiti/03/10304000000002018092814.jsp">해외진출지원</a></li>
+							     		<li><a href="/site/keiti/03/10304000000002018092815.jsp">금융지원</a></li>
+								</ul>
+						</li>
+				</ul>
+			</li>
+		</ul>
+		<button href="#" class="allNavClose">전체메뉴 닫기</button>	
+	</div>
+	<div id="gnbOverlay"></div>
+</div>	
+	<!-- //상단 -->
+
+
+
+
+
+
+<script type="text/javascript">
+<!--
+var scale = 1;
+ 
+function scaleIn() {
+	if("1.3" > scale){
+	scale *= 1.05;
+	zoom(scale);
+	}else{
+		alert("더이상 확대하실수 없습니다.");
+		return;
+	}
+
+}
+ 
+function scaleOut() {
+	if("0.8" < scale){
+	scale /= 1.05;
+	zoom(scale);
+	}else{
+		alert("더이상 축소하실수 없습니다.");
+		return;
+	}
+}
+ 
+function zoom(scale) {
+var body = document.body;
+body.style.zoom = scale;  // IE
+body.style.webkitTransform = 'scale('+scale+')';  // Webkit(chrome)
+body.style.webkitTransformOrigin = '0 0';
+body.style.mozTransform = 'scale('+scale+')';  // Mozilla(firefox)
+body.style.mozTransformOrigin = '0 0';
+body.style.oTransform = 'scale('+scale+')';  // Opera
+body.style.oTransformOrigin = '0 0';
+}
+
+
+/* 인쇄 */
+function printView(){
+	window.open("/site/keiti/common/Print.do", "p_pop", "width=850,height=650,top=50,left=50,scrollbars=yes,resizable=yes,toolbar=no,status=no,menubar=no");
+}
+function is_ie() {
+	  if(navigator.userAgent.toLowerCase().indexOf("chrome") != -1) return false;
+	  if(navigator.userAgent.toLowerCase().indexOf("firefox") != -1) return false;
+	  if(navigator.userAgent.toLowerCase().indexOf("msie") != -1) return true;
+	  if(navigator.userAgent.toLowerCase().indexOf("windows nt") != -1) return true;	  
+	  return false;
+	}
+function copy_traceback(address){
+	  
+	  if( is_ie() ) {
+			//if(confirm("이 글의 주소를 클립보드에 복사하시겠습니까?"))
+				window.clipboardData.setData("Text", address);
+		} else {
+			temp = prompt("이 글의 주소입니다. Ctrl+C를 눌러 클립보드로 복사하세요", address);
+		}	
+}
+
+//-->
+// -----------------------------------------------------------------------------------------
+function isNotInMyArea( $targetObj )
+{
+    var isIn = true;
+    var $objArr = Array();
+    var opts = {
+        left: 99999, right: 0, top: 99999, bottom: 0
+    }
+    
+    if( $targetObj )
+    {
+        if( $targetObj.length == 1 ) {
+            $objArr.push( $targetObj );
+        } else {
+            $objArr = $targetObj;
+        }
+
+        $.each($objArr, function(i, $obj){          
+            var obj_position = $obj.offset();
+            
+            if(obj_position != undefined){
+            	obj_position.right = parseInt( obj_position.left ) + ( $obj.width() );
+                obj_position.bottom = parseInt( obj_position.top ) + parseInt( $obj.height() );
+                
+                if( obj_position.left < opts.left ) opts.left = obj_position.left;
+                if( obj_position.right > opts.right ) opts.right = obj_position.right;
+                if( obj_position.top < opts.top ) opts.top = obj_position.top;
+                if( obj_position.bottom > opts.bottom ) opts.bottom = obj_position.bottom;	
+            }
+        });
+        
+        if( ( opts.left <= event.pageX && event.pageX <= opts.right )
+            && ( opts.top <= event.pageY && event.pageY <= opts.bottom ) )
+        {
+            isIn = false;
+        }
+    }
+    
+    return isIn;
+}
+
+$(function(){
+    $(document).mousedown(function( e ){
+        if( isNotInMyArea ( [ $("#deaph1"), $("#subDeaph1") ] ) ) {
+            $("#subDeaph1").hide();
+        }
+    });
+    
+    $("#deaph1").click(function(){
+        if( !$("#subDeaph1").is(":visible") ) {
+            $("#subDeaph1").show();
+        }
+    });
+    $(document).mousedown(function( e ){
+        if( isNotInMyArea ( [ $("#deaph2"), $("#subDeaph2") ] ) ) {
+            $("#subDeaph2").hide();
+        }
+    });
+    
+    $("#deaph2").click(function(){
+        if( !$("#subDeaph2").is(":visible") ) {
+            $("#subDeaph2").show();
+        }
+    });
+    $(document).mousedown(function( e ){
+        if( isNotInMyArea ( [ $("#deaph3"), $("#subDeaph3") ] ) ) {
+            $("#subDeaph3").hide();
+        }
+    });
+    
+    $("#deaph3").click(function(){
+        if( !$("#subDeaph3").is(":visible") ) {
+            $("#subDeaph3").show();
+        }
+    });
+});
+// 			$(document).ready(function(){
+// // 				endMenu
+// 					$('#subDeaph1').focusout(function() {
+// 						$('#subDeaph1').keydown(function(event) {
+// 							  if (event.keyCode == '9') {
+// 					    		  $('#subDeaph1').removeClass('active');
+// 							  }
+// 						});
+// 					});
+
+
+					
+// 			});
+// -----------------------------------------------------------------------------------------
+// 			$(document).ready(function(){
+/* 					$('#deaph1').click(function() {
+// 					  $("#hdSearch").show();
+ 					  $('#deaph1').addClass('active');
+				      $('#deaph2').removeClass('');
+				      $('#deaph3').removeClass('');
+					});
+	   	
+				   	$("#deaph1").focusout(function() {
+		    		  $('#deaph1').addClass('');
+		    	      $('#deaph2').removeClass('');
+		    	      $('#deaph3').removeClass('');
+				   	});
+				   	 */
+
+// 				});
+</script>
+
+
+
+	        		
+
+											
+
+	
+
+
+
+			
+  		
+		
+
+
+
+<div id="container">
+		<div class="subVisual bg6">
+			<img src="/images/keiti/sub/bg_sub6.jpg" alt="">
+			<h2> 공지/공고</h2>
+		</div>
+
+<!-- //컨텐츠 -->
+	<div class="subContents">
+			<div class="inner">
+
+				<div class="subPath">			
+					<div class="path">
+						 
+						
+						
+						
+							<div class="home"><a href="/html/keiti/index.jsp" >홈으로</a></div>
+						
+										
+          				  
+          				
+     				
+						
+						
+										
+          				       				
+       					
+       					
+       					       					
+						<div id="deaph1" class="deaph1">
+							<a href="#"> 알림/지식마당 </a>
+							<div id="subDeaph1">
+							
+								
+								
+									<a href="/site/keiti/01/10101010000002018092810.jsp">기관소개</a>								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+									<a href="/site/keiti/02/10202080000002023101610.jsp">주요사업</a>								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+									<a href="/site/keiti/ex/board/List.do?cbIdx=237">열린경영</a>								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+									<a href="/site/keiti/04/10401010000002018102909.jsp">ESG경영</a>								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+									<a href="/site/keiti/08/10802010000002018092811.jsp">정보공개</a>								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+								
+								
+								
+							
+							</div>
+						</div>						
+						
+						 
+          									
+						
+						 
+						
+						
+						
+          				  
+          				
+     				
+						
+						
+										
+          				       				
+       					
+       					
+       					
+						 
+          				             				
+						<div id="deaph2" class="deaph2">
+							<a href="#"> 공지/공고 </a>
+							<div id="subDeaph2">
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							 
+								<a href="/site/keiti/rnd/selectRndSubjectList.do">환경 R&amp;D과제보고서</a>								
+							
+							
+							 
+								<a href="/site/keiti/ex/board/List.do?cbIdx=318">환경지식</a>								
+							
+							
+							 
+								<a href="https://www.konetic.or.kr/">국가환경산업기술 정보시스템</a>								
+							
+							
+							 
+								<a href="/site/keiti/ex/board/List.do?cbIdx=319">법률/서식</a>								
+							
+							
+							 
+								<a href="/site/keiti/03/10304000000002018092809.jsp">통계</a>								
+							
+							 
+							</div>
+						</div>					
+											
+						
+						 
+						
+						
+						
+          				  
+          				
+     				
+						
+						
+										
+          				       				
+       					
+       					
+       					
+						 
+          									
+						
+						 
+							           				
+							<div id="deaph3" class="deaph3">
+								<a href="#"> 공지/공고</a>
+								<div id="subDeaph3">
+								
+								
+								
+								
+								
+								
+									<a href="/site/keiti/ex/board/List.do?cbIdx=277&amp;searchExt1=24000100">공지</a>								
+								
+								
+								
+									<a href="/site/keiti/ex/board/List.do?cbIdx=277&amp;searchExt1=24000200">채용</a>								
+								
+								
+								
+									<a href="/site/keiti/ex/board/List.do?cbIdx=277&amp;searchExt1=24000300">입찰</a>								
+								
+								
+								
+									<a href="">공시송달</a>								
+								
+								
+								
+								
+								
+								
+								
+								
+								
+								
+								
+								
+								</div>							
+							</div>
+						
+						
+						
+          				  
+          				
+     				
+						
+						
+					</div>
+					<div class="direct">
+						<a title="새 창으로 열림" href="https://www.facebook.com/keitipr/" target="_blank" class="icon_facebook">페이스북 바로가기</a>
+						<a title="새 창으로 열림" href="https://twitter.com/hashtag/%ED%95%9C%EA%B5%AD%ED%99%98%EA%B2%BD%EC%82%B0%EC%97%85%EA%B8%B0%EC%88%A0%EC%9B%90" target="_blank" class="icon_twitter">트위터 바로가기</a>
+						<a href="javascript:printView();" class="icon_print" title="새 창으로 열림">프린터 바로가기</a>
+					</div>
+				</div>
+
+<div id="subContainer" tabindex="-1">
+
+<style type="text/css">
+input[type="submit"]:focus, input[type="submit"]:hover {
+	border: 2px solid red !important;
+}
+</style>
+
+
+
+
+	
+	<ul class="tabBar col6 board notUsed" role="tabList">
+					<li class="active"><a href="javascript:fn_go('');" title="선택됨" class="initTab" role="tab" aria-selected="true">전체</a><span class="arrow"></span></li>
+					<li ><a href="javascript:fn_go('24000100');"  role="tab" aria-selected="false">공지</a><span class="arrow"></span></li>
+					<li ><a href="javascript:fn_go('24000200');"  role="tab" aria-selected="false">채용</a><span class="arrow"></span></li>
+					<li ><a href="javascript:fn_go('24000300');"  role="tab" aria-selected="false">입찰</a><span class="arrow"></span></li>
+			
+					<li  ><a href="/site/keiti/rnd/selectRndNoticeList.do"  >R&amp;D</a><span class="arrow"></span></li>
+					<li ><a href="javascript:fn_go('24000500');"  role="tab" aria-selected="false">공시송달</a><span class="arrow"></span></li>
+					
+</ul>
+
+
+
+
+
+
+
+
+
+	
+		
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		
+
+
+		
+
+<form id="BbsContentFVo" name="BbsContentFVo" action="/site/keiti/ex/board/List.do?cbIdx=277" method="post">
+<input id="pageIndex" name="pageIndex" type="hidden" value="1"/>
+<input id="searchExt1" name="searchExt1" type="hidden" value=""/>
+
+
+	
+	
+<h3 class="hidden_only">
+
+	
+	   
+	   
+	   
+	   
+	   
+	   
+  
+       
+	 
+      
+   
+      	
+	
+   
+	전체
+	
+	
+	
+	
+			
+   
+   
+   
+   
+		
+
+</h3>	
+	<div class="bbsSearch">	
+			<ul>
+				
+					
+					
+						<li class="listCount">전체 <em>7,501건</em>, 페이지 <b>1</b>/ 751</li>
+					
+				
+				<li class="searchArea">
+				
+				<select id="searchCondition" name="searchCondition" title="조건선택">
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				<option value="titlecontents">전체</option>				
+				
+				
+				
+					<option value="subCont">제목</option>
+				
+					<option value="clobCont">내용</option>
+				
+				</select>
+				<input id="searchKeyword" name="searchKeyword" title="검색어입력" class="w30" type="text" value=""/>
+				
+				
+				
+				
+				 
+	 			<input type="submit" value="검색" title="검색" class="form-btn type1" onclick="doBbsContentFPag('1');return false;">
+				<!-- 
+				<input type="button" value="전체목록" title="전체목록" class="form-btn type2" onclick="doBbsContentFPagFresh(); return false;">
+				 -->
+				
+				
+				</li>
+			</ul>
+		</div><!-- //search -->
+		
+	<br/>
+	
+		
+		
+
+
+
+
+
+
+
+
+
+		
+		<div class="thumb">
+					<ul class="list col5">
+						
+						<li>
+							
+							
+							
+							<div class="cate cateNavy">
+							
+							
+							
+							
+														
+							
+								
+								
+								
+								
+								<a href="/site/keiti/ex/board/View.do?cbIdx=277&bcIdx=40954" onclick="doBbsContentFView('40954');return false;">
+								<span class="cateName">
+								공지</span>
+								
+								
+								
+								
+								<span class="date">2026-09-01</span>
+								<span class="subject">제42회 ESG ON 세미나 개최 안내('26.9.16.(수), 15:00 ~ 16:30)</span>
+								<span class="text">
+															
+									
+											
+									안녕하세요.
+
+한국환경산업기술원 ESG인프라지원단 입니다.
+
+
+
+한국환경산업기술원은 최근 급속히 발전하고 있는 ESG 분야의 최신 동향을 공유하고,
+
+앞으로의 발전방
+								</span></a>
+							</div>
+						</li>
+						
+						<li>
+							
+							
+							
+							
+							
+							<div class="cate cateGreen">
+							
+							
+														
+							
+								
+								
+								
+								
+								<a href="/site/keiti/ex/board/View.do?cbIdx=277&bcIdx=40956" onclick="doBbsContentFView('40956');return false;">
+								<span class="cateName">
+								입찰</span>
+								
+								
+								
+								
+								<span class="date">2026-09-01</span>
+								<span class="subject">[기술평가결과]국제환경협력센터 제2기 중장기('27~'31) 전략 마련 연구 용역  용역 기술평가 결과 알림</span>
+								<span class="text">
+															
+									
+											
+									○ 조달청 입찰공고 번호 :R26BK01683372국제환경협력센터 제2기 중장기('27~'31) 전략 마련 연구 용역  용역제안서 기술평가 결과를 붙임과 같이 안내드립니다.자세한 
+								</span></a>
+							</div>
+						</li>
+						
+						<li>
+							
+							
+							
+							<div class="cate cateNavy">
+							
+							
+							
+							
+														
+							
+								
+								
+								
+								
+								<a href="/site/keiti/ex/board/View.do?cbIdx=277&bcIdx=40944" onclick="doBbsContentFView('40944');return false;">
+								<span class="cateName">
+								공지</span>
+								
+								
+								
+								
+								<span class="date">2026-08-28</span>
+								<span class="subject">환경오염피해 구제급여 선지급 시범사업 신규 신청(접수) 종료 및 구제급여 지급 기준 공고</span>
+								<span class="text">
+															
+									
+											
+									기후에너지환경부 공고 제2026-833호
+
+
+
+환경오염피해 구제급여 선지급 시범사업
+
+신규 신청(접수)종료 및 구제급여 지급 기준 공고
+
+
+
+｢환경오염피해 배상책
+								</span></a>
+							</div>
+						</li>
+						
+						<li>
+							
+							
+							
+							<div class="cate cateNavy">
+							
+							
+							
+							
+														
+							
+								
+								
+								
+								
+								<a href="/site/keiti/ex/board/View.do?cbIdx=277&bcIdx=40931" onclick="doBbsContentFView('40931');return false;">
+								<span class="cateName">
+								공지</span>
+								
+								
+								
+								
+								<span class="date">2026-08-25</span>
+								<span class="subject">신기술인증 신청내용 공고 [(주)에스지케이이엔씨, 에스지케이(주)]</span>
+								<span class="text">
+															
+									
+											
+									한국환경산업기술원 공고 제2026-134호
+
+신기술인증 신청내용 공고
+
+「환경기술 및 환경산업 지원법」 제7조제1항 및 같은 법 시행령 제18조에 따라 신기술인증을 신청한 
+								</span></a>
+							</div>
+						</li>
+						
+						<li>
+							
+							
+							
+							<div class="cate cateNavy">
+							
+							
+							
+							
+														
+							
+								
+								
+								
+								
+								<a href="/site/keiti/ex/board/View.do?cbIdx=277&bcIdx=40933" onclick="doBbsContentFView('40933');return false;">
+								<span class="cateName">
+								공지</span>
+								
+								
+								
+								
+								<span class="date">2026-08-25</span>
+								<span class="subject">신기술인증 및 기술검증 신청내용 공고 [수미환경산업(주) / 대도이앤알(주) / (재)한국화학융합시험연구원 / (주)월드환경개발]</span>
+								<span class="text">
+															
+									
+											
+									한국환경산업기술원 공고 제2026-135호
+
+신기술인증 및 기술검증 신청내용 공고
+
+
+「환경기술 및 환경산업 지원법」 제7조제1항 및 같은 법 시행령 제18조에 따라 신기
+								</span></a>
+							</div>
+						</li>
+						
+						<li>
+							
+							
+							
+							<div class="cate cateNavy">
+							
+							
+							
+							
+														
+							
+								
+								
+								
+								
+								<a href="/site/keiti/ex/board/View.do?cbIdx=277&bcIdx=40934" onclick="doBbsContentFView('40934');return false;">
+								<span class="cateName">
+								공지</span>
+								
+								
+								
+								
+								<span class="date">2026-08-25</span>
+								<span class="subject">신기술인증 신청내용 공고[고등기술연구원연구조합]</span>
+								<span class="text">
+															
+									
+											
+									한국환경산업기술원 공고 제 2026-136호
+
+신기술인증 신청내용 공고
+
+「환경기술 및 환경산업 지원법」 제7조제1항 및 같은 법 시행령 제18조에 따라 신기술인증을 신청한
+								</span></a>
+							</div>
+						</li>
+						
+						<li>
+							
+							
+							
+							
+							
+							<div class="cate cateGreen">
+							
+							
+														
+							
+								
+								
+								
+								
+								<a href="/site/keiti/ex/board/View.do?cbIdx=277&bcIdx=40920" onclick="doBbsContentFView('40920');return false;">
+								<span class="cateName">
+								입찰</span>
+								
+								
+								
+								
+								<span class="date">2026-08-24</span>
+								<span class="subject">[기술평가결과]해외 토양 기반 탄소감축 산업 동향 및 국내 산업 활성화 방안 연구 용역 기술평가 결과 알림</span>
+								<span class="text">
+															
+									
+											
+									○ 조달청 입찰공고 번호 :R26BK01644029해외 토양 기반 탄소감축 산업 동향 및 국내 산업 활성화 방안 연구 용역제안서 기술평가 결과를 붙임과 같이 안내드립니다.자세한 사
+								</span></a>
+							</div>
+						</li>
+						
+						<li>
+							
+							
+							
+							<div class="cate cateNavy">
+							
+							
+							
+							
+														
+							
+								
+								
+								
+								
+								<a href="/site/keiti/ex/board/View.do?cbIdx=277&bcIdx=40921" onclick="doBbsContentFView('40921');return false;">
+								<span class="cateName">
+								공지</span>
+								
+								
+								
+								
+								<span class="date">2026-08-24</span>
+								<span class="subject">「2026년 녹색금융 우수기업 시상」 공모</span>
+								<span class="text">
+															
+									
+											
+									한국환경산업기술원 공고 제2026-133호
+2026년 녹색금융 우수기업 시상 공모 안내
+
+
+기후에너지환경부와 한국환경산업기술원은 녹색금융 활성화에 현저히 공헌한 기업·개인을
+								</span></a>
+							</div>
+						</li>
+						
+						<li>
+							
+							
+							
+							
+							
+							<div class="cate cateGreen">
+							
+							
+														
+							
+								
+								
+								
+								
+								<a href="/site/keiti/ex/board/View.do?cbIdx=277&bcIdx=40922" onclick="doBbsContentFView('40922');return false;">
+								<span class="cateName">
+								입찰</span>
+								
+								
+								
+								
+								<span class="date">2026-08-24</span>
+								<span class="subject">[기술평가결과]지속가능성 공시 적용 사례 연구 용역 기술평가 결과 알림</span>
+								<span class="text">
+															
+									
+											
+									○ 조달청 입찰공고 번호 :R26BK01668067지속가능성 공시 적용 사례 연구 용역제안서 기술평가 결과를 붙임과 같이 안내드립니다.자세한 사항은 조달청 나라장터 홈페이지를 참고
+								</span></a>
+							</div>
+						</li>
+						
+						<li>
+							
+							
+							
+							
+							
+							<div class="cate cateGreen">
+							
+							
+														
+							
+								
+								
+								
+								
+								<a href="/site/keiti/ex/board/View.do?cbIdx=277&bcIdx=40923" onclick="doBbsContentFView('40923');return false;">
+								<span class="cateName">
+								입찰</span>
+								
+								
+								
+								
+								<span class="date">2026-08-24</span>
+								<span class="subject">[기술평가결과]2026년도 환경신기술 활용실적·정보조사 및 사후평가 용역 기술평가 결과 알림</span>
+								<span class="text">
+															
+									
+											
+									○ 조달청 입찰공고 번호 :R26BK016606542026년도 환경신기술 활용실적·정보조사 및 사후평가 용역제안서 기술평가 결과를 붙임과 같이 안내드립니다.자세한 사항은 조달청 나
+								</span></a>
+							</div>
+						</li>
+						
+						
+							
+						
+					</ul>
+				
+		</div>
+		
+		<!--paginate -->
+		<div class="paging">
+			<a href="?pageIndex=1" onclick="doBbsContentFPag(1);return false; " class="first" title="처음">처음</a><a href="?pageIndex=1" onclick="doBbsContentFPag(1);return false; " class="prev"  title="이전">이전</a><a class="active" title="1">1</a>&#160;<a href="?pageIndex=2" onclick="doBbsContentFPag(2);return false; " class="num" title="2">2</a>&#160;<a href="?pageIndex=3" onclick="doBbsContentFPag(3);return false; " class="num" title="3">3</a>&#160;<a href="?pageIndex=4" onclick="doBbsContentFPag(4);return false; " class="num" title="4">4</a>&#160;<a href="?pageIndex=5" onclick="doBbsContentFPag(5);return false; " class="num" title="5">5</a>&#160;<a href="?pageIndex=6" onclick="doBbsContentFPag(6);return false; " class="num" title="6">6</a>&#160;<a href="?pageIndex=7" onclick="doBbsContentFPag(7);return false; " class="num" title="7">7</a>&#160;<a href="?pageIndex=8" onclick="doBbsContentFPag(8);return false; " class="num" title="8">8</a>&#160;<a href="?pageIndex=9" onclick="doBbsContentFPag(9);return false; " class="num" title="9">9</a>&#160;<a href="?pageIndex=10" onclick="doBbsContentFPag(10);return false; " class="num" title="10">10</a>&#160;<a href="?pageIndex=11" onclick="doBbsContentFPag(11);return false; " class="next" title="다음">다음</a><a href="?pageIndex=751" onclick="doBbsContentFPag(751);return false; " class="last"  title="마지막">마지막</a>
+
+		</div>
+		<!--//paginate -->
+			
+		
+		
+		
+	
+	
+</form>
+
+
+
+
+
+
+
+	 
+		<div class="satisfy type3" style="margin-bottom: -70px;">
+			<div class="shadow">
+				<ul class="charge">
+					<li class="icon1"><b>담당부서: </b>	인재경영실</li>
+					<li class="icon3"><b>전화번호: </b>02-2284-1139</li>
+				</ul>
+			</div>
+		</div>
+
+
+
+
+<style>
+.btn-focus:focus, .btn-focus:hover {
+	border: 2px solid red;
+}
+</style>
+
+<script type="text/javascript">
+
+function fn_update() {
+	
+	var comchk = -1;
+	var comfrm = document.fSatisfaction;	
+	for(var c=0;c < comfrm.recommendScore.length; c++){
+	
+			if(comfrm.recommendScore[c].checked) {
+		   comchk = c;	
+		}
+	}
+	
+	if(comchk == -1){
+		alert("만족도 값을 선택하세요");
+		return ;
+	} else {
+		
+		var recommendScore = "5" ;
+		if(comchk == 0) {recommendScore = 5; }
+		if(comchk == 1) {recommendScore = 4; }
+		if(comchk == 2) {recommendScore = 3; }
+		if(comchk == 3) {recommendScore = 2; }
+		if(comchk == 4) {recommendScore= 1; }	
+		
+		
+		var pageDetail = document.fSatisfaction.pageDetail.value;
+		var recommendText =  "";
+		
+		var pageNm =  document.getElementById("pageNm").value;
+		var strArg = "pageDetail=" +pageDetail + "&recommendText=" +recommendText + "&recommendScore=" +recommendScore  + "&pageNm=" +pageNm ;
+		
+		$.ajax({
+			url : "/site/keiti/user/insertSatisfaction.do",
+			type : "POST",
+			data : strArg,
+			dataType : "html",
+				success:function(object){
+					
+					$("input[name=recommendScore]").prop("checked",false);
+					alert("만족도 등록이 완료되었습니다. 감사합니다.!");
+				}, 		 
+			error:function(xhr,status,error){alert(status);}
+		});
+	
+		
+	}	
+}
+</script>
+</div>
+					
+					    <!-- 만족도 사용 여부  Y인 경우만 사용 -->
+					    
+					    <form name="fSatisfaction"  method="post">
+						<input type="hidden" id="pageDetail"  value="10901000000002022072604"/>
+						<input type="hidden" id="recommendText" />
+						<input type="hidden" id="pageNm" value="10901000000002022072604">
+						<div class="satisfy 
+                                                     type2">
+                 				
+							
+							
+							<div class="shadow" title="만족도 조사" ><!--  style="height:125px;" -->
+								<!-- br/-->
+								
+								
+								
+								<b class="quest" style="margin-top:-20px;">현재 페이지에서 제공하는 정보에 만족하셨습니까?</b>
+								
+								
+								<!-- <ul class="selectList">
+									<li><input type="checkbox" onClick="fn_update()" name="recommendScore" id="recommendScore5" value="5"><label for="recommendScore5">매우만족 <img src="/images/keiti/sub/icon_satisfy_1.gif" alt="매우만족"></label></li>
+									<li><input type="checkbox" onClick="fn_update()" name="recommendScore" id="recommendScore4" value="4"><label for="recommendScore4">만족 <img src="/images/keiti/sub/icon_satisfy_2.gif" alt="만족"></label></li>
+									<li><input type="checkbox" onClick="fn_update()" name="recommendScore" id="recommendScore3" value="3"><label for="recommendScore3">보통 <img src="/images/keiti/sub/icon_satisfy_3.gif" alt="보통"></label></li>
+									<li><input type="checkbox" onClick="fn_update()" name="recommendScore" id="recommendScore2" value="2"><label for="recommendScore2">불만족 <img src="/images/keiti/sub/icon_satisfy_4.gif" alt="불만족"></label></li>
+									<li><input type="checkbox" onClick="fn_update()" name="recommendScore" id="recommendScore1" value="1"><label for="recommendScore1">매우 불만족 <img src="/images/keiti/sub/icon_satisfy_5.gif" alt="매우 불만족"></label></li>
+								</ul> -->
+								<ul class="selectList">
+									<li><input type="checkbox" name="recommendScore" id="recommendScore5" value="5"><label for="recommendScore5">매우만족 <img src="/images/keiti/sub/icon_satisfy_1.svg" alt="매우만족"></label></li>
+									<li><input type="checkbox" name="recommendScore" id="recommendScore4" value="4"><label for="recommendScore4">만족 <img src="/images/keiti/sub/icon_satisfy_2.svg" alt="만족"></label></li>
+									<li><input type="checkbox" name="recommendScore" id="recommendScore3" value="3"><label for="recommendScore3">보통 <img src="/images/keiti/sub/icon_satisfy_3.svg" alt="보통"></label></li>
+									<li><input type="checkbox" name="recommendScore" id="recommendScore2" value="2"><label for="recommendScore2">불만족 <img src="/images/keiti/sub/icon_satisfy_4.svg" alt="불만족"></label></li>
+									<li><input type="checkbox" name="recommendScore" id="recommendScore1" value="1"><label for="recommendScore1">매우 불만족 <img src="/images/keiti/sub/icon_satisfy_5.svg" alt="매우 불만족"></label></li>
+									<li><a href="javascript:fn_update();" class="btn_quest btn-focus">확인</a></li>
+								</ul>
+<!-- 							<input type="submit" value=" 등록  " onClick="fn_update()" > -->
+<!-- 							<a href="#wrap" class="btnScrollTop">등록</a> -->
+								
+								<a href="#wrap" class="btnScrollTop">TOP</a>
+							</div>
+						</div>
+						</form>
+					    
+					
+        </div>
+    </div>
+    <!-- //컨텐츠 -->   
+	
+</div>
+<script type="text/javascript">
+//게시판 ext1 분류별 담당부서처리
+
+//행정정보공개
+if('10901000000002022072604' =='10502020000002018092811'){;
+	var ext1 = sessionStorage.getItem('ext1');
+	/*
+	if(ext1==('BIZ0170003')){
+		$('.icon1').append('<b>담당부서: </b>감사실');
+	}else if(ext1==('BIZ0170004')){  //수의계약 현황
+		$('.icon1').append('<b>담당부서: </b>경영지원실');
+	}else{
+		$('.icon1').append('<b>담당부서: </b>기획조정실');
+	}
+	*/
+}else{
+	sessionStorage.removeItem('ext1');
+}
+</script>
+
+	<!-- 하단 -->
+	<div class="footer">
+		<div class="ftLink">
+			<div class="inner">
+				<div class="relationLink">
+					<a href="#" aria-expanded="false">사업별 웹사이트 바로가기</a>
+					<div class="linkSelect col4">
+						<ul>
+							<li>
+				                <a href="https://www.iris.go.kr" target="_blank" title="새창열림">범부처통합연구지원시스템(IRIS)</a>
+								<!-- <a href="http://cleco-cms.keiti.re.kr" target="_blank" title="새창열림">CLECO-CMS 연구비관리시스템</a> -->
+<!-- 				                <a href="http://www.dicer.org" target="_blank" title="새창열림">환경 R&amp;D 연구정보시스템</a> -->
+								<!--  <a href="http://cyber.keiti.re.kr" target="_blank" title="새창열림">사이버전시장</a>-->
+				                <a href="https://ecosq.or.kr/websquare.do#w2xPath=/ui/pms/se/oc/SEOC310M01.xml&valVl=tab2&menuSn=10191200" target="_blank" title="새창열림">토양환경센터</a>
+<!-- 								<a href="https://ecoservice.keiti.re.kr:8446" target="_blank" title="새창열림">환경R&amp;D 서비스센터</a>  				               
+				                <a href="http://www.greenexport.or.kr" target="_blank" title="새창열림">수출지원상담센터</a> -->
+								<!-- a href="http://www.eishub.or.kr" target="_blank" title="새창열림">해외환경통합정보망</a-->
+				                <a href="https://ecosq.or.kr/websquare.do#w2xPath=/ui/cer/ic/oa/ICOA110M01.xml&valVl=0&menuSn=20011100" target="_blank" title="새창열림">환경표지 인증</a>
+								<a href="https://ecosq.or.kr/websquare.do#w2xPath=/ui/eco/gi/oh/GIOH100M01.xml&valVl=&menuSn=30020610" target="_blank" title="새창열림">녹색제품 정보</a>
+							</li>
+							<li>
+				                <a href="https://www.konetic.or.kr" target="_blank" title="새창열림">국가환경산업기술정보시스템(KONETIC)</a>
+								<a href="https://ecosq.or.kr/websquare.do#w2xPath=/ui/eve/ev/ok/EVOK100M01.xml&valVl=&menuSn=40201100" target="_blank" title="새창열림">사이버환경 실무교육</a>
+				                <a href="https://ecosq.or.kr/websquare.do#w2xPath=/ui/pms/pf/oz/PFOZ100M10.xml&valVl=BBS0137%2c1&menuSn=10080100" target="_blank" title="새창열림">환경정책자금 융자 지원</a>
+								<a href="https://ecosq.or.kr/websquare.do#w2xPath=/ui/cer/ic/oc/ICOC110M01.xml&valVl=0&menuSn=20019001" target="_blank" title="새창열림">환경신기술정보</a>  				               
+				             <!-- <a href="http://net.koetv.or.kr" target="_blank" title="새창열림">환경신기술 평가관리시스템</a>
+								<a href="http://www.greencertif.or.kr" target="_blank" title="새창열림">녹색인증 홈페이지</a>   
+				                <a href="http://green.keiti.re.kr" target="_blank" title="새창열림">녹색인증 평가정보 공개시스템</a> -->
+								<a href="https://ecosq.or.kr/websquare.do#w2xPath=/ui/eve/ev/ov/EVOV100M01.xml&valVl=&menuSn=40301100" target="_blank" title="새창열림">환경기술 전문인력</a>
+							</li>
+							<li>
+				                <a href="https://ecosq.or.kr/websquare.do#w2xPath=/ui/eve/ev/oa/EVOA100M01.xml&valVl=&menuSn=40401100" target="_blank" title="새창열림">환경영향평가사 자격검정</a>
+								<!--  <a href="https://www.ecoexpo.or.kr" target="_blank" title="새창열림">사이버환경박람회</a> -->				                
+				                <a href="http://www.gmi.go.kr" target="_blank" title="새창열림">환경책임투자종합플랫폼</a> 
+								<a href="https://www.green-card.co.kr" target="_blank" title="새창열림">그린카드 홈페이지</a>
+								<a href="https://ecosq.or.kr/websquare.do#w2xPath=/ui/eco/gp/of/GPOF180M02.xml&valVl=&menuSn=30030620" target="_blank" title="새창열림">녹색구매 정보</a>
+				                <a href="http://www.k-eco.or.kr" target="_blank" title="새창열림">대한민국 친환경대전</a>
+							</li>
+							<li>			                
+				              <!--  	<a href="http://www.ecova.or.kr" target="_blank" title="새창열림">녹색구매 자발적협약</a> -->								
+								<a href="https://ecosq.or.kr/websquare.do#w2xPath=/ui/cer/ic/oh/ICOH110M01.xml&valVl=tabs1&menuSn=20018000" target="_blank" title="새창열림">환경성적표지 , LCI DB</a>
+				                <!-- <a href="http://greenstore.go.kr/index.html" target="_blank" title="새창열림">녹색매장 지정제도</a> -->
+								<a href="http://www.env-info.kr/" target="_blank" title="새창열림">환경정보공개시스템</a> 
+				            <!--      <a href="http://www.creativegreen.re.kr/" target="_blank" title="새창열림">친환경 창조경제</a>--> 			               
+				                <a href="https://www.greencluster.kr/frt/main/portalMain.do" target="_blank" title="새창열림">창업·벤처 녹색융합클러스터</a>
+				                <a href="https://ecosq.or.kr/websquare.do#w2xPath=/ui/cer/ic/oa/ICOA110M01.xml&valVl=4&menuSn=20011113" target="_blank" title="새창열림">제품 환경성 시험분석</a>
+				            	<a href="https://ezepd.epd.or.kr" target="_blank" title="새창열림">환경성적표지 인증신청</a>
+				            </li>			                
+						</ul>
+					</div>
+				</div>
+				<div class="relationLink">
+					<a href="#" aria-expanded="false">유관기관 및 단체 웹사이트 바로가기</a>
+					<div class="linkSelect col3">
+						<ul>
+			                <li><b class="title">기후에너지환경부 및 소속기관</b>
+								<a href="https://www.mcee.go.kr/" target="_blank" title="새창열림">기후에너지환경부</a>
+								<a href="https://www.kma.go.kr" target="_blank" title="새창열림">기상청</a> 
+				                <a href="https://www.nier.go.kr" target="_blank" title="새창열림">국립환경과학원</a> 
+				                <a href="https://ehrd.mcee.go.kr" target="_blank" title="새창열림">국립환경인력개발원</a> 
+				                <a href="https://www.nibr.go.kr" target="_blank" title="새창열림">국립생물자원관</a> 
+				                <a href="https://ecc.mcee.go.kr" target="_blank" title="새창열림">중앙환경분쟁조정위원회</a> 
+				                <a href="https://www.gir.go.kr" target="_blank" title="새창열림">온실가스종합정보센터</a> 
+				                <a href="https://nics.mcee.go.kr" target="_blank" title="새창열림">화학물질안전원</a>
+				                <a href="https://www.air.go.kr" target="_blank" title="새창열림">국가미세먼지정보센터</a> 
+				                <a href="https://www.mcee.go.kr/niwdc" target="_blank" title="새창열림">국가야생동물질병관리원</a> 
+				                <a href="https://www.mcee.go.kr/mamo" target="_blank" title="새창열림">수도권대기환경청</a> 
+				                <a href="https://www.mcee.go.kr/hg" target="_blank" title="새창열림">한강유역환경청</a>  
+				            </li>			                
+			                <li><b class="title">공공기관</b>
+								<a href="https://www.keco.or.kr" target="_blank" title="새창열림">한국환경공단</a>
+								<a href="https://www.slc.or.kr" target="_blank" title="새창열림">수도권매립지관리공사</a> 
+				                <a href="https://www.knps.or.kr" target="_blank" title="새창열림">국립공원공단</a> 
+				                <a href="https://www.nie.re.kr" target="_blank" title="새창열림">국립생태원</a> 
+								<a href="https://www.keci.or.kr" target="_blank" title="새창열림">한국환경보전원</a> 
+				                <a href="https://www.knps.or.kr" target="_blank" title="새창열림">국립공원공단</a>
+				                <a href="https://www.kdhc.co.kr" target="_blank" title="새창열림">한국지역난방공사</a> 
+				                <a href="https://www.kepco.co.kr" target="_blank" title="새창열림">한국전력공사</a>   
+				                <a href="https://www.kesco.or.kr" target="_blank" title="새창열림">한국전기안전공사</a> 
+				                <a href="https://www.kwater.or.kr" target="_blank" title="새창열림">한국수자원공사</a>
+				                <a href="https://www.kwtc.or.kr" target="_blank" title="새창열림">한국물기술인증원</a>
+				                <a href="https://www.nnibr.re.kr" target="_blank" title="새창열림">국립낙동강생물자원관</a>
+				                <a href="https://www.hnibr.re.kr" target="_blank" title="새창열림">국립호남권생물자원관</a>
+				                <a href="https://www.energy.or.kr" target="_blank" title="새창열림">한국에너지공단</a>
+			                </li>			                
+			                <li><b class="title">관련기관,단체,협회</b>
+			                	<a href="https://www.kihs.re.kr" target="_blank" title="새창열림">한국수자원조사기술원</a>
+			                	<a href="https://www.kei.re.kr" target="_blank" title="새창열림">한국환경보전원</a>
+				                <a href="https://www.kwwa.or.kr" target="_blank" title="새창열림">한국상하수도협회</a> 
+				                <a href="https://koreca.or.kr" target="_blank" title="새창열림">한국환경컨설팅협회</a> 
+				                <a href="https://www.kcma.or.kr" target="_blank" title="새창열림">한국화학물질관리협회</a> 
+				                <a href="https://www.aea.or.kr" target="_blank" title="새창열림">한국자동차환경협회</a> 
+				                <a href="https://www.kwaste.or.kr" target="_blank" title="새창열림">한국폐기물협회</a>
+				                <a href="https://www.eiaa.or.kr" target="_blank" title="새창열림">환경영향평가협회</a> 
+				                <a href="https://www.geca.or.kr/" target="_blank" title="새창열림">녹색환경지원센터연합회</a>
+				                <a href="https://www.keia.kr/" target="_blank" title="새창열림">한국환경산업협회</a>
+				                <a href="https://www.kosenv.or.kr" target="_blank" title="새창열림">대한환경공학회</a>				
+				                <a href="https://kosae.or.kr:50010" target="_blank" title="새창열림">한국대기환경학회</a>
+				                <a href="https://www.kswe.org" target="_blank" title="새창열림">한국물환경학회</a>
+				                <a href="https://www.kscc.re.kr" target="_blank" title="새창열림">한국기후변화학회</a>
+			                </li>	                      
+						</ul>
+					</div>
+				</div>
+				<div class="relationLink">
+					<a href="#" aria-expanded="false">기관소개 바로가기</a>
+					<div class="linkSelect iconBox">
+						<ul>
+							<li><a href="/site/keiti/01/10103010000002018092810.jsp" class="icon1">설립목적</a></li>
+							<li><a href="/site/keiti/01/10101010000002018092810.jsp" class="icon2">원장실</a></li>
+							<li><a href="/site/keiti/ex/emp/Emp_List.do" class="icon3">조직/구성원</a></li>
+							<li><a href="/site/keiti/01/10106000000002018102601.jsp" class="icon4">찾아오시는길</a></li>
+						</ul>
+					</div>
+				</div>
+				<div class="relationLink">
+					<a href="#" aria-expanded="false">정보공개 바로가기</a>
+					<div class="linkSelect iconBox">
+						<ul>
+							<li><a href="/site/keiti/04/10402010000002018102909.jsp" class="icon5">통합공시</a></li>
+							<li><a href="http://www.alio.go.kr/popSusi.do?apbaId=C0391&reportFormRootNo=21110" class="icon7" target="_blank" title="내부규정 바로가기">내부규정</a></li>
+							<li><a href="/site/keiti/ex/board/List.do?cbIdx=321" class="icon8">행정정보공개</a></li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="inner">
+			<a href="#" class="ftLogo"><img src="/images/keiti/common/logo_ft.png" alt="KEITI 한국환경산업기술원"></a>
+			<div class="fnb">
+				<ul>
+					<li><a href="/site/keiti/06/10603000000002023090101.jsp"><font color="yellow" style="font-size: 17px;font-weight: bold;">개인정보처리방침</font></a></li>
+					<li><a href="/site/keiti/06/10709000000002024090201.jsp">알기쉬운 개인정보처리방침</a></li>
+					<!--<li><a href="#">개인정보침해신고센터</a></li>-->
+					<li><a href="/site/keiti/06/10604000000002018120303.jsp">저작권정책</a></li>
+<!-- 					<li><a href="/site/keiti/ex/board/List.do?cbIdx=275">고객제안</a></li> -->
+					<li><a href="/site/keiti/06/10607000000002018120404.jsp">이메일무단수집거부</a></li>
+					<!--  <li><a href="#">고객헌장</a></li>-->
+					<li><a href="/site/keiti/06/10605000000002023091101.jsp">고정형 영상정보처리기기 운영 · 관리 방침</a></li>
+				</ul>
+			</div>
+			<div class="copyright">
+				<span>(우)03367 서울시 은평구 진흥로 215 한국환경산업기술원</span><span>대표연락처 TEL:02-2284-1000</span>
+				<p>COPYRIGHT ⓒ 2018 KEITI. ALL RIGHTS RESERVED.</p>
+			</div>
+			<div class="mark">
+                <a href="/site/keiti/06/10606000000002018120404.jsp"><img src="/images/keiti/common/wa_2025.png" style="width:81px; height:58px;" alt="웹접근성 인증마크"></a>
+              <!--   <br /><a href="https://www.microsoft.com/ko-kr/edge"><Strong>Edge 다운로드</Strong></a>
+                <br /><a href="https://www.google.com/chrome"><Strong>chrome 다운로드</Strong></a> -->
+            </div>
+		</div>
+	</div>
+	<!-- //하단 -->
+</div>
+<div id="overlay"></div>
+</body>
+</html>
+
+
+<script type="text/javascript"> 
+	
+	$(".tabBar.board ul li").focusout(function() {
+		$(this).find("a").attr("title","");		
+ 	});	
+	
+	$(".tabBar.board ul li").click(function() {
+		$(".initTab").attr("title","");	
+		$(this).find("a").attr("title","선택됨");
+ 	});
+
+</script>
+
+
