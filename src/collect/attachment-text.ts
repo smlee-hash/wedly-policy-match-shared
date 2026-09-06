@@ -136,7 +136,8 @@ export type AttachmentFetch = (url: string, init?: RequestInit) => Promise<Respo
  * hwpx(한글 2014+)에서 글자를 뽑는 함수 — 앱이 넣어 준다(원문: 앱의 documents/extract-text
  * 의 `extractHwpx`, adm-zip 로 `Contents/section*.xml` 을 푼다). pdf·hwp 는 이 보관함이 이미
  * `unpdf`·`cfb` 로 직접 뽑지만, hwpx 추출기는 adm-zip 을 끌고 와 여기 두지 않고 주입으로 받는다.
- * 안 넘기면 hwpx 는 빈 글로 취급한다(앱은 반드시 넣어 준다).
+ * ★**필수 주입**이다(P3 회귀 방어) — 안 넘기면 타입 오류다. 옛날엔 안 넘기면 조용히 빈 글로
+ * 취급해서, hwpx 첨부에만 본문이 있는 공고가 빈 채로 저장되고 회차는 성공으로 끝나는 사고가 있었다.
  */
 export type ExtractHwpx = (buf: Buffer) => string | Promise<string>;
 
@@ -146,8 +147,8 @@ export type FetchAttachmentTextsOptions = {
   timeoutMs?: number;
   totalCharCap?: number;
   fetch?: AttachmentFetch;
-  /** hwpx 글자 추출기(앱 주입). 위 `ExtractHwpx` 주석 참조. */
-  extractHwpx?: ExtractHwpx;
+  /** hwpx 글자 추출기(앱 주입 — **필수**). 위 `ExtractHwpx` 주석 참조. */
+  extractHwpx: ExtractHwpx;
   /**
    * 바깥에서 건 **예산** 표식. 파일 하나짜리 시간 상한(`timeoutMs`)과 **함께** 걸려,
    * 둘 중 먼저 끝나는 쪽이 요청을 끊는다.
@@ -430,19 +431,21 @@ async function downloadBytes(
 
 export type FetchAttachmentTextsFn = (
   attachments: PolicyAttachmentRequest[],
-  opts?: FetchAttachmentTextsOptions,
+  // opts 는 이제 필수다 — extractHwpx 를 반드시 넣어야 하기 때문(P3 회귀 방어).
+  opts: FetchAttachmentTextsOptions,
 ) => Promise<AttachmentTextResult>;
 
 export async function fetchAttachmentTexts(
   attachments: PolicyAttachmentRequest[],
-  opts: FetchAttachmentTextsOptions = {},
+  opts: FetchAttachmentTextsOptions,
 ): Promise<AttachmentTextResult> {
   const maxFiles = opts.maxFiles ?? DEFAULT_MAX_FILES;
   const maxBytes = opts.maxBytes ?? DEFAULT_MAX_BYTES;
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const totalCharCap = opts.totalCharCap ?? DEFAULT_CHAR_CAP;
   const fetchImpl = opts.fetch ?? fetch;
-  const extractHwpx: ExtractHwpx = opts.extractHwpx ?? (() => "");
+  // 조용한 기본값(() => "")을 없앴다 — 안 넘기면 타입 오류로 잡힌다(P3 회귀 방어).
+  const extractHwpx: ExtractHwpx = opts.extractHwpx;
 
   const list = asPolicyAttachments(attachments).filter((a) => CANDIDATE_KINDS.has(a.kind));
   // 같은 등급 안에서는 원래 차례를 지킨다(안정 정렬) — 첫 첨부가 대개 본 공고문이다.

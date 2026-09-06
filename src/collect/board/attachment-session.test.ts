@@ -191,7 +191,7 @@ describe("상세 세션으로 첨부 받기", () => {
         throw Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" });
       });
       const wrapped = sessionAttachmentFetch(sjtpConfig, DETAIL, impl)!;
-      const r = await fetchAttachmentTexts([{ name: "공고문.pdf", url: ATTACH, kind: "pdf" }], { fetch: wrapped });
+      const r = await fetchAttachmentTexts([{ name: "공고문.pdf", url: ATTACH, kind: "pdf" }], { extractHwpx: () => "",  fetch: wrapped });
       expect(r.proxyFailed).toBe(true);
       expect(r.failedFiles).toEqual(["공고문.pdf"]);
     });
@@ -276,7 +276,7 @@ describe("쿠키 없이 부르면 어떤 일이 벌어지나 — 내려받기 �
 
   it("★맨 GET 은 200 + HTML 을 받아 「읽지 못한 첨부」가 된다", async () => {
     const { fetchImpl } = fakeBoard({ requireCookie: true, file: await makePdf("SJTP_SESSION_MARK") });
-    const r = await fetchAttachmentTexts(ATT, { fetch: fetchImpl });
+    const r = await fetchAttachmentTexts(ATT, { extractHwpx: () => "",  fetch: fetchImpl });
     expect(r.readFiles).toEqual([]);
     expect(r.failedFiles).toEqual(["공고문.pdf"]);
     expect(r.text).toContain("[읽지 못한 첨부: 공고문.pdf]");
@@ -285,7 +285,7 @@ describe("쿠키 없이 부르면 어떤 일이 벌어지나 — 내려받기 �
   it("세션 감싸개를 끼우면 **같은 첨부의 글자가 실제로 나온다**", async () => {
     const { fetchImpl } = fakeBoard({ requireCookie: true, file: await makePdf("SJTP_SESSION_MARK") });
     const wrapped = sessionAttachmentFetch(sjtpConfig, DETAIL, fetchImpl)!;
-    const r = await fetchAttachmentTexts(ATT, { fetch: wrapped });
+    const r = await fetchAttachmentTexts(ATT, { extractHwpx: () => "",  fetch: wrapped });
     expect(r.readFiles).toEqual(["공고문.pdf"]);
     expect(r.failedFiles).toEqual([]);
     expect(r.text).toContain("SJTP_SESSION_MARK");

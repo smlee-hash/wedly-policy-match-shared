@@ -199,7 +199,7 @@ describe("fetchAttachmentTexts", () => {
     const pdf = await makePdf("SCALE_ITEM_BUDGET");
     const r = await fetchAttachmentTexts(
       [att({ name: "공고.pdf", url: `${B}a.pdf`, kind: "pdf" })],
-      { fetch: async () => okResponse(pdf) },
+      { extractHwpx: () => "",  fetch: async () => okResponse(pdf) },
     );
     expect(r.readFiles).toEqual(["공고.pdf"]);
     expect(r.text).toContain("SCALE_ITEM_BUDGET");
@@ -214,7 +214,7 @@ describe("fetchAttachmentTexts", () => {
         att({ name: "표.xlsx", url: `${B}b.xlsx`, kind: "etc" }),
         att({ name: "공고.pdf", url: `${B}c.pdf`, kind: "pdf" }),
       ],
-      {
+      { extractHwpx: () => "", 
         maxFiles: 3,
         fetch: async (url) => {
           urls.push(url);
@@ -235,7 +235,7 @@ describe("fetchAttachmentTexts", () => {
     const urls: string[] = [];
     const pdf = await makePdf("EXTLESS");
     const url = `https://www.nipa.kr/comm/getFile?srvcId=BBSTY1&upperNo=abc==&fileTy=ATTACH&fileNo=def==`;
-    const r = await fetchAttachmentTexts([att({ name: "", url, kind: "etc" })], {
+    const r = await fetchAttachmentTexts([att({ name: "", url, kind: "etc" })], { extractHwpx: () => "", 
       maxFiles: 1,
       fetch: async (u) => {
         urls.push(u);
@@ -253,7 +253,7 @@ describe("fetchAttachmentTexts", () => {
     const list = [1, 2, 3, 4].map((n) =>
       att({ name: `${n}.pdf`, url: `${B}${n}.pdf`, kind: "pdf" }),
     );
-    const r = await fetchAttachmentTexts(list, {
+    const r = await fetchAttachmentTexts(list, { extractHwpx: () => "", 
       maxFiles: 3,
       fetch: async (url) => {
         urls.push(url);
@@ -302,7 +302,7 @@ describe("fetchAttachmentTexts", () => {
         att({ name: "가짜.pdf", url: "https://evil.example.com/a.pdf", kind: "pdf" }),
         att({ name: "공고.pdf", url: `${B}c.pdf`, kind: "pdf" }),
       ],
-      {
+      { extractHwpx: () => "", 
         // 기본 상한은 1개다(비용) — 이 시험은 주소 거르기를 재므로 명시해 준다.
         maxFiles: 3,
         fetch: async (url) => {
@@ -323,7 +323,7 @@ describe("fetchAttachmentTexts", () => {
     const pdf = await makePdf("UPGRADE");
     const r = await fetchAttachmentTexts(
       [att({ name: "공고.pdf", url: "http://www.bizinfo.go.kr/a.pdf", kind: "pdf" })],
-      {
+      { extractHwpx: () => "", 
         fetch: async (url) => {
           urls.push(url);
           return okResponse(pdf);
@@ -341,7 +341,7 @@ describe("fetchAttachmentTexts", () => {
     });
     const r = await fetchAttachmentTexts(
       [att({ name: "큰파일.pdf", url: `${B}big.pdf`, kind: "pdf" })],
-      { maxBytes: 10_000, fetch: async () => res },
+      { extractHwpx: () => "",  maxBytes: 10_000, fetch: async () => res },
     );
     expect(r.readFiles).toEqual([]);
     expect(r.failedFiles).toEqual(["큰파일.pdf"]);
@@ -353,7 +353,7 @@ describe("fetchAttachmentTexts", () => {
     const pdf = await makePdf("SMALL_BUT_LIES");
     const r = await fetchAttachmentTexts(
       [att({ name: "공고.pdf", url: `${B}a.pdf`, kind: "pdf" })],
-      {
+      { extractHwpx: () => "", 
         maxBytes: 10 * 1024 * 1024,
         fetch: async () => okResponse(pdf, { "content-length": String(999 * 1024 * 1024) }),
       },
@@ -365,7 +365,7 @@ describe("fetchAttachmentTexts", () => {
   it("첨부당 상한을 넘으면 실패 표시를 남긴다", async () => {
     const r = await fetchAttachmentTexts(
       [att({ name: "큰파일.pdf", url: `${B}big.pdf`, kind: "pdf" })],
-      {
+      { extractHwpx: () => "", 
         maxBytes: 10,
         fetch: async () => okResponse(Buffer.from("%PDF-1.4 too big")),
       },
@@ -382,7 +382,7 @@ describe("fetchAttachmentTexts", () => {
         att({ name: "없음.hwp", url: `${B}missing.hwp`, kind: "hwp" }),
         att({ name: "공고.pdf", url: `${B}ok.pdf`, kind: "pdf" }),
       ],
-      {
+      { extractHwpx: () => "", 
         maxFiles: 3,
         fetch: async (url) => {
           if (url.includes("missing")) return new Response("gone", { status: 404 });
@@ -403,7 +403,7 @@ describe("fetchAttachmentTexts", () => {
         att({ name: "a.pdf", url: `${B}a.pdf`, kind: "pdf" }),
         att({ name: "b.pdf", url: `${B}b.pdf`, kind: "pdf" }),
       ],
-      { totalCharCap: 40, fetch: async () => okResponse(pdf) },
+      { extractHwpx: () => "",  totalCharCap: 40, fetch: async () => okResponse(pdf) },
     );
     expect(r.text.length).toBeLessThanOrEqual(40);
   });
@@ -413,7 +413,7 @@ describe("fetchAttachmentTexts", () => {
     const pdf = await makePdf("T");
     await fetchAttachmentTexts(
       [att({ name: "a.pdf", url: `${B}a.pdf`, kind: "pdf" })],
-      { fetch: async () => okResponse(pdf) },
+      { extractHwpx: () => "",  fetch: async () => okResponse(pdf) },
     );
     expect(timeout).toHaveBeenCalledWith(30_000);
     timeout.mockRestore();
@@ -434,7 +434,7 @@ describe("fetchAttachmentTexts", () => {
     });
     const r = await fetchAttachmentTexts(
       [att({ name: "a.pdf", url: `${B}a.pdf`, kind: "pdf" })],
-      { fetch: fetchMock as never },
+      { extractHwpx: () => "",  fetch: fetchMock as never },
     );
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(signals).toHaveLength(3);
@@ -463,7 +463,7 @@ describe("기본 상한 — 비용을 묶는 못", () => {
         att({ name: "첫째.pdf", url: `${B}a.pdf`, kind: "pdf" }),
         att({ name: "둘째.pdf", url: `${B}b.pdf`, kind: "pdf" }),
       ],
-      { fetch: async () => okResponse(pdf) },
+      { extractHwpx: () => "",  fetch: async () => okResponse(pdf) },
     );
     expect(r.readFiles).toEqual(["첫째.pdf"]);
     expect(r.skippedFiles).toEqual(["둘째.pdf"]);
@@ -474,7 +474,7 @@ describe("기본 상한 — 비용을 묶는 못", () => {
     // 조용히 자르면 잘린 꼬리에 있던 「지원 제외 대상」이 사라진 채 「가능」이 나온다
     // (2026-08-25 적대적 리뷰 치명 2). 잘렸다는 사실 자체가 「확인 필요」의 근거가 된다.
     const pdf = await makePdf("HEAD_MARK_AAAA BBBB CCCC DDDD EEEE FFFF GGGG");
-    const r = await fetchAttachmentTexts([att({ name: "긴공고.pdf", url: `${B}a.pdf`, kind: "pdf" })], {
+    const r = await fetchAttachmentTexts([att({ name: "긴공고.pdf", url: `${B}a.pdf`, kind: "pdf" })], { extractHwpx: () => "", 
       totalCharCap: 40,
       fetch: async () => okResponse(pdf),
     });
@@ -487,7 +487,7 @@ describe("기본 상한 — 비용을 묶는 못", () => {
 
   it("상한 안에 들어오면 잘림 표식이 없다", async () => {
     const pdf = await makePdf("SHORT");
-    const r = await fetchAttachmentTexts([att({ name: "짧은공고.pdf", url: `${B}a.pdf`, kind: "pdf" })], {
+    const r = await fetchAttachmentTexts([att({ name: "짧은공고.pdf", url: `${B}a.pdf`, kind: "pdf" })], { extractHwpx: () => "", 
       fetch: async () => okResponse(pdf),
     });
     expect(r.skippedFiles).toEqual([]);
@@ -529,7 +529,7 @@ describe("★배선 — 걸러내기가 fetchAttachmentTexts 를 실제로 지�
 
   it("★첨부 이름에 든 빈 글자가 나가는 글자에 남지 않는다", async () => {
     // 이름은 부르는 쪽이 준다 — 파일 내용이 아니라서 글자 뽑기를 안 거친다.
-    const r = await fetchAttachmentTexts([att({ name: "공고\u0000문.pdf", url: 다른호스트, kind: "pdf" })]);
+    const r = await fetchAttachmentTexts([att({ name: "공고\u0000문.pdf", url: 다른호스트, kind: "pdf" })], { extractHwpx: () => "" });
     expect(r.text).toContain("허용되지 않은 첨부 주소");
     expect(r.text).not.toContain("\u0000");
   });
@@ -537,7 +537,7 @@ describe("★배선 — 걸러내기가 fetchAttachmentTexts 를 실제로 지�
   it("★글자 상한이 이모지 한가운데를 잘라도 반쪽 글자가 안 남는다", async () => {
     // 자르기(`slice`)는 갈래별 걸러내기 **뒤**에 일어난다 — 여기서 새 반쪽이 생긴다.
     // `[허용되지 않은 첨부 주소: ` 16칸 + `가` 1칸 + 이모지 2칸 → 상한 18이면 이모지 한가운데.
-    const r = await fetchAttachmentTexts([att({ name: "가\u{1F3AF}", url: 다른호스트, kind: "pdf" })], {
+    const r = await fetchAttachmentTexts([att({ name: "가\u{1F3AF}", url: 다른호스트, kind: "pdf" })], { extractHwpx: () => "", 
       totalCharCap: 18,
     });
     expect(r.text.isWellFormed()).toBe(true);
@@ -567,7 +567,7 @@ describe("fetchAttachmentTexts — kind 가 etc 여도 내려받아 냄새로 �
     const fetchMock = vi.fn(async () => okResponse(pdfBytes));
     const r = await fetchAttachmentTexts(
       [{ name: "download.do", url: "https://www.kbiz.or.kr/download.do?orgalFle=ebb699&seq=1", kind: "etc" }],
-      { fetch: fetchMock as never },
+      { extractHwpx: () => "",  fetch: fetchMock as never },
     );
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(r.readFiles).toEqual(["download.do"]);
@@ -579,7 +579,7 @@ describe("fetchAttachmentTexts — kind 가 etc 여도 내려받아 냄새로 �
     const fetchMock = vi.fn(async () => new Response("<html>로그인 필요</html>", { status: 200 }));
     const r = await fetchAttachmentTexts(
       [{ name: "download.do", url: "https://www.kbiz.or.kr/download.do?seq=2", kind: "etc" }],
-      { fetch: fetchMock as never },
+      { extractHwpx: () => "",  fetch: fetchMock as never },
     );
     expect(r.failedFiles).toEqual(["download.do"]);
     expect(r.text).toContain("[읽지 못한 첨부: download.do]");
@@ -597,7 +597,7 @@ describe("fetchAttachmentTexts — kind 가 etc 여도 내려받아 냄새로 �
         { name: "download.do", url: "https://www.kbiz.or.kr/download.do?seq=1", kind: "etc" },
         { name: "공고문.pdf", url: "https://www.kbiz.or.kr/공고문.pdf", kind: "pdf" },
       ],
-      { fetch: fetchMock as never, maxFiles: 1 },
+      { extractHwpx: () => "",  fetch: fetchMock as never, maxFiles: 1 },
     );
     expect(calls).toEqual(["https://www.kbiz.or.kr/%EA%B3%B5%EA%B3%A0%EB%AC%B8.pdf"]);
   });
@@ -627,7 +627,7 @@ describe("fetchAttachmentTexts — 이름/주소 kind 가 비면 바이트 냄�
   it("kind 가 pdf 인데 바이트가 HTML 이면 읽지 못한 첨부로 남긴다", async () => {
     const r = await fetchAttachmentTexts(
       [att({ name: "cover.pdf", url: `${B}download.do?return=cover.pdf`, kind: "pdf" })],
-      { fetch: async () => okResponse(Buffer.from("<html>로그인 필요</html>")) },
+      { extractHwpx: () => "",  fetch: async () => okResponse(Buffer.from("<html>로그인 필요</html>")) },
     );
     expect(r.readFiles).toEqual([]);
     expect(r.failedFiles).toEqual(["cover.pdf"]);
@@ -671,7 +671,7 @@ describe("fetchAttachmentTexts — 요청 방법(fetch) 주입", () => {
     const globalFetch = vi.spyOn(globalThis, "fetch");
     const r = await fetchAttachmentTexts(
       [att({ name: "공고.pdf", url: `${B}a.pdf`, kind: "pdf" })],
-      { fetch: injected },
+      { extractHwpx: () => "",  fetch: injected },
     );
     expect(injected).toHaveBeenCalledTimes(1);
     expect(urls).toEqual([`${B}a.pdf`]);
@@ -684,7 +684,7 @@ describe("fetchAttachmentTexts — 요청 방법(fetch) 주입", () => {
   it("주입하지 않으면 예전대로 전역 fetch 로 나간다", async () => {
     const pdf = await makePdf("GLOBAL_FETCH");
     const globalFetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(okResponse(pdf));
-    const r = await fetchAttachmentTexts([att({ name: "공고.pdf", url: `${B}a.pdf`, kind: "pdf" })]);
+    const r = await fetchAttachmentTexts([att({ name: "공고.pdf", url: `${B}a.pdf`, kind: "pdf" })], { extractHwpx: () => "" });
     expect(globalFetch).toHaveBeenCalledTimes(1);
     expect(globalFetch.mock.calls[0][0]).toBe(`${B}a.pdf`);
     expect(r.readFiles).toEqual(["공고.pdf"]);
@@ -696,7 +696,7 @@ describe("fetchAttachmentTexts — 요청 방법(fetch) 주입", () => {
     const injected = vi.fn(async () => okResponse(Buffer.from("x")));
     const r = await fetchAttachmentTexts(
       [att({ name: "공고.pdf", url: "https://evil.example.com/a.pdf", kind: "pdf" })],
-      { fetch: injected },
+      { extractHwpx: () => "",  fetch: injected },
     );
     expect(injected).not.toHaveBeenCalled();
     expect(r.text).toContain("허용되지 않은 첨부 주소");
@@ -721,7 +721,7 @@ describe("fetchAttachmentTexts — 경유 통로 실패는 사이트 실패와 �
         att({ name: "a.pdf", url: `${B}a.pdf`, kind: "pdf" }),
         att({ name: "b.pdf", url: `${B}b.pdf`, kind: "pdf" }),
       ],
-      { maxFiles: 2, fetch: async () => { throw 통로실패(); } },
+      { extractHwpx: () => "",  maxFiles: 2, fetch: async () => { throw 통로실패(); } },
     );
     expect(r.proxyFailed).toBe(true);
     expect(r.readFiles).toEqual([]);
@@ -731,7 +731,7 @@ describe("fetchAttachmentTexts — 경유 통로 실패는 사이트 실패와 �
   it("사이트가 404 를 준 것은 proxyFailed 가 아니다 — 예전대로 못 읽은 첨부", async () => {
     const r = await fetchAttachmentTexts(
       [att({ name: "a.pdf", url: `${B}a.pdf`, kind: "pdf" })],
-      { fetch: async () => new Response("gone", { status: 404 }) },
+      { extractHwpx: () => "",  fetch: async () => new Response("gone", { status: 404 }) },
     );
     expect(r.proxyFailed).toBe(false);
     expect(r.failedFiles).toEqual(["a.pdf"]);
@@ -751,7 +751,7 @@ describe("fetchAttachmentTexts — 경유 통로 실패는 사이트 실패와 �
         att({ name: "a.pdf", url: `${B}a.pdf`, kind: "pdf" }),
         att({ name: "b.pdf", url: `${B}b.pdf`, kind: "pdf" }),
       ],
-      { maxFiles: 2, fetch: async () => { if (n++ === 0) throw 통로실패(); return okResponse(pdf); } },
+      { extractHwpx: () => "",  maxFiles: 2, fetch: async () => { if (n++ === 0) throw 통로실패(); return okResponse(pdf); } },
     );
     expect(r.proxyFailed).toBe(true);
     expect(r.readFiles).toEqual(["b.pdf"]);
@@ -761,13 +761,13 @@ describe("fetchAttachmentTexts — 경유 통로 실패는 사이트 실패와 �
     const pdf = await makePdf("REACHED");
     const ok = await fetchAttachmentTexts(
       [att({ name: "a.pdf", url: `${B}a.pdf`, kind: "pdf" })],
-      { fetch: async () => okResponse(pdf) },
+      { extractHwpx: () => "",  fetch: async () => okResponse(pdf) },
     );
     expect(ok.proxyFailed).toBe(false);
   });
 
   it("요청까지 간 첨부가 없으면(허용 안 된 주소뿐) proxyFailed 가 아니다", async () => {
-    const r = await fetchAttachmentTexts([att({ name: "a.pdf", url: "https://evil.example.com/a.pdf", kind: "pdf" })]);
+    const r = await fetchAttachmentTexts([att({ name: "a.pdf", url: "https://evil.example.com/a.pdf", kind: "pdf" })], { extractHwpx: () => "" });
     expect(r.proxyFailed).toBe(false);
   });
 });
@@ -794,7 +794,7 @@ describe("fetchAttachmentTexts — POST 로만 주는 첨부", () => {
           body: "attachSeq2=MjA3MjIzOQ%3D%3D",
         },
       ],
-      { fetch: injected },
+      { extractHwpx: () => "",  fetch: injected },
     );
     expect(calls).toHaveLength(1);
     expect(calls[0].init?.method).toBe("POST");
@@ -822,7 +822,7 @@ describe("fetchAttachmentTexts — POST 로만 주는 첨부", () => {
           headers: { "content-type": "text/plain", "X-Board": "hrdk" },
         },
       ],
-      { fetch: injected },
+      { extractHwpx: () => "",  fetch: injected },
     );
     expect(calls[0]["content-type"]).toBe("text/plain");
     expect(calls[0]["X-Board"]).toBe("hrdk");
@@ -841,7 +841,7 @@ describe("fetchAttachmentTexts — POST 로만 주는 첨부", () => {
     });
     const r = await fetchAttachmentTexts(
       [{ name: "공고문.pdf", url: `${B}down.do`, kind: "pdf", method: "POST", body: "a=1" }],
-      { fetch: injected },
+      { extractHwpx: () => "",  fetch: injected },
     );
     expect(inits).toHaveLength(2);
     expect(inits[0]?.method).toBe("POST");
@@ -857,7 +857,7 @@ describe("fetchAttachmentTexts — POST 로만 주는 첨부", () => {
       inits.push(init);
       return okResponse(pdf);
     });
-    const r = await fetchAttachmentTexts([att({ name: "공고.pdf", url: `${B}a.pdf`, kind: "pdf" })], {
+    const r = await fetchAttachmentTexts([att({ name: "공고.pdf", url: `${B}a.pdf`, kind: "pdf" })], { extractHwpx: () => "", 
       fetch: injected,
     });
     expect(inits[0]?.method).toBeUndefined();
