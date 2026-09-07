@@ -6,10 +6,15 @@
 #   헤더 `x-internal-key: {WEDLY_NOTIFY_KEY}` · 본문 `{kind:"status", title, lines[, url]}`.
 #   실제 슬랙 발송은 ERP 가 한다(이 저장소는 슬랙 토큰을 갖지 않는다). 방은 ERP 서버 변수가 정한다.
 #
-# ★종료 코드는 언제나 0 이다. 알림이 안 갔다고 워크플로우를 한 번 더 빨갛게 만들지 않는다 —
-#  실패한 실행은 이미 빨간색이고 GitHub 가 실패 메일을 보낸다(계획서 총괄 결정 5).
-# ★설정(주소·열쇠) 둘 중 하나라도 없으면 아무것도 하지 않고 「설정 없음」만 찍는다.
-#   그래서 시크릿을 아직 안 넣은 저장소에서도 워크플로우가 이 단계 때문에 깨지지 않는다.
+# ★종료 코드(2026-09-08 리뷰 R4 로 바뀐 부분 — 계획서 총괄 결정 5 갱신):
+#   0 = 보냈다 · 1 = 못 보냈다(설정 없음·3회 실패·본문 만들기 실패).
+#   **알림 자체는 실패를 실패라고 알린다. 그것을 무시할지는 부르는 쪽이 정한다.**
+#   - 이미 빨간 job 의 「실패 알림」 단계는 `|| true` 로 부른다(어차피 빨갛다).
+#   - 「배포 확인 못 함」 알림처럼 **그것 말고는 아무도 모르는** 자리는 `|| true` 없이 부른다 —
+#     알림까지 실패하면 job 이 빨개지고 GitHub 가 실패 메일을 보낸다.
+#   옛 동작(무조건 0)은 「배포 확인 실패 + 알림 실패」가 겹치면 아무 표시 없이 초록으로 끝났다.
+# ★설정(주소·열쇠) 둘 중 하나라도 없으면 아무것도 보내지 않고 「설정 없음」을 찍은 뒤 1 로 끝난다.
+#   시크릿을 아직 안 넣은 저장소에서는 부르는 쪽이 `|| true` 로 감싸 넘긴다.
 # ★열쇠는 화면에 찍지 않는다(`set -x` 금지). curl 도 헤더를 되찍지 않게 `-o /dev/null` 로 몸통을 버리고
 #   http 코드만 받는다.
 set -uo pipefail
@@ -30,8 +35,8 @@ URL="${2:-}"
 if [ "$#" -gt 2 ]; then shift 2; else set --; fi
 
 if [ -z "${WEDLY_NOTIFY_URL:-}" ] || [ -z "${WEDLY_NOTIFY_KEY:-}" ]; then
-  echo "notify: 설정 없음(WEDLY_NOTIFY_URL·WEDLY_NOTIFY_KEY) — 알림을 건너뜁니다"
-  exit 0
+  echo "notify: 설정 없음(WEDLY_NOTIFY_URL·WEDLY_NOTIFY_KEY) — 알림을 보내지 못했습니다"
+  exit 1
 fi
 
 # 본문은 node 가 만든다 — 글자 수 자르기와 JSON 이스케이프를 셸에서 하면 반드시 어긋난다.
@@ -49,8 +54,8 @@ BODY="$(
     process.stdout.write(JSON.stringify(body));
   ' "$TITLE" "$URL" ${@+"$@"}
 )" || {
-  echo "notify: 알림 본문을 만들지 못했습니다 — 알림을 건너뜁니다" >&2
-  exit 0
+  echo "notify: 알림 본문을 만들지 못했습니다 — 알림을 보내지 못했습니다" >&2
+  exit 1
 }
 
 ENDPOINT="${WEDLY_NOTIFY_URL%/}${NOTIFY_PATH}"
@@ -73,5 +78,5 @@ while [ "$I" -le "$TRIES" ]; do
   I=$((I + 1))
 done
 
-echo "notify: ${TRIES}회 모두 실패 — 이 실행은 이미 빨간색이고 GitHub 가 실패 메일을 보냅니다"
-exit 0
+echo "notify: ${TRIES}회 모두 실패 — 이 단계를 빨갛게 남깁니다(부르는 쪽이 무시할지 정합니다)" >&2
+exit 1

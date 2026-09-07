@@ -12,12 +12,17 @@ import { beforeEach, describe, expect, it } from "vitest";
  *  (`POST {ERP주소}/api/internal/policy-lab/notify`, 헤더 `x-internal-key`, 본문 kind=status)
  *
  * ★계획서는 「curl 한 줄이라 단위 시험은 두지 않는다」고 했지만 시험을 뒀다. 이유:
- *  이 조각은 **실패해도 항상 exit 0** 이라, 본문 모양이 어긋나면 ERP 가 400 으로 되돌려도
- *  아무도 모른 채 알림만 영원히 사라진다. ERP 통로는 `.strict()` 스키마라 칸 하나만 틀려도 거절한다
+ *  본문 모양이 어긋나면 ERP 가 400 으로 되돌려도 아무도 모른 채 알림만 영원히 사라진다.
+ *  ERP 통로는 `.strict()` 스키마라 칸 하나만 틀려도 거절한다
  *  (2026-09-08 실측 — ERP `src/app/api/internal/policy-lab/notify/route.ts`:
  *   `kind` 3가지 · `title` 1~200자 · `lines` 10줄×500자 · `url` 은 http/https 만,
  *   모르는 칸이 하나라도 있으면 400).
  *  그래서 「보냈다고 찍혔나」가 아니라 **실제로 나간 주소·헤더·본문**을 재고, 재시도와 종료 코드도 잰다.
+ *
+ * ★종료 코드 규격이 2026-09-08 리뷰(R4)로 바뀌었다 — 아래 시험들의 기대값이 그 규격이다:
+ *  **보냈으면 0, 못 보냈으면 1**(설정 없음·3회 실패·본문 실패). 옛 규격은 무조건 0 이었는데,
+ *  그러면 「배포 확인 실패 + 알림 실패」가 겹칠 때 워크플로우가 **아무 표시 없이 초록**으로 끝났다.
+ *  이제 무시할지는 부르는 쪽이 정한다(이미 빨간 job 의 실패 알림만 `|| true`).
  *
  * ★재는 방식: 진짜 스크립트를 돌리되 `curl` 만 PATH 앞의 shim 으로 바꾼다(네트워크 없음).
  *  shim 은 받은 인자를 그대로 적어 두고, 미리 정해 준 http 코드를 차례대로 돌려준다.
@@ -122,7 +127,7 @@ describe("notify.sh", () => {
     expect(existsSync(SCRIPT)).toBe(true);
   });
 
-  it("설정(WEDLY_NOTIFY_URL/KEY)이 없으면 부르지 않고 0 으로 끝난다", () => {
+  it("설정(WEDLY_NOTIFY_URL/KEY)이 없으면 부르지 않고 1 로 끝난다 — 못 보냈다는 사실을 알린다", () => {
     const 빠진경우: Record<string, string>[] = [
       { WEDLY_NOTIFY_URL: "" },
       { WEDLY_NOTIFY_KEY: "" },
@@ -130,7 +135,7 @@ describe("notify.sh", () => {
     ];
     for (const missing of 빠진경우) {
       const r = runNotify(tmp, { args: ["제목", "https://example.test/run/1", "줄1"], env: missing });
-      expect(r.code).toBe(0);
+      expect(r.code).toBe(1);
       expect(r.stdout).toContain("설정 없음");
       expect(r.calls).toHaveLength(0);
     }
@@ -218,17 +223,18 @@ describe("notify.sh", () => {
     expect(r.stdout).toMatch(/보냈습니다/);
   });
 
-  it("3회 모두 실패해도 0 으로 끝난다 — 알림 실패로 봇을 다시 빨갛게 만들지 않는다", () => {
+  it("3회 모두 실패하면 1 로 끝난다 — 알림이 안 갔다는 사실이 부르는 쪽에 전달된다", () => {
+    // 리뷰 R4: 옛 규격(무조건 0)에서는 「배포 확인 실패 + 알림 실패」가 겹치면 초록으로 끝났다.
     const r = runNotify(tmp, { args: ["제목", "https://example.test/run/1"], codes: ["401", "401", "401"] });
-    expect(r.code).toBe(0);
+    expect(r.code).toBe(1);
     expect(r.calls).toHaveLength(3);
     expect(r.stdout).toContain("http=401");
-    expect(r.stdout).toMatch(/3회/);
+    expect(r.stderr).toMatch(/3회/);
   });
 
-  it("연결 자체가 안 돼도(curl 종료 코드 7) 3회 시도하고 0 으로 끝난다", () => {
+  it("연결 자체가 안 돼도(curl 종료 코드 7) 3회 시도하고 1 로 끝난다", () => {
     const r = runNotify(tmp, { args: ["제목", "https://example.test/run/1"], codes: ["boom", "boom", "boom"] });
-    expect(r.code).toBe(0);
+    expect(r.code).toBe(1);
     expect(r.calls).toHaveLength(3);
     expect(r.stdout).toContain("http=000");
   });
@@ -237,11 +243,16 @@ describe("notify.sh", () => {
     const r = runNotify(tmp, { args: ["제목", "https://example.test/run/1"], codes: ["401", "401", "401"] });
     // ★먼저 「진짜로 열쇠를 쥐고 돌았다」를 확인한다 — 스크립트가 없어서 아무것도 안 한 것도
     //  「열쇠가 안 찍혔다」는 통과하기 때문이다(Task 2 에서 겪은 거짓 통과).
-    expect(r.code, r.stderr).toBe(0);
+    expect(r.code).toBe(1); // 401 3회 = 못 보냄
     expect(r.calls).toHaveLength(3);
     expect(r.calls[0].join(" ")).toContain(FAKE_KEY);
     expect(r.stdout).not.toContain(FAKE_KEY);
     expect(r.stderr).not.toContain(FAKE_KEY);
+  });
+
+  it("보냈을 때만 0 이다 — 200 한 번이면 0", () => {
+    const r = runNotify(tmp, { args: ["제목", "https://example.test/run/1"], codes: ["200"] });
+    expect(r.code, r.stderr).toBe(0);
   });
 
   it("재시도 간격 기본값은 30초다(시험만 0 으로 줄인다)", () => {
