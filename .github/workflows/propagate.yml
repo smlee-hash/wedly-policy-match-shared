@@ -16,7 +16,9 @@
 #   `PROPAGATE_TOKEN`            — 앱 3저장소 contents:write PAT. **밀기에만** 쓴다.
 #   `WEDLY_NOTIFY_KEY`           — ERP 내부 알림 열쇠. **밀기 job 에만** 준다(아래 ★알림 지점).
 #   `PROPAGATE_ARTIFACT_PRIVKEY` — 산출물 봉인을 푸는 비밀키 PEM. **밀기 job 에만** 준다.
-# 변수:  `PROPAGATE_ENABLED` · `WEDLY_NOTIFY_URL`(ERP 주소)
+# 변수:
+#   `PROPAGATE_ENABLED`          — 끄는 스위치(자동 실행만 막는다).
+#   `WEDLY_NOTIFY_URL`           — ERP 주소.
 #   `PROPAGATE_ARTIFACT_PUBKEY`  — 산출물을 봉인하는 공개키 PEM(비밀이 아니라 **변수**다).
 #
 # ★산출물은 봉인해서 올린다(2026-09-08 총괄 결정 F9):
