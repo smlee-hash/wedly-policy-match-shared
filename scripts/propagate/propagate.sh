@@ -30,6 +30,7 @@ BOT_EMAIL="policy-bot@wedly.kr"
 ASKPASS_FILE=""
 STDERR_FILE=""
 
+# shellcheck disable=SC2329  # 아래 `trap cleanup EXIT` 이 부른다 — shellcheck 는 trap 안을 못 본다
 cleanup() {
   [ -z "$ASKPASS_FILE" ] || rm -f "$ASKPASS_FILE"
   [ -z "$STDERR_FILE" ] || rm -f "$STDERR_FILE"
