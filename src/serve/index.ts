@@ -101,3 +101,5 @@ export {
   takeAttachmentToken,
 } from "./attachment-download";
 export type { AttachmentDownloadInput, AttachmentDownloadResult } from "./attachment-download";
+
+export { isBillingOrAuthError } from "./ai-errors";

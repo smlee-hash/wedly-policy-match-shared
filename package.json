@@ -24,6 +24,18 @@
       "types": "./src/collect/*.ts",
       "default": "./src/collect/*.ts"
     },
+    "./serve": {
+      "types": "./src/serve/index.ts",
+      "default": "./src/serve/index.ts"
+    },
+    "./serve/*": {
+      "types": "./src/serve/*.ts",
+      "default": "./src/serve/*.ts"
+    },
+    "./collect/source-names": {
+      "types": "./src/collect/source-names.ts",
+      "default": "./src/collect/source-names.ts"
+    },
     "./match-engine": {
       "types": "./src/engine/match-engine.ts",
       "default": "./src/engine/match-engine.ts"

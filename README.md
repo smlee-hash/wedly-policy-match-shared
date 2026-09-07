@@ -33,7 +33,7 @@ export { default } from "@wedly/policy-match-shared/ui/FundingMap";
 export * from "@wedly/policy-match-shared/ui/FundingMap";
 ```
 
-부를 수 있는 주소는 `package.json` 의 `exports` 지도에 **44개**가 전부 적혀 있다(2026-09-07 P4 에서 14개 추가 — `./ai*` 4 · `./ui/policy*` 10. 그 전 값은 30개였고 이 문서가 25개로 낡아 있었다). 지도에 없는 깊은 경로(`.../src/engine/...`)를 직접 부르지 마라 — 지도가 계약이다. **지도와 실물이 어긋나는지는 `src/exports-map.test.ts` 가 잰다** — 안 재면 잘못이 소비 앱 배포에서만 터진다(`ERR_PACKAGE_PATH_NOT_EXPORTED`).
+부를 수 있는 주소는 `package.json` 의 `exports` 지도에 **47개**가 전부 적혀 있다(2026-09-07 P4 에서 17개 추가 — `./ai*` 4 · `./ui/policy*` 10 · `./serve` 2 · `./collect/source-names` 1. 그 전 값은 30개였고 이 문서가 25개로 낡아 있었다). 지도에 없는 깊은 경로(`.../src/engine/...`)를 직접 부르지 마라 — 지도가 계약이다. **지도와 실물이 어긋나는지는 `src/exports-map.test.ts` 가 잰다** — 안 재면 잘못이 소비 앱 배포에서만 터진다(`ERR_PACKAGE_PATH_NOT_EXPORTED`).
 
 ### 2-b. 지원정책 매칭 화면 한 벌(`./ui/policy/*`) — 2026-09-07 P4
 
