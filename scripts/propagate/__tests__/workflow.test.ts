@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { jobSection as sliceJob, runBlocks } from "./yaml-run-blocks";
 
 /**
  * `.github/workflows/propagate.yml` 의 「지켜야 하는 모양」 시험 — 2026-09-08 리뷰(R2·R3·R4).
@@ -23,41 +24,11 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const FILE = resolve(HERE, "../../../.github/workflows/propagate.yml");
 const YAML = readFileSync(FILE, "utf8");
 
-/** `run:` 값(한 줄짜리와 `|` 블록 둘 다)을 들여쓰기로 잘라 낸다 */
-function runBlocks(text: string): string[] {
-  const lines = text.split("\n");
-  const blocks: string[] = [];
-  for (let i = 0; i < lines.length; i += 1) {
-    const m = /^(\s*)run:\s*(.*)$/.exec(lines[i]);
-    if (!m) continue;
-    const indent = m[1].length;
-    const rest = m[2].trim();
-    if (rest && !/^[|>][-+]?$/.test(rest)) {
-      blocks.push(rest);
-      continue;
-    }
-    const body: string[] = [];
-    for (let j = i + 1; j < lines.length; j += 1) {
-      const line = lines[j];
-      if (line.trim() === "") {
-        body.push("");
-        continue;
-      }
-      if (line.length - line.trimStart().length <= indent) break;
-      body.push(line);
-    }
-    blocks.push(body.join("\n"));
-  }
-  return blocks;
-}
-
-/** `  <이름>:` 로 시작하는 job 한 덩어리를 잘라 낸다 */
+/** `  <이름>:` 로 시작하는 job 한 덩어리 — 못 찾으면 그 자리에서 빨갛게 */
 function jobSection(name: string): string {
-  const start = YAML.indexOf(`\n  ${name}:\n`);
-  expect(start, `job 을 찾지 못했습니다: ${name}`).toBeGreaterThan(0);
-  const after = YAML.slice(start + 1);
-  const next = after.slice(1).search(/\n {2}[a-z_]+:\n/);
-  return next === -1 ? after : after.slice(0, next + 1);
+  const section = sliceJob(YAML, name);
+  expect(section, `job 을 찾지 못했습니다: ${name}`).not.toBe("");
+  return section;
 }
 
 const BLOCKS = runBlocks(YAML);
@@ -169,7 +140,9 @@ describe(".github/workflows/propagate.yml", () => {
     expect(resolve).not.toMatch(/if: >-\n\s+vars\.PROPAGATE_ENABLED != 'false' &&/);
   });
 
-  it("기본 토큰 권한은 읽기뿐이다", () => {
-    expect(YAML).toMatch(/^permissions:\n {2}contents: read$/m);
+  it("기본 토큰 권한은 읽기뿐이다 — 최신 커밋 승격을 물어보려고 actions 읽기만 더한다", () => {
+    // 2차 리뷰 F6: `gh api …/actions/workflows/ci.yml/runs` 를 부르려면 actions: read 가 있어야 한다.
+    expect(YAML).toMatch(/^permissions:\n {2}contents: read\n[^\n]*\n {2}actions: read$/m);
+    expect(jobSection("resolve")).toContain("GH_TOKEN: ${{ github.token }}");
   });
 });

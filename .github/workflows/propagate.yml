@@ -71,6 +71,8 @@ concurrency:
 # 시크릿 PAT 두 개에서 온다 — 기본 토큰은 다른 저장소에 아무 권한이 없다.
 permissions:
   contents: read
+  # 아래 「최신 커밋으로 올림」이 CI 실행 목록을 물어보는 데만 쓴다(2026-09-08 2차 리뷰 F6).
+  actions: read
 
 jobs:
   # 1단계: 무엇을 반영할지 하나로 정한다(SHA·커밋 제목·예행 여부). 3갈래가 각자 정하지 않게.
@@ -104,6 +106,8 @@ jobs:
           INPUT_SHA: ${{ inputs.sha }}
           INPUT_DRY_RUN: ${{ inputs.dry_run }}
           WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          # 「최신 커밋으로 올림」이 CI 실행 목록을 물어볼 때만 쓴다(권한은 actions: read 뿐)
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
@@ -127,6 +131,28 @@ jobs:
           if ! git merge-base --is-ancestor "$SHA" origin/main 2>/dev/null; then
             echo "::error::그 커밋은 main 에 없습니다(지워졌거나 다른 갈래): $SHA"
             exit 1
+          fi
+
+          # ★늦게 끝난 옛 CI 가 최신 핀을 못 밀어내게(2026-09-08 2차 리뷰 F6):
+          #  같은 줄(concurrency)에서 대기 중인 실행은 GitHub 가 **최신 하나만** 남긴다. 그래서
+          #  「옛 커밋의 CI 가 늦게 끝나 뒤늦게 도착 → 최신 커밋의 대기 실행을 밀어냄」이 되면
+          #  앱 핀이 **한 커밋 뒤에서 멈춘 채** 아무도 모르게 남는다.
+          #  그럴 때 최신 커밋(TIP)도 CI 를 이미 통과했다면 그쪽으로 올린다. 통과 기록이 없거나
+          #  물어보다 실패하면 원래 커밋 그대로 간다 — 이 승격은 **막지 않는다**(있으면 좋은 것).
+          if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
+            TIP="$(git rev-parse origin/main)"
+            if [ "$TIP" != "$SHA" ] && git merge-base --is-ancestor "$SHA" "$TIP" 2>/dev/null; then
+              TIP_RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${TIP}&status=success&per_page=1" --jq '.total_count' || echo "")"
+              case "$TIP_RUNS" in
+                ""|0|*[!0-9]*)
+                  echo "propagate: 최신 커밋 ${TIP} 의 CI 성공 기록을 찾지 못해 ${SHA} 그대로 갑니다(total_count='${TIP_RUNS}')"
+                  ;;
+                *)
+                  echo "propagate: 최신 커밋으로 올림 — ${SHA} → ${TIP} (그 커밋의 CI 도 이미 통과)"
+                  SHA="$TIP"
+                  ;;
+              esac
+            fi
           fi
 
           # git 의 %s(제목)는 여러 줄이어도 한 줄로 접힌다 — 그래서 key=value 한 줄로 안전하다.
