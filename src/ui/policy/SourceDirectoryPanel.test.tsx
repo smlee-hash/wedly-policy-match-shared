@@ -174,7 +174,7 @@ describe("화면·파일 비고가 갈리지 않는다 (2026-09-01 독립 검사
   });
 });
 
-import SourceDirectoryPanel from "./SourceDirectoryPanel";
+import SourceDirectoryPanel, { SourceDirectoryHeader, type SourcesSummary } from "./SourceDirectoryPanel";
 
 /**
  * 접힘·펼침 기본값 — 랩(`wedly-policy-lab`)의 `/sources` 전용 화면은 이 판 하나가 곧 화면이라
@@ -231,5 +231,61 @@ describe("수집원 현황 판 — 접힘·펼침 기본값", () => {
     const html = panel({ defaultOpen: true });
     expect(html.length, "그린 것이 없으면 이 시험은 아무것도 못 잡는다").toBeGreaterThan(80);
     expect(html).not.toMatch(/(bg|text|border)-(red|green|amber|blue|gray|yellow)-[0-9]{2,3}/);
+  });
+});
+
+/**
+ * 머리줄 제목·요약 두 클래스 — 좁은 화면(390px)에서 제목 「수집원 현황」이 세 줄로 쪼개진
+ * 결함의 고침(2026-09-07 독립 화면 검사·중간). `SourceDirectoryHeader` 를 따로 부품으로 뗀
+ * 이유는 이 값(summary)을 손잡이(useEffect) 없이 직접 넣어 그려야 재기 때문이다(머리주석 참고).
+ */
+describe("수집원 현황 머리줄 — 제목은 안 쪼개지고 요약만 줄어든다(2026-09-07)", () => {
+  const summary: SourcesSummary = {
+    connected: 6,
+    waiting: 2,
+    candidate: 1,
+    blocked: 1,
+    error: 0,
+    excluded: 3,
+    lastRanAt: null,
+    lastTailAt: null,
+  };
+
+  it("제목 span 은 shrink-0 whitespace-nowrap — 줄지도, 쪼개지지도 않는다", () => {
+    const html = renderToStaticMarkup(<SourceDirectoryHeader open={false} summary={summary} onToggle={() => {}} />);
+    const m = /<span class="([^"]*)">수집원 현황<\/span>/.exec(html);
+    expect(m, "제목 span 을 못 찾았다").not.toBeNull();
+    const classes = m![1].split(/\s+/);
+    expect(classes).toContain("shrink-0");
+    expect(classes).toContain("whitespace-nowrap");
+  });
+
+  it("요약 span 은 min-w-0 truncate — 좁으면 요약이 줄고 넘치면 …으로 끊는다", () => {
+    const html = renderToStaticMarkup(<SourceDirectoryHeader open={false} summary={summary} onToggle={() => {}} />);
+    const i = html.indexOf("연결 6");
+    expect(i, "요약 글자를 못 찾았다").toBeGreaterThan(-1);
+    const 열림 = html.lastIndexOf("<span", i);
+    const 닫힘 = html.indexOf(">", 열림);
+    expect(열림, "요약 span 여는 태그를 못 찾았다").toBeGreaterThan(-1);
+    const 태그 = html.slice(열림, 닫힘 + 1);
+    const m = /class="([^"]*)"/.exec(태그);
+    expect(m, "요약 span 에 class 가 없다").not.toBeNull();
+    const classes = m![1].split(/\s+/);
+    expect(classes).toContain("min-w-0");
+    expect(classes).toContain("truncate");
+  });
+
+  it("summary 가 없으면(받아오기 전) 제목만 있고 요약 span 자체가 없다", () => {
+    const html = renderToStaticMarkup(<SourceDirectoryHeader open={false} summary={null} onToggle={() => {}} />);
+    expect(html).toContain("수집원 현황");
+    expect(html).not.toContain("min-w-0");
+    expect(html).not.toContain("truncate");
+  });
+
+  it("펼침 표식(ChevronDown)·아이콘도 shrink-0 이다 — 좁을 때 함께 찌그러지지 않는다", () => {
+    const html = renderToStaticMarkup(<SourceDirectoryHeader open summary={null} onToggle={() => {}} />);
+    expect(html).toContain("lucide-chevron-down");
+    // 아이콘 두 개(펼침 화살표 · Database) 모두 shrink-0 를 지닌다.
+    expect(html.match(/shrink-0/g)?.length, "아이콘·제목의 shrink-0 이 예상보다 적다").toBeGreaterThanOrEqual(2);
   });
 });

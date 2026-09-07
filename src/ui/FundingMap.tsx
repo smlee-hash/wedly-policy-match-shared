@@ -22,6 +22,8 @@
  *  `unclassifiedGroupItems` 두 순수 함수).
  * ★색은 WEDLY 토큰만(CLAUDE.md rule#1). raw Tailwind 색은 `funding-map-render.test.tsx` 가
  *  **그려 낸 HTML** 에서 잡는다.
+ * ★앱이 끼워 넣는 자리는 하나뿐이다 — `renderCardFooter`(공고 카드 바닥 · 랩의 「이 판정은
+ *  맞음·틀림·애매」). 안 주면 마디를 하나도 안 더한다(`FundingCardFooter`·`cardFooterOf` 주석).
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Gift, Landmark, LifeBuoy, Percent, ShieldCheck, TrendingUp, type LucideIcon } from "lucide-react";
@@ -269,6 +271,34 @@ export function tableRowsOf(
   );
 }
 
+/**
+ * 카드 바닥에 **앱이** 끼워 넣는 조각 — 랩(`wedly-policy-lab`)의 「이 판정은 맞음·틀림·애매」다.
+ * 승인 시안(`wedly-erp/docs/superpowers/specs/2026-09-04-policy-lab-preview.html` 344~393줄)에서
+ * 그 단추 줄은 **「조건 펼치기」 바로 아래 줄**, 카드 **안**에 있다.
+ *
+ * ★안 주면 아무것도 안 그린다 — ERP·일루아는 이 인자를 넘기지 않으므로 화면이 한 글자도 안 바뀐다.
+ */
+export type FundingCardFooter = (item: FundingItem) => ReactNode;
+
+/**
+ * 카드 바닥 조각을 **공고 카드에만** 그린다(순수 함수라 그리지 않고도 잰다).
+ *
+ * ★상품(FinanceProduct) 줄에는 안 그린다. 두 가지 이유가 겹친다:
+ *  ⓐ 승인 시안에 상품 카드용 단추가 없다(시안 344~393줄은 전부 공고 카드다).
+ *  ⓑ 판정 피드백은 **공고 번호**로 쌓인다(`VerdictFeedbackContext.announcementId`). 상품 줄의
+ *    `refId` 는 상품 id 라, 여기서 함께 부르면 앱이 상품 id 를 공고 번호 자리에 넣어 보내
+ *    있지도 않은 공고에 대한 피드백을 쌓는다 — 자료가 조용히 어긋나는 갈래다.
+ *  그래서 「부르는 쪽이 알아서 걸러라」로 미루지 않고 **이 부품이 막는다**(콜백은 항목 전체를
+ *  받으므로, 앱이 더 좁히고 싶으면 `null` 을 돌려주면 된다).
+ */
+export function cardFooterOf(item: FundingItem, render?: FundingCardFooter): ReactNode {
+  if (!render || item.kind !== "announcement") return null;
+  const node = render(item);
+  // 「그릴 것이 없다」를 **한 가지 값(null)** 으로 모은다 — 앱이 조건에 따라 `undefined`·`false` 를
+  // 돌려줄 수 있는데, 그것을 그대로 두면 카드에 **빈 점선 한 줄**만 생긴다(내용 없는 경계).
+  return node == null || node === false ? null : node;
+}
+
 /** 조건 한 줄 글자 — 「label — note」(note 없으면 label만). 기호 없이 뜻으로만. */
 export function conditionRowText(f: FundingFit): string {
   return f.note ? `${f.label} — ${f.note}` : f.label;
@@ -394,13 +424,17 @@ function ItemCard({
   selected,
   onOpen,
   now,
+  renderCardFooter,
 }: {
   item: FundingItem;
   selected: boolean;
   onOpen: (item: FundingItem) => void;
   now: Date;
+  /** 카드 바닥 조각(랩의 판정 피드백). 없으면 마디를 하나도 더하지 않는다 — ERP·일루아 불변. */
+  renderCardFooter?: FundingCardFooter;
 }) {
   const repay = repayWords(item);
+  const footer = cardFooterOf(item, renderCardFooter);
   return (
     <li>
       <div
@@ -431,6 +465,24 @@ function ItemCard({
           <Fact label="어디에 신청" value={whereWords(item)} />
         </dl>
         <VerdictRow item={item} />
+        {footer !== null && (
+          /**
+           * ★사건을 여기서 끊는다(`stopPropagation`) — 카드 상자 자체가 `role="button"` 이라
+           *  바닥의 단추를 눌러도 사건이 카드까지 올라가 **서랍이 같이 열렸다**. 「조건 펼치기」
+           *  단추가 같은 이유로 이미 끊고 있는데(VerdictRow), 이 조각은 **앱이 만든 것**이라
+           *  앱이 끊어 줄 것을 믿을 수 없으므로 감싸개가 대신 끊는다.
+           * ★`role`·`tabIndex` 를 주지 않는다 — 이 상자는 조각을 담고 사건만 끊는 껍데기다.
+           *  자리는 「조건 펼치기」 아래 한 줄(승인 시안 344~393줄)이라 점선 경계로 나눈다.
+           */
+          <div
+            data-card-footer="funding"
+            className="mt-2 border-t border-dashed border-wedly-bd pt-2"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            {footer}
+          </div>
+        )}
       </div>
     </li>
   );
@@ -498,6 +550,7 @@ function GroupCard({
   onOpen,
   onToggleExpand,
   onToggleExcluded,
+  renderCardFooter,
 }: {
   /** 서버가 준 갈래 칸 그대로 — `total` 은 전체 건수, `items` 는 그중 실어 보낸 몫이다. */
   block: FundingGroupBlock;
@@ -510,6 +563,8 @@ function GroupCard({
   onOpen: (item: FundingItem) => void;
   onToggleExpand: (group: FundingGroup) => void;
   onToggleExcluded: (group: FundingGroup) => void;
+  /** 카드 바닥 조각 — 공고 카드에만 그린다(`cardFooterOf`). 안 주면 아무것도 안 그린다. */
+  renderCardFooter?: FundingCardFooter;
 }) {
   const meta = FUNDING_GROUP_META[block.group];
   const tone = GROUP_TONE_TILE[meta.tone];
@@ -552,7 +607,14 @@ function GroupCard({
       ) : (
         <ul className="flex list-none flex-col gap-1.5 p-2">
           {shown.map((it) => (
-            <ItemCard key={it.id} item={it} selected={it.id === selectedId} onOpen={onOpen} now={now} />
+            <ItemCard
+              key={it.id}
+              item={it}
+              selected={it.id === selectedId}
+              onOpen={onOpen}
+              now={now}
+              renderCardFooter={renderCardFooter}
+            />
           ))}
         </ul>
       )}
@@ -613,6 +675,7 @@ function UnclassifiedBlock({
   now,
   onOpen,
   onToggleExpand,
+  renderCardFooter,
 }: {
   items: FundingItem[];
   /** 서버가 센 미확인 **전체** 건수(`FundingMapData.unclassified`). `items` 는 그중 실려 온 몫이다. */
@@ -624,6 +687,8 @@ function UnclassifiedBlock({
   onOpen: (item: FundingItem) => void;
   /** 없으면 「나머지 보기」를 **안 그린다** — 눌러도 아무 일 없는 죽은 링크를 만들지 않는다. */
   onToggleExpand?: () => void;
+  /** 카드 바닥 조각 — 갈래 카드와 **같은 카드 부품**을 쓰므로 여기도 그대로 넘긴다. */
+  renderCardFooter?: FundingCardFooter;
 }) {
   if (items.length === 0) return null;
   // 갈래 카드(GroupCard)와 같은 규칙 — compact 는 3건 고정이라 펼치기 손잡이를 두지 않는다.
@@ -651,7 +716,14 @@ function UnclassifiedBlock({
       </div>
       <ul className="flex list-none flex-col gap-1.5 p-2">
         {shown.map((it) => (
-          <ItemCard key={it.id} item={it} selected={it.id === selectedId} onOpen={onOpen} now={now} />
+          <ItemCard
+            key={it.id}
+            item={it}
+            selected={it.id === selectedId}
+            onOpen={onOpen}
+            now={now}
+            renderCardFooter={renderCardFooter}
+          />
         ))}
       </ul>
       {footer !== null && (
@@ -837,6 +909,11 @@ interface ViewProps {
   now: Date;
   /** 머리 카드 라벨 줄 오른쪽 끝에 앉을 손잡이(예: 「다시 추천」). 없으면 아무것도 안 그린다. */
   headerAction?: ReactNode;
+  /**
+   * 공고 카드 바닥에 그릴 앱 조각(랩의 「이 판정은 맞음·틀림·애매」) — `FundingCardFooter` 주석 참고.
+   * 표 보기에는 안 그린다(승인 시안의 단추는 카드 안에만 있고, 표 칸은 한 줄짜리 값 칸이다).
+   */
+  renderCardFooter?: FundingCardFooter;
   onOpen: (item: FundingItem) => void;
   onView: (view: FundingView) => void;
   onFiltersChange: (filters: FundingFilters) => void;
@@ -869,6 +946,7 @@ export function FundingMapView({
   compact,
   now,
   headerAction,
+  renderCardFooter,
   onOpen,
   onView,
   onFiltersChange,
@@ -1245,6 +1323,7 @@ export function FundingMapView({
                 onOpen={onOpen}
                 onToggleExpand={onToggleExpand}
                 onToggleExcluded={onToggleExcluded}
+                renderCardFooter={renderCardFooter}
               />
             ))}
           </div>
@@ -1259,6 +1338,7 @@ export function FundingMapView({
             now={now}
             onOpen={onOpen}
             onToggleExpand={onToggleUnclassified}
+            renderCardFooter={renderCardFooter}
           />
         </div>
       ) : (
@@ -1330,6 +1410,11 @@ export interface FundingMapProps {
    * 이 손잡이는 어느 상태에서도 남아야 한다(화면 독립 검사 2026-08-30 지적 F).
    */
   headerAction?: ReactNode;
+  /**
+   * 공고 카드 바닥에 그릴 앱 조각 — 랩은 여기로 「이 판정은 맞음·틀림·애매」를 넘긴다.
+   * 안 넘기면 카드에 마디가 하나도 안 늘어난다(ERP·일루아 불변).
+   */
+  renderCardFooter?: FundingCardFooter;
 }
 
 const ERROR_TITLE = "자금 조달 지도를 불러오지 못했습니다";
@@ -1353,6 +1438,7 @@ export default function FundingMap({
   onToggleExcluded,
   now,
   headerAction,
+  renderCardFooter,
 }: FundingMapProps) {
   const [view, setView] = useState<FundingView>("map");
   const [expanded, setExpanded] = useState<ReadonlySet<FundingGroup>>(() => new Set<FundingGroup>());
@@ -1437,6 +1523,7 @@ export default function FundingMap({
         compact={compact}
         now={now ?? new Date()}
         headerAction={손잡이}
+        renderCardFooter={renderCardFooter}
         onOpen={openItem}
         onView={setView}
         onFiltersChange={onFiltersChange}

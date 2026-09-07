@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import * as FundingMapModule from "./FundingMap";
 import FundingMap, {
   FundingMapView,
+  cardFooterOf,
   classifiedGroupItems,
   conditionRowText,
   itemKeyDown,
@@ -12,6 +13,7 @@ import FundingMap, {
   tableRowsOf,
   unclassifiedGroupItems,
   GROUP_TONE_TILE,
+  type FundingCardFooter,
   type FundingMapPayload,
 } from "./FundingMap";
 import FundingDrawer, { isTileOverflowing, shouldShowExpandButton, tileValueClass } from "./FundingDrawer";
@@ -214,6 +216,8 @@ function 그린다(
     now?: Date;
     headerAction?: ReactNode;
     onBrowseAll?: () => void;
+    /** 카드 바닥 앱 조각(랩의 판정 피드백) — 안 주면 undefined 그대로 FundingMapView 에 간다. */
+    renderCardFooter?: FundingCardFooter;
   } = {},
 ): string {
   return renderToStaticMarkup(
@@ -229,6 +233,7 @@ function 그린다(
       compact={over.compact ?? false}
       now={over.now ?? NOW}
       headerAction={over.headerAction}
+      renderCardFooter={over.renderCardFooter}
       onOpen={() => {}}
       onView={() => {}}
       onFiltersChange={() => {}}
@@ -2243,6 +2248,114 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     expect(html.indexOf("스마트상점 기술보급사업 3차"), "옮긴 줄이 갈래 카드 안에 남았다").toBeGreaterThan(
       html.lastIndexOf('data-group="invest"'),
     );
+  });
+});
+
+/**
+ * P4 — 지도 카드 바닥 앱 조각(`renderCardFooter`). 랩(`wedly-policy-lab`)이 「이 판정은 맞음·틀림·
+ * 애매」를 여기로 끼운다(승인 시안 344~393줄). ERP·일루아는 이 인자를 안 넘기므로 ★기존 시험
+ * 전부가(위 describe 블록) 이 인자 없이 그대로 돈다는 사실 자체가 「인자 없을 때 불변」의 증거다.
+ */
+describe("자금 조달 지도 — renderCardFooter(카드 바닥 앱 조각)", () => {
+  const 공고1 = mk({ id: "a:20", group: "grant", title: "renderCardFooter 공고 하나" });
+  const 공고2 = mk({ id: "a:21", group: "policy", title: "renderCardFooter 공고 둘" });
+  const 상품1 = mk({ id: "p:20", kind: "product", group: "guarantee", title: "renderCardFooter 상품 하나" });
+  const 항목들 = [공고1, 공고2, 상품1];
+
+  /** 제목의 aria-label 로 그 항목 카드의 <li>…</li> 만 잘라 낸다(`항목카드` 는 첫 카드만 잡는다). */
+  const 카드셀 = (html: string, title: string): string => {
+    const mark = `aria-label="${title} 자세히 보기"`;
+    const i = html.indexOf(mark);
+    expect(i, `${title} 카드를 못 찾았다`).toBeGreaterThan(-1);
+    const 시작 = html.lastIndexOf("<li", i);
+    const 끝 = html.indexOf("</li>", i);
+    expect(시작, "카드의 <li> 가 없다").toBeGreaterThan(-1);
+    expect(끝, "카드의 </li> 가 없다").toBeGreaterThan(시작);
+    return html.slice(시작, 끝 + 5);
+  };
+
+  it("① 안 주면(undefined) 카드 바닥 마디가 하나도 안 늘어난다 — ERP·일루아 불변", () => {
+    const html = 그린다({ data: 자료(항목들) });
+    expect(html).not.toContain('data-card-footer="funding"');
+    // 대조군 — 카드 자체는 여전히 그려진다(빈 자료라 통과하는 시험이 아니다).
+    expect(html).toContain(공고1.title);
+    expect(html).toContain(상품1.title);
+  });
+
+  it("② 공고 카드마다 한 번씩 불리고, 반환한 조각이 그 카드 안에 있다", () => {
+    const 불린것: FundingItem[] = [];
+    const html = 그린다({
+      data: 자료(항목들),
+      renderCardFooter: (item) => {
+        불린것.push(item);
+        return <span>판정피드백:{item.title}</span>;
+      },
+    });
+
+    expect(불린것.map((it) => it.id).sort()).toEqual([공고1.id, 공고2.id].sort());
+
+    const 공고1카드 = 카드셀(html, 공고1.title);
+    expect(공고1카드).toContain('data-card-footer="funding"');
+    expect(공고1카드).toContain(`판정피드백:${공고1.title}`);
+
+    const 공고2카드 = 카드셀(html, 공고2.title);
+    expect(공고2카드).toContain('data-card-footer="funding"');
+    expect(공고2카드).toContain(`판정피드백:${공고2.title}`);
+  });
+
+  it("③ 상품 카드에는 안 불린다(0회) — refId 가 상품 id 라 공고 번호 자리에 못 넣는다(cardFooterOf)", () => {
+    const 불린것: FundingItem[] = [];
+    const html = 그린다({
+      data: 자료(항목들),
+      renderCardFooter: (item) => {
+        불린것.push(item);
+        return <span>판정피드백:{item.title}</span>;
+      },
+    });
+    expect(불린것.some((it) => it.id === 상품1.id), "상품 카드에도 콜백이 불렸다").toBe(false);
+
+    const 상품카드 = 카드셀(html, 상품1.title);
+    expect(상품카드).not.toContain('data-card-footer="funding"');
+    expect(상품카드).not.toContain("판정피드백");
+  });
+
+  it("④ 콜백이 null·undefined·false 를 돌려주면 바닥 마디 자체를 안 그린다 — 빈 점선 한 줄 방지", () => {
+    for (const v of [null, undefined, false] as const) {
+      const html = 그린다({ data: 자료(항목들), renderCardFooter: () => v });
+      const 공고1카드 = 카드셀(html, 공고1.title);
+      expect(공고1카드, `render 가 ${String(v)} 를 돌려줬는데도 바닥 마디가 생겼다`).not.toContain(
+        'data-card-footer="funding"',
+      );
+    }
+  });
+
+  it("⑤ 표 보기(view=table)에는 절대 안 그린다 — 승인 시안의 단추는 카드 안에만 있다", () => {
+    const html = 그린다({
+      data: 자료(항목들),
+      view: "table",
+      renderCardFooter: () => <span>판정피드백</span>,
+    });
+    expect(html).not.toContain('data-card-footer="funding"');
+    expect(html).not.toContain("판정피드백");
+  });
+
+  it("cardFooterOf 순수 함수 — render 없으면 공고여도 null, 상품엔 render 를 아예 안 부른다", () => {
+    expect(cardFooterOf(공고1, undefined)).toBeNull();
+
+    const render = vi.fn((it: FundingItem) => <span>{it.title}</span>);
+    expect(cardFooterOf(상품1, render)).toBeNull();
+    expect(render).not.toHaveBeenCalled();
+
+    const node = cardFooterOf(공고1, render);
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(render).toHaveBeenCalledWith(공고1);
+    expect(node).not.toBeNull();
+  });
+
+  it("cardFooterOf 순수 함수 — render 가 null·undefined·false 를 돌려주면 한 가지 값(null)로 모은다", () => {
+    expect(cardFooterOf(공고1, () => null)).toBeNull();
+    expect(cardFooterOf(공고1, () => undefined)).toBeNull();
+    expect(cardFooterOf(공고1, () => false)).toBeNull();
   });
 });
 

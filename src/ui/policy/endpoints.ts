@@ -53,14 +53,25 @@ export const ERP_POLICY_MATCH_ENDPOINTS: PolicyMatchEndpoints = {
 export type VerdictFeedbackContext = {
   announcementId: string;
   title: string;
-  item: DiagnoseItem | null;              // 규칙 판정(등급·검사 수)
+  item: DiagnoseItem | null;              // 규칙 판정(등급·검사 수) — 지도 카드는 못 찾으면 null
   aiVerdict: VerdictResult | null;        // AI 판정(있을 때)
   profile: BusinessProfile | null;
-  place: "card" | "detail";
+  /**
+   * 어느 자리에서 눌렀나 — `"card"`(목록 카드) · `"detail"`(상세 머리) · `"map"`(자금 조달 지도 카드).
+   *
+   * ★`"map"` 은 2026-09-07 P4 에서 더했다: 진단 결과의 **기본 보기가 지도**인데 지도 카드에는
+   *  피드백 단추가 아예 없어(목록 모드에만 있었다) 랩의 핵심 기능이 「목록·상세」 탭 뒤에 숨어
+   *  있었다(승인 시안 `2026-09-04-policy-lab-preview.html` 297·344~393줄은 지도 카드마다 단추를 둔다).
+   */
+  place: "card" | "detail" | "map";
 };
 
 export type PolicyMatchSlots = {
-  /** 카드 아래·상세 머리에 그릴 판정 피드백 단추(랩만). 없으면 아무것도 안 그린다. */
+  /**
+   * 판정 피드백 단추(랩만) — **세 자리**에 같은 조각이 들어간다: 목록 카드 아래(`place:"card"`)·
+   * 상세 머리(`"detail"`)·**자금 조달 지도의 공고 카드 바닥**(`"map"` — 기본 보기가 지도다).
+   * 없으면 세 자리 모두 아무것도 안 그린다.
+   */
   verdictFeedback?: (ctx: VerdictFeedbackContext) => ReactNode;
   /** 수집원 현황 상단 오른쪽 단추 자리(랩: 「빠진 수집원 신고」). */
   sourcesActions?: ReactNode;

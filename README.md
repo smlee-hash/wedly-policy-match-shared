@@ -43,6 +43,8 @@ ERP `/policy-match` 화면(조립기 `PolicyMatchScreen` + 조각 넷 + `Modal`)
 |---|---|---|
 | `endpoints` | 부를 통로 주소 10개 | **그 단추·칸을 아예 안 그린다**(`verdict`·`breakthrough`·`askInstructor`·`sync`·`prefill`) |
 | `slots` | 앱만 아는 조각(`verdictFeedback`·`sourcesActions`·`sourcesHeader`) | 아무것도 안 그린다 |
+
+`slots.verdictFeedback` 은 **세 자리**에 같은 조각을 끼운다 — 목록 카드 아래(`place:"card"`) · 상세 머리(`"detail"`) · **자금 조달 지도의 공고 카드 바닥**(`"map"`, 2026-09-07 추가). 진단 결과의 기본 보기가 지도라 지도를 빼면 랩의 핵심 기능이 「목록·상세」 탭 뒤에 숨는다(승인 시안 `2026-09-04-policy-lab-preview.html` 297·344~393줄). 지도 카드는 `FundingMap` 의 `renderCardFooter` 인자로 들어가고 **공고 카드에만** 그려진다(상품 줄은 `refId` 가 상품 id 라 공고 번호 자리에 넣을 수 없다 — `cardFooterOf`). 그 인자를 안 넘기는 앱(ERP·일루아)의 지도는 한 글자도 안 바뀐다.
 | `features` | 앱이 대신 하는 일(`exportSources`·`parseError`·`sourcesTrailingPaddingClass`·`serverStructurizes`) | ERP 규약·엑셀 단추 없음·여백 0·true(서버가 상세를 열면 AI 구조화, 저장본만 주는 랩은 false로 「읽는 중」 폴링·안내를 끈다 — AI 판정 단추는 `endpoints.verdict` 로 따로 결정) |
 
 ```tsx

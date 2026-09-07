@@ -6,7 +6,7 @@
 //  · 탐색(browse) — 좌 결과 목록 / 우 공고 상세. **여기는 바뀌지 않는다**(탐색 회귀 금지).
 //  · 진단(diagnosed) — 「지도」는 전폭 자금 조달 지도 + 서랍, 「목록·상세」는 위 두 컬럼 그대로.
 //    두 판은 알약(SegmentedControl)으로 갈아탄다.
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 // 거르개(칩)·펼침을 한 자리에서 옮기는 규칙 — 상세창 레일(FundingRecommendPanel)과 **같은 함수**를
 // 쓴다. 이 규칙을 여기 다시 적으면 두 화면이 갈라진다(레일에서 이미 겪은 결함).
 import { nextFundingState } from "../FundingRecommendPanel";
@@ -22,7 +22,7 @@ import SourceDirectoryPanel from "./SourceDirectoryPanel";
 import FundingMap, { type FundingMapPayload } from "../FundingMap";
 import FundingDrawer from "../FundingDrawer";
 import type {
-  PolicyMatchEndpoints, PolicyMatchFeatures, PolicyMatchSlots,
+  PolicyMatchEndpoints, PolicyMatchFeatures, PolicyMatchSlots, VerdictFeedbackContext,
 } from "./endpoints";
 
 /** 탐색(1단계) 목록 한 줄 — announcements 통로 응답 그대로. */
@@ -114,6 +114,43 @@ export function toggleGroupSet(set: ReadonlySet<FundingGroup>, group: FundingGro
   if (next.has(group)) next.delete(group);
   else next.add(group);
   return next;
+}
+
+/**
+ * 진단 결과를 **공고 번호로 찾을 표** — 지도 카드는 공고 번호(`refId`)만 아는데, 판정 피드백은
+ * 그 공고의 규칙 판정(등급·검사 수)을 함께 실어야 한다(`VerdictFeedbackContext.item`).
+ * 세 등급을 한 표로 합친다 — 어느 묶음에 있든 같은 공고면 같은 줄이다.
+ */
+export function diagnoseIndex(d: Diagnosis | null): Map<string, DiagnoseItem> {
+  const byId = new Map<string, DiagnoseItem>();
+  if (!d) return byId;
+  for (const it of [...d.possible, ...d.uncertain, ...d.impossible]) byId.set(it.announcementId, it);
+  return byId;
+}
+
+/**
+ * 지도 카드 한 장의 판정 피드백 자료 — 순수 함수라 그리지 않고도 잰다.
+ *
+ * ★`item` 이 없으면 **null 로 넘긴다**(지어내지 않는다). 지도는 진단 결과와 **다른 통로**
+ *  (`funding-map`)에서 오고 그쪽이 상품·상시 줄까지 함께 실으므로, 지도에 있는 공고가 진단
+ *  묶음엔 없을 수 있다(진단은 상위 후보만 판정한다). 그때도 「맞음·틀림·애매」는 눌릴 수 있어야
+ *  하니 단추를 숨기지 않고, 규칙 판정 칸만 비운다.
+ * ★`aiVerdict` 는 언제나 null 이다 — AI 판정은 상세를 열어야 도는 일이고, 지도 카드는 그 값을
+ *  가진 적이 없다(목록 카드도 같은 이유로 null 을 넘긴다 · `ResultList`).
+ * ★`place:"map"` — 랩이 「어느 자리에서 눌렀나」로 자리별 통수를 가른다.
+ */
+export function mapVerdictContext(
+  item: FundingItem,
+  opts: { byId: ReadonlyMap<string, DiagnoseItem>; profile: BusinessProfile | null },
+): VerdictFeedbackContext {
+  return {
+    announcementId: item.refId,
+    title: item.title,
+    item: opts.byId.get(item.refId) ?? null,
+    aiVerdict: null,
+    profile: opts.profile,
+    place: "map",
+  };
 }
 
 export interface FundingRequest {
@@ -482,6 +519,23 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
     void loadFunding({ profile, filters: fundingFilters, sort: fundingSort });
   }, [loadFunding, profileNonce, profile, fundingFilters, fundingSort]);
 
+  /**
+   * 지도 공고 카드 바닥의 판정 피드백 — **조각을 안 받은 앱(ERP·일루아)에서는 `undefined`** 라
+   * `FundingMap` 이 마디를 하나도 더하지 않는다. 승인 시안(2026-09-04 랩 미리보기 297·344~393줄)은
+   * 지도 카드마다 이 단추를 두는데, 진단 결과의 **기본 보기가 지도**라 예전엔 랩의 핵심 기능이
+   * 「목록·상세」 탭 뒤에 숨어 있었다(2026-09-07 독립 화면 검사 지적).
+   * 상품 줄에는 안 그린다 — 그 판단은 `cardFooterOf`(FundingMap)가 한다.
+   */
+  const verdictFeedback = slots?.verdictFeedback;
+  const diagnoseById = useMemo(() => diagnoseIndex(diagnosis), [diagnosis]);
+  const mapCardFooter = useMemo(
+    () =>
+      verdictFeedback
+        ? (item: FundingItem) => verdictFeedback(mapVerdictContext(item, { byId: diagnoseById, profile }))
+        : undefined,
+    [verdictFeedback, diagnoseById, profile],
+  );
+
   const selectedItem =
     diagnosis && selectedId
       ? [...diagnosis.possible, ...diagnosis.uncertain, ...diagnosis.impossible]
@@ -532,6 +586,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
           selectedId={mapUi.openItem?.id ?? ""}
           showExcluded={showExcluded}
           onToggleExcluded={toggleExcluded}
+          renderCardFooter={mapCardFooter}
         />
       ) : (
         /* 큰 화면(lg+) master-detail — 오른쪽 상세가 「내용 높이」로 자라 그 높이가 두 컬럼의 높이를
@@ -555,7 +610,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
               }}
               announcementsEndpoint={endpoints.announcements}
               onManualSync={endpoints.sync ? refresh : undefined}
-              verdictFeedback={slots?.verdictFeedback}
+              verdictFeedback={verdictFeedback}
               profile={profile}
             />
           </div>
@@ -563,7 +618,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
             <DetailPanel
               endpoints={endpoints}
               parseError={features?.parseError}
-              verdictFeedback={slots?.verdictFeedback}
+              verdictFeedback={verdictFeedback}
               announcementId={selectedId}
               mode={mode}
               profile={profile}

@@ -122,6 +122,48 @@ export function SourceDirectoryTable({ entries }: { entries: DirectoryRow[] }) {
   );
 }
 
+/**
+ * 수집원 현황 판의 **머리줄** — 접기 손잡이 겸 제목·요약 한 줄.
+ *
+ * ★따로 뗀 이유(2026-09-07 독립 화면 검사·중간): 좁은 화면(390px)에서 **제목이 세 줄로 쪼개졌다**.
+ *  제목·요약이 한 flex 줄의 형제라 요약 글이 길면 flex 가 제목부터 줄여 「수집 / 원 / 현황」이 됐다.
+ *  고치는 값은 두 쌍이다 — 제목에 `shrink-0 whitespace-nowrap`(줄지도, 쪼개지도 않는다) ·
+ *  요약에 `min-w-0 truncate`(대신 요약이 줄고 넘치면 …으로 끊는다).
+ *
+ * ★부품으로 뗀 것은 **그 클래스를 시험이 실제로 재려면** 요약이 있는 머리줄을 그려야 하기
+ *  때문이다. 이 저장소엔 jsdom 이 없어(`vitest.config.ts`) 판째로 그리면 손잡이(useEffect)가
+ *  돌지 않아 `summary` 가 영원히 null 이고 요약 줄이 아예 안 그려진다 —
+ *  `SourceDirectoryTable` 을 따로 내보낸 것과 같은 이유다. 마크업은 뗀 전과 한 글자도 같다.
+ */
+export function SourceDirectoryHeader({
+  open,
+  summary,
+  onToggle,
+}: {
+  open: boolean;
+  summary: SourcesSummary | null;
+  onToggle: () => void;
+}) {
+  return (
+    <button type="button" onClick={onToggle} className="flex w-full items-center gap-2 px-4 py-3 text-left">
+      {/* 아이콘도 `shrink-0` — 안 주면 좁을 때 flex 가 16px 표식까지 함께 줄여 찌그러진다. */}
+      {open
+        ? <ChevronDown className="h-4 w-4 shrink-0 text-wedly-muted" />
+        : <ChevronRight className="h-4 w-4 shrink-0 text-wedly-muted" />}
+      <Database className="h-4 w-4 shrink-0 text-wedly-accent" />
+      <span className="shrink-0 whitespace-nowrap font-semibold text-wedly-t1">수집원 현황</span>
+      {summary && (
+        <span className="ml-2 min-w-0 truncate text-xs text-wedly-t2">
+          연결 {summary.connected} · 대기 {summary.waiting} · 오류 {summary.error} · 대상 아님 {summary.excluded}
+          {summary.candidate > 0 && ` · 조사 중 ${summary.candidate}`}
+          {summary.blocked > 0 && ` · 차단 ${summary.blocked}`}
+          {summary.lastRanAt && ` · 마지막 수집 ${new Date(summary.lastRanAt).toLocaleString("ko-KR")}`}
+        </span>
+      )}
+    </button>
+  );
+}
+
 interface PanelProps {
   /** 수집원 현황을 받아 올 통로(`GET`). 앱마다 주소가 다르다. */
   endpoint: string;
@@ -170,19 +212,7 @@ export default function SourceDirectoryPanel({
 
   return (
     <section className="mt-6 rounded-2xl border border-wedly-bd bg-white shadow-wedly-resting">
-      <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center gap-2 px-4 py-3 text-left">
-        {open ? <ChevronDown className="h-4 w-4 text-wedly-muted" /> : <ChevronRight className="h-4 w-4 text-wedly-muted" />}
-        <Database className="h-4 w-4 text-wedly-accent" />
-        <span className="font-semibold text-wedly-t1">수집원 현황</span>
-        {summary && (
-          <span className="ml-2 text-xs text-wedly-t2">
-            연결 {summary.connected} · 대기 {summary.waiting} · 오류 {summary.error} · 대상 아님 {summary.excluded}
-            {summary.candidate > 0 && ` · 조사 중 ${summary.candidate}`}
-            {summary.blocked > 0 && ` · 차단 ${summary.blocked}`}
-            {summary.lastRanAt && ` · 마지막 수집 ${new Date(summary.lastRanAt).toLocaleString("ko-KR")}`}
-          </span>
-        )}
-      </button>
+      <SourceDirectoryHeader open={open} summary={summary} onToggle={() => setOpen((v) => !v)} />
       {open && (
         <div className="border-t border-wedly-bd/60 px-4 py-3">
           {error ? (

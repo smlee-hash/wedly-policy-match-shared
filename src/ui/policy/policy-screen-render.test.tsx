@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import PolicyMatchScreen from "./PolicyMatchScreen";
+import PolicyMatchScreen, { diagnoseIndex, mapVerdictContext } from "./PolicyMatchScreen";
 import ProfileForm from "./ProfileForm";
 import ResultList, { type BrowseBundle } from "./ResultList";
 import DetailPanel, { AskInstructorModal, BreakthroughPrompt } from "./DetailPanel";
@@ -9,6 +9,7 @@ import SourceDirectoryPanel, { SourceDirectoryTable, type DirectoryRow } from ".
 import { Modal } from "./Modal";
 import { ERP_POLICY_MATCH_ENDPOINTS, type PolicyMatchEndpoints, type VerdictFeedbackContext } from "./endpoints";
 import type { DiagnoseItem, Diagnosis } from "./PolicyMatchScreen";
+import { deadlineOfProduct, type FundingItem } from "../../funding/funding-map";
 
 /**
  * 「앱마다 다른 것은 전부 인자로 받는다」를 **그려서** 잰다(P4 계획서 Task A2 Step 4).
@@ -353,5 +354,101 @@ describe("엑셀 내려받기는 앱이 저장을 맡을 때만 그린다", () =
     const html = renderToStaticMarkup(<SourceDirectoryTable entries={[directoryRow()]} />);
     expect(html).toContain("부산테크노파크");
     expect(html).not.toContain("엑셀 내려받기");
+  });
+});
+
+// ── ⑥ 지도 카드의 판정 피드백 자료 — place:"map" (P4, 2026-09-07) ──────────────
+describe("⑥ 지도 카드의 판정 피드백 자료 — diagnoseIndex·mapVerdictContext", () => {
+  const NOW = new Date("2026-09-07T10:00:00+09:00");
+
+  /** 지도 카드 하나 — mapVerdictContext 에 넣을 최소한의 FundingItem. */
+  function fundingItem(over: Partial<FundingItem> & { refId: string }): FundingItem {
+    return {
+      id: `a:${over.refId}`,
+      kind: "announcement",
+      group: "grant",
+      title: "지도 카드 공고",
+      agency: "중기부",
+      url: "https://example.kr/a",
+      applyUrl: "",
+      targetText: "",
+      amountText: "",
+      amountMaxWon: null,
+      rateText: "",
+      rateMin: null,
+      deadline: deadlineOfProduct("상시", NOW),
+      where: "",
+      fit: [],
+      fitVerdict: "unverified",
+      humanCheck: 0,
+      score: 0,
+      why: "",
+      source: "smes24",
+      isNew: false,
+      ...over,
+    };
+  }
+
+  it("diagnoseIndex — 세 등급(possible·uncertain·impossible)을 공고 번호 하나의 표로 합친다", () => {
+    const d: Diagnosis = {
+      possible: [item({ announcementId: "a1" })],
+      uncertain: [item({ announcementId: "a2" })],
+      impossible: [item({ announcementId: "a3" })],
+      structureProgress: { total: 3, done: 3, pending: 0, needsReview: 0, failed: 0 },
+      analyzedCount: 3,
+      candidateCount: 3,
+    };
+    const byId = diagnoseIndex(d);
+    expect([...byId.keys()].sort()).toEqual(["a1", "a2", "a3"]);
+    expect(byId.get("a2")?.announcementId).toBe("a2");
+    expect(diagnoseIndex(null).size, "진단 전(null)이면 빈 표다").toBe(0);
+  });
+
+  it('mapVerdictContext — place 는 언제나 "map", aiVerdict 는 언제나 null', () => {
+    const byId = diagnoseIndex({
+      possible: [item({ announcementId: "a1", title: "찾은 공고" })],
+      uncertain: [],
+      impossible: [],
+      structureProgress: { total: 1, done: 1, pending: 0, needsReview: 0, failed: 0 },
+    });
+    const profile = { region: "서울", industry: "제조업" };
+
+    const 찾음 = mapVerdictContext(fundingItem({ refId: "a1", title: "지도의 그 공고" }), { byId, profile });
+    expect(찾음.place).toBe("map");
+    expect(찾음.aiVerdict, "지도 카드는 AI 판정을 가진 적이 없다").toBeNull();
+    expect(찾음.announcementId).toBe("a1");
+    expect(찾음.title, "제목은 지도 항목의 것이다 — 진단 표의 제목으로 덮지 않는다").toBe("지도의 그 공고");
+    expect(찾음.item?.announcementId, "진단 표에서 찾은 규칙 판정을 싣는다").toBe("a1");
+    expect(찾음.profile).toBe(profile);
+  });
+
+  it("mapVerdictContext — 진단 표에 없는 공고도 item:null 로 단추는 그대로 살아 있다(지어내지 않는다)", () => {
+    const byId = diagnoseIndex(null);
+    const 못찾음 = mapVerdictContext(fundingItem({ refId: "z9" }), { byId, profile: null });
+    expect(못찾음.place).toBe("map");
+    expect(못찾음.item, "진단 표에 없는 값을 지어내면 안 된다").toBeNull();
+    expect(못찾음.profile).toBeNull();
+  });
+});
+
+/**
+ * 손잡이가 안 도는 자리는 그려서 못 잰다(위 ④-감시선 머리주석과 같은 이유) — 지도는
+ * `mode==="diagnosed"` 이후에만 뜨는데 기본값은 "browse" 라 정적 렌더 한 번으론 못 지나간다.
+ * 그래서 배선(누가 무엇을 넘기는가)을 소스 문자열로 감시한다.
+ */
+describe("⑥-감시선 — PolicyMatchScreen 이 slots.verdictFeedback 을 지도로도 넘긴다", () => {
+  const 폴더 = new URL(".", import.meta.url);
+  const 읽기 = (name: string) => readFileSync(new URL(name, 폴더), "utf8");
+
+  it("지도(FundingMap)에 renderCardFooter={mapCardFooter} 가 배선돼 있고, 그 조각은 place:map 이다", () => {
+    const src = 읽기("PolicyMatchScreen.tsx");
+    expect(src, "FundingMap 에 renderCardFooter 를 안 넘긴다").toContain("renderCardFooter={mapCardFooter}");
+    expect(src, "mapCardFooter 가 slots.verdictFeedback 을 안 쓴다").toContain(
+      "const verdictFeedback = slots?.verdictFeedback;",
+    );
+    expect(src, "mapCardFooter 가 verdictFeedback 을 안 부른다").toMatch(
+      /verdictFeedback\(mapVerdictContext\(item, \{ byId: diagnoseById, profile \}\)\)/,
+    );
+    expect(src, "카드 바닥 자리가 「map」으로 못박혀 있지 않다").toContain('place: "map"');
   });
 });
