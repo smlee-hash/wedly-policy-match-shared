@@ -342,8 +342,17 @@ jobs:
               const st = fs.lstatSync(file);
               if (!st.isFile()) throw new Error("보통 파일이 아님");
               const meta = JSON.parse(fs.readFileSync(file, "utf8"));
-              const line = String(meta.error ?? "").replace(/\s+/g, " ").trim();
-              process.stdout.write(line ? "사유: " + line.slice(0, 400) : "사유: 밀기 단계에서 실패했습니다 — 위 로그를 보세요.");
+              // ★사유에서 **제어문자·이스케이프**를 지운다(2026-09-08 5차 리뷰 · P2):
+              //  `\s` 는 ESC(0x1b)·BEL(0x07) 을 안 잡는다 — 옛 판은 로그 색·커서를 조작하는 글자를
+              //  슬랙 알림 줄에 그대로 실어 보냈다. 사유는 앱 코드가 돈 실행기에서 온 글자다(F1 에서
+              //  「사유는 공개로 나간다」를 감수했지, 「무엇이든 그대로 싣는다」를 감수한 것이 아니다).
+              //  규칙은 밀기 스크립트의 `meta_error` 와 **같다**: C0·DEL·C1 을 한 칸으로 → 공백 접기 → 400자.
+              const line = String(meta.error ?? "")
+                .replace(/[\u0000-\u001f\u007f-\u009f]+/g, " ")
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 400);
+              process.stdout.write(line ? "사유: " + line : "사유: 밀기 단계에서 실패했습니다 — 위 로그를 보세요.");
             } catch {
               process.stdout.write("사유: 준비 단계 산출물을 받지 못했거나 봉인을 풀지 못했습니다 — 준비·밀기 job 로그를 보세요.");
             }

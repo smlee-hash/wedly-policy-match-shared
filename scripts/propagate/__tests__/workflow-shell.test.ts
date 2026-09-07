@@ -374,4 +374,30 @@ describe("propagate.yml — 밀기 job 의 실패 알림 토막", () => {
     expect(existsSync(canary), "커밋 제목·사유 안의 명령이 실행됐습니다").toBe(false);
     expect(r.curlArgs).toContain("touch");
   }, 30_000);
+
+  // ── 2026-09-08 5차 리뷰(P2): 알림 토막도 제어문자·이스케이프를 지우고 사유를 싣는다 ──
+
+  it("사유에 든 제어문자·이스케이프는 지워지고 글자만 실린다", () => {
+    // ★막던 사고: 이 토막은 사유를 접을 때 `\s+` 만 봤다 — `\s` 는 ESC(0x1b)·BEL(0x07) 을 **안 잡는다.**
+    //  사유는 앱 코드가 돈 실행기에서 온 글자라(2차 리뷰 F1 에서 「사유는 공개로 나간다」를 감수했다)
+    //  거기에 로그 색·커서를 조작하는 이스케이프나 줄 위조 글자를 심어 보낼 수 있고, 그러면 그것이
+    //  그대로 슬랙 알림 줄에 실린다. 밀기 스크립트(`meta_error`)는 이미 지우고 있었는데
+    //  **같은 칸을 읽는 이 토막만** 안 지우고 있었다 — 두 자리의 규칙을 같게 맞췄다.
+    // ★재는 방식: `notify.sh` 는 본문을 JSON 으로 만든다 — 통로에 실제로 실리는 모양은
+    //  **JSON 이스케이프**(백슬래시 u 001b 여섯 글자)다. 그것이 없어야 ERP 가 풀었을 때도 제어문자가 없다.
+    const r = runNotifyBlock({
+      app: "erp",
+      result: "failed",
+      error: "후처리 실패\u001b[31m 빨강\u0007\n두 번째 줄",
+    });
+    expect(r.code, r.stderr).toBe(0);
+    expect(r.curlArgs, "사유가 사라졌습니다").toContain("후처리 실패");
+    expect(r.curlArgs, "여러 줄 사유의 뒷부분이 사라졌습니다").toContain("두 번째 줄");
+    // 본문(JSON)에 실린 모양 — 옛 코드는 여기서 빨개진다
+    expect(r.curlArgs, "이스케이프(ESC)가 본문에 실렸습니다").not.toContain("\\u001b");
+    expect(r.curlArgs, "제어문자(BEL)가 본문에 실렸습니다").not.toContain("\\u0007");
+    // 날바이트로 새는 길도 함께 막아 둔다(본문을 JSON 으로 만들지 않게 바뀌는 날을 대비)
+    expect(r.curlArgs, "이스케이프(ESC) 날바이트가 실렸습니다").not.toContain("\u001b");
+    expect(r.curlArgs, "제어문자(BEL) 날바이트가 실렸습니다").not.toContain("\u0007");
+  }, 30_000);
 });

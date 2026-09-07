@@ -1691,4 +1691,67 @@ else if (cmd === "check") {
     expect(all, "제어문자(BEL)가 그대로 실렸습니다").not.toContain("\u0007");
     expect(sh("git rev-parse main", app.bare)).toBe(before); // 원격 불변
   }, 60_000);
+
+  // ── 2026-09-08 5차 리뷰(P2): 비공개 앱의 **핀 값**도 오류문을 타고 공개 로그로 나가지 않는다 ──
+  //
+  // ★막던 사고: `read_current_pin` 은 형식이 어긋난 핀을 만나면 그 값을 **원문으로** 적었다
+  //  (`현재 핀 형식이 예상과 다릅니다: '<값>'`). 그 값이 온 곳은 **비공개 앱**의 `package.json` 이고
+  //  (밀기 단계는 쓰기 토큰을 쥔 채 남의 저장소 파일을 연다) 이 저장소는 공개라 Actions 로그도 공개다 —
+  //  앱이 사설 주소·자격이 섞인 spec 을 쓰고 있었다면 그 한 줄이 그대로 공개 로그에 실린다.
+  //  (같은 구멍을 **깨진 JSON** 쪽에서는 H2 확장으로 이미 막았다. 여기는 JSON 은 멀쩡한데 **값**이 다른 자리다.)
+  // ★막은 방법: 우리가 아는 모양(`github:<우리 패키지 저장소>#<40자리 SHA>`)일 때만 원문이고
+  //  그 밖에는 `(<길이>글자, 형식 불일치)` 로만 적는다.
+  // ★재는 방식: 표식을 핀 값으로 심은 앱으로 push → exit 1 이고 표식도 **그 앞 9글자**도 없어야 한다.
+
+  it("기준 커밋의 핀 값이 형식과 다르면 그 값이 로그에 안 실린다", () => {
+    const app = fakeApp(tmp, "lab", pkg.c1, (w) => {
+      // JSON 은 멀쩡하고 **핀 값 하나만** 형식에서 벗어난 앱
+      writeFileSync(
+        join(w, "package.json"),
+        JSON.stringify({ name: "lab", dependencies: { "@wedly/policy-match-shared": CANARY } }, null, 2) + "\n",
+      );
+    });
+    const before = sh("git rev-parse main", app.bare);
+    writeArtifact(
+      tmp,
+      { app: "lab", result: "prepared", baseSha: before, pinFrom: pkg.c1, pinTo: pkg.c3, subject: "feat: 시험 커밋" },
+      { "package.json": pkgJsonAt("lab", pkg.c3), "package-lock.json": lockJsonAt(pkg.c3) },
+    );
+
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    const all = `${r.stdout}\n${r.stderr}`;
+    expect(r.code, all).toBe(1);
+    // 그 자리를 본 오류문이 맞는지(다른 이유로 죽어서 초록이 되는 것을 막는다)
+    expect(all, "핀 형식을 본 오류문이 아닙니다").toContain("현재 핀 형식이 예상과 다릅니다");
+    expect(all, "핀 값이 그대로 실렸습니다").not.toContain(CANARY);
+    expect(all, "핀 값의 앞부분이 실렸습니다").not.toContain(CANARY.slice(0, 9));
+    // 값을 지우기만 한 것이 아니라 **길이로 갈음**했는지
+    expect(all, "길이로 갈음한 자리가 없습니다").toContain(`(${CANARY.length}글자, 형식 불일치)`);
+    expect(sh("git rev-parse main", app.bare)).toBe(before); // 원격 불변
+  }, 60_000);
+
+  it("shown_pin: 아는 모양이면 원문, 아니면 길이만 — 무조건 가리는 것이 아니다", () => {
+    // 위 시험은 「샜는가」만 잰다. 늘 가려 버려도 통과하므로, 가림이 **모양을 보고** 도는지를 여기서 잰다.
+    // (핀이 정상인 경로에서는 `read_current_pin` 이 그 전에 0 으로 돌아가므로 함수를 직접 부른다.)
+    const call = (v: string) =>
+      spawnSync("bash", ["-c", `set -euo pipefail; . "${LIB}"; shown_pin "$1"`, "bash", v], { encoding: "utf8" });
+    const good = SPEC(pkg.c3);
+    expect(call(good).stdout, "아는 모양인데 가렸습니다").toBe(good);
+    expect(call(CANARY).stdout).toBe(`(${CANARY.length}글자, 형식 불일치)`);
+    expect(call("").stdout).toBe("(0글자, 형식 불일치)");
+    // 대문자 SHA·다른 저장소는 「비슷하지만 아는 값이 아니다」 — 원문으로 적지 않는다
+    expect(call(SPEC(pkg.c3.toUpperCase())).stdout).toMatch(/^\(\d+글자, 형식 불일치\)$/);
+    expect(call(`github:someone-else/other-repo#${pkg.c3}`).stdout).toMatch(/^\(\d+글자, 형식 불일치\)$/);
+    // 자격이 섞인 spec 이 와도 그 값이 나오지 않는다(이 로그는 공개다)
+    const secret = "ghp_NEVER_IN_A_MESSAGE_0002";
+    const withCred = `https://x-access-token:${secret}@github.com/smlee-hash/wedly-policy-match-shared#${pkg.c3}`;
+    const r = call(withCred);
+    expect(r.stdout).not.toContain(secret);
+    expect(r.stdout).toBe(`(${withCred.length}글자, 형식 불일치)`);
+  }, 30_000);
 });
