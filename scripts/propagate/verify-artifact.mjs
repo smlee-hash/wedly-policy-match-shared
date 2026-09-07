@@ -53,14 +53,25 @@ const readFileChecked = (path) => {
   return readFileSync(path);
 };
 
+const kindOf = (v) => (v === null ? "null" : Array.isArray(v) ? "배열" : typeof v);
+
 const readJson = (path, label) => {
+  let value;
   try {
-    return JSON.parse(readFileChecked(path).toString("utf8"));
+    value = JSON.parse(readFileChecked(path).toString("utf8"));
   } catch (err) {
     const why = err?.code === "ENOENT" ? "파일이 없음" : String(err?.message ?? err).split("\n")[0];
     problems.push(`${label} 를 읽지 못함: ${why}`);
     return null;
   }
+  // ★「읽기 성공」과 「값이 쓸 만한가」를 나눈다(2026-09-08 3차 리뷰 G2 · P2).
+  //  옛 판은 `if (!base || !got) return;` 로 감쌌기 때문에, 파일 내용이 `null`·`false`·`0`·`""` 이면
+  //  **대조를 통째로 건너뛰고 조용히 통과**했다 — 「깊은 비교로 다 본다」는 이 대조기의 약속이 깨지는 자리다.
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    problems.push(`${label} 의 최상위가 개체가 아닙니다: ${kindOf(value)}`);
+    return null;
+  }
+  return value;
 };
 
 /** 폴더 안의 파일을 상대 경로로 모두 모은다(심볼릭 링크는 그 자리에서 거부) */

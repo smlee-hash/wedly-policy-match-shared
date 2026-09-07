@@ -25,16 +25,29 @@ const expectedSpec = `github:${REPO}#${sha}`;
  *  이 대조기는 앱 저장소와 산출물의 파일을 읽는데, 둘 다 우리가 만든 것이 아니다.
  *  (`require` 는 이 저장소 어디서도 파일을 읽는 데 쓰지 않는다 — 그러면 `package.json.js` 가 실행된다.)
  */
+const kindOf = (v) => (v === null ? "null" : Array.isArray(v) ? "배열" : typeof v);
+
 const readJson = (p, label) => {
+  let value;
   try {
     const st = lstatSync(p);
     if (!st.isFile()) throw Object.assign(new Error("보통 파일이 아님(링크·폴더는 읽지 않습니다)"), { code: "ENOTFILE" });
-    return JSON.parse(readFileSync(p, "utf8"));
+    value = JSON.parse(readFileSync(p, "utf8"));
   } catch (err) {
     const why = err?.code === "ENOENT" ? "파일이 없음" : String(err?.message ?? err).split("\n")[0];
     problems.push(`${label} 를 읽지 못함: ${why}`);
     return null;
   }
+  // ★「읽기 성공」과 「값이 쓸 만한가」는 다른 이야기다(2026-09-08 3차 리뷰 G2 · P2).
+  //  옛 판은 읽기만 성공하면 그 값을 그대로 돌려줬고, 부르는 쪽은 `if (pkg)` 로 감쌌다.
+  //  그래서 파일 내용이 `null`·`false`·`0`·`""` 이면 **검사를 통째로 건너뛰고 조용히 통과**했다
+  //  (= 잠금 파일을 `0` 한 글자로 바꿔 오면 대조기가 아무것도 안 보고 OK 를 찍었다).
+  //  이제는 최상위가 「배열 아닌 개체」가 아니면 그 자리에서 어긋남으로 적는다.
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    problems.push(`${label} 의 최상위가 개체가 아님: ${kindOf(value)}`);
+    return null;
+  }
+  return value;
 };
 
 const pkg = readJson(join(root, "package.json"), "package.json");

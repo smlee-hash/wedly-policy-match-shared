@@ -132,6 +132,29 @@ describe("verify-lock.mjs", () => {
     expectRejected(run(broken, SHA), /package-lock\.json/);
   });
 
+  // ── 2026-09-08 3차 리뷰 G2(P2): 「읽기 성공」과 「값」은 다른 이야기다 ──
+
+  it("파일 내용이 null·false·0·\"\" 이면 1 — 검사를 건너뛰고 통과하지 않는다", () => {
+    // ★막는 사고: 옛 판은 읽기만 성공하면 그 값을 그대로 돌려주고 부르는 쪽이 `if (pkg)` 로 감쌌다.
+    //  그래서 파일을 `0` 한 글자로 바꿔 오면 **아무것도 안 보고 OK** 가 찍혔다(핀·잠금 대조가 통째로 사라짐).
+    //  JSON 으로는 멀쩡히 읽히지만 개체가 아닌 값 넷을 두 파일 각각에 넣어 잰다.
+    for (const body of ["null", "false", "0", '""']) {
+      const rootA = app({ pkgSha: SHA, lockRootSha: SHA, lockResolvedSha: SHA });
+      writeFileSync(join(rootA, "package.json"), body);
+      expectRejected(run(rootA, SHA), /package\.json 의 최상위가 개체가 아님/);
+
+      const rootB = app({ pkgSha: SHA, lockRootSha: SHA, lockResolvedSha: SHA });
+      writeFileSync(join(rootB, "package-lock.json"), body);
+      expectRejected(run(rootB, SHA), /package-lock\.json 의 최상위가 개체가 아님/);
+    }
+  });
+
+  it("설치 잠금이 개체가 아니어도 1 — --installed 갈래도 같은 규칙", () => {
+    const root = app({ pkgSha: SHA, lockRootSha: SHA, lockResolvedSha: SHA, installedSha: SHA });
+    writeFileSync(join(root, "node_modules/.package-lock.json"), "0");
+    expectRejected(run(root, SHA, "--installed"), /최상위가 개체가 아님/);
+  });
+
   it("SHA 가 40자리 16진수가 아니면 2(사용법 오류)", () => {
     expect(run(app({ pkgSha: SHA, lockRootSha: SHA, lockResolvedSha: SHA }), "b404b4b").code).toBe(2);
   });

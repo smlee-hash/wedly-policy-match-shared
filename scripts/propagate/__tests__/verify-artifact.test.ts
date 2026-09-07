@@ -207,6 +207,33 @@ describe("verify-artifact.mjs", () => {
     expect(r.err).toMatch(/검증 규칙이 없는 파일/);
   });
 
+  // ── 2026-09-08 3차 리뷰 G2(P2): 「읽기 성공」과 「값」은 다른 이야기다 ──
+
+  it("산출물·기준 파일이 null·false·0·\"\" 이면 1 — 대조를 건너뛰고 통과하지 않는다", () => {
+    // ★막는 사고: 옛 판은 `if (!base || !got) return;` 이라, 파일 내용이 JSON 으로는 읽히지만
+    //  개체가 아닌 값(`null`·`false`·`0`·`""`)이면 **그 파일의 대조를 통째로 건너뛰고** 조용히 통과했다.
+    //  「깊은 비교로 기준과 같아야 한다」는 이 대조기의 약속이 바로 그 자리에서 사라진다.
+    for (const body of ["null", "false", "0", '""']) {
+      const bad = fixture(tmp);
+      write(bad.art, "package.json", body);
+      const r = run(bad);
+      expect(r.code, `산출물 package.json=${body}`).toBe(1);
+      expect(r.err).toMatch(/최상위가 개체가 아닙니다/);
+
+      const badLock = fixture(tmp);
+      write(badLock.art, "package-lock.json", body);
+      const r2 = run(badLock);
+      expect(r2.code, `산출물 package-lock.json=${body}`).toBe(1);
+      expect(r2.err).toMatch(/최상위가 개체가 아닙니다/);
+
+      const badBase = fixture(tmp);
+      write(badBase.base, "package.json", body);
+      const r3 = run(badBase);
+      expect(r3.code, `기준 package.json=${body}`).toBe(1);
+      expect(r3.err).toMatch(/최상위가 개체가 아닙니다/);
+    }
+  });
+
   it("인자가 모자라거나 SHA 형식이 아니면 2(사용법 오류)", () => {
     const f = fixture(tmp);
     expect(spawnSync("node", [SCRIPT, f.base, f.art, "b404b4b", ...f.paths], { encoding: "utf8" }).status).toBe(2);

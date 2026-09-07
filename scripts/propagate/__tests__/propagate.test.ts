@@ -975,6 +975,28 @@ else if (cmd === "check") {
     expect(sh("git rev-parse main", app.bare)).toBe(before);
   }, 60_000);
 
+  it("산출물 package.json 이 개체가 아닌 JSON(0)이면 밀지 않는다 — 검사를 건너뛰지 않는다(3차 리뷰 G2)", () => {
+    // 대조기 단위 시험(verify-lock·verify-artifact)이 이미 재는 판정이지만, **밀기 단계가 실제로**
+    // 그 판정을 거쳐 원격을 건드리지 않는지는 여기서만 잰다. `0` 은 JSON 으로는 멀쩡히 읽힌다 —
+    // 옛 판의 `if (pkg)` 는 그것을 「읽기 실패」로 오해해 대조를 통째로 건너뛰었다.
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const before = sh("git rev-parse main", app.bare);
+    writeArtifact(
+      tmp,
+      { app: "lab", result: "prepared", baseSha: before, pinFrom: pkg.c1, pinTo: pkg.c3, subject: "feat: 시험 커밋" },
+      { "package.json": "0\n", "package-lock.json": lockJsonAt(pkg.c3) },
+    );
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/최상위가 개체가 아님/);
+    expect(sh("git rev-parse main", app.bare)).toBe(before);
+  }, 60_000);
+
   it("커밋할 파일이 없으면(등록부 미생성) 1 로 끝나고 무엇이 없는지 알린다", () => {
     // ERP 후처리가 설계 등록부를 못 만든 경우. verify-lock 은 등록부를 보지 않으므로 여기까지 통과한다.
     const app = fakeApp(tmp, "erp", pkg.c1, (w) => {
