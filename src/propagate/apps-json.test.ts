@@ -43,9 +43,12 @@ describe("scripts/propagate/apps.json", () => {
   it("ERP 만 설치+설계 등록부 재생성, 나머지는 잠금 파일만", () => {
     const byId = Object.fromEntries(apps.map((a) => [String(a.id), a] as const));
     expect(byId.erp.install).toBe(true);
+    // ★두 번째 단계는 `npm run design:check` 여야 한다 — Railway 가 ERP `build` 첫 단계로 돌리는 바로 그 명령이다.
+    //  ERP 의 `design:check` 는 `cli.mjs check` **와** `debt.mjs check` 두 가지다(2026-09-08 실측).
+    //  봇이 `cli.mjs check` 만 돌리면 「봇은 초록인데 Railway 배포가 빨간」 상태가 만들어진다.
     expect(byId.erp.postSteps).toEqual([
       "node scripts/design-system/cli.mjs generate",
-      "node scripts/design-system/cli.mjs check",
+      "npm run design:check",
     ]);
     expect(byId.erp.commitPaths).toContain("src/lib/design-system/registry.generated.json");
     expect(byId.illua.install).toBe(false);

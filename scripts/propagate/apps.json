@@ -5,7 +5,7 @@
     "install": true,
     "postSteps": [
       "node scripts/design-system/cli.mjs generate",
-      "node scripts/design-system/cli.mjs check"
+      "npm run design:check"
     ],
     "commitPaths": [
       "package.json",

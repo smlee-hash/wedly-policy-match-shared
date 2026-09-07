@@ -101,8 +101,13 @@ function fakeApp(tmp: string, name: string, pinSha: string, extra?: (work: strin
 
 /**
  * 가짜 npm: `pkg set` 은 package.json 을 실제로 고치고, `install` 은 잠금 파일을 새 SHA 로 고친다.
- * `ci` 는 설치 잠금(node_modules/.package-lock.json)을 쓴다. 그 밖의 부명령은 실패(9)로 알린다 —
- * 스크립트가 예상 밖 npm 호출을 하면 조용히 넘어가지 않게.
+ * `ci` 는 설치 잠금(node_modules/.package-lock.json)을 쓴다. `run` 은 **진짜 npm 과 같은 뜻으로**
+ * package.json 의 `scripts` 를 읽어 그 문자열을 셸로 돌린다(`A && B` 묶음도 그대로).
+ * 그 밖의 부명령은 실패(9)로 알린다 — 스크립트가 예상 밖 npm 호출을 하면 조용히 넘어가지 않게.
+ *
+ * ★`run` 이 필요한 이유: 봇의 ERP 후처리가 `npm run design:check` 다(apps.json). Railway 가 ERP
+ *  `build` 첫 단계로 돌리는 바로 그 명령이라 봇도 같은 것을 돌려야 한다. 여기서 `run` 을 흉내만 내고
+ *  아무것도 실행하지 않으면 「봇 시험은 초록인데 Railway 는 빨간」 상태를 시험이 못 잡는다.
  */
 function fakeNpm(tmp: string) {
   const bin = join(tmp, "bin");
@@ -147,6 +152,16 @@ case "$1" in
     fs.writeFileSync("node_modules/.package-lock.json", JSON.stringify({
       packages: { "node_modules/@wedly/policy-match-shared": l.packages["node_modules/@wedly/policy-match-shared"] },
     }));' ;;
+  run)
+    # package.json 의 scripts 에서 명령 문자열을 꺼내 셸로 돌린다(진짜 npm 과 같은 동작).
+    # 없는 script 면 진짜 npm 처럼 1 로 죽는다 — set -e 가 여기서 스크립트를 멈춘다.
+    CMD="$(node -e '
+      const fs = require("fs");
+      const name = process.argv[1];
+      const s = (JSON.parse(fs.readFileSync("package.json", "utf8")).scripts || {})[name];
+      if (!s) { console.error("fake npm: Missing script: " + name); process.exit(1); }
+      process.stdout.write(s);' "$2")"
+    bash -c "$CMD" ;;
   *) echo "fake npm: unknown $1" >&2; exit 9 ;;
 esac
 `,
@@ -184,8 +199,28 @@ function runPropagate(tmp: string, env: Record<string, string>) {
   return { code: r.status, stdout: r.stdout, stderr: r.stderr, out, npmLog: readFileSync(log, "utf8") };
 }
 
+/**
+ * ERP 의 `design:check` script 흉내 — **두 명령의 묶음**이다(실제 ERP package.json, 2026-09-08 실측:
+ * `node scripts/design-system/cli.mjs check && node scripts/design-system/debt.mjs check`).
+ * 봇은 `npm run design:check` 로 이 묶음을 통째로 돌리므로, 가짜 앱도 같은 모양이어야
+ * 「Railway 와 같은 명령을 돌린다」를 시험이 실제로 잰다.
+ */
+function seedErpScripts(work: string) {
+  const pkgPath = join(work, "package.json");
+  const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as Record<string, unknown>;
+  pkg.scripts = {
+    ...((pkg.scripts as Record<string, string> | undefined) ?? {}),
+    "design:check": "node scripts/design-system/cli.mjs check && node scripts/design-system/debt.mjs check",
+  };
+  writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
+  mkdirSync(join(work, "scripts/design-system"), { recursive: true });
+  // 빚(debt) 검사는 이 시험의 관심사가 아니다 — 있기만 하면 된다(묶음의 뒷 절반이 실제로 돈다는 증거).
+  writeFileSync(join(work, "scripts/design-system/debt.mjs"), "// 빚 검사 흉내 — 늘 통과\n");
+}
+
 /** ERP 흉내: 설계 등록부 + 가짜 cli.mjs(generate 는 현재 핀을 적고, check 는 그것이 핀과 같은지 본다) */
 function seedErpDesignSystem(work: string, cliBody?: string) {
+  seedErpScripts(work);
   mkdirSync(join(work, "scripts/design-system"), { recursive: true });
   mkdirSync(join(work, "src/lib/design-system"), { recursive: true });
   writeFileSync(join(work, "src/lib/design-system/registry.generated.json"), '{"pin":"old"}\n');
@@ -248,8 +283,45 @@ describe("propagate.sh", () => {
     expect(r.code, r.stderr).toBe(0);
     expect(r.out).toContain("result=updated");
     expect(r.npmLog).toMatch(/^npm ci --ignore-scripts/m);
+    // 후처리 두 번째 단계는 Railway 가 ERP `build` 첫 단계로 돌리는 것과 **같은 명령**이어야 한다.
+    expect(r.npmLog).toMatch(/^npm run design:check$/m);
     expect(sh("git show main:src/lib/design-system/registry.generated.json", app.bare)).toContain(pkg.c3);
     expect(sh("git show --stat --format= main", app.bare)).toMatch(/registry\.generated\.json/);
+  }, 60_000);
+
+  it("설계 등록부가 핀과 어긋나면 `npm run design:check` 가 막는다 — 아무것도 밀지 않는다", () => {
+    // 왜 이 시험이 있나: 이것이 봇의 「Railway 와 같은 관문」이다. 등록부 재생성이 깨져 옛 값이
+    // 남으면 Railway 의 `npm run design:check` 가 빨개져 **배포가 실패**한다. 봇은 그런 커밋을
+    // 애초에 밀지 않아야 한다 — 밀면 앱 main 은 배포 안 되는 상태로 남는다.
+    // (이 시험은 가짜 npm 의 `run` 갈래가 진짜로 script 를 실행하는지도 함께 잰다 —
+    //  `run` 이 아무것도 안 하면 여기서 봇이 밀어 버리므로 시험이 빨개진다.)
+    const app = fakeApp(tmp, "erp", pkg.c1, (w) =>
+      seedErpDesignSystem(
+        w,
+        `import { readFileSync, writeFileSync } from "node:fs";
+const cmd = process.argv[2];
+const pin = JSON.parse(readFileSync("package.json", "utf8")).dependencies["@wedly/policy-match-shared"];
+// generate 가 낡은 값을 적는다(등록부 재생성이 깨진 상황)
+if (cmd === "generate") writeFileSync("src/lib/design-system/registry.generated.json", JSON.stringify({ pin: "stale" }) + "\\n");
+else if (cmd === "check") {
+  if (JSON.parse(readFileSync("src/lib/design-system/registry.generated.json", "utf8")).pin !== pin) {
+    console.error("설계 등록부가 핀과 다릅니다");
+    process.exit(1);
+  }
+} else process.exit(2);
+`,
+      ),
+    );
+    const before = sh("git rev-parse main", app.bare);
+    const r = runPropagate(tmp, {
+      PROPAGATE_APP_ID: "erp",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/후처리 실패: npm run design:check/);
+    expect(sh("git rev-parse main", app.bare)).toBe(before);
   }, 60_000);
 
   it("같은 SHA 면 skipped-same, 커밋 없음", () => {
@@ -462,7 +534,8 @@ exit 0
     // ERP 후처리가 설계 등록부를 못 만든 경우. verify-lock 은 등록부를 보지 않으므로 여기까지 통과한다.
     // 그대로 두면 `git add` 가 128 로 죽어 규격(0/1/2)이 깨진다.
     const app = fakeApp(tmp, "erp", pkg.c1, (w) => {
-      mkdirSync(join(w, "scripts/design-system"), { recursive: true });
+      // `design:check` script 는 있고(그래서 후처리는 통과) 등록부 파일만 없는 상황을 만든다.
+      seedErpScripts(w);
       writeFileSync(join(w, "scripts/design-system/cli.mjs"), "// 아무것도 만들지 않는다\n");
     });
     const before = sh("git rev-parse main", app.bare);
