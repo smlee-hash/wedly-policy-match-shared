@@ -101,7 +101,8 @@ describe(".github/workflows/propagate.yml", () => {
   it("실패 사유는 파일에서 읽어 인자로 넘긴다 — 워크플로우 보간으로 셸에 붙이지 않는다", () => {
     const reason = BLOCKS.find((b) => b.includes("notify.sh") && b.includes("meta.json"));
     expect(reason, "실패 알림이 meta.json 을 읽지 않습니다").toBeTruthy();
-    expect(reason).toContain('"$PROPAGATE_OUT/meta.json"');
+    // 봉인을 푼 자리(F9) — 여기가 어긋나면 사유 없는 알림만 간다
+    expect(reason).toContain('"$PROPAGATE_OUT/plain/meta.json"');
     expect(reason).toContain('"$REASON"');
   });
 
@@ -138,6 +139,22 @@ describe(".github/workflows/propagate.yml", () => {
     );
     // 옛 판(자동·손 가리지 않고 막던 모양)이 남아 있지 않다
     expect(resolve).not.toMatch(/if: >-\n\s+vars\.PROPAGATE_ENABLED != 'false' &&/);
+  });
+
+  it("산출물 봉인: 준비는 공개키(변수), 밀기는 비밀키(시크릿) — 열쇠가 자리를 바꾸지 않는다", () => {
+    // 2026-09-08 총괄 결정 F9: 공개 저장소의 artifact 는 누구나 받는다. 준비 job 은 비공개 앱 파일을
+    // 공개키로 봉인해 올리고, 밀기 job 만 비밀키로 푼다. 공개키가 시크릿 자리로 가거나(쓸데없이 감춤)
+    // 비밀키가 준비 job 으로 가면(앱 코드 옆에 두면) F9 가 무너진다.
+    const prepare = jobSection("prepare");
+    const push = jobSection("push");
+    expect(prepare).toContain("PROPAGATE_ARTIFACT_PUBKEY: ${{ vars.PROPAGATE_ARTIFACT_PUBKEY }}");
+    expect(prepare).not.toContain("PROPAGATE_ARTIFACT_PRIVKEY");
+    expect(push).toContain("PROPAGATE_ARTIFACT_PRIVKEY: ${{ secrets.PROPAGATE_ARTIFACT_PRIVKEY }}");
+    expect(push).not.toContain("PROPAGATE_ARTIFACT_PUBKEY");
+    // 준비 job 의 시크릿은 여전히 클론 step 의 읽기 토큰 하나뿐이다(공개키는 `vars.` 라 여기 안 센다)
+    expect(prepare.match(/secrets\./g) ?? []).toEqual(["secrets."]);
+    // 봉인은 준비가 죽었을 때도 필요하다 — 클론 step 에도 공개키가 있어야 사유가 담긴 산출물이 올라간다
+    expect(prepare).toMatch(/- name: 앱 저장소 클론[\s\S]*?PROPAGATE_ARTIFACT_PUBKEY[\s\S]*?- name: 핀 갱신 준비/);
   });
 
   it("기본 토큰 권한은 읽기뿐이다 — 최신 커밋 승격을 물어보려고 actions 읽기만 더한다", () => {

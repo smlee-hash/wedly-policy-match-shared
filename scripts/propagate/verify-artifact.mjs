@@ -55,6 +55,21 @@ const readFileChecked = (path) => {
 
 const kindOf = (v) => (v === null ? "null" : Array.isArray(v) ? "배열" : typeof v);
 
+/**
+ * ★로그는 **누구나 본다**(이 저장소는 공개라 Actions 로그도 공개다 — 2026-09-08 총괄 결정 F9).
+ *  그래서 이 대조기는 파일 **내용**을 절대 찍지 않는다: 어긋난 자리의 **이름과 개수**만 적는다.
+ *  값을 그대로 찍으면 (a) 비공개 앱의 꾸러미 목록·사내 주소가 공개 로그로 새고
+ *  (b) 준비 단계에서 도는 앱 코드가 **앱의 비밀을 이 오류문에 실어** 공개 로그로 빼돌릴 수 있다.
+ *  우리가 아는 안전한 모양(우리 저장소 핀·resolved·sha512 integrity)일 때만 값을 그대로 적는다.
+ */
+const SAFE_VALUE_RE =
+  /^(github:[A-Za-z0-9._/-]+#[0-9a-f]{40}|git\+(?:ssh|https):\/\/[A-Za-z0-9@._/-]+#[0-9a-f]{40}|sha512-[A-Za-z0-9+/=]{1,120})$/;
+const shown = (v) => {
+  if (v === undefined || v === null || v === "") return "(없음)";
+  const s = String(v);
+  return SAFE_VALUE_RE.test(s) ? s : `(예상 밖의 값 ${s.length}자 — 공개 로그라 내용은 적지 않습니다)`;
+};
+
 const readJson = (path, label) => {
   let value;
   try {
@@ -111,7 +126,8 @@ function collectDiffs(want, got, path, out) {
     }
     return out;
   }
-  if (want !== got) out.push(`${path}: 값이 다름(${JSON.stringify(want)} ↔ ${JSON.stringify(got)})`);
+  // ★값은 적지 않는다(F9 로그 점검) — **어느 자리가** 다른지만 적는다. 위 `shown` 주석 참고.
+  if (want !== got) out.push(`${path}: 값이 다름`);
   return out;
 }
 
@@ -158,11 +174,11 @@ function checkLockJson(rel) {
   // 이 항목은 통째로 바뀌어도 되는 유일한 자리다 — 그래서 여기만은 **내용을 직접** 본다.
   if (!RESOLVED_RE.test(String(entry.resolved ?? ""))) {
     problems.push(
-      `산출물 ${rel} 의 ${entryKey}.resolved 가 우리 저장소의 그 커밋이 아닙니다: ${entry.resolved ?? "(없음)"}`,
+      `산출물 ${rel} 의 ${entryKey}.resolved 가 우리 저장소의 그 커밋이 아닙니다: ${shown(entry.resolved)}`,
     );
   }
   if (!String(entry.integrity ?? "").startsWith("sha512-")) {
-    problems.push(`산출물 ${rel} 의 ${entryKey}.integrity 가 sha512 가 아닙니다: ${entry.integrity ?? "(없음)"}`);
+    problems.push(`산출물 ${rel} 의 ${entryKey}.integrity 가 sha512 가 아닙니다: ${shown(entry.integrity)}`);
   }
   const want = clone(base);
   want.packages[""].dependencies[NAME] = expectedSpec;

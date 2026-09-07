@@ -12,10 +12,18 @@
 #        (「끄고 → 밀고 → 예행으로 확인 → 켠다」)가 성립하고, 꺼 둔 동안에도 사람이 손으로
 #        한 앱을 맞출 수 있다.
 # 시크릿:
-#   `PROPAGATE_READ_TOKEN` — 앱 3저장소 **읽기 전용** PAT. 클론에만 쓴다.
-#   `PROPAGATE_TOKEN`      — 앱 3저장소 contents:write PAT. **밀기에만** 쓴다.
-#   `WEDLY_NOTIFY_KEY`     — ERP 내부 알림 열쇠. **밀기 job 에만** 준다(아래 ★알림 지점).
+#   `PROPAGATE_READ_TOKEN`       — 앱 3저장소 **읽기 전용** PAT. 클론에만 쓴다.
+#   `PROPAGATE_TOKEN`            — 앱 3저장소 contents:write PAT. **밀기에만** 쓴다.
+#   `WEDLY_NOTIFY_KEY`           — ERP 내부 알림 열쇠. **밀기 job 에만** 준다(아래 ★알림 지점).
+#   `PROPAGATE_ARTIFACT_PRIVKEY` — 산출물 봉인을 푸는 비밀키 PEM. **밀기 job 에만** 준다.
 # 변수:  `PROPAGATE_ENABLED` · `WEDLY_NOTIFY_URL`(ERP 주소)
+#   `PROPAGATE_ARTIFACT_PUBKEY`  — 산출물을 봉인하는 공개키 PEM(비밀이 아니라 **변수**다).
+#
+# ★산출물은 봉인해서 올린다(2026-09-08 총괄 결정 F9):
+#   이 저장소는 **공개**라 Actions 산출물은 누구나 내려받는다. 그런데 그 안에는 비공개 앱 3곳의
+#   package.json·잠금 파일·설계 등록부가 들어 있다. 그래서 준비 job 은 평문 대신 공개키로 봉인한
+#   `bundle.enc`·`key.enc` 만 올리고, 밀기 job 만 비밀키로 그것을 푼다. 공개키 변수가 비어 있으면
+#   준비 job 은 **아무것도 올리지 않고 실패한다** — 실수로라도 평문이 올라가는 길을 두지 않는다.
 #
 # ★알림 지점은 밀기 job 한 곳뿐이다(2026-09-08 2차 리뷰 F1·F7):
 #   준비 job 의 실행기는 **앱 코드가 이미 한 번 돈 자리**라 거기서 알림 열쇠를 쓰면
@@ -214,6 +222,9 @@ jobs:
         shell: bash
         env:
           PROPAGATE_TOKEN: ${{ secrets.PROPAGATE_READ_TOKEN }}
+          # 이 단계가 죽어도 **사유를 봉인해서** 올려야 밀기 job 이 그것을 읽어 알린다(F9+F1).
+          # 공개키는 시크릿이 아니라 **변수**다 — 새어도 아무것도 열지 못한다.
+          PROPAGATE_ARTIFACT_PUBKEY: ${{ vars.PROPAGATE_ARTIFACT_PUBKEY }}
         run: bash scripts/propagate/propagate.sh clone
 
       # ↓ 여기서부터 앱 코드(npm·설계 등록부·design:check)가 돈다 — **토큰이 없는 자리다.**
@@ -225,6 +236,11 @@ jobs:
           # ★커밋 제목 — 아무나 적을 수 있는 글자라 반드시 env 로만 넘긴다.
           PROPAGATE_SUBJECT: ${{ needs.resolve.outputs.subject }}
           PROPAGATE_PACKAGE_DIR: ${{ github.workspace }}
+          # ★산출물 봉인(총괄 결정 F9): 이 저장소는 공개라 artifact 를 누구나 내려받는다.
+          #  비공개 앱 3곳의 package.json·잠금 파일·설계 등록부가 그대로 공개되지 않게,
+          #  올릴 폴더에는 이 공개키로 봉인한 bundle.enc·key.enc 만 넣는다.
+          #  **변수가 비어 있으면 준비는 아무것도 올리지 않고 실패한다**(평문 업로드 금지).
+          PROPAGATE_ARTIFACT_PUBKEY: ${{ vars.PROPAGATE_ARTIFACT_PUBKEY }}
         run: bash scripts/propagate/propagate.sh prepare
 
       # ★`always()` 인 이유(2차 리뷰 F1): 준비가 **실패했을 때도** 산출물을 올려야 한다.
@@ -291,6 +307,8 @@ jobs:
           PROPAGATE_PACKAGE_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ needs.resolve.outputs.sha }}
           PROPAGATE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           PROPAGATE_DRY_RUN: ${{ needs.resolve.outputs.dry_run == 'true' && '1' || '0' }}
+          # 봉인을 푸는 열쇠(F9). 이것만 시크릿이다 — 이 job 에서는 앱 코드가 한 줄도 돌지 않는다.
+          PROPAGATE_ARTIFACT_PRIVKEY: ${{ secrets.PROPAGATE_ARTIFACT_PRIVKEY }}
         run: bash scripts/propagate/propagate.sh push
 
       # ★이 저장소의 **유일한 실패 알림 지점**이다(2차 리뷰 F1·F7).
@@ -317,9 +335,9 @@ jobs:
               const line = String(meta.error ?? "").replace(/\s+/g, " ").trim();
               process.stdout.write(line ? "사유: " + line.slice(0, 400) : "사유: 밀기 단계에서 실패했습니다 — 위 로그를 보세요.");
             } catch {
-              process.stdout.write("사유: 준비 단계 산출물을 받지 못했습니다 — 준비 job 로그를 보세요.");
+              process.stdout.write("사유: 준비 단계 산출물을 받지 못했거나 봉인을 풀지 못했습니다 — 준비·밀기 job 로그를 보세요.");
             }
-          ' "$PROPAGATE_OUT/meta.json")"
+          ' "$PROPAGATE_OUT/plain/meta.json")"
           bash scripts/propagate/notify.sh \
             "정책매칭 공용 자동 반영 실패: $APP_ID" \
             "$RUN_URL" \

@@ -288,8 +288,9 @@ describe("propagate.yml — 밀기 job 의 실패 알림 토막", () => {
   function runNotifyBlock(meta: Record<string, string> | null, env: Record<string, string> = {}) {
     const out = join(tmp, "propagate-out");
     rmSync(out, { recursive: true, force: true });
-    mkdirSync(out, { recursive: true });
-    if (meta) writeFileSync(join(out, "meta.json"), JSON.stringify(meta, null, 2) + "\n");
+    // 산출물은 봉인돼 오고(F9) 밀기 단계가 `<산출물>/plain` 에 풀어 둔다 — 알림 토막은 거기서 사유를 읽는다.
+    mkdirSync(join(out, "plain"), { recursive: true });
+    if (meta) writeFileSync(join(out, "plain/meta.json"), JSON.stringify(meta, null, 2) + "\n");
     const args = join(tmp, `curl-args-${Math.random().toString(36).slice(2)}.txt`);
     writeFileSync(args, "");
     const r = spawnSync("bash", ["-c", NOTIFY_FAILURE], {
@@ -324,10 +325,10 @@ describe("propagate.yml — 밀기 job 의 실패 알림 토막", () => {
     expect(r.curlArgs).toContain("https://example.test/run/1");
   }, 30_000);
 
-  it("산출물을 못 받았으면 그렇게 알린다 — 조용히 넘어가지 않는다", () => {
+  it("산출물을 못 받았거나 못 풀었으면 그렇게 알린다 — 조용히 넘어가지 않는다", () => {
     const r = runNotifyBlock(null);
     expect(r.code, r.stderr).toBe(0);
-    expect(r.curlArgs).toContain("준비 단계 산출물을 받지 못했습니다");
+    expect(r.curlArgs).toContain("산출물을 받지 못했거나 봉인을 풀지 못했습니다");
   }, 30_000);
 
   it("커밋 제목에 명령을 숨겨도 글자로만 실린다 — 셸에서 실행되지 않는다", () => {

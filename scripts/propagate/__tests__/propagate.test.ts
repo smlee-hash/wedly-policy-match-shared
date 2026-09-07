@@ -70,6 +70,75 @@ function sh(cmd: string, cwd: string, env: NodeJS.ProcessEnv = {}) {
   return r.stdout.trim();
 }
 
+/**
+ * 산출물 봉인(2026-09-08 총괄 결정 F9)에 쓸 RSA 키쌍 — **시험이 스스로** 임시 폴더에 만든다.
+ * 저장소·PC 의 실제 열쇠는 쓰지 않는다(시험이 비밀값을 만지지 않게).
+ */
+function makeKeys(label: string) {
+  const dir = mkdtempSync(join(tmpdir(), `propagate-keys-${label}-`));
+  const priv = join(dir, "priv.pem");
+  const pub = join(dir, "pub.pem");
+  sh(
+    `openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "${priv}" 2>/dev/null && ` +
+      `openssl pkey -in "${priv}" -pubout -out "${pub}"`,
+    dir,
+  );
+  return { privPem: readFileSync(priv, "utf8"), pubPem: readFileSync(pub, "utf8") };
+}
+
+const KEYS = makeKeys("main");
+/** 짝이 아닌 열쇠 — 「남의 비밀키로는 못 푼다」를 재는 데 쓴다 */
+const OTHER_KEYS = makeKeys("other");
+
+/**
+ * 산출물을 **봇 코드를 부르지 않고** 같은 규격으로 봉인한다.
+ * ★시험이 규격을 스스로 다시 만드는 이유: 봇이 만든 것을 봇이 푸는 것만 재면 규격이 틀려도 초록이다.
+ *  그리고 이 함수의 존재 자체가 봉인의 성질을 말한다 — 공개키는 누구나 아는 값이라 **누구나 그럴듯한
+ *  산출물을 지어낼 수 있다.** 봉인은 「엿보기」만 막고 위조는 못 막으므로, 밀기 단계는 봉인을 푼 뒤에도
+ *  내용을 전부 다시 본다(그 판정을 재는 시험들이 아래에 있다).
+ */
+function sealInto(destDir: string, plainDir: string, pubPem: string) {
+  const work = mkdtempSync(join(tmpdir(), "propagate-seal-"));
+  writeFileSync(join(work, "pub.pem"), pubPem);
+  rmSync(destDir, { recursive: true, force: true });
+  mkdirSync(destDir, { recursive: true });
+  sh(
+    [
+      `openssl rand -hex 32 > "${work}/session.key"`,
+      `tar czf "${work}/bundle.tgz" -C "${plainDir}" .`,
+      `openssl enc -aes-256-cbc -pbkdf2 -pass file:"${work}/session.key" -in "${work}/bundle.tgz" -out "${destDir}/bundle.enc"`,
+      `openssl pkeyutl -encrypt -pubin -inkey "${work}/pub.pem" -pkeyopt rsa_padding_mode:oaep ` +
+        `-in "${work}/session.key" -out "${destDir}/key.enc"`,
+    ].join(" && "),
+    work,
+  );
+  rmSync(work, { recursive: true, force: true });
+  return destDir;
+}
+
+/** 봉인된 산출물을 풀어 평문 폴더 경로를 돌려준다 — 시험이 안을 들여다볼 때 쓴다 */
+function unsealFrom(sealedDir: string, privPem: string): string {
+  const work = mkdtempSync(join(tmpdir(), "propagate-unseal-"));
+  const plain = join(work, "plain");
+  mkdirSync(plain, { recursive: true });
+  writeFileSync(join(work, "priv.pem"), privPem);
+  sh(
+    [
+      `openssl pkeyutl -decrypt -inkey "${work}/priv.pem" -pkeyopt rsa_padding_mode:oaep ` +
+        `-in "${sealedDir}/key.enc" -out "${work}/session.key"`,
+      `openssl enc -d -aes-256-cbc -pbkdf2 -pass file:"${work}/session.key" -in "${sealedDir}/bundle.enc" -out "${work}/bundle.tgz"`,
+      `tar xzf "${work}/bundle.tgz" -C "${plain}"`,
+    ].join(" && "),
+    work,
+  );
+  return plain;
+}
+
+/** 준비 단계가 올린 **봉인 산출물**을 풀어 그 안을 본다 */
+function openArtifact(tmp: string) {
+  return unsealFrom(join(tmp, "artifact"), KEYS.privPem);
+}
+
 /** 가짜 패키지 저장소: c1 → c2 → c3 (main), 갈래 x1(c1 에서 딴 것) */
 function fakePackage(tmp: string) {
   const dir = join(tmp, "pkg");
@@ -236,6 +305,9 @@ function runStep(tmp: string, step: "clone" | "prepare" | "push", env: Record<st
       PROPAGATE_PACKAGE_URL: "https://example.test/pkg/commit",
       PROPAGATE_RUN_URL: "https://example.test/run/1",
       PROPAGATE_TOKEN: "",
+      // 산출물 봉인(F9) — 준비는 공개키로 봉인하고 밀기는 비밀키로 푼다. 시험이 만든 키쌍이다.
+      PROPAGATE_ARTIFACT_PUBKEY: KEYS.pubPem,
+      PROPAGATE_ARTIFACT_PRIVKEY: KEYS.privPem,
       GITHUB_OUTPUT: outFile,
       ...env,
     },
@@ -319,15 +391,21 @@ else if (cmd === "check") {
  *  실행기의 파일도 산출물도 마음대로 바꿀 수 있다. 그러니 밀기 단계는 산출물을 **믿을 수 없는 입력**
  *  으로 다뤄야 한다. 그 판정을 재려면 「준비가 만들 리 없는 산출물」을 시험이 직접 지어야 한다.
  */
-function writeArtifact(tmp: string, meta: Record<string, string>, files: Record<string, string>) {
-  const outDir = join(tmp, "artifact");
-  rmSync(outDir, { recursive: true, force: true });
-  mkdirSync(outDir, { recursive: true });
-  writeFileSync(join(outDir, "meta.json"), JSON.stringify(meta, null, 2) + "\n");
+function writeArtifact(
+  tmp: string,
+  meta: Record<string, string>,
+  files: Record<string, string>,
+  pubPem: string = KEYS.pubPem,
+) {
+  const plain = mkdtempSync(join(tmpdir(), "propagate-fake-artifact-"));
+  writeFileSync(join(plain, "meta.json"), JSON.stringify(meta, null, 2) + "\n");
   for (const [rel, body] of Object.entries(files)) {
-    mkdirSync(dirname(join(outDir, rel)), { recursive: true });
-    writeFileSync(join(outDir, rel), body);
+    mkdirSync(dirname(join(plain, rel)), { recursive: true });
+    writeFileSync(join(plain, rel), body);
   }
+  // 밀기 단계가 받는 것은 늘 **봉인된** 산출물이다(F9) — 시험도 같은 모양으로 건넨다.
+  const outDir = sealInto(join(tmp, "artifact"), plain, pubPem);
+  rmSync(plain, { recursive: true, force: true });
   return outDir;
 }
 
@@ -428,7 +506,9 @@ describe("propagate.sh", () => {
       PROPAGATE_CLONE_URL: app.bare,
     });
     expect(r.prepare?.code, r.prepare?.stderr).toBe(0);
-    const outDir = join(tmp, "artifact");
+    // 올리는 폴더에는 **봉인 두 장만** 있고(F9), 평문은 봉인 안에 있다
+    expect(listFiles(join(tmp, "artifact"))).toEqual(["bundle.enc", "key.enc"]);
+    const outDir = openArtifact(tmp);
     expect(listFiles(outDir)).toEqual([
       "meta.json",
       "package-lock.json",
@@ -493,8 +573,8 @@ else if (cmd === "check") {
     });
     expect(r.prepare?.code, r.prepare?.stderr).toBe(0);
     expect(r.prepare?.out).toContain("result=skipped-same");
-    // 건너뛴 경우에도 meta.json 은 담긴다 — 밀기 단계가 그 이유를 그대로 이어받는다
-    expect(listFiles(join(tmp, "artifact"))).toEqual(["meta.json"]);
+    // 건너뛴 경우에도 meta.json 은 담긴다 — 밀기 단계가 그 이유를 그대로 이어받는다(봉인 안에 한 장)
+    expect(listFiles(openArtifact(tmp))).toEqual(["meta.json"]);
     expect(r.push?.code, r.push?.stderr).toBe(0);
     expect(r.push?.out).toContain("result=skipped-same");
     expect(sh("git rev-parse main", app.bare)).toBe(before);
@@ -612,10 +692,13 @@ else if (cmd === "check") {
     expect(prepare?.code, prepare?.stderr).toBe(0);
 
     // 앱 저장소에 없는 커밋을 기준으로 삼게 만든다 — main 이 되감기거나 강제 푸시로 갈린 상황과 같다.
-    const metaPath = join(tmp, "artifact/meta.json");
-    const meta = JSON.parse(readFileSync(metaPath, "utf8")) as Record<string, string>;
+    // (산출물은 봉인돼 있으니 풀어서 고치고 **다시 봉인**한다 — 공개키만 있으면 누구나 할 수 있는 일이고,
+    //  그래서 밀기 단계는 봉인을 푼 뒤에도 내용을 스스로 다시 본다.)
+    const opened = openArtifact(tmp);
+    const meta = JSON.parse(readFileSync(join(opened, "meta.json"), "utf8")) as Record<string, string>;
     meta.baseSha = "0123456789abcdef0123456789abcdef01234567";
-    writeFileSync(metaPath, JSON.stringify(meta, null, 2) + "\n");
+    writeFileSync(join(opened, "meta.json"), JSON.stringify(meta, null, 2) + "\n");
+    sealInto(join(tmp, "artifact"), opened, KEYS.pubPem);
     const before = sh("git rev-parse main", app.bare);
 
     const push = runStep(tmp, "push", env);
@@ -705,7 +788,7 @@ else if (cmd === "check") {
       PROPAGATE_OUT: join(tmp, "없는-폴더"),
     });
     expect(r.code).toBe(2);
-    expect(r.stderr).toMatch(/meta\.json/);
+    expect(r.stderr).toMatch(/bundle\.enc/);
     expect(sh("git log --format=%s main", app.bare)).toBe("seed");
   }, 60_000);
 
@@ -778,7 +861,9 @@ else if (cmd === "check") {
       FAKE_NPM_FAIL: "install",
     });
     expect(r.prepare?.code).toBe(1);
-    const meta = JSON.parse(readFileSync(join(tmp, "artifact/meta.json"), "utf8")) as Record<string, string>;
+    // 실패 사유도 **봉인해서** 올린다(F9) — 평문 meta.json 이 공개 산출물로 나가지 않는다
+    expect(listFiles(join(tmp, "artifact"))).toEqual(["bundle.enc", "key.enc"]);
+    const meta = JSON.parse(readFileSync(join(openArtifact(tmp), "meta.json"), "utf8")) as Record<string, string>;
     expect(meta.app).toBe("lab");
     expect(meta.result).toBe("failed");
     expect(meta.error).toMatch(/잠금 파일 갱신/);
@@ -793,7 +878,7 @@ else if (cmd === "check") {
       PROPAGATE_CLONE_URL: join(tmp, "없는-저장소.git"),
     });
     expect(r.code).toBe(1);
-    const meta = JSON.parse(readFileSync(join(tmp, "artifact/meta.json"), "utf8")) as Record<string, string>;
+    const meta = JSON.parse(readFileSync(join(openArtifact(tmp), "meta.json"), "utf8")) as Record<string, string>;
     expect(meta.result).toBe("failed");
     expect(meta.error).toMatch(/클론 실패/);
   }, 60_000);
@@ -1013,6 +1098,185 @@ else if (cmd === "check") {
     });
     expect(r.prepare?.code).toBe(1);
     expect(r.prepare?.stderr).toMatch(/registry\.generated\.json/);
+    expect(sh("git rev-parse main", app.bare)).toBe(before);
+  }, 60_000);
+
+  // ── 2026-09-08 총괄 결정 F9: 산출물은 봉인해서 올린다(공개 저장소의 artifact 는 누구나 받는다) ──
+
+  it("올리는 산출물에는 평문이 하나도 없다 — bundle.enc·key.enc 두 장뿐", () => {
+    // ★막는 사고: 이 저장소는 공개라 Actions 산출물을 **누구나 내려받는다.** 그런데 그 안에는
+    //  비공개 앱의 package.json·잠금 파일·설계 등록부가 들어 있다(= 쓰는 꾸러미·사내 주소가 공개된다).
+    // ★재는 방식: 올린 폴더의 **바이트를 뒤져** 평문 흔적이 하나도 없는지 본다.
+    const app = fakeApp(tmp, "erp", pkg.c1, (w) => seedErpDesignSystem(w));
+    const r = runPrepare(tmp, {
+      PROPAGATE_APP_ID: "erp",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.prepare?.code, r.prepare?.stderr).toBe(0);
+    const outDir = join(tmp, "artifact");
+    expect(listFiles(outDir)).toEqual(["bundle.enc", "key.enc"]);
+    for (const name of listFiles(outDir)) {
+      const bytes = readFileSync(join(outDir, name)).toString("latin1");
+      expect(bytes, `${name} 에 평문이 보입니다`).not.toContain("policy-match-shared");
+      expect(bytes, `${name} 에 평문이 보입니다`).not.toContain("dependencies");
+      expect(bytes, `${name} 에 평문이 보입니다`).not.toContain("registry.generated");
+      expect(bytes, `${name} 에 평문 SHA 가 보입니다`).not.toContain(pkg.c3);
+    }
+    // 그래도 밀기 단계는 그것을 풀어 쓴다 — 봉인 안에는 원래 파일이 그대로 있다
+    const opened = openArtifact(tmp);
+    expect(readFileSync(join(opened, "package.json"), "utf8")).toContain(SPEC(pkg.c3));
+  }, 60_000);
+
+  it("봉인·해제를 거쳐도 평소 흐름은 그대로 — 준비 → 밀기가 원격에 새 핀을 남긴다", () => {
+    // F9 가 흐름을 깨지 않았다는 확인(봉인이 늘 실패하면 위 시험만으로는 초록일 수 있다).
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const r = runAll(tmp, {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.push?.code, r.push?.stderr).toBe(0);
+    expect(r.push?.out).toContain("result=updated");
+    expect(r.push?.stdout).toContain("봉인을 풀었습니다");
+    expect(sh("git show main:package.json", app.bare)).toContain(SPEC(pkg.c3));
+  }, 60_000);
+
+  it("짝이 아닌 비밀키로는 못 푼다 — 밀기 1, 원격 그대로", () => {
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const before = sh("git rev-parse main", app.bare);
+    writeArtifact(
+      tmp,
+      { app: "lab", result: "prepared", baseSha: before, pinFrom: pkg.c1, pinTo: pkg.c3, subject: "feat: 시험 커밋" },
+      { "package.json": pkgJsonAt("lab", pkg.c3), "package-lock.json": lockJsonAt(pkg.c3) },
+    );
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+      PROPAGATE_ARTIFACT_PRIVKEY: OTHER_KEYS.privPem,
+    });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/열쇠를 풀지 못했습니다/);
+    expect(sh("git rev-parse main", app.bare)).toBe(before);
+  }, 60_000);
+
+  it("봉인 안에 심볼릭 링크가 들어 있으면 풀자마자 멈춘다 — 꾸러미도 믿을 수 없는 입력이다", () => {
+    // 공개키는 누구나 아는 값이라 **아무나** 그럴듯한 봉인을 지어낼 수 있다(봉인은 엿보기만 막는다).
+    // 그래서 푼 뒤의 파일도 믿지 않는다: `package.json` 이 남의 파일을 가리키는 링크면 그대로 멈춘다
+    // (안 그러면 뒤의 `cp` 가 링크를 따라가 엉뚱한 파일을 앱 저장소로 옮긴다).
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const before = sh("git rev-parse main", app.bare);
+    const plain = mkdtempSync(join(tmpdir(), "propagate-linky-"));
+    writeFileSync(
+      join(plain, "meta.json"),
+      JSON.stringify(
+        { app: "lab", result: "prepared", baseSha: before, pinFrom: pkg.c1, pinTo: pkg.c3, subject: "feat: 시험 커밋" },
+        null,
+        2,
+      ) + "\n",
+    );
+    writeFileSync(join(plain, "package-lock.json"), lockJsonAt(pkg.c3));
+    symlinkSync("/etc/passwd", join(plain, "package.json"));
+    sealInto(join(tmp, "artifact"), plain, KEYS.pubPem);
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/심볼릭 링크/);
+    expect(sh("git rev-parse main", app.bare)).toBe(before);
+  }, 60_000);
+
+  it("비밀키가 아예 없으면 밀기는 1 — 봉인을 못 여는 것을 조용히 넘기지 않는다", () => {
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const before = sh("git rev-parse main", app.bare);
+    writeArtifact(
+      tmp,
+      { app: "lab", result: "prepared", baseSha: before, pinFrom: pkg.c1, pinTo: pkg.c3, subject: "feat: 시험 커밋" },
+      { "package.json": pkgJsonAt("lab", pkg.c3), "package-lock.json": lockJsonAt(pkg.c3) },
+    );
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+      PROPAGATE_ARTIFACT_PRIVKEY: "",
+    });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/비밀키/);
+    expect(sh("git rev-parse main", app.bare)).toBe(before);
+  }, 60_000);
+
+  it("공개키가 없으면 준비는 실패하고 **아무것도 올리지 않는다** — 평문 업로드 금지", () => {
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const r = runPrepare(tmp, {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+      PROPAGATE_ARTIFACT_PUBKEY: "",
+    });
+    expect(r.prepare?.code).toBe(1);
+    expect(r.prepare?.stderr).toMatch(/공개키/);
+    // 올릴 폴더는 **비어 있어야** 한다 — 평문이 한 장도 남지 않는다
+    expect(listFiles(join(tmp, "artifact"))).toEqual([]);
+  }, 60_000);
+
+  it("공개키가 없으면 클론 실패의 사유도 올리지 않는다 — 밀기는 「산출물 없음」(2)으로 알린다", () => {
+    // 봉인이 안 되면 실패 meta 도 올리지 않는다(평문으로는 절대 안 올린다). 그때 밀기 단계는
+    // 「artifact 를 못 받았다」로 빨갛게 끝나고, 워크플로우의 실패 알림이 그 사실을 사람에게 알린다.
+    const cloneFail = runStep(tmp, "clone", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: join(tmp, "없는-저장소.git"),
+      PROPAGATE_ARTIFACT_PUBKEY: "",
+    });
+    expect(cloneFail.code).toBe(1);
+    expect(listFiles(join(tmp, "artifact"))).toEqual([]);
+
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const push = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(push.code).toBe(2);
+    expect(push.stderr).toMatch(/산출물이 없습니다/);
+  }, 60_000);
+
+  it("준비가 죽으면 그 사유가 봉인돼 오고, 밀기가 읽어 1 로 끝낸다 — 원격 그대로", () => {
+    // 실패 meta 의 **끝에서 끝까지**: 준비가 죽어 봉인된 meta(failed) → 밀기가 풀어 사유를 찍고 1.
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const before = sh("git rev-parse main", app.bare);
+    const prep = runPrepare(tmp, {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+      FAKE_NPM_FAIL: "install",
+    });
+    expect(prep.prepare?.code).toBe(1);
+    expect(listFiles(join(tmp, "artifact"))).toEqual(["bundle.enc", "key.enc"]);
+    const push = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(push.code).toBe(1);
+    expect(push.stderr).toMatch(/잠금 파일 갱신/);
+    expect(push.out).toContain("result=failed");
+    // 워크플로우의 실패 알림은 여기서 사유를 읽는다 — 자리가 어긋나면 사유 없는 알림이 간다
+    const reason = JSON.parse(readFileSync(join(tmp, "artifact/plain/meta.json"), "utf8")) as Record<string, string>;
+    expect(reason.error).toMatch(/잠금 파일 갱신/);
     expect(sh("git rev-parse main", app.bare)).toBe(before);
   }, 60_000);
 

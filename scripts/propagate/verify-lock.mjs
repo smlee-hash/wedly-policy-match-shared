@@ -27,6 +27,20 @@ const expectedSpec = `github:${REPO}#${sha}`;
  */
 const kindOf = (v) => (v === null ? "null" : Array.isArray(v) ? "배열" : typeof v);
 
+/**
+ * ★로그는 **누구나 본다**(공개 저장소의 Actions 로그 — 2026-09-08 총괄 결정 F9).
+ *  우리가 아는 안전한 모양(우리 저장소 핀·resolved·sha512)일 때만 값을 그대로 적고,
+ *  그 밖의 값은 길이만 적는다. 밀기 단계는 **믿을 수 없는 산출물**을 여기에 넣으므로,
+ *  값을 그대로 찍으면 남이 심은 글자가 공개 로그에 그대로 실린다.
+ */
+const SAFE_VALUE_RE =
+  /^(github:[A-Za-z0-9._/-]+#[0-9a-f]{40}|git\+(?:ssh|https):\/\/[A-Za-z0-9@._/-]+#[0-9a-f]{40}|sha512-[A-Za-z0-9+/=]{1,120})$/;
+const shown = (v) => {
+  if (v === undefined || v === null || v === "") return "(없음)";
+  const s = String(v);
+  return SAFE_VALUE_RE.test(s) ? s : `(예상 밖의 값 ${s.length}자 — 공개 로그라 내용은 적지 않습니다)`;
+};
+
 const readJson = (p, label) => {
   let value;
   try {
@@ -53,16 +67,16 @@ const readJson = (p, label) => {
 const pkg = readJson(join(root, "package.json"), "package.json");
 if (pkg) {
   const pin = pkg.dependencies?.[NAME];
-  if (pin !== expectedSpec) problems.push(`package.json 핀이 다름: ${pin ?? "(없음)"}`);
+  if (pin !== expectedSpec) problems.push(`package.json 핀이 다름: ${shown(pin)}`);
 }
 
 const lock = readJson(join(root, "package-lock.json"), "package-lock.json");
 if (lock) {
   const rootSpec = lock.packages?.[""]?.dependencies?.[NAME];
-  if (rootSpec !== expectedSpec) problems.push(`package-lock 루트 spec 이 다름: ${rootSpec ?? "(없음)"}`);
+  if (rootSpec !== expectedSpec) problems.push(`package-lock 루트 spec 이 다름: ${shown(rootSpec)}`);
   const entry = lock.packages?.[`node_modules/${NAME}`] ?? {};
-  if (!String(entry.resolved ?? "").endsWith(`#${sha}`)) problems.push(`package-lock resolved 가 다름: ${entry.resolved ?? "(없음)"}`);
-  if (!String(entry.integrity ?? "").startsWith("sha512-")) problems.push(`package-lock integrity 없음/형식 다름: ${entry.integrity ?? "(없음)"}`);
+  if (!String(entry.resolved ?? "").endsWith(`#${sha}`)) problems.push(`package-lock resolved 가 다름: ${shown(entry.resolved)}`);
+  if (!String(entry.integrity ?? "").startsWith("sha512-")) problems.push(`package-lock integrity 없음/형식 다름: ${shown(entry.integrity)}`);
 }
 
 if (flags.includes("--installed")) {
@@ -72,7 +86,7 @@ if (flags.includes("--installed")) {
     const inst = readJson(installedPath, "node_modules/.package-lock.json");
     if (inst) {
       const resolved = String(inst.packages?.[`node_modules/${NAME}`]?.resolved ?? "");
-      if (!resolved.endsWith(`#${sha}`)) problems.push(`설치 잠금 resolved 가 다름: ${resolved || "(없음)"}`);
+      if (!resolved.endsWith(`#${sha}`)) problems.push(`설치 잠금 resolved 가 다름: ${shown(resolved)}`);
     }
   }
 }

@@ -29,6 +29,7 @@ BOT_EMAIL="policy-bot@wedly.kr"
 
 ASKPASS_FILE=""
 STDERR_FILE=""
+CRYPTO_DIR=""   # 1회용 열쇠·비밀키를 두는 임시 폴더(F9 · cleanup 이 지운다)
 
 # ── JSON 은 「보고 나서 읽는다」(2026-09-08 3차 리뷰 G1 · P1) ──────────────────
 # ★막는 사고: 옛 판은 앱의 package.json 을 `node -p "require('./package.json')…"` 로 읽었다.
@@ -85,16 +86,25 @@ write_meta_file() {
 cleanup() {
   [ -z "$ASKPASS_FILE" ] || rm -f "$ASKPASS_FILE"
   [ -z "$STDERR_FILE" ] || rm -f "$STDERR_FILE"
+  # 1회용 열쇠·비밀키가 든 임시 폴더 — 어떤 끝맺음에서도 지운다(F9)
+  [ -z "$CRYPTO_DIR" ] || rm -rf "$CRYPTO_DIR"
   return 0
 }
 
 # shellcheck disable=SC2329  # trap 이 부른다
 on_exit() {
   local rc=$?
+  local stage=""
   if [ "$rc" -ne 0 ] && [ -n "$FAIL_META_DIR" ]; then
-    mkdir -p "$FAIL_META_DIR" 2>/dev/null || true
-    write_meta_file "$FAIL_META_DIR/meta.json" failed \
-      "${LAST_ERROR:-알 수 없는 오류(종료 코드 ${rc}) — 준비 단계 실행 로그를 보세요}" 2>/dev/null || true
+    # 실패 사유도 **봉인해서** 올린다(F9). 평문 meta.json 은 임시 폴더에만 두고, 봉인이 실패하면
+    # 올릴 폴더를 빈 채로 남긴다 — 그러면 밀기 job 이 「산출물 없음」(2)으로 알린다.
+    stage="$(mktemp -d "${TMPDIR:-/tmp}/propagate-failmeta.XXXXXX" 2>/dev/null || true)"
+    if [ -n "$stage" ]; then
+      write_meta_file "$stage/meta.json" failed \
+        "${LAST_ERROR:-알 수 없는 오류(종료 코드 ${rc}) — 준비 단계 실행 로그를 보세요}" 2>/dev/null || true
+      seal_artifact "$stage" "$FAIL_META_DIR" >/dev/null 2>&1 || true
+      rm -rf "$stage"
+    fi
   fi
   cleanup
   # `return` 은 종료 코드를 바꾸지 않는다(bash 3.2·5 실측) — 죽은 이유가 그대로 밖으로 나간다.
@@ -170,10 +180,112 @@ work_parent() {
   printf '%s' "$parent"
 }
 
-# 산출물 폴더(prepare 가 담고 push 가 읽는다)
+# 산출물 폴더(prepare 가 **봉인해서** 담고 push 가 읽는다 — 안에는 bundle.enc·key.enc 둘뿐)
 out_dir() {
   if [ -n "${PROPAGATE_OUT:-}" ]; then printf '%s' "$PROPAGATE_OUT"; return 0; fi
   printf '%s/out-%s' "${WORK_PARENT:-$(work_parent)}" "$APP_ID"
+}
+
+# 봉인을 푼 평문이 놓이는 자리(push 만 쓴다). 산출물 폴더 **안**에 두는 이유는
+# 워크플로우의 「실패 알림」 단계가 `$PROPAGATE_OUT/plain/meta.json` 에서 사유를 읽기 때문이다.
+plain_dir() { printf '%s/plain' "$(out_dir)"; }
+
+# ── 산출물 봉인(2026-09-08 총괄 결정 F9) ──────────────────────────────────────
+# ★막는 사고: 이 저장소는 **공개**라 Actions 산출물(artifact)은 **누구나 내려받는다.**
+#   그런데 산출물에는 비공개 앱 3곳의 `package.json`·잠금 파일·설계 등록부가 그대로 들어간다
+#   (= 앱이 쓰는 꾸러미 목록·사내 저장소 주소·화면 부품 목록이 통째로 공개된다).
+#   그래서 준비 단계가 **봉인해서** 올리고, 밀기 단계만 그것을 푼다.
+#     ① 평문 폴더를 tar.gz 로 묶고
+#     ② 1회용 열쇠(무작위 hex 64자)로 AES-256-CBC 암호화 → `bundle.enc`
+#     ③ 그 1회용 열쇠를 저장소 **변수** `PROPAGATE_ARTIFACT_PUBKEY`(공개키 PEM · 비밀이 아니다)로
+#        RSA-OAEP 봉인 → `key.enc`
+#   올라가는 것은 `bundle.enc`·`key.enc` 둘뿐이다(meta.json 도 봉인 안에 들어간다).
+#   공개키가 없으면 **아무것도 올리지 않고 실패한다** — 평문 업로드는 어떤 경우에도 하지 않는다.
+#
+# ★봉인은 「엿보기」를 막을 뿐 「위조」는 막지 못한다: 공개키는 누구나 아는 값이라 아무나 그럴듯한
+#   산출물을 지어낼 수 있다. 그래서 밀기 단계는 봉인을 푼 **뒤에도** 산출물을 믿을 수 없는 입력으로
+#   다룬다(verify-lock·verify-artifact·pinFrom/pinTo 대조 — 2차 리뷰 F3·F4).
+#
+# ★1회용 열쇠를 `openssl rand 32`(날바이트)가 아니라 **hex 64자**로 만드는 이유:
+#   `openssl enc -pass file:<파일>` 은 그 파일의 **첫 줄**을 비밀번호로 읽는다. 날바이트에는
+#   줄바꿈(0x0a)·NUL 이 섞일 수 있어 열쇠가 조용히 잘린다(그만큼 약해진다). hex 는 한 줄로 안전하고
+#   256비트를 그대로 담는다.
+
+# 1회용 열쇠·비밀키를 두는 임시 폴더(cleanup 이 지운다). 700 으로 만든다.
+crypto_dir() {
+  if [ -z "$CRYPTO_DIR" ]; then
+    CRYPTO_DIR="$(mktemp -d "${TMPDIR:-/tmp}/propagate-crypto.XXXXXX")" || return 1
+    chmod 700 "$CRYPTO_DIR"
+  fi
+  printf '%s' "$CRYPTO_DIR"
+}
+
+# seal_artifact <평문폴더> <올릴폴더> — 성공 0, 실패 1(사유는 stderr).
+# ★`die` 를 쓰지 않는다: 이 함수는 EXIT 갈고리(실패 meta 경로)에서도 불리는데, 갈고리 안에서 exit 하면
+#  원래 실패 이유가 덮인다. 실패하면 **올릴 폴더를 비워** 두고 1 을 돌려준다(평문이 남지 않는다).
+seal_artifact() {
+  local plain="$1" dest="$2" dir=""
+  if [ -z "$dest" ]; then echo "propagate: 봉인할 자리가 비었습니다" >&2; return 1; fi
+  rm -rf "$dest"
+  mkdir -p "$dest" || return 1
+  if [ -z "${PROPAGATE_ARTIFACT_PUBKEY:-}" ]; then
+    echo "propagate: 산출물 공개키(저장소 변수 PROPAGATE_ARTIFACT_PUBKEY)가 없습니다 — 평문으로는 올리지 않습니다" >&2
+    return 1
+  fi
+  dir="$(crypto_dir)" || return 1
+  {
+    printf '%s\n' "$PROPAGATE_ARTIFACT_PUBKEY" > "$dir/pub.pem" &&
+    openssl rand -hex 32 > "$dir/session.key" &&
+    tar czf "$dir/bundle.tgz" -C "$plain" . &&
+    openssl enc -aes-256-cbc -pbkdf2 -pass "file:$dir/session.key" -in "$dir/bundle.tgz" -out "$dir/bundle.enc" &&
+    openssl pkeyutl -encrypt -pubin -inkey "$dir/pub.pem" -pkeyopt rsa_padding_mode:oaep \
+      -in "$dir/session.key" -out "$dir/key.enc" &&
+    mv "$dir/bundle.enc" "$dest/bundle.enc" &&
+    mv "$dir/key.enc" "$dest/key.enc"
+  } || {
+    echo "propagate: 산출물 봉인에 실패했습니다(공개키 형식·openssl·tar 를 보세요) — 아무것도 올리지 않습니다" >&2
+    rm -f "$dir/bundle.tgz" "$dir/session.key" "$dir/pub.pem" "$dir/bundle.enc" "$dir/key.enc"
+    rm -rf "$dest"
+    mkdir -p "$dest" 2>/dev/null || true
+    return 1
+  }
+  rm -f "$dir/bundle.tgz" "$dir/session.key" "$dir/pub.pem"
+  echo "propagate[${APP_ID:-?}]: 산출물 봉인 완료 — bundle.enc·key.enc 만 올립니다"
+  return 0
+}
+
+# unseal_artifact <봉인폴더> <평문폴더> — 밀기 단계 전용.
+#   봉인 파일이 아예 없으면 **2(입력 오류)**: 준비 job 이 죽어 artifact 를 못 받은 경우다.
+#   비밀키가 없거나 복호가 실패하면 **1**: 받긴 받았는데 열 수 없는 경우다(사람이 봐야 한다).
+unseal_artifact() {
+  local sealed="$1" plain="$2" dir=""
+  if [ ! -f "$sealed/bundle.enc" ] || [ ! -f "$sealed/key.enc" ]; then
+    usage "[$APP_ID] 산출물이 없습니다: ${sealed}/{bundle.enc,key.enc} — 준비 단계의 artifact 를 내려받았는지 보세요"
+  fi
+  [ -n "${PROPAGATE_ARTIFACT_PRIVKEY:-}" ] \
+    || die "[$APP_ID] 산출물 비밀키(시크릿 PROPAGATE_ARTIFACT_PRIVKEY)가 없습니다 — 봉인을 풀 수 없습니다"
+  dir="$(crypto_dir)" || die "[$APP_ID] 임시 폴더를 만들지 못했습니다"
+  # 비밀키는 **600 파일**로만 둔다(명령줄·환경 노출을 줄인다). cleanup 이 폴더째 지운다.
+  ( umask 077; printf '%s\n' "$PROPAGATE_ARTIFACT_PRIVKEY" > "$dir/priv.pem" ) \
+    || die "[$APP_ID] 비밀키를 임시 파일로 쓰지 못했습니다"
+  chmod 600 "$dir/priv.pem"
+  openssl pkeyutl -decrypt -inkey "$dir/priv.pem" -pkeyopt rsa_padding_mode:oaep \
+    -in "$sealed/key.enc" -out "$dir/session.key" 2>/dev/null \
+    || die "[$APP_ID] 산출물 열쇠를 풀지 못했습니다 — 비밀키가 이 산출물의 공개키와 짝이 아닙니다"
+  chmod 600 "$dir/session.key"
+  openssl enc -d -aes-256-cbc -pbkdf2 -pass "file:$dir/session.key" \
+    -in "$sealed/bundle.enc" -out "$dir/bundle.tgz" 2>/dev/null \
+    || die "[$APP_ID] 산출물을 풀지 못했습니다 — 봉인이 깨졌거나 다른 열쇠로 묶였습니다"
+  rm -rf "$plain"
+  mkdir -p "$plain" || die "[$APP_ID] 산출물을 풀 자리를 만들지 못했습니다: ${plain}"
+  tar xzf "$dir/bundle.tgz" -C "$plain" || die "[$APP_ID] 산출물 꾸러미를 풀지 못했습니다"
+  # 꾸러미도 **믿을 수 없는 입력**이다(공개키는 누구나 안다). 링크가 섞여 있으면 그 자리에서 멈춘다 —
+  # 뒤의 `cp` 가 링크를 따라가 엉뚱한 파일을 읽지 않게.
+  if [ -n "$(find "$plain" -type l)" ]; then
+    die "[$APP_ID] 산출물 꾸러미에 심볼릭 링크가 있습니다 — 밀지 않았습니다"
+  fi
+  rm -f "$dir/bundle.tgz" "$dir/session.key" "$dir/priv.pem"
+  echo "propagate[$APP_ID]: 산출물 봉인을 풀었습니다 — $(find "$plain" -type f | wc -l | tr -d ' ')개 파일"
 }
 
 # 토큰으로 클론할 준비 — 토큰을 **주소에 넣지 않는다.**

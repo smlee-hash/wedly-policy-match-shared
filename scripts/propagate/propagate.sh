@@ -17,9 +17,13 @@
 # GITHUB_OUTPUT 이 있으면 단계마다 아래를 적는다:
 #   prepare → result=<prepared|skipped-same|skipped-not-descendant>
 #   push    → result=<updated|dry-run|skipped-same|skipped-not-descendant|failed> (updated 면 commit=<sha> 도)
-# ★clone·prepare 는 **어떤 이유로 죽든** 산출물 폴더에 meta.json{result:"failed", error:"한 줄 사유"} 를
+# ★clone·prepare 는 **어떤 이유로 죽든** 산출물에 meta.json{result:"failed", error:"한 줄 사유"} 를
 #   남긴다(lib.sh 의 EXIT 갈고리). 준비 job 에는 알림이 없고 — 앱 코드가 도는 자리에서 알림 열쇠를
 #   쓰지 않으려고 없앴다(2026-09-08 2차 리뷰 F1) — 밀기 job 이 그 사유를 읽어 빨갛게 끝낸다.
+# ★산출물은 **봉인**해서 올린다(2026-09-08 총괄 결정 F9): 이 저장소는 공개라 Actions 산출물을
+#   누구나 내려받는데, 그 안에는 비공개 앱 3곳의 package.json·잠금 파일·설계 등록부가 들어 있다.
+#   올라가는 것은 bundle.enc·key.enc 둘뿐이고(자세한 규격은 lib.sh 의 seal_artifact 주석),
+#   공개키가 없으면 준비 단계는 **아무것도 올리지 않고** 실패한다.
 #
 # 환경변수
 #   PROPAGATE_APP_ID      apps.json 의 id (erp|illua|lab)            [clone·prepare·push]
@@ -34,6 +38,8 @@
 #   PROPAGATE_PACKAGE_URL·PROPAGATE_RUN_URL  커밋 본문에 적을 주소   [push]
 #   PROPAGATE_DRY_RUN     1 이면 커밋만 만들고 밀지 않는다           [push]
 #   PROPAGATE_MAX_PUSH_TRIES  기본 3                                 [push]
+#   PROPAGATE_ARTIFACT_PUBKEY  산출물을 봉인할 공개키 PEM(저장소 변수)  [clone·prepare]
+#   PROPAGATE_ARTIFACT_PRIVKEY 산출물 봉인을 풀 비밀키 PEM(시크릿)      [push]
 set -euo pipefail
 
 PROPAGATE_HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -60,12 +66,19 @@ run_clone() {
 }
 
 # ── prepare ─────────────────────────────────────────────────────────────────
-# 산출물 폴더에 meta.json 과 commitPaths 파일들을 담는다. 커밋·푸시는 하지 않는다.
-write_meta() { write_meta_file "$OUT/meta.json" "$1"; }
+# 평문 파일(meta.json + commitPaths)은 **작업 폴더의 STAGE** 에만 담고, 올릴 폴더(OUT)에는
+# 그것을 **봉인한 두 파일만** 넣는다(F9 — 공개 저장소의 산출물은 누구나 받는다). 커밋·푸시는 하지 않는다.
+finish_prepare() {
+  write_meta_file "$STAGE/meta.json" "$1"
+  seal_artifact "$STAGE" "$OUT" \
+    || die "[$APP_ID] 산출물 봉인 실패 — 저장소 변수 PROPAGATE_ARTIFACT_PUBKEY(공개키 PEM)를 보세요"
+  out result "$1"
+}
 
 run_prepare() {
   WORK_PARENT="$(work_parent)"
   OUT="$(out_dir)"
+  STAGE="$WORK_PARENT/stage-$APP_ID"
   # shellcheck disable=SC2034  # lib.sh 의 EXIT 갈고리가 읽는다(검사기는 파일 하나만 본다)
   FAIL_META_DIR="$OUT"
   SHA="${PROPAGATE_SHA:-}"
@@ -75,8 +88,8 @@ run_prepare() {
 
   WORK="$WORK_PARENT/$APP_ID"
   [ -d "$WORK/.git" ] || usage "[$APP_ID] 클론이 없습니다: ${WORK} — 먼저 'propagate.sh clone' 을 돌리세요"
-  rm -rf "$OUT"
-  mkdir -p "$OUT"
+  rm -rf "$STAGE"
+  mkdir -p "$STAGE"
   cd "$WORK"
 
   # prepare 가 본 앱 main 의 커밋 — push 는 **이 자리 위에** 봇 커밋을 얹는다.
@@ -85,20 +98,17 @@ run_prepare() {
 
   if [ "$CURRENT" = "$SHA" ]; then
     echo "propagate[$APP_ID]: 이미 ${SHA} — 건너뜀"
-    write_meta skipped-same
-    out result skipped-same
+    finish_prepare skipped-same
     exit 0
   fi
   if ! git -C "$PROPAGATE_PACKAGE_DIR" cat-file -e "${CURRENT}^{commit}" 2>/dev/null; then
     echo "propagate[$APP_ID]: 현재 핀 ${CURRENT:0:7} 을 패키지 저장소에서 찾지 못함 — 뒤로 가지 않으려고 건너뜀" >&2
-    write_meta skipped-not-descendant
-    out result skipped-not-descendant
+    finish_prepare skipped-not-descendant
     exit 0
   fi
   if ! git -C "$PROPAGATE_PACKAGE_DIR" merge-base --is-ancestor "$CURRENT" "$SHA" 2>/dev/null; then
     echo "propagate[$APP_ID]: 현재 핀 ${CURRENT:0:7} 이 새 SHA ${SHA:0:7} 의 조상이 아님 — 뒤로 가지 않으려고 건너뜀" >&2
-    write_meta skipped-not-descendant
-    out result skipped-not-descendant
+    finish_prepare skipped-not-descendant
     exit 0
   fi
 
@@ -146,15 +156,14 @@ run_prepare() {
   done < <(git status --porcelain=v1 -z --untracked-files=all)
   [ -z "$STRAY" ] || die "[$APP_ID] 커밋 대상 밖 파일이 바뀌었습니다:"$'\n'"$STRAY"
 
-  # 커밋할 파일을 산출물 폴더로 — 여기서 없는 파일은 후처리가 만들지 못한 것이다.
+  # 커밋할 파일을 담을 자리로 — 여기서 없는 파일은 후처리가 만들지 못한 것이다.
   for P in ${COMMIT_PATHS[@]+"${COMMIT_PATHS[@]}"}; do
     [ -f "$P" ] || die "[$APP_ID] 커밋할 파일이 없습니다: ${P} — 후처리가 그 파일을 만들지 못했습니다"
-    mkdir -p "$OUT/$(dirname "$P")"
-    cp "$P" "$OUT/$P"
+    mkdir -p "$STAGE/$(dirname "$P")"
+    cp "$P" "$STAGE/$P"
   done
-  write_meta prepared
-  echo "propagate[$APP_ID]: 산출물 준비 완료 — $OUT (기준 커밋 ${BASE_SHA:0:7})"
-  out result prepared
+  echo "propagate[$APP_ID]: 산출물 준비 완료 — ${#COMMIT_PATHS[@]}개 파일 (기준 커밋 ${BASE_SHA:0:7})"
+  finish_prepare prepared
 }
 
 # ── push ────────────────────────────────────────────────────────────────────
@@ -227,8 +236,12 @@ run_push() {
   load_app
   WORK_PARENT="$(work_parent)"
   OUT="$(out_dir)"
-  META="$OUT/meta.json"
-  [ -f "$META" ] || usage "[$APP_ID] 산출물이 없습니다: ${META} — 준비 단계의 artifact 를 내려받았는지 보세요"
+  # 내려받은 산출물은 **봉인**돼 있다(F9) — 여기서 풀어 평문 폴더(ART)로 옮긴다.
+  # 그 자리는 `$(out_dir)/plain` 으로 고정한다: 워크플로우의 「실패 알림」이 거기서 사유를 읽는다.
+  ART="$(plain_dir)"
+  unseal_artifact "$OUT" "$ART"
+  META="$ART/meta.json"
+  [ -f "$META" ] || die "[$APP_ID] 산출물에 meta.json 이 없습니다 — 봉인 안이 예상과 다릅니다"
 
   META_APP="$(meta_field app)" || die "[$APP_ID] 산출물 meta.json 을 읽지 못했습니다: $META"
   [ "$META_APP" = "$APP_ID" ] || die "[$APP_ID] 산출물이 다른 앱 것입니다: '${META_APP}'"
@@ -309,13 +322,13 @@ run_push() {
   done
 
   for P in ${COMMIT_PATHS[@]+"${COMMIT_PATHS[@]}"}; do
-    [ -f "$OUT/$P" ] || die "[$APP_ID] 산출물에 파일이 없습니다: ${P}"
+    [ -f "$ART/$P" ] || die "[$APP_ID] 산출물에 파일이 없습니다: ${P}"
     assert_plain_commit_path "$P"
     mkdir -p "$(dirname "$P")"
     # `rm -f` 먼저: 그 자리가 심볼릭 링크면 `cp` 가 **링크를 따라가** 엉뚱한 파일을 덮어쓴다.
     # (위 검사가 이미 링크를 막지만, 덮어쓰기 자체도 링크를 따라가지 않게 해 둔다.)
     rm -f "$P"
-    cp "$OUT/$P" "$P"
+    cp "$ART/$P" "$P"
   done
 
   # 대조 기준은 산출물의 pinTo 가 아니라 **resolve 가 정한 SHA** 다.
@@ -324,7 +337,7 @@ run_push() {
 
   # verify-lock 은 「핀이 새 SHA 인가」만 본다. 허용된 파일 **안의 임의 변경**(postinstall 끼워 넣기,
   # resolved 를 남의 주소로 바꾸기, 잠금 파일에 모르는 꾸러미 더하기)은 이 대조기가 막는다(2차 리뷰 F4).
-  node "$PROPAGATE_HERE/verify-artifact.mjs" "$BASE_FILES" "$OUT" "$SHA" ${COMMIT_PATHS[@]+"${COMMIT_PATHS[@]}"} \
+  node "$PROPAGATE_HERE/verify-artifact.mjs" "$BASE_FILES" "$ART" "$SHA" ${COMMIT_PATHS[@]+"${COMMIT_PATHS[@]}"} \
     || die "[$APP_ID] 산출물이 「기준 파일에서 핀만 바뀐 것」이 아닙니다(위 verify-artifact 줄 참고) — 밀지 않았습니다"
 
   git add -- ${COMMIT_PATHS[@]+"${COMMIT_PATHS[@]}"} \
