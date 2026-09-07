@@ -58,6 +58,11 @@
     | **F7(P2)** | 준비가 죽어 산출물이 없는 실패는 **아무도 알리지 않았다**(밀기 알림에 `steps.fetch.outcome == 'success'` 조건이 있었다) | F1 로 닫혔다 — 밀기 job 의 `if: failure()` 하나가 유일한 알림 지점이고, 사유는 `meta.error` 를 **파일에서 읽어 인자로** 넘긴다 |
     | **F8(P2)** | `PROPAGATE_ENABLED=false` 가 dispatch 예행까지 막아 **첫 가동 절차가 성립하지 않았다** | 그 변수는 **자동 실행만** 막고 손 실행은 허용한다(`resolve` 의 `if`). README·워크플로우 머리주석·아래 Task 6 절차에 그렇게 적었다 |
 
+    **★F4 를 진짜 npm 으로 돌려 본 결과(2026-09-08 로컬 예행 · 첫 가동 전에 처리할 것)**
+    - 정상 경로는 통과한다: 랩 저장소 사본에서 핀 `ff93e45` → `b404b4b` 를 **진짜 `npm install --package-lock-only`** 로 올리자 잠금 파일이 딱 3줄(루트 spec·`resolved`·`integrity`)만 바뀌었고 `verify-artifact: OK` 로 끝났다(dry-run, 원격 불변).
+    - 그런데 **랩 저장소의 지금 잠금 파일은 npm 10.9.8 로 다시 계산하면 6개 항목이 늘어난다** — `node_modules/@tailwindcss/oxide-wasm32-wasi/node_modules/*`(묶음·선택 의존). **핀을 하나도 안 바꾸고 `npm install --package-lock-only` 만 돌려도 똑같이 늘어난다**(= 우리 핀 갱신 탓이 아니라 그 저장소의 잠금 파일이 npm 판과 어긋나 있는 것). 같은 검사에서 **ERP·일루아는 0건**이다.
+    - 그대로 두면 랩 앱만 매번 「모르는 꾸러미 항목」으로 안전 실패한다. **첫 실제 반영 전에 랩 저장소에서 `npm install --package-lock-only` 결과를 사람이 한 번 커밋**해 두면 된다(이 작업 사본의 권한 밖이라 총괄에게 넘긴다). 옛 판이었다면 봇이 그 6개 항목을 **아무 말 없이 앱에 밀어 넣었을 것**이다 — 이 대조기가 그걸 드러낸 셈이다.
+
     시험도 함께 늘렸다: 밀기 단계만 따로 재려고 **산출물을 손으로 짓는** 시험(`writeArtifact`), `verify-artifact` 단위 시험 12건, `resolve` 셸 토막을 잘라 **가짜 `gh` 로 실제 실행**하는 시험 6건(`resolve-shell.test.ts`), 워크플로우 모양 시험 갱신.
 
 ## 1. 파일 구조
@@ -879,6 +884,7 @@ ERP 배포는 보통 15분 안팎(관문 시험 + 빌드), 일루아·랩은 5~8
 ## 4. 위험과 대비
 
 - **ERP `npm ci` 가 Actions 에서 실패**(네이티브 모듈·overrides tgz 내려받기): 로그를 보고 `--ignore-scripts` 유지한 채 원인을 고친다. 정 안 되면 ERP 만 `install:false` 로 두고 등록부는 「사람이 재생성」으로 낮추되 이는 총괄 결정 사항이라 계획서에 적고 보고한다.
+- **앱 잠금 파일이 실행기 npm 판과 어긋남**(2026-09-08 실측 — 랩 6건·ERP 0건·일루아 0건): 봇은 `verify-artifact` 로 안전하게 멈춘다. 사람이 그 앱에서 `npm install --package-lock-only` 한 번을 커밋해 정리한 뒤 다시 돌린다. 실행기는 node 22의 npm 을 쓰므로, 앱 잠금 파일을 사람이 손볼 때도 같은 판으로 맞추는 것이 좋다.
 - **`npm install --package-lock-only` 가 `resolved` 를 `git+https` 로 적어 3앱 잠금 파일 형식이 달라짐**: verify-lock 은 `#sha` 접미만 본다. Railway 는 두 형식 다 받는다(pacote). 형식이 바뀌면 README 에 적는다.
 - **Actions 가 봇 커밋으로 앱 저장소 워크플로우를 부르지 않음**: 앱 3곳엔 `.github/workflows` 가 없거나 무관하다(Railway 가 GitHub App 으로 push 를 본다). PAT 푸시도 Railway 배포를 일으킨다 — 인수 시험이 증명한다.
 - **workflow_run 이 fork/PR 에서 오는 경우**: `branches: [main]` + `conclusion == success` 로 막는다. public 저장소라 PR 은 누구나 열 수 있지만, `workflow_run` 은 기본 브랜치의 워크플로우 파일로 돌고 시크릿은 PR 문맥에 안 나간다. 그래도 `resolve` 가 SHA 가 main 의 조상인지 다시 확인한다.
