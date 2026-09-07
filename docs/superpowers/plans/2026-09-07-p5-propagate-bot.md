@@ -65,6 +65,27 @@
 
     시험도 함께 늘렸다: 밀기 단계만 따로 재려고 **산출물을 손으로 짓는** 시험(`writeArtifact`), `verify-artifact` 단위 시험 12건, `resolve` 셸 토막을 잘라 **가짜 `gh` 로 실제 실행**하는 시험 6건(`resolve-shell.test.ts`), 워크플로우 모양 시험 갱신.
 
+13. **2026-09-08 3차 독립 리뷰(Astra) 3건 + 총괄 지적 F9 — 전부 채택해 그대로 구현했다.**
+
+    | # | 무엇이 문제였나 | 어떻게 닫았나 |
+    |---|---|---|
+    | **G1(P1)** | 밀기 단계가 앱의 핀을 `node -p "require('./package.json')…"` 로 읽었다. node 의 `require` 는 그 이름의 파일이 없으면 **확장자를 붙여 가며 찾고 찾으면 실행한다** — 기준 커밋에 `package.json` 없이 `package.json.js` 만 있으면 **쓰기 토큰을 쥔 자리에서 앱 코드가 돈다**(2026-09-08 실측 재현) | 파일을 읽는 모든 node 호출(`lib.sh`·`propagate.sh`·`verify-lock`·`verify-artifact`·워크플로우의 apps.json)에서 `require(경로)` 를 없애고 「**읽기 전에** lstat 으로 보통 파일 확인 → readFileSync → JSON.parse」로 통일했다. 남은 `require` 는 node 내장(`node:fs`)뿐이다(`git grep -n "require(" scripts/propagate` 로 확인). 회귀 시험은 **카나리아**로 잰다 — 실행되면 표식 파일을 만드는 `package.json.js` 를 심은 앱으로 push → exit 1 이고 **표식이 안 생긴다**(옛 코드로 되돌리면 표식이 생겨 빨개진다) |
+    | **G2(P2)** | 두 대조기가 「읽기 성공」과 「값」을 한 덩어리로 봐서, 파일 내용이 `null`·`false`·`0`·`""` 이면 `if (!got)`·`if (pkg)` 가 **검사를 통째로 건너뛰고** 통과했다(잠금 파일을 `0` 한 글자로 바꿔 오면 아무것도 안 보고 OK) | 읽기와 값을 나누고, 최상위가 **배열 아닌 개체**가 아니면 그 자리에서 어긋남으로 적는다. 시험은 두 대조기 × 네 값 × 파일별 + 밀기 통합 1건(원격 불변) |
+    | **G3(P2)** | 늦게 온 반영을 올릴 때 **끝 커밋(TIP) 하나만** CI 통과를 물어봐서, TIP 의 CI 가 아직 안 끝났거나 빨가면 그 사이의 **통과한 중간 커밋(B)** 을 아무도 반영하지 않았다 | `resolve` 가 `SHA..TIP` 을 `git rev-list --first-parent -n 30` 으로 **최신부터 훑어** CI 성공 기록이 있는 첫 커밋을 고른다(호출 실패·0건은 다음 커밋으로, 30개를 넘거나 끝까지 못 찾으면 원래 커밋 그대로 — 승격은 막지 않는다). 셸 토막을 잘라 **가짜 `gh` 로 실제 실행**하는 시험 3건(중간 커밋 승격 · 전부 실패면 그대로 · 30개 상한 너머는 묻지 않음) |
+    | **F9(총괄)** | 이 저장소는 **공개**라 Actions 산출물을 누구나 내려받는데, 그 안에 비공개 앱 3곳의 `package.json`·잠금 파일·설계 등록부가 **평문으로** 들어 있었다 | 산출물을 **봉인**한다(아래 규격). 올라가는 것은 `bundle.enc`·`key.enc` 둘뿐이고 평문·`meta.json` 은 봉인 안에 있다 |
+
+    **F9 봉인 규격**
+    - 준비: 평문 폴더를 `tar czf` → 1회용 열쇠(`openssl rand -hex 32`)로 `openssl enc -aes-256-cbc -pbkdf2` → `bundle.enc`, 그 열쇠를 **저장소 변수** `PROPAGATE_ARTIFACT_PUBKEY`(공개키 PEM · 비밀이 아니다)로 `openssl pkeyutl -encrypt -pubin -pkeyopt rsa_padding_mode:oaep` → `key.enc`.
+      · 1회용 열쇠를 **hex 로** 만드는 이유: `-pass file:` 은 파일의 **첫 줄**을 비밀번호로 읽어, 날바이트(`openssl rand 32`)면 줄바꿈·NUL 에서 열쇠가 조용히 잘린다.
+      · **공개키 변수가 비어 있으면 준비는 아무것도 올리지 않고 실패한다**(평문 업로드 금지). 실패 사유 `meta.json` 도 같은 봉인을 거치고, 봉인이 안 되면 올리지 않는다 → 밀기가 「산출물 없음」 exit 2 로 알린다.
+    - 밀기: **시크릿** `PROPAGATE_ARTIFACT_PRIVKEY`(비밀키 PEM)를 600 임시 파일로 써서 풀고(EXIT 갈고리가 지운다) `<산출물>/plain` 에 편다. 비밀키가 없거나 짝이 아니면 exit 1. 푼 꾸러미에 심볼릭 링크가 있어도 exit 1.
+    - 워크플로우: 준비 job 의 **클론·준비 두 step** 에 `vars.PROPAGATE_ARTIFACT_PUBKEY`(클론이 죽었을 때의 사유도 봉인해야 올라간다), 밀기 step 에 `secrets.PROPAGATE_ARTIFACT_PRIVKEY`. 준비 job 의 **시크릿은 여전히 클론 step 하나뿐**이다(공개키는 `vars.` 라 시크릿이 아니다).
+    - **봉인은 「엿보기」만 막고 위조는 못 막는다**(공개키는 누구나 안다) — 그래서 밀기 단계는 봉인을 푼 **뒤에도** 산출물을 믿을 수 없는 입력으로 다룬다(2차 리뷰 F3·F4 의 대조가 그대로 산다).
+    - **로그 점검(같은 회차)**: 두 대조기가 어긋난 값을 그대로 찍던 자리를 **이름·건수**로 바꿨다. Actions 로그도 공개라 (a) 비공개 앱의 꾸러미 목록이 새고 (b) 준비 단계에서 도는 앱 코드가 **오류문에 앱의 비밀을 실어** 공개 로그로 내보낼 수 있었다. `git show --stat`(파일 이름·줄 수만)은 그대로 둔다.
+    - 열쇠 두 개는 **저장소 변수/시크릿**으로만 관리한다(값·보관 위치는 문서·커밋·채팅에 적지 않는다). 첫 가동 전에 사람이 키쌍을 만들어 공개키를 변수에, 비밀키를 시크릿에 넣는다 — 아래 Task 6 순서에 넣었다.
+
+    시험도 함께 늘렸다: 봉인 왕복(준비→밀기)·평문 0건(올린 두 파일의 **바이트를 뒤져** 확인)·다른 비밀키·비밀키 없음·공개키 없음(업로드 폴더 비어 있음)·실패 사유 봉인 왕복·꾸러미 속 링크 거부.
+
 ## 1. 파일 구조
 
 ```
@@ -76,7 +97,7 @@ scripts/propagate/verify-lock.mjs          — package.json·package-lock 이 �
 scripts/propagate/verify-artifact.mjs      — (2차 리뷰 F4) 산출물이 「기준 파일 + 핀 한 줄」인지 깊은 비교로 대조
 scripts/propagate/notify.sh                — ERP 내부 통로로 알림(curl). 보냈으면 0, 못 보냈으면 1(리뷰 R4)
 scripts/propagate/watch-deploy.mjs         — (Task 7) 앱 공개 build-id 가 봇 커밋 SHA 로 바뀔 때까지 대기(비밀값 불필요)
-scripts/propagate/__tests__/*.test.ts      — 봇 시험 9벌(propagate·verify-lock·verify-artifact·apps-json·notify·watch-deploy·workflow·resolve-shell·pack-excludes)
+scripts/propagate/__tests__/*.test.ts      — 봇 시험 9벌(propagate·verify-lock·verify-artifact·apps-json·notify·watch-deploy·workflow·workflow-shell·pack-excludes)
 scripts/propagate/__tests__/yaml-run-blocks.ts — 워크플로우의 `run:` 토막·job 덩어리를 잘라 내는 조각(시험 두 벌이 함께 쓴다)
 docs/superpowers/plans/2026-09-07-p5-propagate-bot.md — 이 문서
 README.md                                  — 「자동 반영」 절 추가(끄는 법·예행·되돌리기)
@@ -821,6 +842,10 @@ README 절 내용: 언제 도나 / 끄기(`gh variable set PROPAGATE_ENABLED -b 
 - [ ] 2. `gh variable set WEDLY_NOTIFY_URL -b https://wedly-erp-production.up.railway.app -R …`
 - [ ] 3. `gh secret set WEDLY_NOTIFY_KEY -R … < ~/.agent-browser/lab-internal-key.key` (값을 화면에 찍지 않는다)
 - [ ] 4. PAT 발급(Aside · 총괄 결정 8) → `gh secret set PROPAGATE_TOKEN -R … < ~/.agent-browser/propagate-pat.key`
+- [ ] 4-2. **산출물 봉인 열쇠쌍**(총괄 결정 13 · F9): 사람이 RSA 2048 키쌍을 만들어
+      **공개키는 저장소 변수** `PROPAGATE_ARTIFACT_PUBKEY`(PEM 텍스트), **비밀키는 시크릿**
+      `PROPAGATE_ARTIFACT_PRIVKEY` 에 넣는다. 공개키 변수가 비어 있으면 준비 job 이
+      **아무것도 올리지 않고 실패**하므로 이 단계를 건너뛰면 봇이 한 발도 못 간다
 - [ ] 5. 패키지 커밋·푸시(가지 → main 병합) → CI 초록 확인, Propagate 는 변수 때문에 건너뜀 확인
 - [ ] 6. `gh workflow run Propagate -R … -f dry_run=true` → 3 job 모두 `result=dry-run` 과 diff stat(잠금 파일 2줄 · ERP 는 등록부 포함) 확인. ERP job 의 `npm ci` 소요 시간 기록
 - [ ] 7. `gh variable set PROPAGATE_ENABLED -b true`
