@@ -332,7 +332,9 @@ jobs:
         run: |
           set -euo pipefail
           URL="$(node -e '
-            const apps = require("./scripts/propagate/apps.json");
+            // JSON 은 어디서도 require 로 열지 않는다(3차 리뷰 G1) — 읽기로만 연다.
+            const fs = require("node:fs");
+            const apps = JSON.parse(fs.readFileSync("scripts/propagate/apps.json", "utf8"));
             const app = apps.find((a) => a.id === process.env.APP_ID);
             if (!app || !app.buildIdUrl) {
               console.error("apps.json 에 buildIdUrl 이 없습니다: " + process.env.APP_ID);

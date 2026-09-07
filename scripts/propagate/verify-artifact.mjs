@@ -42,9 +42,20 @@ const RESOLVED_RE = new RegExp(
   `^git\\+(ssh|https)://(git@)?github\\.com/${REPO.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\.git)?#${sha}$`,
 );
 
+/**
+ * ★읽기 **전에** 보통 파일인지 본다(2026-09-08 3차 리뷰 G1). 이 대조기가 읽는 것은 전부
+ *  「우리가 만들지 않은 파일」이다 — 링크·폴더·장치는 열지 않고, `require` 로도 열지 않는다
+ *  (`require("./package.json")` 는 그 파일이 없으면 `package.json.js` 를 **실행한다**).
+ */
+const readFileChecked = (path) => {
+  const st = lstatSync(path);
+  if (!st.isFile()) throw Object.assign(new Error("보통 파일이 아님(링크·폴더는 읽지 않습니다)"), { code: "ENOTFILE" });
+  return readFileSync(path);
+};
+
 const readJson = (path, label) => {
   try {
-    return JSON.parse(readFileSync(path, "utf8"));
+    return JSON.parse(readFileChecked(path).toString("utf8"));
   } catch (err) {
     const why = err?.code === "ENOENT" ? "파일이 없음" : String(err?.message ?? err).split("\n")[0];
     problems.push(`${label} 를 읽지 못함: ${why}`);
@@ -152,7 +163,7 @@ function checkLockJson(rel) {
 function checkRegistryJson(rel) {
   let text;
   try {
-    text = readFileSync(join(artifactDir, rel));
+    text = readFileChecked(join(artifactDir, rel));
   } catch (err) {
     problems.push(`산출물 ${rel} 를 읽지 못함: ${String(err?.message ?? err).split("\n")[0]}`);
     return;

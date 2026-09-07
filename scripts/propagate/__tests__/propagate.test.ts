@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import {
   chmodSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -991,5 +992,50 @@ else if (cmd === "check") {
     expect(r.prepare?.code).toBe(1);
     expect(r.prepare?.stderr).toMatch(/registry\.generated\.json/);
     expect(sh("git rev-parse main", app.bare)).toBe(before);
+  }, 60_000);
+
+  // ── 2026-09-08 3차 리뷰 G1(P1): 앱 파일을 `require` 로 열지 않는다 ──
+
+  it("기준 커밋에 package.json 대신 package.json.js 가 있어도 밀기는 그것을 실행하지 않는다", () => {
+    // ★막는 사고: node 의 `require("./package.json")` 은 **그 이름의 파일이 없으면 확장자를 붙여 가며**
+    //  찾고, 찾으면 **실행한다**. 옛 판은 앱의 핀을 `node -p "require('./package.json')…"` 로 읽었으므로,
+    //  앱 기준 커밋에 `package.json.js` 하나만 있으면 그 앱 코드가 **쓰기 토큰을 쥔 밀기 단계에서** 돌았다.
+    //  (토큰을 지키려고 job 을 둘로 나눈 것이 통째로 무의미해지는 자리다.)
+    // ★재는 방식: 실행되면 표식 파일을 만드는 카나리아를 심고, **그 파일이 안 생겼는지**로 잰다.
+    //  「오류 문구가 맞는지」가 아니라 「앱 코드가 돌지 않았는지」를 직접 본다.
+    const canary = join(tmp, "카나리아-앱코드가-돌았다.txt");
+    const seed = join(tmp, "canary-seed");
+    mkdirSync(seed, { recursive: true });
+    writeFileSync(
+      join(seed, "package.json.js"),
+      `require("node:fs").writeFileSync(${JSON.stringify(canary)}, "앱 코드가 실행됐다");\n` +
+        `module.exports = { dependencies: { "@wedly/policy-match-shared": ${JSON.stringify(SPEC(pkg.c1))} } };\n`,
+    );
+    writeFileSync(join(seed, "package-lock.json"), lockJsonAt(pkg.c1, "sha512-seed"));
+    sh(
+      "git init -q -b main && git config user.email t@t && git config user.name t && git add . && git commit -qm seed",
+      seed,
+    );
+    const bare = join(tmp, "canary.git");
+    sh(`git clone -q --bare "${seed}" "${bare}"`, tmp);
+    const before = sh("git rev-parse main", bare);
+
+    writeArtifact(
+      tmp,
+      { app: "lab", result: "prepared", baseSha: before, pinFrom: pkg.c1, pinTo: pkg.c3, subject: "feat: 시험 커밋" },
+      { "package.json": pkgJsonAt("lab", pkg.c3), "package-lock.json": lockJsonAt(pkg.c3) },
+    );
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: bare,
+    });
+    expect(existsSync(canary), "앱의 package.json.js 가 실행됐습니다 — 어딘가에서 아직 require 로 읽습니다").toBe(
+      false,
+    );
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/package\.json/);
+    expect(sh("git rev-parse main", bare)).toBe(before); // 원격 불변
   }, 60_000);
 });

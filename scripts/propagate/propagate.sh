@@ -158,11 +158,15 @@ run_prepare() {
 }
 
 # ── push ────────────────────────────────────────────────────────────────────
+# 산출물 meta.json 의 칸 하나를 읽는다. 산출물은 **믿을 수 없는 입력**이라
+# `require` 로 열지 않고(3차 리뷰 G1) 보통 파일인지 먼저 본 뒤 읽으며, 최상위가 개체가 아니면 실패한다.
 meta_field() {
-  node -e '
-    const meta = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
-    const v = meta[process.argv[2]];
-    process.stdout.write(v === undefined || v === null ? "" : String(v));
+  node -e "$PROPAGATE_JSON_READER"'
+    try {
+      const meta = readJsonObject(process.argv[1]);
+      const v = meta[process.argv[2]];
+      process.stdout.write(v === undefined || v === null ? "" : String(v));
+    } catch (err) { fail(err); }
   ' "$META" "$1"
 }
 

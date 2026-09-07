@@ -30,6 +30,35 @@ BOT_EMAIL="policy-bot@wedly.kr"
 ASKPASS_FILE=""
 STDERR_FILE=""
 
+# ── JSON 은 「보고 나서 읽는다」(2026-09-08 3차 리뷰 G1 · P1) ──────────────────
+# ★막는 사고: 옛 판은 앱의 package.json 을 `node -p "require('./package.json')…"` 로 읽었다.
+#   node 의 `require` 는 그 이름의 파일이 없으면 **확장자를 붙여 가며 찾고, 찾으면 실행한다** —
+#   기준 커밋에 `package.json` 이 없고 `package.json.js` 만 있으면 그 앱 코드가
+#   **쓰기 토큰을 쥔 밀기 단계에서** 돌아 버린다(2026-09-08 실측으로 재현했다).
+#   그래서 이 저장소의 어떤 단계도 파일을 `require` 로 읽지 않는다:
+#     ① lstat 으로 **보통 파일**인지 먼저 보고(링크·폴더·장치는 거절) ② readFileSync ③ JSON.parse.
+#   검사는 **읽기 전에** 한다 — 읽고 나서 보면 이미 늦다.
+# ★이 글자는 node 가 쓰는 것이라 셸이 풀면 안 된다(작은따옴표).
+# shellcheck disable=SC2016
+PROPAGATE_JSON_READER='
+  const fs = require("node:fs");
+  const readJsonFile = (file) => {
+    let st = null;
+    try { st = fs.lstatSync(file); } catch (e) { throw new Error(file + " 이(가) 없습니다"); }
+    if (!st.isFile()) throw new Error(file + " 이(가) 보통 파일이 아닙니다(링크·폴더는 읽지 않습니다)");
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  };
+  const readJsonObject = (file) => {
+    const v = readJsonFile(file);
+    if (v === null || typeof v !== "object" || Array.isArray(v)) throw new Error(file + " 의 최상위가 개체가 아닙니다");
+    return v;
+  };
+  const fail = (err) => {
+    process.stderr.write("propagate: " + String(err && err.message ? err.message : err) + "\n");
+    process.exit(4);
+  };
+'
+
 # ── 실패도 산출물로 남긴다(2026-09-08 2차 리뷰 F1) ────────────────────────────
 # 옛 판에서는 준비 job 이 실패하면 **그 job 이 직접** 슬랙 알림을 보냈다. 그 자리는 앱 코드가
 # 이미 한 번 돈 실행기라 `notify.sh` 도, 그것이 읽는 열쇠도 앱 코드가 바꿔 놓을 수 있었다
@@ -48,7 +77,7 @@ write_meta_file() {
     const meta = { app, result, baseSha, pinFrom, pinTo, subject };
     // 여러 줄 사유는 한 줄로 접는다 — 알림 한 줄(500자)에 그대로 들어가야 한다.
     if (result === "failed") meta.error = (error || "알 수 없는 오류").replace(/\s+/g, " ").trim().slice(0, 400);
-    require("fs").writeFileSync(file, JSON.stringify(meta, null, 2) + "\n");
+    require("node:fs").writeFileSync(file, JSON.stringify(meta, null, 2) + "\n");
   ' "$1" "${APP_ID:-}" "$2" "${3:-}" "${BASE_SHA:-}" "${CURRENT:-}" "${SHA:-}" "${PROPAGATE_SUBJECT:-}"
 }
 
@@ -96,21 +125,25 @@ git_masked() {
 }
 
 app_field() {
-  node -e '
-    const apps = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
-    const a = apps.find((x) => x.id === process.argv[2]);
-    if (!a) process.exit(3);
-    const v = a[process.argv[3]];
-    // 배열은 한 줄에 하나씩 — 빈 배열이면 아무것도 안 찍히므로 while read 가 0개를 읽는다
-    if (Array.isArray(v)) { for (const item of v) process.stdout.write(String(item) + "\n"); }
-    else process.stdout.write(String(v) + "\n");
+  node -e "$PROPAGATE_JSON_READER"'
+    try {
+      // 우리 저장소의 apps.json 도 같은 길로 읽는다 — 「어떤 파일도 require 로 열지 않는다」를 한 규칙으로.
+      const apps = readJsonFile(process.argv[1]);
+      if (!Array.isArray(apps)) throw new Error(process.argv[1] + " 이(가) 앱 목록(배열)이 아닙니다");
+      const a = apps.find((x) => x && typeof x === "object" && x.id === process.argv[2]);
+      if (!a) process.exit(3);
+      const v = a[process.argv[3]];
+      // 배열은 한 줄에 하나씩 — 빈 배열이면 아무것도 안 찍히므로 while read 가 0개를 읽는다
+      if (Array.isArray(v)) { for (const item of v) process.stdout.write(String(item) + "\n"); }
+      else process.stdout.write(String(v) + "\n");
+    } catch (err) { fail(err); }
   ' "$APPS_JSON" "$APP_ID" "$1"
 }
 
 # apps.json 에서 이 앱의 정의를 읽어 REPO·INSTALL·POST_STEPS·COMMIT_PATHS 를 채운다.
 load_app() {
   [ -n "${APP_ID:-}" ] || usage "PROPAGATE_APP_ID 가 비었습니다"
-  REPO="$(app_field repo)" || usage "apps.json 에 없는 앱입니다: ${APP_ID} (쓸 수 있는 값은 apps.json 을 보세요)"
+  REPO="$(app_field repo)" || usage "apps.json 에 없는 앱이거나 apps.json 을 읽지 못했습니다: ${APP_ID} (쓸 수 있는 값은 apps.json 을 보세요)"
   INSTALL="$(app_field install)"
 
   POST_STEPS=()
@@ -213,7 +246,17 @@ disarm_credentials() {
 
 # 현재 핀(`github:<repo>#<sha40>`)을 읽어 CURRENT_SPEC·CURRENT 에 채운다.
 read_current_pin() {
-  CURRENT_SPEC="$(node -p "require('./package.json').dependencies['$PKG_NAME'] || ''")" \
+  # ★`require('./package.json')` 를 쓰지 않는다(3차 리뷰 G1) — 위 PROPAGATE_JSON_READER 주석 참고.
+  #  이 함수는 **밀기 단계**(쓰기 토큰을 쥔 자리)에서도 불린다. 여기서 앱 파일이 한 줄이라도 실행되면
+  #  토큰을 지키려고 job 을 둘로 나눈 것이 통째로 무의미해진다.
+  CURRENT_SPEC="$(node -e "$PROPAGATE_JSON_READER"'
+    try {
+      const pkg = readJsonObject(process.argv[1]);
+      const deps = pkg.dependencies;
+      const spec = deps && typeof deps === "object" && !Array.isArray(deps) ? deps[process.argv[2]] : "";
+      process.stdout.write(typeof spec === "string" ? spec : "");
+    } catch (err) { fail(err); }
+  ' "package.json" "$PKG_NAME")" \
     || die "[$APP_ID] package.json 을 읽지 못했습니다 — 앱 저장소가 예상과 다릅니다"
   CURRENT="${CURRENT_SPEC##*#}"
   if [ "$CURRENT_SPEC" = "github:${PKG_REPO}#${CURRENT}" ] && [[ "$CURRENT" =~ ^[0-9a-f]{40}$ ]]; then
