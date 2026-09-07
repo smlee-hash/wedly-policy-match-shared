@@ -65,6 +65,22 @@ function app(opts: {
   return root;
 }
 
+/**
+ * H2 시험이 쓰는 표식 — **비밀이 아니다**(이름 그대로). 깨진 JSON 의 **첫 글자부터** 어긋나게 둔다:
+ * V8 은 그때 입력 앞부분을 오류문에 담기 때문이다(가운데가 깨지면 위치만 적고 내용은 안 적는다).
+ */
+const CANARY = "PRIVATE_REVIEW_CANARY_NOT_A_SECRET";
+const BROKEN = `${CANARY} 이 줄은 JSON 이 아니다\n`;
+
+/** 「구문 오류는 고정 문구로만 적는다」를 잰다 — 표식도, 그 앞부분도 어디에도 없어야 한다 */
+function expectNoLeak(r: { code: number | null; out: string; err: string }, where: string) {
+  const all = `${r.out}\n${r.err}`;
+  expect(r.code, all).toBe(1);
+  expect(all, `${where}: 표식이 그대로 실렸습니다`).not.toContain(CANARY);
+  expect(all, `${where}: 표식의 앞부분이 실렸습니다`).not.toContain(CANARY.slice(0, 9));
+  expect(all, `${where}: 고정 문구가 없습니다`).toContain("JSON 구문 오류(내용은 표시하지 않음)");
+}
+
 function run(root: string, sha: string, ...extra: string[]) {
   const r = spawnSync("node", [SCRIPT, root, sha, ...extra], { encoding: "utf8" });
   return { code: r.status, err: r.stderr, out: r.stdout };
@@ -157,5 +173,26 @@ describe("verify-lock.mjs", () => {
 
   it("SHA 가 40자리 16진수가 아니면 2(사용법 오류)", () => {
     expect(run(app({ pkgSha: SHA, lockRootSha: SHA, lockResolvedSha: SHA }), "b404b4b").code).toBe(2);
+  });
+
+  // ── 2026-09-08 4차 리뷰 H2(P2): 깨진 JSON 의 앞부분이 공개 로그로 새지 않는다 ──
+
+  it("깨진 JSON 을 넣어도 그 내용이 stdout·stderr 어디에도 안 실린다", () => {
+    // ★막는 사고: `JSON.parse` 가 던지는 오류문에는 **입력의 앞부분이 그대로 들어간다**
+    //  (node 22 실측: `Unexpected token 'P', "PRIVATE_RE"... is not valid JSON`).
+    //  이 대조기가 읽는 것은 **비공개 앱의 파일**(밀기 단계에서는 봉인을 푼 산출물)이고
+    //  이 저장소의 Actions 로그는 **공개**다 — 깨진 파일 하나로 그 앞부분이 공개 로그에 실린다.
+    //  옛 판은 `err.message` 를 그대로 적었다.
+    // ★재는 방식: 표식 전체는 애초에 오류문에 다 들어가지 않는다(V8 이 10여 글자에서 자른다).
+    //  그래서 **표식의 앞 9글자**까지 함께 본다 — 이 줄이 옛 코드에서 실제로 빨개지는 자리다.
+    for (const target of ["package.json", "package-lock.json"]) {
+      const root = app({ pkgSha: SHA, lockRootSha: SHA, lockResolvedSha: SHA });
+      writeFileSync(join(root, target), BROKEN);
+      expectNoLeak(run(root, SHA), target);
+    }
+
+    const installed = app({ pkgSha: SHA, lockRootSha: SHA, lockResolvedSha: SHA, installedSha: SHA });
+    writeFileSync(join(installed, "node_modules/.package-lock.json"), BROKEN);
+    expectNoLeak(run(installed, SHA, "--installed"), "node_modules/.package-lock.json");
   });
 });

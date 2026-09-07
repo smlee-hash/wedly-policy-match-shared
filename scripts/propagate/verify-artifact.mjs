@@ -22,7 +22,7 @@
 //  「모르는 항목」으로 **안전하게 실패**한다 — 봇이 멋대로 남의 꾸러미를 앱에 들이지 않는다는 뜻이고,
 //  그때는 사람이 한 번 보고 손으로 핀을 올린 뒤 이 규칙을 넓힐지 정한다.
 import { lstatSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 const NAME = "@wedly/policy-match-shared";
 const REPO = "smlee-hash/wedly-policy-match-shared";
@@ -70,13 +70,30 @@ const shown = (v) => {
   return SAFE_VALUE_RE.test(s) ? s : `(예상 밖의 값 ${s.length}자 — 공개 로그라 내용은 적지 않습니다)`;
 };
 
+/**
+ * ★JSON.parse 의 오류문에는 **입력의 앞부분이 그대로 들어간다**(node 22 실측:
+ *  `Unexpected token 'P', "{"x": PRIVATE_RE"... is not valid JSON`). 위 `shown` 이 값을 가려도
+ *  이 자리로 새면 소용이 없다 — 이 대조기가 읽는 것은 **봉인해서 온 비공개 앱의 파일**이라
+ *  깨진 파일 하나면 봉인 안의 앞부분이 공개 로그에 그대로 실린다(2026-09-08 4차 리뷰 H2 · P2).
+ *  그래서 구문 오류만은 **입력을 한 글자도 담지 않는 고정 문구**(파일 이름·길이만)로 적는다.
+ */
+const syntaxWhy = (name, bytes) => `JSON 구문 오류(내용은 표시하지 않음) — ${basename(name)}, ${bytes}바이트`;
+
 const readJson = (path, label) => {
-  let value;
+  // 읽기와 해석을 **따로** 감싼다 — 한 덩어리로 잡으면 구문 오류인지 파일 오류인지 갈라낼 수 없다.
+  let buf;
   try {
-    value = JSON.parse(readFileChecked(path).toString("utf8"));
+    buf = readFileChecked(path);
   } catch (err) {
     const why = err?.code === "ENOENT" ? "파일이 없음" : String(err?.message ?? err).split("\n")[0];
     problems.push(`${label} 를 읽지 못함: ${why}`);
+    return null;
+  }
+  let value;
+  try {
+    value = JSON.parse(buf.toString("utf8"));
+  } catch {
+    problems.push(`${label} 를 읽지 못함: ${syntaxWhy(path, buf.length)}`);
     return null;
   }
   // ★「읽기 성공」과 「값이 쓸 만한가」를 나눈다(2026-09-08 3차 리뷰 G2 · P2).
@@ -201,8 +218,9 @@ function checkRegistryJson(rel) {
   }
   try {
     JSON.parse(text.toString("utf8"));
-  } catch (err) {
-    problems.push(`산출물 ${rel} 가 JSON 이 아닙니다: ${String(err?.message ?? err).split("\n")[0]}`);
+  } catch {
+    // 등록부는 앱이 만든 **비공개 파일**이라 앞부분도 찍지 않는다(H2) — 이름·길이만 적는다.
+    problems.push(`산출물 ${rel} 가 JSON 이 아닙니다: ${syntaxWhy(rel, text.length)}`);
   }
 }
 
