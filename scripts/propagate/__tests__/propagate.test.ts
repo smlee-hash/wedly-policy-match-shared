@@ -1596,4 +1596,99 @@ else if (cmd === "check") {
     expectNoJsonLeak(r, "산출물 meta.json");
     expect(sh("git rev-parse main", app.bare)).toBe(before); // 원격 불변
   }, 60_000);
+
+  // ── 2026-09-08 4차 리뷰 H2 확장(P2): 산출물 meta 의 **값**도 오류문을 타고 나가지 않는다 ──
+  //
+  // ★막던 사고: 밀기 단계는 봉인을 푼 `meta.json` 의 칸(`app`·`result`·`baseSha`·`pinTo`·`pinFrom`)을
+  //  판정에 쓰면서 **어긋난 값을 오류문에 그대로 실었다**(예: `산출물의 result 를 모르겠습니다: '<값>'`).
+  //  그 값은 준비 job(앱 코드가 도는 실행기)에서 온 것이고, 봉인의 공개키는 누구나 아는 값이라
+  //  **누구나 그럴듯한 산출물을 지어낼 수 있다** — 즉 남이 고른 글자다. 이 저장소는 공개라
+  //  Actions 로그도 공개다 → 산출물 한 장이면 임의의 내용이 공개 로그로 나간다.
+  // ★막은 방법: `lib.sh` 의 `shown()` 으로 감싼다 — **우리가 아는 값**(40자리 SHA·알려진 result·
+  //  이 실행이 아는 앱 id)만 원문이고 그 밖에는 `(<길이>글자)` 로만 적는다.
+  // ★재는 방식: 칸마다 표식을 하나씩 넣어 **다섯 자리를 각각** 지나가게 한다(나머지 칸은 정상값이라
+  //  검사가 그 칸까지 도달한다). 표식은 대문자·밑줄뿐이라 「글자 종류만 보는」 규칙으로는 통과한다 —
+  //  그래서 이 표가 그 느슨한 규칙도 함께 잡는다.
+
+  const META_LEAK_CASES = [
+    { field: "app", says: "산출물이 다른 앱 것입니다" },
+    { field: "result", says: "산출물의 result 를 모르겠습니다" },
+    { field: "baseSha", says: "baseSha 가 40자리 SHA 가 아닙니다" },
+    { field: "pinTo", says: "pinTo 가 40자리 SHA 가 아닙니다" },
+    { field: "pinFrom", says: "pinFrom 이 40자리 SHA 가 아닙니다" },
+  ];
+
+  for (const c of META_LEAK_CASES) {
+    it(`산출물 meta.${c.field} 에 남이 넣은 글자가 있어도 로그에 안 실린다`, () => {
+      const app = fakeApp(tmp, "lab", pkg.c1);
+      const before = sh("git rev-parse main", app.bare);
+      const meta: Record<string, string> = {
+        app: "lab",
+        result: "prepared",
+        baseSha: before,
+        pinFrom: pkg.c1,
+        pinTo: pkg.c3,
+        subject: "feat: 시험 커밋",
+      };
+      meta[c.field] = CANARY;
+      writeArtifact(tmp, meta, {
+        "package.json": pkgJsonAt("lab", pkg.c3),
+        "package-lock.json": lockJsonAt(pkg.c3),
+      });
+
+      const r = runStep(tmp, "push", {
+        PROPAGATE_APP_ID: "lab",
+        PROPAGATE_SHA: pkg.c3,
+        PROPAGATE_PACKAGE_DIR: pkg.dir,
+        PROPAGATE_CLONE_URL: app.bare,
+      });
+      const all = `${r.stdout}\n${r.stderr}`;
+      // 1 = 사람이 봐야 하는 실패 · 2 = 입력 오류. 어느 쪽이든 **밀지 않고 빨갛게** 끝나야 한다.
+      expect([1, 2], all).toContain(r.code);
+      expect(all, `meta.${c.field}: 표식이 그대로 실렸습니다`).not.toContain(CANARY);
+      expect(all, `meta.${c.field}: 표식의 앞부분이 실렸습니다`).not.toContain(CANARY.slice(0, 9));
+      // 그 칸을 본 오류문이 맞는지(다른 이유로 죽어서 초록이 되는 것을 막는다)
+      expect(all, `meta.${c.field}: 그 칸을 본 오류문이 아닙니다`).toContain(c.says);
+      // 값을 지우기만 한 것이 아니라 **길이로 갈음**했는지
+      expect(all, `meta.${c.field}: 길이로 갈음한 자리가 없습니다`).toContain(`(${CANARY.length}글자)`);
+      expect(sh("git rev-parse main", app.bare)).toBe(before); // 원격 불변
+    }, 60_000);
+  }
+
+  it("준비 단계 실패 사유는 로그에 그대로 남되 제어문자·이스케이프만 지워진다", () => {
+    // ★이 칸만은 예외다(2차 리뷰 F1 에서 감수한 한계): 준비 job 에는 알림이 없어서 이 한 줄이
+    //  「왜 죽었는지」를 아는 유일한 통로고, 워크플로우의 「실패 알림」도 같은 칸을 슬랙에 싣는다.
+    //  그러니 사유는 **지우면 안 된다.** 다만 로그 색·커서를 조작하거나 줄바꿈으로 남의 로그 줄을
+    //  흉내내는 제어문자는 지운다. 이 시험은 「`shown` 을 사유에까지 씌워 버리는」 과잉도 함께 막는다.
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const before = sh("git rev-parse main", app.bare);
+    writeArtifact(
+      tmp,
+      {
+        app: "lab",
+        result: "failed",
+        error: "잠금 파일 갱신 실패\u001b[31m 빨강\u0007\n두 번째 줄",
+        baseSha: before,
+        pinFrom: pkg.c1,
+        pinTo: pkg.c3,
+        subject: "feat: 시험 커밋",
+      },
+      {},
+    );
+
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    const all = `${r.stdout}\n${r.stderr}`;
+    expect(r.code, all).toBe(1);
+    expect(r.out).toContain("result=failed");
+    expect(all, "사유가 사라졌습니다").toContain("잠금 파일 갱신 실패");
+    expect(all, "여러 줄 사유의 뒷부분이 사라졌습니다").toContain("두 번째 줄");
+    expect(all, "이스케이프(ESC)가 그대로 실렸습니다").not.toContain("\u001b");
+    expect(all, "제어문자(BEL)가 그대로 실렸습니다").not.toContain("\u0007");
+    expect(sh("git rev-parse main", app.bare)).toBe(before); // 원격 불변
+  }, 60_000);
 });

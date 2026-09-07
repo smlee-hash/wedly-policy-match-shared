@@ -179,6 +179,26 @@ meta_field() {
   ' "$META" "$1"
 }
 
+# ★`meta.error` 만은 **내용을 그대로 싣는다**(2026-09-08 4차 리뷰 H2 확장의 예외).
+#  다른 칸(result·app·baseSha·pinTo·pinFrom)은 `shown` 으로 길이만 적지만, 사유는 사람이 읽어야
+#  하는 값이다 — 준비 job 에는 알림이 없어서(2차 리뷰 F1) 이 한 줄이 **왜 죽었는지 아는 유일한 통로**고,
+#  워크플로우의 「실패 알림」도 같은 칸을 읽어 슬랙에 싣는다. 그래서 F1 결정에서 이미
+#  「사유는 공개 로그에 나간다」를 감수했다.
+#  다만 **제어문자·이스케이프**(로그 색·커서 조작, 줄바꿈 위조로 남의 로그 줄을 흉내내기)는 지우고
+#  400자로 자른다 — 담는 것은 「사람이 읽을 글자」뿐이다.
+meta_error() {
+  node -e "$PROPAGATE_JSON_READER"'
+    try {
+      const meta = readJsonObject(process.argv[1]);
+      const v = meta.error;
+      const s = typeof v === "string" ? v : v === undefined || v === null ? "" : String(v);
+      // C0(제어문자·ESC)·DEL·C1 을 한 칸으로 바꾸고, 이어진 공백을 접은 뒤 400자로 자른다.
+      const line = s.replace(/[\u0000-\u001f\u007f-\u009f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 400);
+      process.stdout.write(line);
+    } catch (err) { fail(err); }
+  ' "$META"
+}
+
 # 산출물 파일을 덮어쓸 자리가 **정말 그 자리인지** 본다(2026-09-08 2차 리뷰 F2 · P1).
 #
 # ★막는 사고: 앱 기준 커밋이 `src/lib/design-system/registry.generated.json` 을
@@ -244,12 +264,13 @@ run_push() {
   [ -f "$META" ] || die "[$APP_ID] 산출물에 meta.json 이 없습니다 — 봉인 안이 예상과 다릅니다"
 
   META_APP="$(meta_field app)" || die "[$APP_ID] 산출물 meta.json 을 읽지 못했습니다: $META"
-  [ "$META_APP" = "$APP_ID" ] || die "[$APP_ID] 산출물이 다른 앱 것입니다: '${META_APP}'"
+  # ★아래 오류문은 전부 `shown` 을 거친다 — 산출물 칸은 남이 고른 글자일 수 있고 이 로그는 공개다(H2 확장).
+  [ "$META_APP" = "$APP_ID" ] || die "[$APP_ID] 산출물이 다른 앱 것입니다: $(shown "$META_APP")"
   RESULT="$(meta_field result)"
   case "$RESULT" in
     prepared) ;;
     skipped-same|skipped-not-descendant)
-      echo "propagate[$APP_ID]: 준비 단계가 ${RESULT} 로 끝났습니다 — 밀 것이 없습니다"
+      echo "propagate[$APP_ID]: 준비 단계가 $(shown "$RESULT") 로 끝났습니다 — 밀 것이 없습니다"
       out result "$RESULT"
       exit 0
       ;;
@@ -257,18 +278,20 @@ run_push() {
     # 사람이 안다 — 이 job 의 「실패 알림」이 유일한 알림 지점이고, 그 문구에 이 사유가 들어간다.
     failed)
       out result failed
-      die "[$APP_ID] 준비 단계가 실패했습니다: $(meta_field error)"
+      die "[$APP_ID] 준비 단계가 실패했습니다: $(meta_error)"
       ;;
-    *) die "[$APP_ID] 산출물의 result 를 모르겠습니다: '${RESULT}'" ;;
+    *) die "[$APP_ID] 산출물의 result 를 모르겠습니다: $(shown "$RESULT")" ;;
   esac
 
   BASE_SHA="$(meta_field baseSha)"
   PIN_TO="$(meta_field pinTo)"
   PIN_FROM="$(meta_field pinFrom)"
   SUBJECT="$(meta_field subject)"
-  [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]] || die "[$APP_ID] 산출물의 baseSha 가 40자리 SHA 가 아닙니다: '${BASE_SHA}'"
-  [[ "$PIN_TO" =~ ^[0-9a-f]{40}$ ]] || die "[$APP_ID] 산출물의 pinTo 가 40자리 SHA 가 아닙니다: '${PIN_TO}'"
-  [[ "$PIN_FROM" =~ ^[0-9a-f]{40}$ ]] || die "[$APP_ID] 산출물의 pinFrom 이 40자리 SHA 가 아닙니다: '${PIN_FROM}'"
+  [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]] || die "[$APP_ID] 산출물의 baseSha 가 40자리 SHA 가 아닙니다: $(shown "$BASE_SHA")"
+  [[ "$PIN_TO" =~ ^[0-9a-f]{40}$ ]] || die "[$APP_ID] 산출물의 pinTo 가 40자리 SHA 가 아닙니다: $(shown "$PIN_TO")"
+  [[ "$PIN_FROM" =~ ^[0-9a-f]{40}$ ]] || die "[$APP_ID] 산출물의 pinFrom 이 40자리 SHA 가 아닙니다: $(shown "$PIN_FROM")"
+  # ※`subject` 도 산출물에서 온 글자다. 다만 이것은 오류문이 아니라 **커밋 제목**으로 들어가는 값이라
+  #   이 회차(H2 확장)에서는 손대지 않았다 — 같은 종류로 보고에 적는다(예행 로그의 `git show` 도 같다).
   [ -n "$SUBJECT" ] || SUBJECT="(제목 없음)"
 
   # ★산출물이 말하는 SHA 를 그대로 믿지 않는다(2026-09-08 2차 리뷰 F3 · P1).
