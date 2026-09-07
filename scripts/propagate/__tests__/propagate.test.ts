@@ -496,6 +496,25 @@ function lockJsonAt(sha: string, integrity = `sha512-${sha.slice(0, 8)}`) {
   );
 }
 
+/**
+ * H2 시험이 쓰는 표식 — **비밀이 아니다**(이름 그대로). 깨진 JSON 의 **첫 글자부터** 어긋나게 둔다:
+ * V8 은 그때 입력 앞부분을 오류문에 담기 때문이다(가운데가 깨지면 위치만 적고 내용은 안 적는다).
+ */
+const CANARY = "PRIVATE_REVIEW_CANARY_NOT_A_SECRET";
+const BROKEN_JSON = `${CANARY} 이 줄은 JSON 이 아니다\n`;
+
+/**
+ * 「JSON 구문 오류는 고정 문구로만 적는다」를 잰다(2026-09-08 4차 리뷰 H2 확장 · P2).
+ * 표식도, 그 앞 9글자도 stdout·stderr 어디에도 없어야 하고 대신 고정 문구가 있어야 한다.
+ */
+function expectNoJsonLeak(r: StepRun, where: string) {
+  const all = `${r.stdout}\n${r.stderr}`;
+  expect(r.code, all).toBe(1);
+  expect(all, `${where}: 표식이 그대로 실렸습니다`).not.toContain(CANARY);
+  expect(all, `${where}: 표식의 앞부분이 실렸습니다`).not.toContain(CANARY.slice(0, 9));
+  expect(all, `${where}: 고정 문구가 없습니다`).toContain("JSON 구문 오류(내용은 표시하지 않음)");
+}
+
 describe("propagate.sh", () => {
   let tmp: string;
   let pkg: ReturnType<typeof fakePackage>;
@@ -1521,5 +1540,60 @@ else if (cmd === "check") {
     expect(r.stderr).toMatch(/심볼릭 링크/);
     expectNoKeyLeftovers(tmpDir, "링크 거부");
     expect(sh("git rev-parse main", app.bare)).toBe(before);
+  }, 60_000);
+
+  // ── 2026-09-08 4차 리뷰 H2 확장(P2): 셸 도우미가 읽는 JSON 도 깨진 앞부분을 안 흘린다 ──
+  //
+  // ★막던 사고: `lib.sh` 의 `PROPAGATE_JSON_READER` 는 `fail(err)` 로 `err.message` 를 그대로
+  //  stderr 에 적었다. `JSON.parse` 가 던지는 오류문에는 **입력의 앞부분이 그대로 들어간다**
+  //  (node 22 실측: `Unexpected token 'P', "PRIVATE_RE"... is not valid JSON`).
+  //  그 도우미가 읽는 것은 ① **비공개 앱**의 `package.json`(밀기 단계의 `read_current_pin` —
+  //  쓰기 토큰을 쥔 자리에서 남의 저장소 파일을 연다)과 ② 봉인을 푼 `meta.json`(`meta_field`) 이고,
+  //  이 저장소는 공개라 **Actions 로그도 공개**다. 깨진 파일 하나면 그 앞부분이 공개 로그에 실린다.
+  //  같은 구멍을 `verify-lock`·`verify-artifact` 는 이미 막아 뒀는데 셸 도우미에만 남아 있었다.
+  // ★재는 방식: 표식 전체는 애초에 오류문에 다 들어가지 않는다(V8 이 10여 글자에서 자른다).
+  //  그래서 **표식의 앞 9글자**까지 함께 본다 — 이 줄이 옛 코드에서 실제로 빨개지는 자리다.
+
+  it("기준 커밋의 package.json 이 깨진 JSON 이어도 그 내용이 로그에 안 실린다", () => {
+    // `read_current_pin` 이 읽는 자리다. 앱 저장소는 비공개고, 이 단계는 토큰을 쥐고 있다.
+    const app = fakeApp(tmp, "lab", pkg.c1, (w) => {
+      writeFileSync(join(w, "package.json"), BROKEN_JSON);
+    });
+    const before = sh("git rev-parse main", app.bare);
+    writeArtifact(
+      tmp,
+      { app: "lab", result: "prepared", baseSha: before, pinFrom: pkg.c1, pinTo: pkg.c3, subject: "feat: 시험 커밋" },
+      { "package.json": pkgJsonAt("lab", pkg.c3), "package-lock.json": lockJsonAt(pkg.c3) },
+    );
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expectNoJsonLeak(r, "기준 커밋의 package.json");
+    expect(sh("git rev-parse main", app.bare)).toBe(before); // 원격 불변
+  }, 60_000);
+
+  it("봉인 속 meta.json 이 깨진 JSON 이어도 그 내용이 로그에 안 실린다", () => {
+    // `meta_field` 가 읽는 자리다. 산출물은 앱 코드가 돈 실행기에서 온 **믿을 수 없는 입력**이라
+    // 그 안에 무엇이 들었는지 모른다 — 그러니 그 내용을 로그에 옮기지 않는 것이 유일한 방어다.
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const before = sh("git rev-parse main", app.bare);
+    const plain = mkdtempSync(join(tmpdir(), "propagate-brokenmeta-"));
+    writeFileSync(join(plain, "meta.json"), BROKEN_JSON);
+    writeFileSync(join(plain, "package.json"), pkgJsonAt("lab", pkg.c3));
+    writeFileSync(join(plain, "package-lock.json"), lockJsonAt(pkg.c3));
+    sealInto(join(tmp, "artifact"), plain, KEYS.pubPem);
+    rmSync(plain, { recursive: true, force: true });
+
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expectNoJsonLeak(r, "산출물 meta.json");
+    expect(sh("git rev-parse main", app.bare)).toBe(before); // 원격 불변
   }, 60_000);
 });

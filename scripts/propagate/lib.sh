@@ -39,15 +39,30 @@ CRYPTO_DIR=""   # 1회용 열쇠·비밀키를 두는 임시 폴더(F9 · cleanu
 #   그래서 이 저장소의 어떤 단계도 파일을 `require` 로 읽지 않는다:
 #     ① lstat 으로 **보통 파일**인지 먼저 보고(링크·폴더·장치는 거절) ② readFileSync ③ JSON.parse.
 #   검사는 **읽기 전에** 한다 — 읽고 나서 보면 이미 늦다.
+#
+# ★오류문에 **입력을 담지 않는다**(2026-09-08 4차 리뷰 H2 확장 · P2):
+#   `JSON.parse` 가 던지는 오류문에는 입력의 앞부분이 그대로 들어간다
+#   (node 22 실측: `Unexpected token 'P', "PRIVATE_RE"... is not valid JSON`).
+#   이 도우미가 읽는 것은 **비공개 앱**의 `package.json`(밀기 단계의 read_current_pin)과
+#   봉인을 푼 `meta.json`(meta_field) 인데 이 저장소는 공개라 **Actions 로그도 공개**다 —
+#   깨진 파일 하나면 그 앞 십여 글자가 공개 로그에 실린다.
+#   그래서 **구문 오류만은** verify-lock·verify-artifact 와 같은 고정 문구(파일 이름·길이만)로 적는다.
+#   파일 없음·보통 파일 아님 같은 나머지 오류문에는 내용이 섞이지 않으므로 그대로 둔다.
 # ★이 글자는 node 가 쓰는 것이라 셸이 풀면 안 된다(작은따옴표).
 # shellcheck disable=SC2016
 PROPAGATE_JSON_READER='
   const fs = require("node:fs");
+  const nodePath = require("node:path");
   const readJsonFile = (file) => {
     let st = null;
     try { st = fs.lstatSync(file); } catch (e) { throw new Error(file + " 이(가) 없습니다"); }
     if (!st.isFile()) throw new Error(file + " 이(가) 보통 파일이 아닙니다(링크·폴더는 읽지 않습니다)");
-    return JSON.parse(fs.readFileSync(file, "utf8"));
+    const buf = fs.readFileSync(file);
+    // 읽기와 해석을 **따로** 감싼다 — 구문 오류의 오류문에는 입력이 섞이므로 고정 문구로 갈아 끼운다(H2).
+    try { return JSON.parse(buf.toString("utf8")); }
+    catch (e) {
+      throw new Error("JSON 구문 오류(내용은 표시하지 않음) — " + nodePath.basename(file) + ", " + buf.length + "바이트");
+    }
   };
   const readJsonObject = (file) => {
     const v = readJsonFile(file);
