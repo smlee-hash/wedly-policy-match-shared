@@ -2,6 +2,7 @@
   {
     "id": "erp",
     "repo": "smlee-hash/wedly-erp",
+    "buildIdUrl": "https://wedly-erp-production.up.railway.app/api/build-id",
     "install": true,
     "postSteps": [
       "node scripts/design-system/cli.mjs generate",
@@ -16,6 +17,7 @@
   {
     "id": "illua",
     "repo": "smlee-hash/wedly-illua-collab",
+    "buildIdUrl": "https://wedly-illua-collab-production.up.railway.app/api/build-id",
     "install": false,
     "postSteps": [],
     "commitPaths": [
@@ -26,6 +28,7 @@
   {
     "id": "lab",
     "repo": "smlee-hash/wedly-policy-lab",
+    "buildIdUrl": "https://wedly-policy-lab-production.up.railway.app/api/build-id",
     "install": false,
     "postSteps": [],
     "commitPaths": [

@@ -40,6 +40,16 @@ describe("scripts/propagate/apps.json", () => {
     }
   });
 
+  it("앱마다 배포 확인용 build-id 주소를 갖는다 — https · /api/build-id", () => {
+    // 봇은 핀을 민 뒤 이 주소를 물어 「그 커밋이 실제로 배포됐는지」를 본다(계획서 Task 7).
+    // 주소가 틀리면 배포 확인이 늘 시간 초과가 되어 **멀쩡한 배포마다 슬랙 알림**이 온다.
+    for (const a of apps) {
+      const url = String(a.buildIdUrl);
+      expect(url.startsWith("https://"), `${String(a.id)}: ${url}`).toBe(true);
+      expect(url.endsWith("/api/build-id"), `${String(a.id)}: ${url}`).toBe(true);
+    }
+  });
+
   it("ERP 만 설치+설계 등록부 재생성, 나머지는 잠금 파일만", () => {
     const byId = Object.fromEntries(apps.map((a) => [String(a.id), a] as const));
     expect(byId.erp.install).toBe(true);

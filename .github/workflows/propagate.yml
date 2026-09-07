@@ -110,7 +110,9 @@ jobs:
   propagate:
     needs: resolve
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 핀 반영은 몇 분이면 끝나지만 마지막 「배포 확인」이 최대 30분을 기다린다(총괄 결정 6).
+    # 그래서 반영 30분 + 배포 확인 30분 + 여유 5분 = 65 로 둔다.
+    timeout-minutes: 65
     strategy:
       fail-fast: false
       matrix:
@@ -164,3 +166,50 @@ jobs:
             "패키지 커밋 $PKG_SHA" \
             "$PKG_SUBJECT" \
             "앱 저장소 main 은 바뀌지 않았습니다(옛 핀 그대로). 실행 로그를 보고 사람이 핀을 맞추거나 다시 돌리세요."
+
+      # ── 배포 확인 ───────────────────────────────────────────────────────────
+      # 민 커밋이 **실제로 배포됐는지**까지 본다(계획서 Task 7 · 총괄 결정 6).
+      # Railway 토큰은 쓰지 않는다 — 프로젝트 토큰은 그 환경의 모든 변수(운영 DB 주소·AI 열쇠)를
+      # 읽을 수 있어 공개 저장소 시크릿에 두기엔 폭이 너무 넓다. 대신 앱이 아무 인증 없이 내놓는
+      # `GET /api/build-id` 를 30초마다 물어 봇 커밋 SHA 가 나타나는지 본다(최대 30분).
+      #
+      # ★여기서 실패해도 job 은 초록으로 둔다(continue-on-error). 핀 반영은 이미 성공했고
+      #  「아직 배포 안 됨」이 반영을 되돌릴 이유는 아니다 — 사람에게는 아래 알림으로 알린다.
+      - name: 배포 확인 (${{ matrix.app }})
+        if: steps.run.outputs.result == 'updated'
+        id: watch
+        continue-on-error: true
+        shell: bash
+        env:
+          APP_ID: ${{ matrix.app }}
+          COMMIT: ${{ steps.run.outputs.commit }}
+        run: |
+          set -euo pipefail
+          URL="$(node -e '
+            const apps = require("./scripts/propagate/apps.json");
+            const app = apps.find((a) => a.id === process.env.APP_ID);
+            if (!app || !app.buildIdUrl) {
+              console.error("apps.json 에 buildIdUrl 이 없습니다: " + process.env.APP_ID);
+              process.exit(1);
+            }
+            process.stdout.write(app.buildIdUrl);
+          ')"
+          node scripts/propagate/watch-deploy.mjs "$URL" "$COMMIT" 1800 30
+
+      # 30분 안에 그 커밋이 배포본에 안 보였을 때만 돈다. 빌드 실패인지 그냥 늦는 것인지는
+      # 이 방법으로 구분할 수 없다 — 알림 문구가 그렇게 말하고 Railway 화면을 보라고 한다.
+      - name: 배포 미확인 알림
+        if: steps.watch.outcome == 'failure'
+        shell: bash
+        env:
+          WEDLY_NOTIFY_URL: ${{ vars.WEDLY_NOTIFY_URL }}
+          WEDLY_NOTIFY_KEY: ${{ secrets.WEDLY_NOTIFY_KEY }}
+          APP_ID: ${{ matrix.app }}
+          COMMIT: ${{ steps.run.outputs.commit }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          bash scripts/propagate/notify.sh \
+            "정책매칭 공용 반영 뒤 배포 확인 못 함: $APP_ID" \
+            "$RUN_URL" \
+            "봇 커밋 $COMMIT 이 30분 안에 배포본에 나타나지 않았습니다." \
+            "Railway 빌드 실패이거나 지연입니다 — Railway 화면에서 확인하세요. 실패면 옛 배포가 그대로 살아 있습니다."
