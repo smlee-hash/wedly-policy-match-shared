@@ -66,6 +66,7 @@ write_meta() { write_meta_file "$OUT/meta.json" "$1"; }
 run_prepare() {
   WORK_PARENT="$(work_parent)"
   OUT="$(out_dir)"
+  # shellcheck disable=SC2034  # lib.sh 의 EXIT 갈고리가 읽는다(검사기는 파일 하나만 본다)
   FAIL_META_DIR="$OUT"
   SHA="${PROPAGATE_SHA:-}"
   [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || usage "PROPAGATE_SHA 는 40자리 SHA 여야 합니다 (받은 값: '${SHA}')"
@@ -180,7 +181,8 @@ meta_field() {
 assert_plain_commit_path() {
   local rel="$1" acc="" rest="$1" part mode
   case "$rel" in
-    ""|/*|.*|*/../*|*/..|../*) die "[$APP_ID] 커밋 대상 경로가 이상합니다: '${rel}' — 밀지 않았습니다" ;;
+    # `.*` 가 `.git/…`·`..`·`../…` 를 모두 잡는다. 나머지는 경로 **가운데**의 `..` 를 잡는 것.
+    ""|/*|.*|*/../*|*/..) die "[$APP_ID] 커밋 대상 경로가 이상합니다: '${rel}' — 밀지 않았습니다" ;;
   esac
   while [ -n "$rest" ]; do
     part="${rest%%/*}"
