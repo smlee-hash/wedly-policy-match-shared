@@ -1,0 +1,166 @@
+# 3앱 자동 반영 봇 — 설계서 §6 D1·D2, 계획서 docs/superpowers/plans/2026-09-07-p5-propagate-bot.md
+#
+# 무엇을 하나: 이 보관함 main 에 커밋이 올라가 CI 가 통과하면, 앱 3곳(ERP·일루아·랩)의
+#   `@wedly/policy-match-shared` 핀을 새 커밋으로 올려 커밋·푸시한다. Railway 가 그 push 를 보고 배포한다.
+#   사람이 손으로 핀을 맞추던 일(회당 30~60분)을 없앤다.
+#
+# 언제 도나: CI 워크플로우가 **main 에서 성공**했을 때(workflow_run). 손으로는 Actions 화면의
+#   「Run workflow」(workflow_dispatch) — 예행연습(dry_run)이 기본으로 켜져 있다.
+# 끄기:  저장소 변수 `PROPAGATE_ENABLED=false` (변수가 아예 없으면 켜진 것으로 본다)
+# 시크릿: `PROPAGATE_TOKEN`(세밀 권한 PAT · 앱 3저장소 contents:write) · `WEDLY_NOTIFY_KEY`(ERP 내부 알림 열쇠)
+# 변수:  `PROPAGATE_ENABLED` · `WEDLY_NOTIFY_URL`(ERP 주소)
+#
+# ★스크립트 인젝션 막기 — 이 파일의 규칙 하나:
+#   커밋 제목·사람이 적는 입력처럼 **믿을 수 없는 값은 `run:` 문자열에 `${{ }}` 로 넣지 않는다.**
+#   그렇게 넣으면 그 값이 셸 명령의 일부가 되어 그대로 실행된다(제목에 `$(...)` 를 넣은 커밋 하나면 끝난다).
+#   전부 `env:` 로 넘기고 셸에서는 `"$변수"` 로 읽는다 — 셸이 값을 명령이 아니라 자료로 다룬다.
+name: Propagate
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    # 이 걸림쇠는 **CI 가 돌던 가지**(workflow_run.head_branch)를 본다.
+    # 실측 2026-09-08: 같은 커밋이라도 `pipe/…` 가지의 CI 실행은 여기서 걸러진다.
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "예행연습(커밋만 만들고 푸시하지 않음)"
+        type: boolean
+        default: true
+      sha:
+        description: "반영할 패키지 커밋 40자리(비우면 main 끝)"
+        type: string
+        default: ""
+
+# 한 번에 한 실행만 — 늦게 온 반영이 먼저 온 반영을 앞지르지 못하게.
+# 취소하지 않고 줄을 세운다(취소하면 이미 핀을 바꾼 앱만 남아 3앱이 갈라진다).
+# ★위치가 중요하다: 워크플로우 맨 위(job 안이 아니라)에 둬야 **실행 하나**가 한 단위가 된다.
+#  job 에 두면 matrix 3갈래가 서로를 기다려 병렬 처리가 사라진다.
+concurrency:
+  group: propagate-main
+  cancel-in-progress: false
+
+# 이 워크플로우는 자기 저장소를 읽기만 한다. 앱 3곳에 미는 권한은 기본 토큰이 아니라
+# 시크릿 PAT(`PROPAGATE_TOKEN`)에서 온다 — 기본 토큰은 다른 저장소에 아무 권한이 없다.
+permissions:
+  contents: read
+
+jobs:
+  # 1단계: 무엇을 반영할지 하나로 정한다(SHA·커밋 제목·예행 여부). 3갈래가 각자 정하지 않게.
+  resolve:
+    # 변수가 없으면 빈 값이라 `!= 'false'` 가 참 = 켜짐. `false` 를 넣은 동안만 통째로 건너뛴다.
+    if: >-
+      vars.PROPAGATE_ENABLED != 'false' &&
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      sha: ${{ steps.pick.outputs.sha }}
+      subject: ${{ steps.pick.outputs.subject }}
+      dry_run: ${{ steps.pick.outputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 핀이 앞으로만 가는지(후손 검사) 보려면 옛 커밋까지 있어야 한다.
+          fetch-depth: 0
+
+      - id: pick
+        shell: bash
+        env:
+          # ↓ 셋 다 믿을 수 없는 값이라 env 로만 받는다(위 「스크립트 인젝션 막기」)
+          INPUT_SHA: ${{ inputs.sha }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            SHA="${INPUT_SHA:-}"
+            [ -n "$SHA" ] || SHA="$(git rev-parse origin/main)"
+            # boolean 입력도 run: 안에서는 "true"/"false" **글자**로 온다.
+            case "${INPUT_DRY_RUN:-true}" in
+              true|True|TRUE|1) DRY=true ;;
+              *) DRY=false ;;
+            esac
+          else
+            # workflow_run 이 알려 주는 「CI 가 돈 커밋」. 실측 2026-09-08: 40자리 SHA 로 온다.
+            SHA="${WORKFLOW_RUN_SHA:-}"
+            DRY=false
+          fi
+
+          if [[ ! "$SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::반영할 커밋이 40자리 SHA 가 아닙니다: '$SHA'"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$SHA" origin/main 2>/dev/null; then
+            echo "::error::그 커밋은 main 에 없습니다(지워졌거나 다른 갈래): $SHA"
+            exit 1
+          fi
+
+          # git 의 %s(제목)는 여러 줄이어도 한 줄로 접힌다 — 그래서 key=value 한 줄로 안전하다.
+          {
+            echo "sha=$SHA"
+            echo "dry_run=$DRY"
+            echo "subject=$(git log -1 --format=%s "$SHA")"
+          } >> "$GITHUB_OUTPUT"
+          echo "propagate: 반영 대상 $SHA (예행=$DRY)"
+
+  # 2단계: 앱 3곳을 동시에. 한 곳이 실패해도 나머지는 계속한다(fail-fast: false).
+  propagate:
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [erp, illua, lab]
+    env:
+      # 잠금 파일의 `resolved` 가 `git+ssh://git@github.com/…` 라 npm 이 되돌림 경로에서 ssh 를 쓴다.
+      # 실행기에는 ssh 열쇠가 없으므로 https 로 바꿔 준다(2026-09-08 로컬 예행에서 이 되돌림이
+      # 실제로 쓰이는 것을 확인했다 — 안전망이 아니라 필요한 설정이다).
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: "url.https://github.com/.insteadOf"
+      GIT_CONFIG_VALUE_0: "ssh://git@github.com/"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # propagate.sh 가 이 작업 폴더에서 「현재 핀이 새 SHA 의 조상인가」를 잰다.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 핀 반영 (${{ matrix.app }})
+        id: run
+        shell: bash
+        env:
+          PROPAGATE_APP_ID: ${{ matrix.app }}
+          PROPAGATE_SHA: ${{ needs.resolve.outputs.sha }}
+          # ★커밋 제목 — 아무나 적을 수 있는 글자라 반드시 env 로만 넘긴다.
+          PROPAGATE_SUBJECT: ${{ needs.resolve.outputs.subject }}
+          PROPAGATE_PACKAGE_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ needs.resolve.outputs.sha }}
+          PROPAGATE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PROPAGATE_PACKAGE_DIR: ${{ github.workspace }}
+          PROPAGATE_TOKEN: ${{ secrets.PROPAGATE_TOKEN }}
+          PROPAGATE_DRY_RUN: ${{ needs.resolve.outputs.dry_run == 'true' && '1' || '0' }}
+        run: bash scripts/propagate/propagate.sh
+
+      - name: 실패 알림
+        if: failure()
+        shell: bash
+        env:
+          WEDLY_NOTIFY_URL: ${{ vars.WEDLY_NOTIFY_URL }}
+          WEDLY_NOTIFY_KEY: ${{ secrets.WEDLY_NOTIFY_KEY }}
+          APP_ID: ${{ matrix.app }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PKG_SHA: ${{ needs.resolve.outputs.sha }}
+          PKG_SUBJECT: ${{ needs.resolve.outputs.subject }}
+        run: |
+          bash scripts/propagate/notify.sh \
+            "정책매칭 공용 자동 반영 실패: $APP_ID" \
+            "$RUN_URL" \
+            "패키지 커밋 $PKG_SHA" \
+            "$PKG_SUBJECT" \
+            "앱 저장소 main 은 바뀌지 않았습니다(옛 핀 그대로). 실행 로그를 보고 사람이 핀을 맞추거나 다시 돌리세요."
