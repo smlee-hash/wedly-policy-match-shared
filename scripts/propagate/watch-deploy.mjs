@@ -16,6 +16,12 @@
 //
 // ★`fetch` 를 모듈 맨 위에서 잡아 두지 않고 **부를 때마다** `globalThis.fetch` 를 읽는 이유:
 //  시험이 가짜 fetch 를 끼워 네트워크 없이 시나리오를 돌린다(node 22 전역 fetch 를 그대로 쓰면서).
+//
+// ★마감(deadline)을 두 곳에서 지킨다 — 2026-09-08 리뷰 R5:
+//  ① 요청 하나에 주는 시간은 `min(15초, 남은 시간)` 이다. 고정 15초면 마감 1초 전에 시작한 요청이
+//     마감을 14초 넘겨서까지 살아 있다.
+//  ② 응답이 와도 **그때 이미 마감을 넘겼으면 성공으로 세지 않는다.** 늦게 도착한 응답을 성공으로 세면
+//     「30분 안에 배포됐다」가 거짓이 되고, 알림이 가야 할 자리에서 조용히 초록이 된다.
 import { pathToFileURL } from "node:url";
 
 const DEFAULT_TIMEOUT_SEC = 1800; // 30분 — ERP 배포가 보통 15분 안팎(2026-09-07 실측)
@@ -29,12 +35,13 @@ const humanSpan = (ms) => (ms >= 60_000 ? `${Math.round(ms / 60_000)}분` : `${M
 /**
  * build-id 를 한 번 물어 `commitSha` 를 돌려준다. 무엇이든 잘못되면 빈 문자열(= 「아직 모름」).
  * 던지지 않는다 — 부르는 쪽의 판정이 「시간 안에 봤는가」 하나로 유지되게.
+ * `timeoutMs` 는 이 요청 하나에 주는 시간(부르는 쪽이 남은 시간으로 줄여서 준다).
  */
-async function readCommitSha(url, fetchImpl) {
+async function readCommitSha(url, fetchImpl, timeoutMs = HTTP_TIMEOUT_MS) {
   try {
     const doFetch = fetchImpl ?? globalThis.fetch;
     const res = await doFetch(url, {
-      signal: AbortSignal.timeout(HTTP_TIMEOUT_MS),
+      signal: AbortSignal.timeout(Math.max(1, Math.round(timeoutMs))),
       headers: { accept: "application/json" },
     });
     if (!res || res.ok === false) return "";
@@ -62,9 +69,13 @@ export async function waitForCommit(url, sha, options = {}) {
 
   for (;;) {
     polls += 1;
-    const seen = await readCommitSha(url, fetchImpl);
+    // 요청 하나가 마감을 넘겨 살아 있지 않게 — 남은 시간보다 길게 주지 않는다(리뷰 R5).
+    const seen = await readCommitSha(url, fetchImpl, Math.min(HTTP_TIMEOUT_MS, deadline - Date.now()));
     if (seen) lastSeen = seen;
-    if (seen === sha) return { ok: true, lastSeen, polls, waitedMs: Date.now() - started };
+    // 응답이 마감 뒤에 왔으면 성공이 아니다 — 늦게 온 답으로 「제때 배포됐다」고 말하지 않는다.
+    if (seen === sha && Date.now() <= deadline) {
+      return { ok: true, lastSeen, polls, waitedMs: Date.now() - started };
+    }
     // 다음 물음을 시간 안에 못 하면 여기서 끝낸다(자고 일어나 시간을 넘긴 뒤 묻지 않게).
     if (Date.now() + intervalMs >= deadline) {
       return { ok: false, lastSeen, polls, waitedMs: Date.now() - started };
