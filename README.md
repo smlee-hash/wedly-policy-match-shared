@@ -26,14 +26,36 @@ WEDLY **정책매칭 판정 + 자금 조달 지도** 공용 보관함. ERP·일�
 export * from "@wedly/policy-match-shared/match-engine";
 ```
 
-**기본 내보내기가 있는 부품**(2026-09-04 실측 3개 — `FundingMap` · `FundingDrawer` · `CustomSelect`)은 두 줄로 적어야 기본 내보내기가 넘어간다:
+**기본 내보내기가 있는 부품**(2026-09-07 실측 8개 — `FundingMap` · `FundingDrawer` · `CustomSelect` · `ui/policy` 의 `PolicyMatchScreen` · `ProfileForm` · `ResultList` · `DetailPanel` · `SourceDirectoryPanel`)은 두 줄로 적어야 기본 내보내기가 넘어간다:
 
 ```ts
 export { default } from "@wedly/policy-match-shared/ui/FundingMap";
 export * from "@wedly/policy-match-shared/ui/FundingMap";
 ```
 
-부를 수 있는 주소는 `package.json` 의 `exports` 지도에 **25개**가 전부 적혀 있다. 지도에 없는 깊은 경로(`.../src/engine/...`)를 직접 부르지 마라 — 지도가 계약이다.
+부를 수 있는 주소는 `package.json` 의 `exports` 지도에 **44개**가 전부 적혀 있다(2026-09-07 P4 에서 14개 추가 — `./ai*` 4 · `./ui/policy*` 10. 그 전 값은 30개였고 이 문서가 25개로 낡아 있었다). 지도에 없는 깊은 경로(`.../src/engine/...`)를 직접 부르지 마라 — 지도가 계약이다. **지도와 실물이 어긋나는지는 `src/exports-map.test.ts` 가 잰다** — 안 재면 잘못이 소비 앱 배포에서만 터진다(`ERR_PACKAGE_PATH_NOT_EXPORTED`).
+
+### 2-b. 지원정책 매칭 화면 한 벌(`./ui/policy/*`) — 2026-09-07 P4
+
+ERP `/policy-match` 화면(조립기 `PolicyMatchScreen` + 조각 넷 + `Modal`)이 이 보관함으로 왔다. **부품 안에 「어느 앱인지」를 묻는 코드는 없다** — 앱마다 다른 것은 전부 세 묶음으로 받는다(`./ui/policy/endpoints`):
+
+| 묶음 | 무엇 | 없을 때 |
+|---|---|---|
+| `endpoints` | 부를 통로 주소 10개 | **그 단추·칸을 아예 안 그린다**(`verdict`·`breakthrough`·`askInstructor`·`sync`·`prefill`) |
+| `slots` | 앱만 아는 조각(`verdictFeedback`·`sourcesActions`·`sourcesHeader`) | 아무것도 안 그린다 |
+| `features` | 앱이 대신 하는 일(`exportSources`·`parseError`·`sourcesTrailingPaddingClass`) | ERP 규약·엑셀 단추 없음·여백 0 |
+
+```tsx
+import { PolicyMatchScreen } from "@wedly/policy-match-shared/ui/policy/PolicyMatchScreen";
+import { ERP_POLICY_MATCH_ENDPOINTS } from "@wedly/policy-match-shared/ui/policy/endpoints";
+
+<PolicyMatchScreen
+  endpoints={ERP_POLICY_MATCH_ENDPOINTS}
+  features={{ exportSources: (rows, fileName) => downloadSheet({ /* … */ }), sourcesTrailingPaddingClass: "pr-14" }}
+/>
+```
+
+**이 여섯 부품은 `./ui`(배럴)에 넣지 않았다** — "use client" 부품을 통째로 끌고 오기 때문이다. 낱개 주소로 부른다.
 
 ### 2-a. 자료 읽기는 인자로 받는다
 

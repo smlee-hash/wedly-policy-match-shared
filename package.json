@@ -127,6 +127,62 @@
     "./ui/selectKeyboard": {
       "types": "./src/ui/selectKeyboard.ts",
       "default": "./src/ui/selectKeyboard.ts"
+    },
+    "./ai": {
+      "types": "./src/ai/index.ts",
+      "default": "./src/ai/index.ts"
+    },
+    "./ai/verdict": {
+      "types": "./src/ai/verdict.ts",
+      "default": "./src/ai/verdict.ts"
+    },
+    "./ai/breakthrough": {
+      "types": "./src/ai/breakthrough.ts",
+      "default": "./src/ai/breakthrough.ts"
+    },
+    "./ai/tacit-types": {
+      "types": "./src/ai/tacit-types.ts",
+      "default": "./src/ai/tacit-types.ts"
+    },
+    "./ui/policy": {
+      "types": "./src/ui/policy/index.ts",
+      "default": "./src/ui/policy/index.ts"
+    },
+    "./ui/policy/PolicyMatchScreen": {
+      "types": "./src/ui/policy/PolicyMatchScreen.tsx",
+      "default": "./src/ui/policy/PolicyMatchScreen.tsx"
+    },
+    "./ui/policy/ProfileForm": {
+      "types": "./src/ui/policy/ProfileForm.tsx",
+      "default": "./src/ui/policy/ProfileForm.tsx"
+    },
+    "./ui/policy/ResultList": {
+      "types": "./src/ui/policy/ResultList.tsx",
+      "default": "./src/ui/policy/ResultList.tsx"
+    },
+    "./ui/policy/DetailPanel": {
+      "types": "./src/ui/policy/DetailPanel.tsx",
+      "default": "./src/ui/policy/DetailPanel.tsx"
+    },
+    "./ui/policy/SourceDirectoryPanel": {
+      "types": "./src/ui/policy/SourceDirectoryPanel.tsx",
+      "default": "./src/ui/policy/SourceDirectoryPanel.tsx"
+    },
+    "./ui/policy/Modal": {
+      "types": "./src/ui/policy/Modal.tsx",
+      "default": "./src/ui/policy/Modal.tsx"
+    },
+    "./ui/policy/endpoints": {
+      "types": "./src/ui/policy/endpoints.ts",
+      "default": "./src/ui/policy/endpoints.ts"
+    },
+    "./ui/policy/detail-poll": {
+      "types": "./src/ui/policy/detail-poll.ts",
+      "default": "./src/ui/policy/detail-poll.ts"
+    },
+    "./ui/policy/ask-instructor-text": {
+      "types": "./src/ui/policy/ask-instructor-text.ts",
+      "default": "./src/ui/policy/ask-instructor-text.ts"
     }
   },
   "files": [
