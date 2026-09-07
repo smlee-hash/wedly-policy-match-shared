@@ -123,7 +123,11 @@ describe("notify.sh", () => {
   });
 
   it("설정(WEDLY_NOTIFY_URL/KEY)이 없으면 부르지 않고 0 으로 끝난다", () => {
-    const 빠진경우 = [{ WEDLY_NOTIFY_URL: "" }, { WEDLY_NOTIFY_KEY: "" }, { WEDLY_NOTIFY_URL: "", WEDLY_NOTIFY_KEY: "" }];
+    const 빠진경우: Record<string, string>[] = [
+      { WEDLY_NOTIFY_URL: "" },
+      { WEDLY_NOTIFY_KEY: "" },
+      { WEDLY_NOTIFY_URL: "", WEDLY_NOTIFY_KEY: "" },
+    ];
     for (const missing of 빠진경우) {
       const r = runNotify(tmp, { args: ["제목", "https://example.test/run/1", "줄1"], env: missing });
       expect(r.code).toBe(0);
