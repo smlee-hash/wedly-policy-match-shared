@@ -134,9 +134,11 @@ describe(".github/workflows/propagate.yml", () => {
     expect(reason).toContain('"$REASON"');
   });
 
-  it("동시성: 손으로 돌린 예행은 자동 반영과 다른 줄에 선다 — 예행이 진짜 반영을 취소하지 않게", () => {
+  it("동시성: 자동 반영·손 실제·손 예행이 각각 다른 줄에 선다 — 예행이 진짜 반영을 취소하지 않게", () => {
+    // 2차 리뷰 F5: 옛 판은 손 실행을 한 줄(`manual`)에 몰아, **예행 하나가 대기 중인 손 실제 반영을**
+    // 밀어냈다. 예행은 아무것도 밀지 않으니 취소돼도 무해하지만, 진짜 반영이 취소되면 앱이 뒤처진다.
     expect(YAML).toContain(
-      "group: propagate-${{ github.event_name == 'workflow_dispatch' && 'manual' || 'main' }}",
+      "group: propagate-${{ github.event_name == 'workflow_dispatch' && (inputs.dry_run && 'dry' || 'manual') || 'main' }}",
     );
     expect(YAML).toContain("cancel-in-progress: false");
   });
@@ -154,6 +156,17 @@ describe(".github/workflows/propagate.yml", () => {
     expect(jobSection("resolve")).toContain(
       "github.event.workflow_run.head_repository.full_name == github.repository",
     );
+  });
+
+  it("끄는 변수는 자동 실행만 막는다 — 손으로 돌리는 것은 꺼져 있어도 된다", () => {
+    // 2차 리뷰 F8: 첫 가동 절차가 「끄고 → 밀고 → 예행으로 확인 → 켠다」라, 꺼진 동안 예행까지
+    // 막히면 그 절차가 성립하지 않는다. 꺼 둔 동안 사람이 손으로 한 앱을 맞출 수도 있어야 한다.
+    const resolve = jobSection("resolve");
+    expect(resolve).toContain(
+      "(github.event_name == 'workflow_dispatch' || vars.PROPAGATE_ENABLED != 'false')",
+    );
+    // 옛 판(자동·손 가리지 않고 막던 모양)이 남아 있지 않다
+    expect(resolve).not.toMatch(/if: >-\n\s+vars\.PROPAGATE_ENABLED != 'false' &&/);
   });
 
   it("기본 토큰 권한은 읽기뿐이다", () => {
