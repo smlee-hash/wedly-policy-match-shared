@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,7 +7,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { runBlocks } from "./yaml-run-blocks";
 
 /**
- * `propagate.yml` 의 `resolve` 단계 셸 토막을 **잘라 내어 실제로 돌리는** 시험 — 2026-09-08 2차 리뷰 F6.
+ * `propagate.yml` 안의 셸 토막을 **잘라 내어 실제로 돌리는** 시험 — 2026-09-08 2차 리뷰 F6·F1.
+ * 두 자리를 잰다: 「무엇을 반영할지 정하는」 `resolve` 토막과 「실패를 알리는」 토막.
  *
  * ★이 토막이 하는 일: 「무엇을 반영할지」를 하나로 정한다. 그 판정이 틀리면 3앱이 통째로
  *  틀린 커밋으로 간다. 그런데 워크플로우는 여기서 실행해 볼 수 없어서(GitHub 안에서만 돈다)
@@ -189,5 +190,99 @@ describe("propagate.yml — resolve(pick) 셸 토막", () => {
     expect(r.code).toBe(1);
     expect(r.stdout + r.stderr).toMatch(/main 에 없습니다/);
     expect(r.out.sha).toBeUndefined();
+  }, 30_000);
+});
+
+/**
+ * 밀기 job 의 「실패 알림」 토막 — 2026-09-08 2차 리뷰 F1·F7.
+ *
+ * ★이 토막이 하는 일: 준비 단계가 남긴 사유(`meta.json` 의 `error`)를 **파일에서 읽어** 알림 인자로 넘긴다.
+ *  준비 job 에는 알림이 없으므로(앱 코드가 돈 자리에서 열쇠를 쓰지 않으려고), **이 자리가 유일한 알림**이다.
+ *  그래서 여기서 사유가 안 실리면 사람은 「무엇이 실패했는지」를 로그를 파야만 안다.
+ *
+ * ★같이 재는 것: 커밋 제목처럼 **아무나 적을 수 있는 글자**가 셸 명령이 되지 않는지.
+ *  `env:` 로 받아 `"$변수"` 로 읽으면 셸은 그것을 자료로 다룬다 — 그 성질을 실제 실행으로 잰다.
+ */
+const NOTIFY_FAILURE = (() => {
+  const found = runBlocks(YAML).filter((b) => b.includes("notify.sh") && b.includes("meta.json"));
+  if (found.length !== 1) throw new Error(`실패 알림 토막을 하나로 찾지 못했습니다(${found.length}개)`);
+  return found[0];
+})();
+
+const REPO_ROOT = resolve(HERE, "../../..");
+
+/** 가짜 curl: 받은 인자를 그대로 적어 두고 200 을 돌려준다(네트워크 없음) */
+function fakeCurl(tmp: string) {
+  const bin = join(tmp, "curl-bin");
+  mkdirSync(bin, { recursive: true });
+  const curl = join(bin, "curl");
+  writeFileSync(
+    curl,
+    ["#!/usr/bin/env bash", "set -u", `printf '%s\n' "$*" >> "$FAKE_CURL_ARGS"`, `printf '200'`, ""].join("\n"),
+  );
+  chmodSync(curl, 0o755);
+  return bin;
+}
+
+describe("propagate.yml — 밀기 job 의 실패 알림 토막", () => {
+  let tmp: string;
+  beforeEach(() => {
+    tmp = mkdtempSync(join(tmpdir(), "notify-block-"));
+  }, 30_000);
+
+  function runNotifyBlock(meta: Record<string, string> | null, env: Record<string, string> = {}) {
+    const out = join(tmp, "propagate-out");
+    rmSync(out, { recursive: true, force: true });
+    mkdirSync(out, { recursive: true });
+    if (meta) writeFileSync(join(out, "meta.json"), JSON.stringify(meta, null, 2) + "\n");
+    const args = join(tmp, `curl-args-${Math.random().toString(36).slice(2)}.txt`);
+    writeFileSync(args, "");
+    const r = spawnSync("bash", ["-c", NOTIFY_FAILURE], {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: `${fakeCurl(tmp)}:${process.env.PATH}`,
+        FAKE_CURL_ARGS: args,
+        PROPAGATE_OUT: out,
+        APP_ID: "erp",
+        RUN_URL: "https://example.test/run/1",
+        PKG_SHA: "b404b4b1f44d0ffb8213fff771a0bec090ca6257",
+        PKG_SUBJECT: "feat: 보통 제목",
+        WEDLY_NOTIFY_URL: "https://erp.example.test",
+        WEDLY_NOTIFY_KEY: "시험용-가짜-열쇠",
+        ...env,
+      },
+    });
+    return { code: r.status, stdout: r.stdout, stderr: r.stderr, curlArgs: readFileSync(args, "utf8") };
+  }
+
+  it("준비 단계가 남긴 사유가 알림 줄에 실린다", () => {
+    const r = runNotifyBlock({
+      app: "erp",
+      result: "failed",
+      error: "후처리 실패: npm run design:check",
+    });
+    expect(r.code, r.stderr).toBe(0);
+    expect(r.curlArgs).toContain("사유: 후처리 실패: npm run design:check");
+    expect(r.curlArgs).toContain("정책매칭 공용 자동 반영 실패: erp");
+    expect(r.curlArgs).toContain("https://example.test/run/1");
+  }, 30_000);
+
+  it("산출물을 못 받았으면 그렇게 알린다 — 조용히 넘어가지 않는다", () => {
+    const r = runNotifyBlock(null);
+    expect(r.code, r.stderr).toBe(0);
+    expect(r.curlArgs).toContain("준비 단계 산출물을 받지 못했습니다");
+  }, 30_000);
+
+  it("커밋 제목에 명령을 숨겨도 글자로만 실린다 — 셸에서 실행되지 않는다", () => {
+    const canary = join(tmp, "카나리아.txt");
+    const r = runNotifyBlock(
+      { app: "erp", result: "failed", error: `사유에도 $(touch "${canary}") 숨겨 본다` },
+      { PKG_SUBJECT: `feat: $(touch "${canary}") 제목` },
+    );
+    expect(r.code, r.stderr).toBe(0);
+    expect(existsSync(canary), "커밋 제목·사유 안의 명령이 실행됐습니다").toBe(false);
+    expect(r.curlArgs).toContain("touch");
   }, 30_000);
 });
