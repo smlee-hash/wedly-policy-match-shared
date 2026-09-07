@@ -75,6 +75,11 @@ export type PolicyMatchFeatures = {
   parseError?: (res: Response, body: unknown) => string;
   /** ERP 화면 오른쪽 아래 잠금 단추 여백(`pr-14`). 기본 "" */
   sourcesTrailingPaddingClass?: string;
+  /**
+   * 상세를 열면 서버가 AI 구조화를 시작하는 앱(ERP)이면 true(기본). 저장된 구조만 주는 앱(랩)은
+   * false — 「읽는 중」 폴링·안내를 하지 않되 AI 판정 단추는 endpoints.verdict 로 따로 결정한다.
+   */
+  serverStructurizes?: boolean;
 };
 
 /**

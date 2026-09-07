@@ -243,6 +243,39 @@ describe("④-감시선 — 통로 조건이 코드에서 사라지면 걸린다
     expect(src, "돌파구 구역이 통로 조건 없이 그려진다").toContain("endpoints.breakthrough && verdict &&");
     expect(src, "강사 문의 창에 저장 통로를 안 넘긴다").toContain("saveEndpoint={endpoints.askInstructor}");
   });
+
+  /**
+   * P4 랩 개편(2026-09-07) — 랩은 상세를 열어도 서버가 AI 구조화를 하지 않는다(저장본만 준다).
+   * 그런데 AI 판정 단추는 필요하다. `serverStructurizes:false` 는 「읽는 중」 폴링·안내만 끄고
+   * 판정 단추는 그대로 둬야 한다 — 이 시험은 배선(누가 무엇을 넘기는가)과 「판정 단추 조건이
+   * serverStructurizes 에 엮이지 않았다」를 소스 문자열로 잰다(jsdom 이 없어 그려서 못 잰다 — 위
+   * 머리주석). ①「읽는 중」 문구가 실제로 0건인지·기본값이 기존 문구 그대로인지는
+   * `detail-poll.test.ts` 의 `readingMessageFor` 시험이 순수 함수로 직접 잰다 — DetailPanel 은
+   * 그 함수를 아래에서 실제로 호출한다(껍데기 배선이면 이 시험이 깨진다).
+   */
+  it("PolicyMatchScreen → DetailPanel 로 serverStructurizes 가 실제로 배선된다 (기본 true·AI 판정 단추는 그대로 noServerAi 만 본다)", () => {
+    const screenSrc = 읽기("PolicyMatchScreen.tsx");
+    expect(screenSrc, "PolicyMatchScreen 이 serverStructurizes 를 DetailPanel 로 안 넘긴다 — 랩이 「읽는 중」을 못 끈다")
+      .toContain("serverStructurizes={features?.serverStructurizes ?? true}");
+    expect(screenSrc, "PolicyMatchScreen 이 DetailPanel 에 noServerAi 를 넘긴다 — 그러면 랩의 AI 판정 단추까지 숨는다")
+      .not.toContain("noServerAi=");
+
+    const detailSrc = 읽기("DetailPanel.tsx");
+    expect(detailSrc, "DetailPanel 이 serverStructurizes prop 을 안 받는다").toContain("serverStructurizes?: boolean;");
+    // 껍데기 배선이 아니라 실제로 두 자리(폴링 판단·읽는-중 문구)에서 이 값을 쓴다.
+    expect(detailSrc, "폴링 판단(reading)이 serverStructurizes 를 안 쓴다")
+      .toContain("serverKeepsStructurizing({ noServerAi, serverStructurizes })");
+    expect(detailSrc, "읽는-중 문구가 serverStructurizes 를 안 쓴다")
+      .toContain("readingMessageFor({ noServerAi, serverStructurizes, readWaitedOut })");
+    // ★AI 판정·돌파구 단추 조건은 그대로 noServerAi 만 본다 — serverStructurizes 에 엮이면
+    //   verdict 통로가 있는 랩에서도 단추가 숨는 회귀가 생긴다.
+    expect(detailSrc, "AI 판정 단추 조건이 serverStructurizes 를 보게 바뀌었다")
+      .toContain("{item && !noServerAi && endpoints.verdict && (");
+    expect(detailSrc, "돌파구 단추 조건이 serverStructurizes 를 보게 바뀌었다")
+      .toContain("{item && !noServerAi && endpoints.breakthrough && verdict &&");
+    // endpoints.announcement 호출은 여전히 noServerAi 만 본다 — serverStructurizes 로 바뀌지 않았다.
+    expect(detailSrc, "announcement 조회의 noAi 인자가 바뀌었다").toContain("{ noAi: noServerAi }");
+  });
 });
 
 // ── ⑤ raw Tailwind 색 0건 — 다섯 부품을 그려서 잰다 ─────────────────────────

@@ -43,7 +43,7 @@ ERP `/policy-match` 화면(조립기 `PolicyMatchScreen` + 조각 넷 + `Modal`)
 |---|---|---|
 | `endpoints` | 부를 통로 주소 10개 | **그 단추·칸을 아예 안 그린다**(`verdict`·`breakthrough`·`askInstructor`·`sync`·`prefill`) |
 | `slots` | 앱만 아는 조각(`verdictFeedback`·`sourcesActions`·`sourcesHeader`) | 아무것도 안 그린다 |
-| `features` | 앱이 대신 하는 일(`exportSources`·`parseError`·`sourcesTrailingPaddingClass`) | ERP 규약·엑셀 단추 없음·여백 0 |
+| `features` | 앱이 대신 하는 일(`exportSources`·`parseError`·`sourcesTrailingPaddingClass`·`serverStructurizes`) | ERP 규약·엑셀 단추 없음·여백 0·true(서버가 상세를 열면 AI 구조화, 저장본만 주는 랩은 false로 「읽는 중」 폴링·안내를 끈다 — AI 판정 단추는 `endpoints.verdict` 로 따로 결정) |
 
 ```tsx
 import PolicyMatchScreen from "@wedly/policy-match-shared/ui/policy/PolicyMatchScreen";

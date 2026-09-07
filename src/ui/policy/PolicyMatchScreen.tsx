@@ -570,6 +570,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
               profileNonce={profileNonce}
               item={selectedItem}
               hasDiagnosis={diagnosis !== null}
+              serverStructurizes={features?.serverStructurizes ?? true}
             />
           </div>
         </div>

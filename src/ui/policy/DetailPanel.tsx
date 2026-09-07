@@ -43,7 +43,7 @@ import {
   type BreakthroughItem,
 } from "../../ai/breakthrough";
 import { buildInstructorQuestion } from "./ask-instructor-text";
-import { nextPollAction, type PollAction } from "./detail-poll";
+import { nextPollAction, readingMessageFor, serverKeepsStructurizing, type PollAction } from "./detail-poll";
 import type { PolicyMatchEndpoints, PolicyMatchFeatures, VerdictFeedbackContext } from "./endpoints";
 import type { DiagnoseItem, GradeKey, ListMode } from "./PolicyMatchScreen";
 import {
@@ -127,9 +127,7 @@ const INCOMPLETE_STATUS = new Set(["needs_review", "failed", "pending"]);
  * **「읽는 중」**이 사실이다 — AI 요약 탭과 같은 말로 통일한다(2026-08-22 독립 화면 검사 2번).
  */
 const READING_STATUS = new Set(["pending", "working"]);
-const READING_MESSAGE = "공고 읽는 중 — 잠시 후 제공됩니다";
-/** 다 기다려도 안 끝났을 때. 「잠시 후」라고만 두면 화면이 영영 안 바뀌어 거짓말이 된다. */
-const READING_TIMEOUT_MESSAGE = "공고 읽는 중 — 잠시 뒤 다시 열어 보세요";
+// READING_MESSAGE·READING_TIMEOUT_MESSAGE 는 detail-poll.ts 로 옮겼다(readingMessageFor 가 문구까지 정한다).
 /** 아직 읽는 중이면 이 간격으로 이만큼만 다시 물어본다(약 30초). */
 const READ_RETRY_GAP_MS = 5_000;
 const READ_RETRY_MAX = 6;
@@ -567,6 +565,12 @@ interface Props {
   hasDiagnosis: boolean;
   /** 서버 첫 열람 구조화(유료)까지 끄고 저장본만 받는다 — 상세창 추천 레일 전용(AI 0원). */
   noServerAi?: boolean;
+  /**
+   * 상세를 열면 서버가 이 공고를 계속 구조화하는가 — 기본 true(ERP·일루아). false(랩)면 상태가
+   * `pending`이어도 「읽는 중」으로 다시 묻지 않고 「아직 요약이 준비되지 않았습니다」로 안내한다.
+   * **AI 판정·돌파구 단추는 이 값과 무관하다** — noServerAi·endpoints.verdict 로만 정해진다.
+   */
+  serverStructurizes?: boolean;
   /** item 없는 「매칭 결과」 빈 상태 문구 — 진단 버튼이 없는 화면(레일)은 실행 가능한 안내로 바꾼다. */
   browseEmptyNote?: string;
 }
@@ -589,7 +593,7 @@ function blockedSummary(checklist: { condition: string; status: string; note?: s
 
 export default function DetailPanel({
   endpoints, parseError, verdictFeedback,
-  announcementId, mode, profile, profileNonce, item, hasDiagnosis, noServerAi, browseEmptyNote,
+  announcementId, mode, profile, profileNonce, item, hasDiagnosis, noServerAi, serverStructurizes, browseEmptyNote,
 }: Props) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -675,9 +679,10 @@ export default function DetailPanel({
           gotOnce = true;
           setDetail(d);
           setError("");
-          // noServerAi 통로는 서버가 AI 를 안 부르므로 「읽는 중」 상태가 이 자리에서 변할 수 없다
-          // — 재조회는 전부 헛통신이라 돌리지 않는다(독립 검사 2026-08-30: 카드 1클릭에 조회 7회).
-          const reading = !noServerAi && READING_STATUS.has(d.structureStatus);
+          // noServerAi·serverStructurizes:false 통로는 서버가 이 공고를 다시 구조화할 일이 없으므로
+          // 「읽는 중」 상태가 이 자리에서 변할 수 없다 — 재조회는 전부 헛통신이라 돌리지 않는다
+          // (독립 검사 2026-08-30: 카드 1클릭에 조회 7회. 2026-09-07 랩 개편으로 serverStructurizes 추가).
+          const reading = serverKeepsStructurizing({ noServerAi, serverStructurizes }) && READING_STATUS.has(d.structureStatus);
           apply(nextPollAction({ ok, reading, gotOnce, retriesLeft: left }), "");
         } else {
           apply(
@@ -843,10 +848,9 @@ export default function DetailPanel({
   const match = matchAnnouncement(structure, profile);
   // 아직 읽는 중인 공고의 「읽지 못했습니다」 줄은 사람이 확인할 조건이 아니다 — 안내로 갈음한다.
   const reading = READING_STATUS.has(detail.structureStatus);
-  // noServerAi 통로에선 이 화면이 AI 읽기를 시작시키지 않는다 — 「잠시 후 제공됩니다」는 거짓이 된다.
-  const readingMessage = noServerAi
-    ? "AI 요약을 아직 만들지 않은 공고입니다 — 원공고 탭에서 원문을 확인하세요"
-    : readWaitedOut ? READING_TIMEOUT_MESSAGE : READING_MESSAGE;
+  // noServerAi·serverStructurizes:false 통로에선 이 화면이 AI 읽기를 시작시키지(계속하지) 않는다
+  // — 「잠시 후 제공됩니다」는 거짓이 된다. 판단·문구는 detail-poll 의 순수 함수 하나로 통일한다.
+  const readingMessage = readingMessageFor({ noServerAi, serverStructurizes, readWaitedOut });
   const humanCheck = reading
     ? match.humanCheck.filter((h) => h !== UNREADABLE_STRUCTURE_NOTE)
     : match.humanCheck;
