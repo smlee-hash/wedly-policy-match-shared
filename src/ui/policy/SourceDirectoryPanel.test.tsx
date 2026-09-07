@@ -173,3 +173,63 @@ describe("화면·파일 비고가 갈리지 않는다 (2026-09-01 독립 검사
     expect(html).not.toMatch(/상한 도달<\/span>/);
   });
 });
+
+import SourceDirectoryPanel from "./SourceDirectoryPanel";
+
+/**
+ * 접힘·펼침 기본값 — 랩(`wedly-policy-lab`)의 `/sources` 전용 화면은 이 판 하나가 곧 화면이라
+ * 접혀 있으면 **머리줄만 보이고 요약 카드·「빠진 수집원 신고」 단추가 통째로 안 보였다**
+ * (2026-09-07 실측 결함 · 승인 시안은 펼친 표). ERP 는 다른 것들 아래 붙는 한 구역이라
+ * 접힘이 맞다 — 그래서 **기본값은 그대로 접힘**이고, 펼침은 랩이 인자로 켠다.
+ *
+ * ★못 재는 것(솔직히): 이 저장소엔 jsdom 이 없어 `renderToStaticMarkup` 한 번뿐이라
+ *  손잡이(useEffect)가 돌지 않는다 → 수집원 현황을 **받아오기 전** 모습만 잰다.
+ *  그래서 요약 카드(header)는 여기서 안 그려지는 것이 정상이다(아래 ② 참고).
+ */
+describe("수집원 현황 판 — 접힘·펼침 기본값", () => {
+  const panel = (over: { defaultOpen?: boolean } = {}) =>
+    renderToStaticMarkup(
+      <SourceDirectoryPanel
+        endpoint="/api/policy-match/sources"
+        onExport={async () => {}}
+        actions={<button type="button">빠진 수집원 신고</button>}
+        header={() => <div>요약 카드 넷</div>}
+        {...over}
+      />,
+    );
+
+  it("① 인자를 안 주면 접힌 채로 시작한다 — ERP 동작 그대로", () => {
+    const html = panel();
+    expect(html, "접혀도 머리줄은 보인다").toContain("수집원 현황");
+    // 펼침 표식(ChevronDown)이 아니라 접힘 표식(ChevronRight)
+    expect(html).toContain("lucide-chevron-right");
+    expect(html).not.toContain("lucide-chevron-down");
+    // 몸통이 통째로 없다 — 표도, 단추 줄도
+    expect(html).not.toContain("<table");
+    expect(html).not.toContain("엑셀 내려받기");
+    expect(html).not.toContain("빠진 수집원 신고");
+  });
+
+  it("② defaultOpen 이면 첫 그림부터 펼쳐져 표 머리줄·신고 단추·엑셀 단추가 보인다", () => {
+    const html = panel({ defaultOpen: true });
+    // ①과 정반대 — 두 시험이 서로의 대조군이라 표식이 안 갈리면 둘 중 하나가 깨진다.
+    expect(html).toContain("lucide-chevron-down");
+    expect(html).not.toContain("lucide-chevron-right");
+    expect(html).toContain("<table");
+    expect(html, "표 머리줄이 그려진다").toContain("보유 공고");
+    expect(html, "랩의 「빠진 수집원 신고」가 첫 그림부터 보인다").toContain("빠진 수집원 신고");
+    expect(html).toContain("엑셀 내려받기");
+    /**
+     * ★요약 카드(header)는 **현황을 받아 온 뒤에만** 그린다(`header && summary`).
+     * 첫 그림은 받아오기 전이라 아직 없다 — 이게 실제 동작이고, 사람 화면에서는
+     * 펼쳐진 덕분에 손잡이가 돌아 곧 채워진다(접혀 있으면 아예 안 부른다).
+     */
+    expect(html).not.toContain("요약 카드 넷");
+  });
+
+  it("③ 펼쳐도 raw Tailwind 색이 없다(WEDLY 토큰만)", () => {
+    const html = panel({ defaultOpen: true });
+    expect(html.length, "그린 것이 없으면 이 시험은 아무것도 못 잡는다").toBeGreaterThan(80);
+    expect(html).not.toMatch(/(bg|text|border)-(red|green|amber|blue|gray|yellow)-[0-9]{2,3}/);
+  });
+});

@@ -55,6 +55,8 @@ import { ERP_POLICY_MATCH_ENDPOINTS } from "@wedly/policy-match-shared/ui/policy
 />
 ```
 
+`SourceDirectoryPanel` 을 **낱개로 쓰는 화면**(랩 `/sources`)은 `defaultOpen` 을 켠다 — 기본은 접힘(ERP `/policy-match` 동작 그대로)이라, 안 켜면 머리줄만 보이고 요약 카드(`header`)·「빠진 수집원 신고」(`actions`)가 통째로 안 보인다(2026-09-07 실측 결함).
+
 **이 여섯 부품은 `./ui`(배럴)에 넣지 않았다** — "use client" 부품을 통째로 끌고 오기 때문이다. 낱개 주소로 부른다.
 
 `PolicyMatchScreen` 은 **기본 내보내기**다(위 예제). 이름으로 쓰고 싶으면 배럴(`…/ui/policy`)이나 같은 파일의 이름 내보내기(`import { PolicyMatchScreen } from "…/ui/policy/PolicyMatchScreen"`) 둘 다 된다 — 셋이 같은 부품을 가리킨다. **README 의 가져오기 예제가 실물과 맞는지는 `src/readme-imports.test.ts` 가 실제로 불러서 잰다**(예제를 고칠 땐 그 시험도 함께 돌린다).

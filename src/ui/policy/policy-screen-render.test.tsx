@@ -302,6 +302,15 @@ describe("⑤ 그려 낸 HTML 에 raw Tailwind 색이 하나도 없다(WEDLY 토
     ["SourceDirectoryPanel(접힘)", renderToStaticMarkup(
       <SourceDirectoryPanel endpoint="/api/policy-match/sources" onExport={async () => {}} trailingPaddingClass="pr-14" />,
     )],
+    // 랩의 `/sources` 전용 화면 모습 — `defaultOpen` 으로 첫 그림부터 펼친다(접힘만 재면 몸통 색을 못 잰다).
+    ["SourceDirectoryPanel(펼침·defaultOpen)", renderToStaticMarkup(
+      <SourceDirectoryPanel
+        endpoint="/api/policy-match/sources"
+        defaultOpen
+        onExport={async () => {}}
+        actions={<button type="button">빠진 수집원 신고</button>}
+      />,
+    )],
     ["SourceDirectoryTable", renderToStaticMarkup(
       <SourceDirectoryTable entries={[
         directoryRow(),

@@ -139,12 +139,20 @@ interface PanelProps {
    * 단추의 모서리를 덮어 엉뚱한 것이 눌리던 자리다(2026-09-01 독립 검사 실측).
    */
   trailingPaddingClass?: string;
+  /**
+   * 첫 그림부터 펼쳐 둘지. **기본은 접힘**(ERP `/policy-match` 는 이 판이 화면 맨 아래
+   * 한 구역이라 접혀 있는 편이 맞다 — 동작 그대로).
+   * 랩(`wedly-policy-lab`)의 `/sources` 는 이 판 하나가 곧 화면이라, 접혀 있으면
+   * 머리줄만 보이고 **요약 카드·「빠진 수집원 신고」 단추가 통째로 안 보였다**
+   * (2026-09-07 실측 결함 · 승인 시안은 펼친 표). 접혀 있으면 현황을 받아오지도 않는다.
+   */
+  defaultOpen?: boolean;
 }
 
 export default function SourceDirectoryPanel({
-  endpoint, onExport, actions, header, trailingPaddingClass = "",
+  endpoint, onExport, actions, header, trailingPaddingClass = "", defaultOpen = false,
 }: PanelProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [rows, setRows] = useState<DirectoryRow[]>([]);
   const [summary, setSummary] = useState<SourcesSummary | null>(null);
   const [error, setError] = useState("");
