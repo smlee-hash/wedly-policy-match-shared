@@ -26,7 +26,8 @@
 
 **총괄 결정**
 1. **트리거는 `workflow_run`(CI 성공, main)** 이다. ci.yml 안에 job 을 붙이지 않는다 — CI 는 모든 가지에서 돌고, 반영은 main 에서만 돌아야 하며, 시크릿은 기본 브랜치 문맥에서만 안전하게 읽힌다.
-2. **핀 갱신은 앱별로 다르다**: 일루아·랩 = `npm pkg set` + `npm install --package-lock-only --ignore-scripts`; ERP = 그 뒤 `npm ci --ignore-scripts` + `node scripts/design-system/cli.mjs generate` + `node scripts/design-system/cli.mjs check`(자기 검증). 커밋 대상은 `package.json`·`package-lock.json`(+ERP `src/lib/design-system/registry.generated.json`) 뿐이다. 그 외 파일이 바뀌면 실패(무엇이 바뀌었는지 출력).
+2. **핀 갱신은 앱별로 다르다**: 일루아·랩 = `npm pkg set` + `npm install --package-lock-only`; ERP = 그 뒤 `npm ci --ignore-scripts` + `node scripts/design-system/cli.mjs generate` + **`npm run design:check`**(자기 검증 — Railway 빌드 첫 단계와 **같은 명령**. 2026-09-08 총괄 결정: 초안은 `cli.mjs check` 만 불렀는데 ERP `design:check` 는 `debt.mjs check` 까지 돌리므로 봇도 똑같이 돌려 「봇 초록·Railway 빨강」을 없앤다). 커밋 대상은 `package.json`·`package-lock.json`(+ERP `src/lib/design-system/registry.generated.json`) 뿐이다. 그 외 파일이 바뀌면 실패(무엇이 바뀌었는지 출력).
+   - 같은 날 결정: `resolve` 단계가 실패하면(main 에 없는 SHA·형식 오류) 슬랙 알림은 가지 않고 GitHub 실패 메일만 남는다 — 사람이 dispatch 를 잘못 부른 경우뿐이라 그대로 둔다.
 3. **순서 보호**: 새 SHA 가 현재 핀의 **후손이 아니면**(이미 더 새 핀이거나 갈래가 다르면) 그 앱은 「건너뜀」으로 끝낸다(실패 아님). 같은 SHA 면 「이미 반영」으로 건너뛴다. 이러면 workflow_run 이 순서를 어겨 와도 핀이 뒤로 가지 않는다.
 4. **푸시 경합**: `git push` 거부 시 `git fetch` + `git rebase origin/main` 뒤 재시도, 최대 3회. rebase 충돌(사람이 같은 순간 핀을 손으로 바꾼 경우)은 즉시 실패.
 5. **실패 알림**은 F8 통로 재사용. 패키지 저장소 시크릿 `WEDLY_NOTIFY_KEY`(=ERP POLICY_LAB_INTERNAL_KEY 값)·변수 `WEDLY_NOTIFY_URL`(ERP 주소). 알림 자체가 실패해도 워크플로우는 이미 빨간색이고 GitHub 가 실패 메일을 보낸다 — 알림 실패로 되풀이 실패를 만들지 않는다.
