@@ -96,9 +96,12 @@ export interface FundingMapLoaders {
 
 ## 4. 핀 올리는 법 — **두 앱을 같은 회차에 함께**
 
+> **평소에는 이 절을 볼 일이 없다 — 봇이 대신 한다(§5).** 아래 손 절차는 봇을 껐을 때·봇이 실패해
+> 사람이 맞춰야 할 때를 위한 것이다. 봇이 켜져 있는 동안 손으로 핀을 올리면 봇의 푸시와 부딪친다.
+
 이 보관함을 고쳤으면 **ERP 와 일루아의 핀을 같은 커밋으로 함께 올린다.** 한쪽만 올리면 그 순간부터 두 앱의 판정이 갈린다.
 
-1. 이 저장소에서 고치고 `main` 에 push → CI(§5) 초록 확인
+1. 이 저장소에서 고치고 `main` 에 push → CI(§6) 초록 확인
 2. 올릴 커밋 해시를 딴다: `git rev-parse HEAD`
 3. **두 앱 모두** `package.json` 의 의존을 같은 해시로 바꾼다
 
@@ -111,7 +114,75 @@ export interface FundingMapLoaders {
 
 **핀 어긋남 관문**(`~/.claude/hooks/shared-pin-guard.sh`)이 두 앱 `package.json` 의 핀이 다르면 답변을 끝낼 수 없게 막는다. 메모리에 기대지 않고 훅으로 지킨다.
 
-## 5. 시험과 CI
+## 5. 자동 반영 봇 — 핀은 사람이 아니라 봇이 올린다
+
+§4 를 **사람이 손으로 하지 않아도 되게** 만든 것이 이 절이다. 설계서 §6 D1·D2, 계획서
+`docs/superpowers/plans/2026-09-07-p5-propagate-bot.md`.
+
+**언제 도나.** 이 저장소 `main` 에 커밋이 올라가 CI(§6)가 초록이 되면, GitHub Actions 의
+`Propagate` 워크플로우(`.github/workflows/propagate.yml`)가 앱 3곳의 핀을 그 커밋으로 올려
+**커밋·푸시**한다. Railway 가 그 push 를 보고 3앱을 배포한다. 다른 가지의 CI 나 실패한 CI 로는 돌지 않는다.
+
+| 앱 | 저장소 | 봇이 고치는 것 |
+|---|---|---|
+| ERP | `wedly-erp` | `package.json`·`package-lock.json` + `npm ci` 뒤 설계 등록부 `src/lib/design-system/registry.generated.json` 재생성 |
+| 일루아 | `wedly-illua-collab` | `package.json`·`package-lock.json` |
+| 랩 | `wedly-policy-lab` | `package.json`·`package-lock.json` |
+
+봇 커밋은 이렇게 생겼다 — **저자가 `WEDLY 정책매칭 봇 <policy-bot@wedly.kr>` 이면 봇이 만든 것이다.**
+
+```
+chore(정책매칭 공용): 핀 b404b4b — <이 저장소의 커밋 제목>
+```
+
+**봇이 하지 않는 일**(사고를 막는 네 가지 · `src/propagate/propagate.test.ts` 가 실제로 잰다)
+
+- **핀이 뒤로 가지 않는다.** 새 커밋이 지금 핀의 후손이 아니면(늦게 도착한 옛 반영·다른 갈래) 그 앱은 건너뛴다. 실패가 아니라 「건너뜀」이다.
+- **위 표의 파일 말고 다른 것이 바뀌면 멈춘다.** 무엇이 바뀌었는지 로그에 적고 아무것도 밀지 않는다.
+- **사람 커밋을 덮어쓰지 않는다.** 같은 순간에 사람이 밀어 푸시가 거부되면 `origin/main` 위로 다시 얹어 최대 3번 다시 민다. 충돌하면 멈추고 사람을 부른다.
+- **실패를 조용히 넘기지 않는다.** 실패하면 슬랙(ERP 내부 알림 통로)으로 알린다. 그때 그 앱의 `main` 은 **옛 핀 그대로**다 — 반쯤 반영된 상태가 남지 않는다.
+
+**끄기 · 켜기** — 저장소 변수 하나다. 변수가 **아예 없으면 켜진 것**이고, `false` 일 때만 꺼진다.
+
+```bash
+gh variable set PROPAGATE_ENABLED -b false -R smlee-hash/wedly-policy-match-shared   # 끄기
+gh variable set PROPAGATE_ENABLED -b true  -R smlee-hash/wedly-policy-match-shared   # 다시 켜기
+```
+
+**예행연습(푸시 없이 보기)** — 손으로 돌리면 예행이 기본이다. 커밋까지 만들어 보고 **밀지는 않는다.**
+
+```bash
+gh workflow run Propagate -R smlee-hash/wedly-policy-match-shared -f dry_run=true
+gh run watch -R smlee-hash/wedly-policy-match-shared            # 로그에 result=dry-run 과 바뀐 줄이 보인다
+gh workflow run Propagate -R … -f dry_run=true -f sha=<40자리>  # 특정 커밋으로 해 보기
+```
+
+**되돌리기 — 앱이 아니라 여기서 되돌린다.**
+
+1. 이 저장소에서 `git revert <되돌릴 커밋>` → `main` 에 push
+2. CI 초록 → 봇이 3앱 핀을 **되돌린 커밋**으로 다시 올린다
+
+앱 저장소에서 봇 커밋을 revert 하지 마라. 그러면 앱 핀만 옛 커밋으로 돌아가고 이 저장소는 그대로라,
+다음 반영 때 「후손이 아님」으로 건너뛰어 그 앱만 조용히 뒤처진다. 급할 때는 `PROPAGATE_ENABLED=false`
+로 끄고 §4 대로 손으로 맞춘 뒤, 정리되면 다시 켠다.
+
+**★봇 커밋을 손으로 고치지 마라.** rebase·amend·강제 푸시로 봇 커밋을 바꾸면 앱의 핀과 이 저장소의
+이력이 어긋나 위 「후손」 판정이 무너진다. 고칠 것이 있으면 **이 저장소에 새 커밋**을 올린다.
+
+**열쇠(PAT)와 알림 설정** — 값은 채팅·문서·커밋 어디에도 적지 않는다.
+
+| 이름 | 무엇 | 없으면 |
+|---|---|---|
+| 시크릿 `PROPAGATE_TOKEN` | 세밀 권한 PAT(`wedly-policy-propagate-bot`) · 앱 3저장소 Contents: Read and write · 만료 1년 | 봇이 클론부터 실패한다 |
+| 시크릿 `WEDLY_NOTIFY_KEY` | ERP 내부 알림 열쇠(= ERP `POLICY_LAB_INTERNAL_KEY`) | 알림만 건너뛴다(봇은 정상) |
+| 변수 `WEDLY_NOTIFY_URL` | ERP 주소 | 알림만 건너뛴다 |
+| 변수 `PROPAGATE_ENABLED` | 끄는 스위치 | 켜진 것으로 본다 |
+
+**PAT 만료 = 봇 정지.** 만료되면 3앱 모두 클론에서 인증 실패로 죽고 슬랙 알림이 온다.
+만료일은 **발급일 + 1년**이며, 재발급 절차는 메모 `github-token-rotation-via-aside` 에 있다.
+발급한 뒤 이 자리에 **실제 만료일을 적어 둔다**(2026-09-08 현재 아직 발급 전 — 첫 가동 순서는 계획서 Task 6).
+
+## 6. 시험과 CI
 
 - `npm test` — `src/**/*.test.ts(x)` 전량(vitest, 환경 `node`)
 - `npm run typecheck` — `tsc --noEmit`, **검사 범위는 `src` 전체**(`src/**/*.ts`, `src/**/*.tsx`)
@@ -121,7 +192,7 @@ export interface FundingMapLoaders {
 
 ★화면 시험은 브라우저 흉내(jsdom)가 아니라 `react-dom/server` 의 `renderToStaticMarkup` 으로 **그려서 잰다.** ERP 와 같은 방식이다(ERP 에 jsdom·@testing-library/react·@vitejs/plugin-react 가 없다 — 2026-09-04 실측).
 
-## 6. 하지 않는 것
+## 7. 하지 않는 것
 
 - `@wedly/ui-shared`·`@wedly/detail-modal-shared` 포크 통합 — 별건(§2-c)
 - 정책매칭 화면 본체(`/policy-match`)를 일루아에 만들기 — 상세창 탭만
