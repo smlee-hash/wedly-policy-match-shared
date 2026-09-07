@@ -31,8 +31,10 @@ const BOT_TEST_FILES = [
   "notify.test.ts",
   "pack-excludes.test.ts",
   "propagate.test.ts",
+  "verify-artifact.test.ts",
   "verify-lock.test.ts",
   "watch-deploy.test.ts",
+  "workflow.test.ts",
 ];
 
 function packedPaths(): string[] {
