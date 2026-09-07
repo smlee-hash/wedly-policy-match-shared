@@ -10,8 +10,14 @@
 # 시크릿:
 #   `PROPAGATE_READ_TOKEN` — 앱 3저장소 **읽기 전용** PAT. 클론에만 쓴다.
 #   `PROPAGATE_TOKEN`      — 앱 3저장소 contents:write PAT. **밀기에만** 쓴다.
-#   `WEDLY_NOTIFY_KEY`     — ERP 내부 알림 열쇠
+#   `WEDLY_NOTIFY_KEY`     — ERP 내부 알림 열쇠. **밀기 job 에만** 준다(아래 ★알림 지점).
 # 변수:  `PROPAGATE_ENABLED` · `WEDLY_NOTIFY_URL`(ERP 주소)
+#
+# ★알림 지점은 밀기 job 한 곳뿐이다(2026-09-08 2차 리뷰 F1·F7):
+#   준비 job 의 실행기는 **앱 코드가 이미 한 번 돈 자리**라 거기서 알림 열쇠를 쓰면
+#   변조된 `notify.sh` 하나로 열쇠가 샌다. 그래서 준비 job 에는 클론 step 의 읽기 토큰 말고
+#   어떤 시크릿도 없고, 준비가 죽으면 사유를 산출물 `meta.json{result:"failed"}` 에 담아 보낸다.
+#   밀기 스크립트가 그것을 읽어 빨갛게 끝내고, 이 job 의 `failure()` 알림이 그 사유까지 알린다.
 #
 # ★job 이 둘인 이유 — 토큰과 앱 코드를 같은 자리에 두지 않는다(2026-09-08 리뷰 R2):
 #   `prepare` 는 **읽기 전용 토큰으로 클론만** 하고, 그 뒤 토큰 없는 단계에서 npm·앱 후처리를 돌려
@@ -171,34 +177,18 @@ jobs:
           PROPAGATE_PACKAGE_DIR: ${{ github.workspace }}
         run: bash scripts/propagate/propagate.sh prepare
 
-      # 건너뛴 경우에도 meta.json 하나는 올라간다 — 밀기 job 이 그 이유를 그대로 이어받는다.
+      # ★`always()` 인 이유(2차 리뷰 F1): 준비가 **실패했을 때도** 산출물을 올려야 한다.
+      #  스크립트가 어떤 실패에서도 `meta.json {result:"failed", error:"한 줄 사유"}` 를 남기고(lib.sh 의
+      #  EXIT 갈고리), 밀기 job 이 그 사유를 읽어 빨갛게 끝내며 **알림도 거기서 한 번만** 보낸다.
+      #  건너뛴 경우(같은 핀·후손 아님)에도 meta.json 하나는 이렇게 올라간다.
       - name: 산출물 올리기 (${{ matrix.app }})
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: propagate-${{ matrix.app }}
           path: ${{ github.workspace }}/propagate-out
           if-no-files-found: error
           retention-days: 3
-
-      # `|| true` 인 이유(리뷰 R4): 이 job 은 이미 빨갛다. 알림까지 실패해도 더 빨개질 것이 없고,
-      # GitHub 는 이미 실패 메일을 보낸다.
-      - name: 실패 알림
-        if: failure()
-        shell: bash
-        env:
-          WEDLY_NOTIFY_URL: ${{ vars.WEDLY_NOTIFY_URL }}
-          WEDLY_NOTIFY_KEY: ${{ secrets.WEDLY_NOTIFY_KEY }}
-          APP_ID: ${{ matrix.app }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          PKG_SHA: ${{ needs.resolve.outputs.sha }}
-          PKG_SUBJECT: ${{ needs.resolve.outputs.subject }}
-        run: |
-          bash scripts/propagate/notify.sh \
-            "정책매칭 공용 자동 반영 실패(준비 단계): $APP_ID" \
-            "$RUN_URL" \
-            "패키지 커밋 $PKG_SHA" \
-            "$PKG_SUBJECT" \
-            "앱 저장소 main 은 바뀌지 않았습니다(옛 핀 그대로). 실행 로그를 보고 사람이 핀을 맞추거나 다시 돌리세요." || true
 
   # 3단계: 준비된 파일을 받아 **밀기만** 한다. 이 job 에서는 npm 도 앱 코드도 돌지 않는다.
   # ★`!cancelled()` 인 이유: `needs: prepare` 는 matrix 3갈래를 **한 덩어리**로 본다. 한 앱이 실패하면
@@ -248,9 +238,13 @@ jobs:
           PROPAGATE_DRY_RUN: ${{ needs.resolve.outputs.dry_run == 'true' && '1' || '0' }}
         run: bash scripts/propagate/propagate.sh push
 
-      # 산출물을 못 받은 경우(=준비 job 이 그 앱에서 이미 실패)는 알리지 않는다 — 준비 job 이 이미 알렸다.
+      # ★이 저장소의 **유일한 실패 알림 지점**이다(2차 리뷰 F1·F7).
+      #  준비 job 에는 알림이 없다 — 앱 코드가 이미 돈 실행기에서 알림 열쇠를 쓰면 변조된 `notify.sh`
+      #  하나로 열쇠가 새기 때문이다. 준비가 죽으면 그 사유가 산출물 `meta.json` 에 담겨 오고,
+      #  밀기 스크립트가 그것을 읽어 이 job 을 빨갛게 만든다 → 아래 `failure()` 가 그때도 돈다.
+      #  그래서 조건은 `failure()` 하나뿐이다(산출물을 받았는지 따지지 않는다 — 못 받은 것도 알려야 한다).
       - name: 실패 알림
-        if: failure() && steps.fetch.outcome == 'success'
+        if: failure()
         shell: bash
         env:
           WEDLY_NOTIFY_URL: ${{ vars.WEDLY_NOTIFY_URL }}
@@ -260,11 +254,23 @@ jobs:
           PKG_SHA: ${{ needs.resolve.outputs.sha }}
           PKG_SUBJECT: ${{ needs.resolve.outputs.subject }}
         run: |
+          # 사유는 **파일에서 읽어 인자로** 넘긴다 — 워크플로우 보간으로 넣으면 남이 적은 글자가 명령이 된다.
+          REASON="$(node -e '
+            const fs = require("node:fs");
+            try {
+              const meta = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+              const line = String(meta.error ?? "").replace(/\s+/g, " ").trim();
+              process.stdout.write(line ? "사유: " + line.slice(0, 400) : "사유: 밀기 단계에서 실패했습니다 — 위 로그를 보세요.");
+            } catch {
+              process.stdout.write("사유: 준비 단계 산출물을 받지 못했습니다 — 준비 job 로그를 보세요.");
+            }
+          ' "$PROPAGATE_OUT/meta.json")"
           bash scripts/propagate/notify.sh \
-            "정책매칭 공용 자동 반영 실패(밀기 단계): $APP_ID" \
+            "정책매칭 공용 자동 반영 실패: $APP_ID" \
             "$RUN_URL" \
             "패키지 커밋 $PKG_SHA" \
             "$PKG_SUBJECT" \
+            "$REASON" \
             "앱 저장소 main 은 바뀌지 않았습니다(옛 핀 그대로). 실행 로그를 보고 사람이 핀을 맞추거나 다시 돌리세요." || true
 
       # ── 배포 확인 ───────────────────────────────────────────────────────────

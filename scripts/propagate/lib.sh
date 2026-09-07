@@ -30,16 +30,51 @@ BOT_EMAIL="policy-bot@wedly.kr"
 ASKPASS_FILE=""
 STDERR_FILE=""
 
-# shellcheck disable=SC2329  # 아래 `trap cleanup EXIT` 이 부른다 — shellcheck 는 trap 안을 못 본다
+# ── 실패도 산출물로 남긴다(2026-09-08 2차 리뷰 F1) ────────────────────────────
+# 옛 판에서는 준비 job 이 실패하면 **그 job 이 직접** 슬랙 알림을 보냈다. 그 자리는 앱 코드가
+# 이미 한 번 돈 실행기라 `notify.sh` 도, 그것이 읽는 열쇠도 앱 코드가 바꿔 놓을 수 있었다
+# (= 변조한 notify.sh 로 WEDLY_NOTIFY_KEY 를 빼돌리는 길). 그래서 준비 job 에서 알림을 **없앴다.**
+# 대신 준비 단계가 어떤 이유로 죽든 산출물 폴더에 `meta.json {result:"failed", error:"<한 줄 사유>"}`
+# 를 남기고, 밀기 job 이 그것을 읽어 빨갛게 끝내며 **알림은 밀기 job 한 곳에서만** 보낸다.
+FAIL_META_DIR=""   # 비어 있지 않으면 「0 이 아닌 종료 = meta.json(failed) 남기기」
+LAST_ERROR=""      # die·usage 가 남긴 사람이 읽을 사유(한 줄로 줄여 meta 에 넣는다)
+
+# meta.json 한 장을 쓴다. 인자: <파일> <result> [<error>]
+# 값은 전부 환경(APP_ID·BASE_SHA·CURRENT·SHA)에서 가져오되 아직 없는 값은 빈 문자열로 둔다 —
+# 실패는 어느 줄에서든 날 수 있어서, 「그때까지 알아낸 것」만 담긴다.
+write_meta_file() {
+  node -e '
+    const [file, app, result, error, baseSha, pinFrom, pinTo, subject] = process.argv.slice(1);
+    const meta = { app, result, baseSha, pinFrom, pinTo, subject };
+    // 여러 줄 사유는 한 줄로 접는다 — 알림 한 줄(500자)에 그대로 들어가야 한다.
+    if (result === "failed") meta.error = (error || "알 수 없는 오류").replace(/\s+/g, " ").trim().slice(0, 400);
+    require("fs").writeFileSync(file, JSON.stringify(meta, null, 2) + "\n");
+  ' "$1" "${APP_ID:-}" "$2" "${3:-}" "${BASE_SHA:-}" "${CURRENT:-}" "${SHA:-}" "${PROPAGATE_SUBJECT:-}"
+}
+
+# shellcheck disable=SC2329  # 아래 `trap on_exit EXIT` 이 부른다 — shellcheck 는 trap 안을 못 본다
 cleanup() {
   [ -z "$ASKPASS_FILE" ] || rm -f "$ASKPASS_FILE"
   [ -z "$STDERR_FILE" ] || rm -f "$STDERR_FILE"
   return 0
 }
-trap cleanup EXIT
 
-die() { echo "propagate: $*" >&2; exit 1; }
-usage() { echo "propagate: $*" >&2; exit 2; }
+# shellcheck disable=SC2329  # trap 이 부른다
+on_exit() {
+  local rc=$?
+  if [ "$rc" -ne 0 ] && [ -n "$FAIL_META_DIR" ]; then
+    mkdir -p "$FAIL_META_DIR" 2>/dev/null || true
+    write_meta_file "$FAIL_META_DIR/meta.json" failed \
+      "${LAST_ERROR:-알 수 없는 오류(종료 코드 ${rc}) — 준비 단계 실행 로그를 보세요}" 2>/dev/null || true
+  fi
+  cleanup
+  # `return` 은 종료 코드를 바꾸지 않는다(bash 3.2·5 실측) — 죽은 이유가 그대로 밖으로 나간다.
+  return 0
+}
+trap on_exit EXIT
+
+die() { LAST_ERROR="$*"; echo "propagate: $*" >&2; exit 1; }
+usage() { LAST_ERROR="$*"; echo "propagate: $*" >&2; exit 2; }
 
 # GITHUB_OUTPUT 이 없어도 반드시 0 으로 끝나야 한다 —
 # `[ -n "$X" ] && echo ...` 로 쓰면 변수가 없을 때 함수가 1 을 돌려주고 set -e 가 스크립트를 죽인다.
@@ -92,7 +127,9 @@ load_app() {
   [ "${#COMMIT_PATHS[@]}" -gt 0 ] || die "[$APP_ID] apps.json 의 commitPaths 가 비었습니다"
 }
 
-# 클론·푸시가 함께 쓰는 작업 폴더의 부모
+# 클론·푸시가 함께 쓰는 작업 폴더의 부모.
+# ★단계마다 **한 번만** 부르고 그 값을 `WORK_PARENT` 에 담아 쓴다 — 아무 설정도 없을 때 이 함수는
+#  `mktemp -d` 로 새 폴더를 만들므로, 두 번 부르면 클론과 산출물이 서로 다른 자리에 앉는다.
 work_parent() {
   local parent="${PROPAGATE_WORKDIR:-${RUNNER_TEMP:-}}"
   if [ -z "$parent" ]; then parent="$(mktemp -d)"; fi
@@ -103,7 +140,7 @@ work_parent() {
 # 산출물 폴더(prepare 가 담고 push 가 읽는다)
 out_dir() {
   if [ -n "${PROPAGATE_OUT:-}" ]; then printf '%s' "$PROPAGATE_OUT"; return 0; fi
-  printf '%s/out-%s' "$(work_parent)" "$APP_ID"
+  printf '%s/out-%s' "${WORK_PARENT:-$(work_parent)}" "$APP_ID"
 }
 
 # 토큰으로 클론할 준비 — 토큰을 **주소에 넣지 않는다.**

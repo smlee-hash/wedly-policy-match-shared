@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -299,6 +299,47 @@ else if (cmd === "check") {
   }
 } else process.exit(2);
 `,
+  );
+}
+
+/**
+ * 준비 단계를 거치지 않고 **산출물을 손으로 지어** 밀기 단계만 시험한다.
+ *
+ * ★왜 필요한가(2026-09-08 2차 리뷰의 위협 모델): 준비 job 에서 도는 앱 코드는 믿을 수 없다 —
+ *  실행기의 파일도 산출물도 마음대로 바꿀 수 있다. 그러니 밀기 단계는 산출물을 **믿을 수 없는 입력**
+ *  으로 다뤄야 한다. 그 판정을 재려면 「준비가 만들 리 없는 산출물」을 시험이 직접 지어야 한다.
+ */
+function writeArtifact(tmp: string, meta: Record<string, string>, files: Record<string, string>) {
+  const outDir = join(tmp, "artifact");
+  rmSync(outDir, { recursive: true, force: true });
+  mkdirSync(outDir, { recursive: true });
+  writeFileSync(join(outDir, "meta.json"), JSON.stringify(meta, null, 2) + "\n");
+  for (const [rel, body] of Object.entries(files)) {
+    mkdirSync(dirname(join(outDir, rel)), { recursive: true });
+    writeFileSync(join(outDir, rel), body);
+  }
+  return outDir;
+}
+
+/** `fakeApp` 이 심은 것과 같은 모양의 package.json — 핀만 다른 판 */
+function pkgJsonAt(name: string, sha: string) {
+  return JSON.stringify({ name, dependencies: { "@wedly/policy-match-shared": SPEC(sha) } }, null, 2) + "\n";
+}
+
+/** 가짜 npm 의 `install` 이 만드는 것과 같은 모양의 잠금 파일 */
+function lockJsonAt(sha: string, integrity = `sha512-${sha.slice(0, 8)}`) {
+  return (
+    JSON.stringify(
+      {
+        lockfileVersion: 3,
+        packages: {
+          "": { dependencies: { "@wedly/policy-match-shared": SPEC(sha) } },
+          "node_modules/@wedly/policy-match-shared": { resolved: RESOLVED(sha), integrity },
+        },
+      },
+      null,
+      2,
+    ) + "\n"
   );
 }
 
@@ -713,6 +754,54 @@ else if (cmd === "check") {
     expect(r.prepare?.code).toBe(1);
     expect(r.prepare?.stderr).toMatch(/잠금 파일 갱신/);
     expect(sh("git rev-parse main", app.bare)).toBe(before); // 실패하면 아무것도 밀지 않는다
+  }, 60_000);
+
+  // ── 2026-09-08 2차 리뷰 F1: 준비의 실패는 **산출물로** 전해지고, 알림은 밀기 job 에서만 간다 ──
+
+  it("준비가 죽으면 산출물에 사유가 담긴 meta.json(failed)이 남는다 — 준비 job 은 알림을 보내지 않는다", () => {
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const r = runPrepare(tmp, {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+      FAKE_NPM_FAIL: "install",
+    });
+    expect(r.prepare?.code).toBe(1);
+    const meta = JSON.parse(readFileSync(join(tmp, "artifact/meta.json"), "utf8")) as Record<string, string>;
+    expect(meta.app).toBe("lab");
+    expect(meta.result).toBe("failed");
+    expect(meta.error).toMatch(/잠금 파일 갱신/);
+    expect(meta.error).not.toContain("\n"); // 알림 한 줄에 그대로 들어가야 한다
+  }, 60_000);
+
+  it("클론이 죽어도 사유가 담긴 meta.json 이 남는다 — 밀기 job 이 그 사유로 알린다", () => {
+    const r = runStep(tmp, "clone", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: join(tmp, "없는-저장소.git"),
+    });
+    expect(r.code).toBe(1);
+    const meta = JSON.parse(readFileSync(join(tmp, "artifact/meta.json"), "utf8")) as Record<string, string>;
+    expect(meta.result).toBe("failed");
+    expect(meta.error).toMatch(/클론 실패/);
+  }, 60_000);
+
+  it("산출물이 failed 면 밀기는 1 로 끝나고 사유를 그대로 알린다 — 원격은 그대로", () => {
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const before = sh("git rev-parse main", app.bare);
+    writeArtifact(tmp, { app: "lab", result: "failed", error: "후처리 실패: npm run design:check" }, {});
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain("후처리 실패: npm run design:check");
+    expect(r.out).toContain("result=failed");
+    expect(sh("git rev-parse main", app.bare)).toBe(before);
   }, 60_000);
 
   it("커밋할 파일이 없으면(등록부 미생성) 1 로 끝나고 무엇이 없는지 알린다", () => {

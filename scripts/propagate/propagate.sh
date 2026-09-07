@@ -16,7 +16,10 @@
 # 종료 코드: 0 = 반영했거나 일부러 건너뜀 · 1 = 실패(사람이 봐야 함) · 2 = 입력 오류.
 # GITHUB_OUTPUT 이 있으면 단계마다 아래를 적는다:
 #   prepare → result=<prepared|skipped-same|skipped-not-descendant>
-#   push    → result=<updated|dry-run|skipped-same|skipped-not-descendant> (updated 면 commit=<sha> 도)
+#   push    → result=<updated|dry-run|skipped-same|skipped-not-descendant|failed> (updated 면 commit=<sha> 도)
+# ★clone·prepare 는 **어떤 이유로 죽든** 산출물 폴더에 meta.json{result:"failed", error:"한 줄 사유"} 를
+#   남긴다(lib.sh 의 EXIT 갈고리). 준비 job 에는 알림이 없고 — 앱 코드가 도는 자리에서 알림 열쇠를
+#   쓰지 않으려고 없앴다(2026-09-08 2차 리뷰 F1) — 밀기 job 이 그 사유를 읽어 빨갛게 끝낸다.
 #
 # 환경변수
 #   PROPAGATE_APP_ID      apps.json 의 id (erp|illua|lab)            [clone·prepare·push]
@@ -43,8 +46,12 @@ APP_ID="${PROPAGATE_APP_ID:-}"
 
 # ── clone ───────────────────────────────────────────────────────────────────
 run_clone() {
+  # 클론이 실패해도 준비 job 은 「사유가 담긴 meta.json」을 올린다(2차 리뷰 F1) —
+  # 알림은 밀기 job 한 곳에서만 보내므로, 그 job 이 읽을 것이 여기서부터 있어야 한다.
+  WORK_PARENT="$(work_parent)"
+  FAIL_META_DIR="$(out_dir)"
   load_app
-  WORK="$(work_parent)/$APP_ID"
+  WORK="$WORK_PARENT/$APP_ID"
   clone_app "$WORK"
   # 여기서부터 이 폴더는 앱 코드(npm·후처리)가 만지는 자리다 — 자격을 남기지 않는다.
   disarm_credentials "$WORK"
@@ -53,22 +60,19 @@ run_clone() {
 
 # ── prepare ─────────────────────────────────────────────────────────────────
 # 산출물 폴더에 meta.json 과 commitPaths 파일들을 담는다. 커밋·푸시는 하지 않는다.
-write_meta() {
-  node -e '
-    const [file, app, result, baseSha, pinFrom, pinTo, subject] = process.argv.slice(1);
-    require("fs").writeFileSync(file, JSON.stringify({ app, result, baseSha, pinFrom, pinTo, subject }, null, 2) + "\n");
-  ' "$OUT/meta.json" "$APP_ID" "$1" "$BASE_SHA" "$CURRENT" "$SHA" "${PROPAGATE_SUBJECT:-}"
-}
+write_meta() { write_meta_file "$OUT/meta.json" "$1"; }
 
 run_prepare() {
+  WORK_PARENT="$(work_parent)"
+  OUT="$(out_dir)"
+  FAIL_META_DIR="$OUT"
   SHA="${PROPAGATE_SHA:-}"
   [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || usage "PROPAGATE_SHA 는 40자리 SHA 여야 합니다 (받은 값: '${SHA}')"
   load_app
   [ -d "${PROPAGATE_PACKAGE_DIR:-}" ] || usage "PROPAGATE_PACKAGE_DIR(패키지 저장소 경로) 가 필요합니다"
 
-  WORK="$(work_parent)/$APP_ID"
+  WORK="$WORK_PARENT/$APP_ID"
   [ -d "$WORK/.git" ] || usage "[$APP_ID] 클론이 없습니다: ${WORK} — 먼저 'propagate.sh clone' 을 돌리세요"
-  OUT="$(out_dir)"
   rm -rf "$OUT"
   mkdir -p "$OUT"
   cd "$WORK"
@@ -172,6 +176,7 @@ checkout_base() {
 
 run_push() {
   load_app
+  WORK_PARENT="$(work_parent)"
   OUT="$(out_dir)"
   META="$OUT/meta.json"
   [ -f "$META" ] || usage "[$APP_ID] 산출물이 없습니다: ${META} — 준비 단계의 artifact 를 내려받았는지 보세요"
@@ -186,6 +191,12 @@ run_push() {
       out result "$RESULT"
       exit 0
       ;;
+    # 준비 단계가 죽었다(2차 리뷰 F1). 준비 job 은 알림을 보내지 않으므로 **여기서 빨갛게 끝내야**
+    # 사람이 안다 — 이 job 의 「실패 알림」이 유일한 알림 지점이고, 그 문구에 이 사유가 들어간다.
+    failed)
+      out result failed
+      die "[$APP_ID] 준비 단계가 실패했습니다: $(meta_field error)"
+      ;;
     *) die "[$APP_ID] 산출물의 result 를 모르겠습니다: '${RESULT}'" ;;
   esac
 
@@ -199,7 +210,7 @@ run_push() {
   # 실행기의 전역·시스템 git 설정도 믿지 않는다(리뷰 R2) — 이 자리는 토큰을 쥐고 있다.
   export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 
-  WORK="$(work_parent)/push-$APP_ID"
+  WORK="$WORK_PARENT/push-$APP_ID"
   clone_app "$WORK"
   cd "$WORK"
   git config user.name "$BOT_NAME"

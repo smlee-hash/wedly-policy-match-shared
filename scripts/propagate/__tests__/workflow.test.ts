@@ -93,13 +93,45 @@ describe(".github/workflows/propagate.yml", () => {
 
   it("알림 호출: 실패 알림만 `|| true`, 「배포 확인 못 함」은 무시하지 않는다", () => {
     const notifyBlocks = BLOCKS.filter((b) => b.includes("notify.sh"));
-    expect(notifyBlocks).toHaveLength(3);
+    // 2차 리뷰 F1·F7: 알림 지점은 **밀기 job 두 곳뿐**이다(실패 알림 · 배포 미확인 알림).
+    expect(notifyBlocks).toHaveLength(2);
     const unconfirmed = notifyBlocks.filter((b) => b.includes("배포 확인 못 함"));
     const failures = notifyBlocks.filter((b) => !b.includes("배포 확인 못 함"));
     expect(unconfirmed).toHaveLength(1);
     expect(unconfirmed[0]).not.toContain("|| true");
-    expect(failures).toHaveLength(2);
+    expect(failures).toHaveLength(1);
     for (const b of failures) expect(b).toContain("|| true");
+  });
+
+  it("알림은 밀기 job 에만 있다 — 앱 코드가 도는 준비 job 은 알림 열쇠를 만지지 않는다", () => {
+    // 2차 리뷰 F1(P1): 준비 job 의 실행기는 앱 코드가 이미 한 번 돈 자리다. 거기서 `notify.sh` 를
+    // 부르면 **변조된 notify.sh 하나로 WEDLY_NOTIFY_KEY 가 샌다.** 그래서 준비 job 에는
+    // 클론 step 의 읽기 토큰 말고 어떤 시크릿도 없어야 한다.
+    const prepare = jobSection("prepare");
+    expect(prepare).not.toContain("notify.sh");
+    expect(prepare.match(/secrets\./g) ?? []).toEqual(["secrets."]); // 딱 하나 = 읽기 토큰
+    expect(prepare).toContain("secrets.PROPAGATE_READ_TOKEN");
+    expect(jobSection("push")).toContain("notify.sh");
+  });
+
+  it("실패 알림 조건은 `failure()` 하나 — 산출물을 못 받은 실패도 알린다", () => {
+    // 2차 리뷰 F7: 옛 판은 `failure() && steps.fetch.outcome == 'success'` 라, 준비가 죽어
+    // 산출물이 없는 실패는 **아무도 알리지 않았다**(준비 job 의 알림을 F1 이 없앴으므로).
+    const push = jobSection("push");
+    expect(push).not.toContain("steps.fetch.outcome");
+    expect(push).toMatch(/- name: 실패 알림\n\s+if: failure\(\)\n/);
+  });
+
+  it("산출물은 실패해도 올린다 — 밀기 job 이 사유를 읽을 수 있어야 한다", () => {
+    const prepare = jobSection("prepare");
+    expect(prepare).toMatch(/- name: 산출물 올리기[^\n]*\n\s+if: always\(\)\n/);
+  });
+
+  it("실패 사유는 파일에서 읽어 인자로 넘긴다 — 워크플로우 보간으로 셸에 붙이지 않는다", () => {
+    const reason = BLOCKS.find((b) => b.includes("notify.sh") && b.includes("meta.json"));
+    expect(reason, "실패 알림이 meta.json 을 읽지 않습니다").toBeTruthy();
+    expect(reason).toContain('"$PROPAGATE_OUT/meta.json"');
+    expect(reason).toContain('"$REASON"');
   });
 
   it("동시성: 손으로 돌린 예행은 자동 반영과 다른 줄에 선다 — 예행이 진짜 반영을 취소하지 않게", () => {
