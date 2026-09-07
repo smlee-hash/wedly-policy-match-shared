@@ -1,0 +1,36 @@
+[
+  {
+    "id": "erp",
+    "repo": "smlee-hash/wedly-erp",
+    "install": true,
+    "postSteps": [
+      "node scripts/design-system/cli.mjs generate",
+      "node scripts/design-system/cli.mjs check"
+    ],
+    "commitPaths": [
+      "package.json",
+      "package-lock.json",
+      "src/lib/design-system/registry.generated.json"
+    ]
+  },
+  {
+    "id": "illua",
+    "repo": "smlee-hash/wedly-illua-collab",
+    "install": false,
+    "postSteps": [],
+    "commitPaths": [
+      "package.json",
+      "package-lock.json"
+    ]
+  },
+  {
+    "id": "lab",
+    "repo": "smlee-hash/wedly-policy-lab",
+    "install": false,
+    "postSteps": [],
+    "commitPaths": [
+      "package.json",
+      "package-lock.json"
+    ]
+  }
+]
