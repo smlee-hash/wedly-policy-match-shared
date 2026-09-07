@@ -46,8 +46,8 @@ interface Props {
   onDiagnose: (profile: BusinessProfile) => Promise<boolean>;
   diagnosing: boolean;
   /**
-   * 기존 고객 불러오기 통로(`GET ?query=`). **안 넘기면 검색 칸도, 불러오는 코드도 없다** —
-   * 랩(`wedly-policy-lab`)엔 고객 표가 아예 없어서 이 자리가 보이면 안 된다.
+   * 기존 고객 불러오기 통로(`GET ?query=`). **안 넘기면 검색 칸도 없고, 불러오는 코드도 돌지
+   * 않는다** — 랩(`wedly-policy-lab`)엔 고객 표가 아예 없어서 이 자리가 보이면 안 된다.
    */
   prefillEndpoint?: string;
 }
@@ -79,17 +79,38 @@ function outOfCreditRange(v: string): boolean {
 }
 
 /**
- * 기존 고객 검색 한 줄 — **통로가 있는 앱에서만** 만들어진다(ProfileForm 이 조건부로 그린다).
- * 불러오는 코드(`loadCustomer`)와 그 상태 세 개가 이 안에만 있어서, 통로를 안 넘긴 앱에서는
- * 화면에도 없고 코드도 안 돈다.
+ * 기존 고객 검색이 드는 상태 세 개 — **부모(ProfileForm)가 든다.**
+ *
+ * 검색 줄은 폼을 펼쳤을 때만 그린다. 그래서 상태를 그 줄의 부품 안에 두면
+ * 「검색어 입력 → 접기 → 조건 수정」을 하는 순간 부품이 새로 태어나 **검색어와 안내가
+ * 지워졌다**(2026-09-07 독립 리뷰 P3). ERP 원문은 부모가 들고 있어 접었다 펴도 남았다 —
+ * 그 동작으로 되돌린다.
+ *
+ * 통로(endpoint)를 안 넘긴 앱에서는 `active: false` 와 **아무 것도 하지 않는** 불러오기만
+ * 돌려준다. 검색 줄 자체를 안 그리니(아래 `prefill.active &&`) 불릴 일이 없고, 불려도
+ * 첫 줄에서 그대로 돌아와 부르는 곳이 없다.
  */
-function CustomerPrefill({ endpoint, onLoad }: { endpoint: string; onLoad: (d: BusinessProfile) => void }) {
+interface CustomerPrefillState {
+  /** 통로가 있어 검색 줄을 그릴 수 있는가 */
+  active: boolean;
+  query: string;
+  setQuery: (v: string) => void;
+  prefilling: boolean;
+  prefillNote: string;
+  loadCustomer: () => Promise<void>;
+}
+
+function useCustomerPrefill(
+  endpoint: string | undefined,
+  onLoad: (d: BusinessProfile) => void,
+): CustomerPrefillState {
   const [query, setQuery] = useState("");
   const [prefilling, setPrefilling] = useState(false);
   const [prefillNote, setPrefillNote] = useState("");
 
   /** 고객 불러오기 — 먼저 폼을 비우고, 아는 값만 채운다(모르는 칸은 「모름」으로 남는다). */
   const loadCustomer = async () => {
+    if (!endpoint) return; // 통로가 없는 앱 — 검색 줄을 안 그리므로 여기까지 올 일도 없다
     const t = query.trim();
     if (!t) {
       setPrefillNote("사업자번호 또는 상호를 입력하세요");
@@ -116,6 +137,16 @@ function CustomerPrefill({ endpoint, onLoad }: { endpoint: string; onLoad: (d: B
       setPrefilling(false);
     }
   };
+
+  return { active: Boolean(endpoint), query, setQuery, prefilling, prefillNote, loadCustomer };
+}
+
+/**
+ * 기존 고객 검색 한 줄 — **통로가 있는 앱에서만** 그려진다(ProfileForm 이 조건부로 그린다).
+ * 상태와 불러오는 코드는 부모가 든다(위 `useCustomerPrefill`) — 이 부품은 그리기만 한다.
+ */
+function CustomerPrefill({ prefill }: { prefill: CustomerPrefillState }) {
+  const { query, setQuery, prefilling, prefillNote, loadCustomer } = prefill;
 
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -225,6 +256,9 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint }:
     if (typeof d.taxDelinquent === "boolean") setTaxDelinquent(d.taxDelinquent ? "yes" : "no");
   };
 
+  // 검색 상태는 여기(부모)서 든다 — 폼을 접으면 아래 검색 줄은 사라지지만 검색어·안내는 남는다.
+  const prefill = useCustomerPrefill(prefillEndpoint, applyCustomer);
+
   const runDiagnose = async () => {
     const ok = await onDiagnose(buildProfile());
     if (ok) setOpen(false); // 결과를 넓게 보라고 접는다 — 「조건 수정」으로 다시 편다
@@ -273,7 +307,7 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint }:
       {open && (
         <>
           {/* 통로를 안 넘긴 앱(랩)에는 이 줄이 아예 없다 — 있지도 않은 고객 표를 약속하지 않는다. */}
-          {prefillEndpoint && <CustomerPrefill endpoint={prefillEndpoint} onLoad={applyCustomer} />}
+          {prefill.active && <CustomerPrefill prefill={prefill} />}
 
           {/* 칸 사이 가로·세로 16 */}
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
