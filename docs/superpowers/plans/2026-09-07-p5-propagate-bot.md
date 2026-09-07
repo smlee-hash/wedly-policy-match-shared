@@ -43,6 +43,22 @@
     - **R3(P2)** 동시성 그룹을 `propagate-${{ github.event_name == 'workflow_dispatch' && 'manual' || 'main' }}` 로 나눈다 — 예행이 **대기 중인 진짜 반영을 취소**하던 문제. 같은 그룹의 대기 실행은 최신 하나만 남지만 main 은 직선이라 결과가 같다.
     - **R4(P2)** `notify.sh` 종료 코드: 보냈으면 0, **설정 없음·3회 실패·본문 실패면 1**(총괄 결정 5 갱신 — 「알림은 실패를 알린다, 무시할지는 부르는 쪽이 정한다」). 워크플로우의 실패 알림만 `|| true`, 「배포 미확인 알림」은 그대로 둬 알림까지 실패하면 job 이 빨개진다.
     - **R5(P3)** `watch-deploy`: 요청별 제한을 `min(15초, 남은 시간)` 으로, 응답을 받아도 `Date.now() <= deadline` 일 때만 성공으로 센다.
+12. **2026-09-08 2차 독립 리뷰(Astra) 반영 — 아래 8건도 판정대로 구현했다. 실제 코드가 이 문서의 초안보다 앞선다.**
+
+    **위협 모델(이 회차에 확정)**: `prepare` job 에서 도는 앱 코드·의존성은 **믿을 수 없다**(실행기의 파일도 산출물도 마음대로 바꾼다). `push` job 은 산출물(artifact)을 **믿을 수 없는 입력**으로 다루고 `resolve` 의 결정(SHA)만 믿으며, 그 job 에서는 앱 코드가 한 줄도 돌지 않는다.
+
+    | # | 무엇이 문제였나 | 어떻게 닫았나 |
+    |---|---|---|
+    | **F1(P1)** | `prepare` 의 「실패 알림」이 **앱 코드가 이미 돈 실행기**에서 `WEDLY_NOTIFY_KEY` 를 썼다 — 변조된 `notify.sh` 하나로 열쇠가 샌다 | 준비 job 에서 알림을 **없앴다**(시크릿은 클론 step 의 읽기 토큰 하나뿐). 대신 clone·prepare 가 **어떤 실패에서도** `meta.json{result:"failed", error:"한 줄 사유"}` 를 남기고(`lib.sh` 의 EXIT 갈고리), 산출물은 `if: always()` 로 올린다. `push` 는 `failed` 면 그 사유를 찍고 exit 1(그래서 job 이 빨개져 알림이 간다), 산출물이 없으면 exit 2 |
+    | **F2(P1)** | 앱 기준 커밋의 `commitPaths` 자리가 **심볼릭 링크**(예 `registry.generated.json → ../../../.git/config`)면 밀기 단계의 `cp` 가 링크를 따라가 클론의 git 설정을 덮었다 | 덮어쓰기 전에 경로의 **모든 칸**을 `[ -L ]` 로 걷고 `git ls-files -s` 의 mode `120000` 도 본다(`core.symlinks=false` 대비). 덮어쓸 때는 `rm -f` 먼저. 밀기 단계의 모든 git 호출에 `GIT_CONFIG_COUNT` 로 `credential.helper=`·`core.hooksPath=/dev/null`·`http.proxy=`·`core.sshCommand=false` 를 눌러 둔다(+기존 `GIT_CONFIG_GLOBAL=/dev/null`·`GIT_CONFIG_NOSYSTEM=1`) |
+    | **F3(P1)** | `push` 가 반영할 SHA 를 `resolve` 의 결정과 대조하지 않아, 산출물의 `meta` 와 JSON 을 함께 바꾸면 **아무 커밋으로나** 핀을 옮길 수 있었다 | `push` 가 env `PROPAGATE_SHA`(resolve 출력)·`PROPAGATE_PACKAGE_DIR`(push job 도 `fetch-depth: 0`)를 받아 ① `meta.pinTo == PROPAGATE_SHA` ② 새 클론의 `baseSha` 시점 실제 핀 == `meta.pinFrom` ③ 그 핀이 `PROPAGATE_SHA` 의 조상(패키지 저장소에서 `merge-base`)을 직접 본다. `verify-lock`·커밋 제목도 `PROPAGATE_SHA` 기준 |
+    | **F4(P1)** | **허용된 파일 안의 임의 변경**이 통과했다(`package.json` 에 `postinstall`, 잠금 파일 `resolved` 를 남의 tgz 로, 모르는 꾸러미 항목 끼우기) | 새 대조기 `verify-artifact.mjs <baseDir> <artifactDir> <sha40> <commitPath...>` — ① `package.json` 은 「기준 + 핀 한 칸」과 **깊은 비교로 동일** ② `package-lock.json` 은 `packages[""].dependencies[이름]`·`packages["node_modules/이름"]` **두 자리만** 바뀐 것과 동일하고, 그 항목의 `resolved` 는 우리 저장소의 그 커밋(`git+ssh\|https` 둘 다 허용)·`integrity` 는 `sha512-` ③ 등록부는 JSON 이고 5MB 이하 ④ 목록 밖 파일·규칙 없는 파일 거부. `push` 가 `verify-lock` 뒤에 반드시 부른다. **공용 보관함이 나중에 런타임 의존을 더하면 잠금 파일에 새 항목이 생겨 봇이 안전하게 실패한다** — 그때는 사람이 손으로 올린다(README §5) |
+    | **F5(P2)** | 손으로 돌린 **예행이 대기 중인 손 실제 반영을 취소**했다 | 동시성 줄을 셋으로 — `propagate-main`(자동)·`propagate-manual`(손 실제)·`propagate-dry`(손 예행) |
+    | **F6(P2)** | 늦게 끝난 **옛 CI** 가 최신 커밋의 대기 실행을 밀어내, 최신 핀이 아무도 반영하지 않은 채 남았다 | `resolve` 의 `workflow_run` 갈래가 `origin/main` 끝(TIP)도 CI 를 통과했는지 `gh api …/actions/workflows/ci.yml/runs?head_sha=<TIP>&status=success` 로 묻고, 있으면 그쪽으로 올린다(없거나 물어보다 실패하면 원래 커밋 그대로 — 막지 않는다). 권한에 `actions: read` 추가 |
+    | **F7(P2)** | 준비가 죽어 산출물이 없는 실패는 **아무도 알리지 않았다**(밀기 알림에 `steps.fetch.outcome == 'success'` 조건이 있었다) | F1 로 닫혔다 — 밀기 job 의 `if: failure()` 하나가 유일한 알림 지점이고, 사유는 `meta.error` 를 **파일에서 읽어 인자로** 넘긴다 |
+    | **F8(P2)** | `PROPAGATE_ENABLED=false` 가 dispatch 예행까지 막아 **첫 가동 절차가 성립하지 않았다** | 그 변수는 **자동 실행만** 막고 손 실행은 허용한다(`resolve` 의 `if`). README·워크플로우 머리주석·아래 Task 6 절차에 그렇게 적었다 |
+
+    시험도 함께 늘렸다: 밀기 단계만 따로 재려고 **산출물을 손으로 짓는** 시험(`writeArtifact`), `verify-artifact` 단위 시험 12건, `resolve` 셸 토막을 잘라 **가짜 `gh` 로 실제 실행**하는 시험 6건(`resolve-shell.test.ts`), 워크플로우 모양 시험 갱신.
 
 ## 1. 파일 구조
 
@@ -52,9 +68,11 @@ scripts/propagate/apps.json                — 앱 3곳 정의(저장소·설치
 scripts/propagate/lib.sh                   — (리뷰 R2) 세 단계가 함께 쓰는 조각(클론·가리개·apps.json 읽기·자격 잔류 검사)
 scripts/propagate/propagate.sh             — clone|prepare|push 세 단계. 환경변수로만 입력
 scripts/propagate/verify-lock.mjs          — package.json·package-lock 이 새 SHA 로 일치하는지 대조(exit 0/1)
+scripts/propagate/verify-artifact.mjs      — (2차 리뷰 F4) 산출물이 「기준 파일 + 핀 한 줄」인지 깊은 비교로 대조
 scripts/propagate/notify.sh                — ERP 내부 통로로 알림(curl). 보냈으면 0, 못 보냈으면 1(리뷰 R4)
 scripts/propagate/watch-deploy.mjs         — (Task 7) 앱 공개 build-id 가 봇 커밋 SHA 로 바뀔 때까지 대기(비밀값 불필요)
-scripts/propagate/__tests__/*.test.ts      — 봇 시험 7벌(propagate·verify-lock·apps-json·notify·watch-deploy·workflow·pack-excludes)
+scripts/propagate/__tests__/*.test.ts      — 봇 시험 9벌(propagate·verify-lock·verify-artifact·apps-json·notify·watch-deploy·workflow·resolve-shell·pack-excludes)
+scripts/propagate/__tests__/yaml-run-blocks.ts — 워크플로우의 `run:` 토막·job 덩어리를 잘라 내는 조각(시험 두 벌이 함께 쓴다)
 docs/superpowers/plans/2026-09-07-p5-propagate-bot.md — 이 문서
 README.md                                  — 「자동 반영」 절 추가(끄는 법·예행·되돌리기)
 ```
@@ -794,6 +812,7 @@ README 절 내용: 언제 도나 / 끄기(`gh variable set PROPAGATE_ENABLED -b 
 
 순서(총괄 결정 9):
 - [ ] 1. `gh variable set PROPAGATE_ENABLED -b false -R smlee-hash/wedly-policy-match-shared` (워크플로우 밀기 전)
+      · **이 변수는 자동 실행만 막는다**(2차 리뷰 F8) — 아래 6번의 손 예행은 꺼져 있어도 돈다
 - [ ] 2. `gh variable set WEDLY_NOTIFY_URL -b https://wedly-erp-production.up.railway.app -R …`
 - [ ] 3. `gh secret set WEDLY_NOTIFY_KEY -R … < ~/.agent-browser/lab-internal-key.key` (값을 화면에 찍지 않는다)
 - [ ] 4. PAT 발급(Aside · 총괄 결정 8) → `gh secret set PROPAGATE_TOKEN -R … < ~/.agent-browser/propagate-pat.key`
