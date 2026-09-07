@@ -1,34 +1,44 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeEach, describe, expect, it } from "vitest";
 
 /**
- * `scripts/propagate/propagate.sh` 시나리오 시험 — 계획서 Task 3(설계서 §6 D1·D2).
+ * `scripts/propagate/propagate.sh` 시나리오 시험 — 계획서 Task 3(설계서 §6 D1·D2),
+ * 2026-09-08 리뷰 R2 로 **clone → prepare → push 세 단계**가 된 뒤의 판.
  *
  * ★이 봇이 하는 일: 공용 보관함에 커밋이 올라가면 앱 3곳(ERP·일루아·랩)의
  *  `@wedly/policy-match-shared` 핀을 새 SHA 로 올려 커밋·푸시한다. 사람이 손으로 맞추던 일이다.
  *
- * ★그래서 이 시험이 막는 사고 4가지:
+ * ★단계를 나눈 이유(리뷰 R2 · 여기서 실제로 재는 것):
+ *  토큰을 쥔 자리에서 앱 코드를 돌리지 않는다. `prepare` 는 토큰 없이 npm·후처리를 돌려
+ *  **파일만** 산출물 폴더에 담고, `push` 는 새로 클론해 그 파일을 얹어 밀기만 한다.
+ *  그래서 「push 단계가 npm 을 한 번도 부르지 않는다」가 시험 항목이다 —
+ *  그 줄이 빨개지면 앱 코드가 다시 토큰 옆으로 돌아온 것이다.
+ *
+ * ★그래서 이 시험이 막는 사고들:
  *  1) 핀만 올리고 잠금 파일이 옛 SHA 로 남는 것(= 새 핀인데 옛 코드로 배포)
  *  2) 순서가 뒤집혀 핀이 **뒤로 가는** 것(늦게 도착한 옛 반영이 새 핀을 덮어씀)
  *  3) 봇이 핀 말고 **다른 파일까지** 커밋하는 것
- *  4) 사람이 같은 순간에 밀어 푸시가 거부됐을 때 **사람 커밋을 잃는** 것
+ *  4) 준비와 밀기 사이에 사람이 민 커밋을 **잃는** 것(다른 파일이면 rebase 로 살리고, 같은 파일이면 멈춘다)
+ *  5) 토큰이 화면·산출물에 새는 것
  *
  * ★재는 방식: 글자 대조가 아니라 **진짜 스크립트를 진짜 git 저장소에서 돌린다.**
  *  - 가짜 패키지 저장소(c1→c2→c3, 곁가지 x1)로 「후손인가」 판정을 실제 `merge-base` 로 시킨다
  *  - 가짜 앱 저장소는 bare 원격까지 만들어 **진짜 푸시**를 받는다(커밋이 원격에 남았는지로 판정)
  *  - `npm` 만 PATH 앞의 shim 으로 바꾼다(네트워크·설치 시간 없이 잠금 파일 갱신을 흉내)
+ *  - 단계마다 **다른 npm 기록 파일·다른 GITHUB_OUTPUT** 을 줘 어느 단계가 무엇을 했는지 따로 잰다
  *
  * ★`__dirname` 대신 `fileURLToPath(import.meta.url)`: 이 보관함은 `"type": "module"`(ESM).
  * ★git 설정을 `/dev/null` 로 격리: 사람의 전역 설정(`core.hooksPath`·`commit.gpgsign` 등)이
- *  시험 결과를 바꾸면 안 된다. 특히 전역 `core.hooksPath` 는 아래 푸시 경합 훅을 무력화한다.
+ *  시험 결과를 바꾸면 안 된다.
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = resolve(HERE, "../propagate.sh");
+const LIB = resolve(HERE, "../lib.sh");
 const REPO = "smlee-hash/wedly-policy-match-shared";
 const SPEC = (sha: string) => `github:${REPO}#${sha}`;
 const RESOLVED = (sha: string) => `git+ssh://git@github.com/${REPO}.git#${sha}`;
@@ -92,11 +102,24 @@ function fakeApp(tmp: string, name: string, pinSha: string, extra?: (work: strin
     ) + "\n",
   );
   writeFileSync(join(work, ".gitignore"), "node_modules\n");
+  writeFileSync(join(work, "README.md"), "app\n");
   extra?.(work);
   sh("git init -q -b main && git config user.email t@t && git config user.name t && git add . && git commit -qm seed", work);
   const bare = join(tmp, `${name}.git`);
   sh(`git clone -q --bare "${work}" "${bare}"`, tmp);
   return { work, bare };
+}
+
+/**
+ * 사람이 앱 저장소에 직접 미는 상황 — **준비와 밀기 사이**의 경합을 만든다.
+ * 봇의 push 단계는 그때 이미 옛 커밋(baseSha) 위에 얹으므로 푸시가 거부되고 rebase 로 이어진다.
+ */
+function humanPush(tmp: string, bare: string, edit: (dir: string) => void, message: string) {
+  const dir = join(tmp, `human-${Math.random().toString(36).slice(2)}`);
+  sh(`git clone -q "${bare}" "${dir}"`, tmp);
+  sh("git config user.email h@t && git config user.name 사람", dir);
+  edit(dir);
+  sh(`git add -A && git commit -qm "${message}" && git push -q origin HEAD:main`, dir);
 }
 
 /**
@@ -170,33 +193,71 @@ esac
   return bin;
 }
 
-function runPropagate(tmp: string, env: Record<string, string>) {
-  const log = join(tmp, "npm.log");
-  writeFileSync(log, "");
-  const r = spawnSync("bash", [SCRIPT], {
+interface StepRun {
+  code: number | null;
+  stdout: string;
+  stderr: string;
+  /** 그 단계가 GITHUB_OUTPUT 에 적은 것 */
+  out: string;
+  /** 그 단계가 부른 npm 기록(줄마다 한 번) */
+  npmLog: string;
+}
+
+let stepCounter = 0;
+
+/** `propagate.sh <단계>` 를 한 번 돌린다. 단계마다 기록 파일을 따로 준다. */
+function runStep(tmp: string, step: "clone" | "prepare" | "push", env: Record<string, string>): StepRun {
+  const stamp = `${step}-${(stepCounter += 1)}`;
+  const npmLog = join(tmp, `npm-${stamp}.log`);
+  const outFile = join(tmp, `github-output-${stamp}.txt`);
+  writeFileSync(npmLog, "");
+  writeFileSync(outFile, "");
+  const r = spawnSync("bash", [SCRIPT, step], {
     encoding: "utf8",
     env: {
       ...process.env,
       ...HERMETIC_GIT,
       PATH: `${fakeNpm(tmp)}:${process.env.PATH}`,
-      FAKE_NPM_LOG: log,
+      FAKE_NPM_LOG: npmLog,
+      FAKE_NPM_FAIL: "",
       PROPAGATE_WORKDIR: join(tmp, "work"),
+      PROPAGATE_OUT: join(tmp, "artifact"),
       PROPAGATE_SUBJECT: "feat: 시험 커밋",
       PROPAGATE_PACKAGE_URL: "https://example.test/pkg/commit",
       PROPAGATE_RUN_URL: "https://example.test/run/1",
       PROPAGATE_TOKEN: "",
-      GITHUB_OUTPUT: join(tmp, "out.txt"),
+      GITHUB_OUTPUT: outFile,
       ...env,
     },
   });
-  const out = (() => {
-    try {
-      return readFileSync(join(tmp, "out.txt"), "utf8");
-    } catch {
-      return "";
-    }
-  })();
-  return { code: r.status, stdout: r.stdout, stderr: r.stderr, out, npmLog: readFileSync(log, "utf8") };
+  return {
+    code: r.status,
+    stdout: r.stdout,
+    stderr: r.stderr,
+    out: readFileSync(outFile, "utf8"),
+    npmLog: readFileSync(npmLog, "utf8"),
+  };
+}
+
+/** clone → prepare (실패하면 거기서 멈춘다) */
+function runPrepare(tmp: string, env: Record<string, string>) {
+  const clone = runStep(tmp, "clone", env);
+  if (clone.code !== 0) return { clone, prepare: undefined };
+  return { clone, prepare: runStep(tmp, "prepare", env) };
+}
+
+/** clone → prepare → push (앞 단계가 실패하면 거기서 멈춘다) */
+function runAll(tmp: string, env: Record<string, string>) {
+  const { clone, prepare } = runPrepare(tmp, env);
+  if (!prepare || prepare.code !== 0) return { clone, prepare, push: undefined };
+  return { clone, prepare, push: runStep(tmp, "push", env) };
+}
+
+/** 산출물 폴더에 담긴 파일 목록(상대 경로) */
+function listFiles(dir: string, prefix = ""): string[] {
+  return readdirSync(dir, { withFileTypes: true })
+    .flatMap((e) => (e.isDirectory() ? listFiles(join(dir, e.name), `${prefix}${e.name}/`) : [`${prefix}${e.name}`]))
+    .sort();
 }
 
 /**
@@ -253,15 +314,17 @@ describe("propagate.sh", () => {
 
   it("잠금 파일만 쓰는 앱(lab): 핀 갱신 → 커밋 → 푸시, 커밋 저자는 봇", () => {
     const app = fakeApp(tmp, "lab", pkg.c1);
-    const r = runPropagate(tmp, {
+    const r = runAll(tmp, {
       PROPAGATE_APP_ID: "lab",
       PROPAGATE_SHA: pkg.c3,
       PROPAGATE_PACKAGE_DIR: pkg.dir,
       PROPAGATE_CLONE_URL: app.bare,
     });
-    expect(r.code, r.stderr).toBe(0);
-    expect(r.out).toContain("result=updated");
-    expect(r.out).toContain(`commit=${sh("git rev-parse main", app.bare)}`);
+    expect(r.prepare?.code, r.prepare?.stderr).toBe(0);
+    expect(r.prepare?.out).toContain("result=prepared");
+    expect(r.push?.code, r.push?.stderr).toBe(0);
+    expect(r.push?.out).toContain("result=updated");
+    expect(r.push?.out).toContain(`commit=${sh("git rev-parse main", app.bare)}`);
     expect(sh("git log -1 --format=%s main", app.bare)).toBe(
       `chore(정책매칭 공용): 핀 ${pkg.c3.slice(0, 7)} — feat: 시험 커밋`,
     );
@@ -269,32 +332,76 @@ describe("propagate.sh", () => {
     expect(sh("git log -1 --format=%b main", app.bare)).toContain("https://example.test/pkg/commit");
     expect(sh("git show main:package.json", app.bare)).toContain(SPEC(pkg.c3));
     expect(sh("git show main:package-lock.json", app.bare)).toContain(RESOLVED(pkg.c3));
-    expect(r.npmLog).not.toMatch(/^npm ci/m);
+    expect(r.prepare?.npmLog).not.toMatch(/^npm ci/m);
   }, 60_000);
 
   it("설치 앱(erp): npm ci 와 후처리(postSteps)를 돌리고 등록부 파일까지 커밋한다", () => {
     const app = fakeApp(tmp, "erp", pkg.c1, (w) => seedErpDesignSystem(w));
-    const r = runPropagate(tmp, {
+    const r = runAll(tmp, {
       PROPAGATE_APP_ID: "erp",
       PROPAGATE_SHA: pkg.c3,
       PROPAGATE_PACKAGE_DIR: pkg.dir,
       PROPAGATE_CLONE_URL: app.bare,
     });
-    expect(r.code, r.stderr).toBe(0);
-    expect(r.out).toContain("result=updated");
-    expect(r.npmLog).toMatch(/^npm ci --ignore-scripts/m);
+    expect(r.push?.code, r.push?.stderr).toBe(0);
+    expect(r.push?.out).toContain("result=updated");
+    expect(r.prepare?.npmLog).toMatch(/^npm ci --ignore-scripts/m);
     // 후처리 두 번째 단계는 Railway 가 ERP `build` 첫 단계로 돌리는 것과 **같은 명령**이어야 한다.
-    expect(r.npmLog).toMatch(/^npm run design:check$/m);
+    expect(r.prepare?.npmLog).toMatch(/^npm run design:check$/m);
     expect(sh("git show main:src/lib/design-system/registry.generated.json", app.bare)).toContain(pkg.c3);
     expect(sh("git show --stat --format= main", app.bare)).toMatch(/registry\.generated\.json/);
+  }, 60_000);
+
+  it("push 단계는 npm 을 한 번도 부르지 않는다 — 토큰 옆에서 앱 코드가 돌지 않는다는 증거", () => {
+    // 리뷰 R2 의 핵심. ERP 는 준비 단계에서 npm 을 여러 번 부르는 앱이라 대비가 분명하다.
+    const app = fakeApp(tmp, "erp", pkg.c1, (w) => seedErpDesignSystem(w));
+    const r = runAll(tmp, {
+      PROPAGATE_APP_ID: "erp",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.push?.code, r.push?.stderr).toBe(0);
+    expect(r.prepare?.npmLog.trim().split("\n").length).toBeGreaterThan(2); // 준비 단계는 실제로 npm 을 쓴다
+    expect(r.push?.npmLog).toBe(""); // 밀기 단계는 한 줄도 없다
+    expect(r.clone.npmLog).toBe(""); // 클론 단계도 마찬가지
+  }, 60_000);
+
+  it("준비 단계 산출물에는 commitPaths 와 meta.json 만 담긴다", () => {
+    const app = fakeApp(tmp, "erp", pkg.c1, (w) => seedErpDesignSystem(w));
+    const baseSha = sh("git rev-parse main", app.bare);
+    const r = runPrepare(tmp, {
+      PROPAGATE_APP_ID: "erp",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.prepare?.code, r.prepare?.stderr).toBe(0);
+    const outDir = join(tmp, "artifact");
+    expect(listFiles(outDir)).toEqual([
+      "meta.json",
+      "package-lock.json",
+      "package.json",
+      "src/lib/design-system/registry.generated.json",
+    ]);
+    const meta = JSON.parse(readFileSync(join(outDir, "meta.json"), "utf8")) as Record<string, string>;
+    expect(meta).toEqual({
+      app: "erp",
+      result: "prepared",
+      baseSha, // 밀기 단계는 이 커밋 위에 얹는다
+      pinFrom: pkg.c1,
+      pinTo: pkg.c3,
+      subject: "feat: 시험 커밋",
+    });
+    // 담긴 파일은 실제로 새 핀이 든 파일이어야 한다(빈 껍데기 산출물 방지)
+    expect(readFileSync(join(outDir, "package.json"), "utf8")).toContain(SPEC(pkg.c3));
+    expect(readFileSync(join(outDir, "package-lock.json"), "utf8")).toContain(RESOLVED(pkg.c3));
   }, 60_000);
 
   it("설계 등록부가 핀과 어긋나면 `npm run design:check` 가 막는다 — 아무것도 밀지 않는다", () => {
     // 왜 이 시험이 있나: 이것이 봇의 「Railway 와 같은 관문」이다. 등록부 재생성이 깨져 옛 값이
     // 남으면 Railway 의 `npm run design:check` 가 빨개져 **배포가 실패**한다. 봇은 그런 커밋을
-    // 애초에 밀지 않아야 한다 — 밀면 앱 main 은 배포 안 되는 상태로 남는다.
-    // (이 시험은 가짜 npm 의 `run` 갈래가 진짜로 script 를 실행하는지도 함께 잰다 —
-    //  `run` 이 아무것도 안 하면 여기서 봇이 밀어 버리므로 시험이 빨개진다.)
+    // 애초에 만들지 않아야 한다.
     const app = fakeApp(tmp, "erp", pkg.c1, (w) =>
       seedErpDesignSystem(
         w,
@@ -313,123 +420,186 @@ else if (cmd === "check") {
       ),
     );
     const before = sh("git rev-parse main", app.bare);
-    const r = runPropagate(tmp, {
+    const r = runPrepare(tmp, {
       PROPAGATE_APP_ID: "erp",
       PROPAGATE_SHA: pkg.c3,
       PROPAGATE_PACKAGE_DIR: pkg.dir,
       PROPAGATE_CLONE_URL: app.bare,
     });
-    expect(r.code).toBe(1);
-    expect(r.stderr).toMatch(/후처리 실패: npm run design:check/);
+    expect(r.prepare?.code).toBe(1);
+    expect(r.prepare?.stderr).toMatch(/후처리 실패: npm run design:check/);
     expect(sh("git rev-parse main", app.bare)).toBe(before);
   }, 60_000);
 
-  it("같은 SHA 면 skipped-same, 커밋 없음", () => {
+  it("같은 SHA 면 skipped-same — 준비도 밀기도 아무것도 하지 않는다", () => {
     const app = fakeApp(tmp, "lab", pkg.c3);
     const before = sh("git rev-parse main", app.bare);
-    const r = runPropagate(tmp, {
+    const r = runAll(tmp, {
       PROPAGATE_APP_ID: "lab",
       PROPAGATE_SHA: pkg.c3,
       PROPAGATE_PACKAGE_DIR: pkg.dir,
       PROPAGATE_CLONE_URL: app.bare,
     });
-    expect(r.code, r.stderr).toBe(0);
-    expect(r.out).toContain("result=skipped-same");
+    expect(r.prepare?.code, r.prepare?.stderr).toBe(0);
+    expect(r.prepare?.out).toContain("result=skipped-same");
+    // 건너뛴 경우에도 meta.json 은 담긴다 — 밀기 단계가 그 이유를 그대로 이어받는다
+    expect(listFiles(join(tmp, "artifact"))).toEqual(["meta.json"]);
+    expect(r.push?.code, r.push?.stderr).toBe(0);
+    expect(r.push?.out).toContain("result=skipped-same");
     expect(sh("git rev-parse main", app.bare)).toBe(before);
   }, 60_000);
 
   it("현재 핀이 더 새 것이거나 다른 갈래면 skipped-not-descendant — 핀이 뒤로 가지 않는다", () => {
     // ① 더 새 것: 앱은 c3, 늦게 도착한 반영이 c2 를 들고 온 경우
     const newer = fakeApp(tmp, "newer", pkg.c3);
-    const r1 = runPropagate(tmp, {
+    const r1 = runAll(tmp, {
       PROPAGATE_APP_ID: "lab",
       PROPAGATE_SHA: pkg.c2,
       PROPAGATE_PACKAGE_DIR: pkg.dir,
       PROPAGATE_CLONE_URL: newer.bare,
     });
-    expect(r1.code, r1.stderr).toBe(0);
-    expect(r1.out).toContain("result=skipped-not-descendant");
+    expect(r1.prepare?.code, r1.prepare?.stderr).toBe(0);
+    expect(r1.prepare?.out).toContain("result=skipped-not-descendant");
+    expect(r1.push?.out).toContain("result=skipped-not-descendant");
     expect(sh("git show main:package.json", newer.bare)).toContain(SPEC(pkg.c3));
 
     // ② 다른 갈래: 앱이 곁가지 x1 에 물려 있으면 main 의 c3 는 그 후손이 아니다
     const side = fakeApp(tmp, "side", pkg.x1);
-    const r2 = runPropagate(tmp, {
+    const r2 = runAll(tmp, {
       PROPAGATE_APP_ID: "lab",
       PROPAGATE_SHA: pkg.c3,
       PROPAGATE_PACKAGE_DIR: pkg.dir,
       PROPAGATE_CLONE_URL: side.bare,
     });
-    expect(r2.code, r2.stderr).toBe(0);
-    expect(r2.out).toContain("result=skipped-not-descendant");
+    expect(r2.prepare?.code, r2.prepare?.stderr).toBe(0);
+    expect(r2.prepare?.out).toContain("result=skipped-not-descendant");
     expect(sh("git show main:package.json", side.bare)).toContain(SPEC(pkg.x1));
   }, 60_000);
 
   it("dry run: 커밋은 만들되 푸시하지 않는다", () => {
     const app = fakeApp(tmp, "lab", pkg.c1);
     const before = sh("git rev-parse main", app.bare);
-    const r = runPropagate(tmp, {
+    const r = runAll(tmp, {
       PROPAGATE_APP_ID: "lab",
       PROPAGATE_SHA: pkg.c3,
       PROPAGATE_PACKAGE_DIR: pkg.dir,
       PROPAGATE_CLONE_URL: app.bare,
       PROPAGATE_DRY_RUN: "1",
     });
-    expect(r.code, r.stderr).toBe(0);
-    expect(r.out).toContain("result=dry-run");
-    expect(r.stdout).toMatch(/package-lock\.json/);
+    expect(r.push?.code, r.push?.stderr).toBe(0);
+    expect(r.push?.out).toContain("result=dry-run");
+    expect(r.push?.stdout).toMatch(/package-lock\.json/);
     expect(sh("git rev-parse main", app.bare)).toBe(before);
   }, 60_000);
 
-  it("푸시 경합: 사람이 먼저 밀어 거부되면 rebase 뒤 재시도해 성공하고 사람 커밋도 남는다", () => {
+  it("경합(다른 파일): 준비와 밀기 사이에 사람이 밀면 rebase 로 얹고 사람 커밋도 남는다", () => {
     const app = fakeApp(tmp, "lab", pkg.c1);
-    // 클론 뒤·푸시 전 사이에 남이 미는 상황을 bare 의 pre-receive 훅으로 흉내낸다.
-    // 훅 안에서 다른 클론이 미는 푸시도 같은 훅을 타므로 flag 파일로 한 번만 거부한다.
-    const other = join(tmp, "other");
-    sh(`git clone -q "${app.bare}" "${other}"`, tmp);
-    writeFileSync(
-      join(tmp, "race.sh"),
-      `#!/usr/bin/env bash
-set -e
-flag="${tmp}/raced"
-if [ ! -f "$flag" ]; then
-  touch "$flag"
-  # 훅은 GIT_DIR·격리 창고(quarantine) 변수를 물려받는다. 그대로 두면 다른 클론의 푸시가
-  # **거부될 이 푸시의 격리 창고**에 객체를 쓰고 함께 버려진다 — 그래서 지우고 부른다.
-  unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY \\
-        GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_QUARANTINE_PATH GIT_PUSH_CERT_NONCE
-  (
-    cd "${other}"
-    git config user.email h@t
-    git config user.name 사람
-    echo x >> README.md
-    git add .
-    git commit -qm "사람 커밋"
-    git push -q origin HEAD:main
-  ) >&2
-  echo "simulated race" >&2
-  exit 1
-fi
-exit 0
-`,
-    );
-    chmodSync(join(tmp, "race.sh"), 0o755);
-    mkdirSync(join(app.bare, "hooks"), { recursive: true });
-    writeFileSync(join(app.bare, "hooks/pre-receive"), `#!/usr/bin/env bash\nexec "${join(tmp, "race.sh")}"\n`);
-    chmodSync(join(app.bare, "hooks/pre-receive"), 0o755);
-
-    const r = runPropagate(tmp, {
+    const env = {
       PROPAGATE_APP_ID: "lab",
       PROPAGATE_SHA: pkg.c3,
       PROPAGATE_PACKAGE_DIR: pkg.dir,
       PROPAGATE_CLONE_URL: app.bare,
-    });
-    expect(r.code, r.stderr).toBe(0);
-    expect(r.out).toContain("result=updated");
+    };
+    const { prepare } = runPrepare(tmp, env);
+    expect(prepare?.code, prepare?.stderr).toBe(0);
+
+    // 준비가 끝난 뒤 사람이 **다른 파일**을 고쳐 민다
+    humanPush(tmp, app.bare, (dir) => writeFileSync(join(dir, "README.md"), "app\n사람이 고침\n"), "사람 커밋");
+
+    const push = runStep(tmp, "push", env);
+    expect(push.code, push.stderr).toBe(0);
+    // 진짜로 「거부 → 다시 얹기」를 지나왔다는 증거(그냥 앞으로 감기로 들어갔으면 이 줄이 없다)
+    expect(push.stderr).toMatch(/푸시 거부 \(1\/3\)/);
+    expect(push.out).toContain("result=updated");
     const log = sh("git log --format=%s main", app.bare);
     expect(log.split("\n")[0]).toMatch(/^chore\(정책매칭 공용\)/);
     expect(log).toContain("사람 커밋");
-    // 사람이 넣은 파일이 살아 있어야 한다(rebase 로 덮어쓰지 않았다는 증거)
-    expect(sh("git show main:README.md", app.bare)).toContain("x");
+    // 사람이 넣은 줄이 살아 있어야 한다(rebase 로 덮어쓰지 않았다는 증거)
+    expect(sh("git show main:README.md", app.bare)).toContain("사람이 고침");
+    expect(sh("git show main:package.json", app.bare)).toContain(SPEC(pkg.c3));
+  }, 60_000);
+
+  it("경합(같은 파일): 사람이 핀을 손으로 바꿨으면 rebase 충돌로 1 — 사람 커밋을 덮지 않는다", () => {
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const env = {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    };
+    const { prepare } = runPrepare(tmp, env);
+    expect(prepare?.code, prepare?.stderr).toBe(0);
+
+    // 사람이 **같은 파일의 같은 줄**(핀)을 손으로 c2 로 바꿔 민다
+    humanPush(
+      tmp,
+      app.bare,
+      (dir) => {
+        const p = join(dir, "package.json");
+        writeFileSync(p, readFileSync(p, "utf8").replace(SPEC(pkg.c1), SPEC(pkg.c2)));
+      },
+      "사람이 핀을 손으로 바꿈",
+    );
+    const humanHead = sh("git rev-parse main", app.bare);
+
+    const push = runStep(tmp, "push", env);
+    expect(push.code).toBe(1);
+    expect(push.stderr).toMatch(/rebase 충돌/);
+    expect(sh("git rev-parse main", app.bare)).toBe(humanHead); // 사람 커밋이 그대로 끝이다
+    expect(sh("git show main:package.json", app.bare)).toContain(SPEC(pkg.c2));
+  }, 60_000);
+
+  it("준비가 본 기준 커밋이 앱 저장소에 없으면(되감기·강제 푸시) 밀지 않고 1 로 멈춘다", () => {
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const env = {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    };
+    const { prepare } = runPrepare(tmp, env);
+    expect(prepare?.code, prepare?.stderr).toBe(0);
+
+    // 앱 저장소에 없는 커밋을 기준으로 삼게 만든다 — main 이 되감기거나 강제 푸시로 갈린 상황과 같다.
+    const metaPath = join(tmp, "artifact/meta.json");
+    const meta = JSON.parse(readFileSync(metaPath, "utf8")) as Record<string, string>;
+    meta.baseSha = "0123456789abcdef0123456789abcdef01234567";
+    writeFileSync(metaPath, JSON.stringify(meta, null, 2) + "\n");
+    const before = sh("git rev-parse main", app.bare);
+
+    const push = runStep(tmp, "push", env);
+    expect(push.code).toBe(1);
+    expect(push.stderr).toMatch(/찾지 못했습니다/);
+    expect(sh("git rev-parse main", app.bare)).toBe(before); // 엉뚱한 자리에 얹지 않는다
+  }, 60_000);
+
+  it("클론에 자격이 남아 있으면 그 자리에서 멈춘다 — 토큰 값은 오류문에도 안 적는다", () => {
+    // clone 단계가 앱 코드에게 폴더를 넘기기 전에 부르는 검사(lib.sh assert_no_credentials).
+    // 실제 토큰 클론을 시험에서 돌릴 수는 없으니 함수를 직접 불러 잰다.
+    const secret = "ghp_NEVER_IN_A_MESSAGE_0001";
+    const poisoned = join(tmp, "poisoned");
+    mkdirSync(join(poisoned, ".git"), { recursive: true });
+    writeFileSync(
+      join(poisoned, ".git/config"),
+      `[remote "origin"]\n\turl = https://x-access-token:${secret}@github.com/smlee-hash/wedly-policy-lab.git\n`,
+    );
+    const call = (dir: string) =>
+      spawnSync("bash", ["-c", `set -euo pipefail; APP_ID=lab; . "${LIB}"; assert_no_credentials "${dir}"`], {
+        encoding: "utf8",
+        env: { ...process.env, ...HERMETIC_GIT },
+      });
+
+    const bad = call(poisoned);
+    expect(bad.status).toBe(1);
+    expect(bad.stderr).toMatch(/자격/);
+    expect(bad.stderr).not.toContain(secret);
+    expect(bad.stdout).not.toContain(secret);
+
+    // 깨끗한 클론은 그냥 지나간다(검사가 늘 빨간 것이 아니라는 확인)
+    const clean = join(tmp, "clean");
+    mkdirSync(join(clean, ".git"), { recursive: true });
+    writeFileSync(join(clean, ".git/config"), `[remote "origin"]\n\turl = https://github.com/smlee-hash/wedly-policy-lab.git\n`);
+    expect(call(clean).status).toBe(0);
   }, 60_000);
 
   it("commitPaths 밖 파일이 바뀌면 실패하고 목록을 알린다", () => {
@@ -438,35 +608,54 @@ exit 0
       writeFileSync(join(w, "stray.txt"), "a\n");
     });
     const before = sh("git rev-parse main", app.bare);
-    const r = runPropagate(tmp, {
+    const r = runPrepare(tmp, {
       PROPAGATE_APP_ID: "erp",
       PROPAGATE_SHA: pkg.c3,
       PROPAGATE_PACKAGE_DIR: pkg.dir,
       PROPAGATE_CLONE_URL: app.bare,
     });
-    expect(r.code).toBe(1);
-    expect(r.stderr).toMatch(/stray\.txt/);
+    expect(r.prepare?.code).toBe(1);
+    expect(r.prepare?.stderr).toMatch(/stray\.txt/);
     expect(sh("git rev-parse main", app.bare)).toBe(before);
   }, 60_000);
 
-  it("입력 오류(SHA 형식·모르는 앱)는 2 — 그리고 왜인지 말한다", () => {
-    const bad = runPropagate(tmp, {
+  it("입력 오류(단계 이름·SHA 형식·모르는 앱)는 2 — 그리고 왜인지 말한다", () => {
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const base = {
       PROPAGATE_APP_ID: "lab",
-      PROPAGATE_SHA: "abc",
-      PROPAGATE_PACKAGE_DIR: pkg.dir,
-      PROPAGATE_CLONE_URL: "x",
-    });
-    expect(bad.code).toBe(2);
-    expect(bad.stderr).toMatch(/PROPAGATE_SHA/);
-
-    const unknown = runPropagate(tmp, {
-      PROPAGATE_APP_ID: "hive",
       PROPAGATE_SHA: pkg.c3,
       PROPAGATE_PACKAGE_DIR: pkg.dir,
-      PROPAGATE_CLONE_URL: "x",
-    });
+      PROPAGATE_CLONE_URL: app.bare,
+    };
+
+    const noStep = spawnSync("bash", [SCRIPT], { encoding: "utf8", env: { ...process.env, ...HERMETIC_GIT } });
+    expect(noStep.status).toBe(2);
+    expect(noStep.stderr).toMatch(/clone\|prepare\|push/);
+
+    const badStep = spawnSync("bash", [SCRIPT, "밀어"], { encoding: "utf8", env: { ...process.env, ...HERMETIC_GIT } });
+    expect(badStep.status).toBe(2);
+
+    const cloned = runStep(tmp, "clone", base);
+    expect(cloned.code, cloned.stderr).toBe(0);
+    const badSha = runStep(tmp, "prepare", { ...base, PROPAGATE_SHA: "abc" });
+    expect(badSha.code).toBe(2);
+    expect(badSha.stderr).toMatch(/PROPAGATE_SHA/);
+
+    const unknown = runStep(tmp, "clone", { ...base, PROPAGATE_APP_ID: "hive" });
     expect(unknown.code).toBe(2);
     expect(unknown.stderr).toMatch(/hive/);
+  }, 60_000);
+
+  it("산출물이 없으면 밀기 단계는 2 로 멈춘다 — artifact 를 못 받은 것을 조용히 넘기지 않는다", () => {
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_CLONE_URL: app.bare,
+      PROPAGATE_OUT: join(tmp, "없는-폴더"),
+    });
+    expect(r.code).toBe(2);
+    expect(r.stderr).toMatch(/meta\.json/);
+    expect(sh("git log --format=%s main", app.bare)).toBe("seed");
   }, 60_000);
 
   it("주소에 토큰이 섞여 있어도 어떤 출력에도 남기지 않는다", () => {
@@ -479,15 +668,11 @@ exit 0
       ALL_PROXY: "",
       NO_PROXY: "*",
     };
-    const base = {
-      PROPAGATE_APP_ID: "lab",
-      PROPAGATE_SHA: pkg.c3,
-      PROPAGATE_PACKAGE_DIR: pkg.dir,
-    };
+    const base = { PROPAGATE_APP_ID: "lab", PROPAGATE_SHA: pkg.c3, PROPAGATE_PACKAGE_DIR: pkg.dir };
 
     // ① https 주소: 127.0.0.1:1 은 곧바로 연결 거부된다(네트워크를 쓰지 않는다).
     //   요즘 git 은 이 오류문에서 자격을 스스로 지우지만, 우리가 주소를 직접 찍으면 그대로 샌다.
-    const viaHttps = runPropagate(tmp, {
+    const viaHttps = runStep(tmp, "clone", {
       ...base,
       PROPAGATE_CLONE_URL: `https://x-access-token:${secret}@127.0.0.1:1/smlee-hash/wedly-policy-lab.git`,
       ...noProxy,
@@ -500,7 +685,7 @@ exit 0
 
     // ② 로컬 경로 주소: git 은 이 문자열을 **그대로** 오류에 찍는다(2026-09-08 실측).
     //   로컬 경로는 예행연습이 실제로 쓰는 방식이라 가리개가 없으면 여기서 샌다.
-    const viaPath = runPropagate(tmp, {
+    const viaPath = runStep(tmp, "clone", {
       ...base,
       PROPAGATE_CLONE_URL: `${tmp}/none//x-access-token:${secret}@github.com/x.git`,
       ...noProxy,
@@ -518,35 +703,34 @@ exit 0
     // 워크플로우·알림이 「입력 오류」와 「일 실패」를 구분할 수 있다.
     const app = fakeApp(tmp, "lab", pkg.c1);
     const before = sh("git rev-parse main", app.bare);
-    const r = runPropagate(tmp, {
+    const r = runPrepare(tmp, {
       PROPAGATE_APP_ID: "lab",
       PROPAGATE_SHA: pkg.c3,
       PROPAGATE_PACKAGE_DIR: pkg.dir,
       PROPAGATE_CLONE_URL: app.bare,
       FAKE_NPM_FAIL: "install",
     });
-    expect(r.code).toBe(1);
-    expect(r.stderr).toMatch(/잠금 파일 갱신/);
+    expect(r.prepare?.code).toBe(1);
+    expect(r.prepare?.stderr).toMatch(/잠금 파일 갱신/);
     expect(sh("git rev-parse main", app.bare)).toBe(before); // 실패하면 아무것도 밀지 않는다
   }, 60_000);
 
   it("커밋할 파일이 없으면(등록부 미생성) 1 로 끝나고 무엇이 없는지 알린다", () => {
     // ERP 후처리가 설계 등록부를 못 만든 경우. verify-lock 은 등록부를 보지 않으므로 여기까지 통과한다.
-    // 그대로 두면 `git add` 가 128 로 죽어 규격(0/1/2)이 깨진다.
     const app = fakeApp(tmp, "erp", pkg.c1, (w) => {
       // `design:check` script 는 있고(그래서 후처리는 통과) 등록부 파일만 없는 상황을 만든다.
       seedErpScripts(w);
       writeFileSync(join(w, "scripts/design-system/cli.mjs"), "// 아무것도 만들지 않는다\n");
     });
     const before = sh("git rev-parse main", app.bare);
-    const r = runPropagate(tmp, {
+    const r = runPrepare(tmp, {
       PROPAGATE_APP_ID: "erp",
       PROPAGATE_SHA: pkg.c3,
       PROPAGATE_PACKAGE_DIR: pkg.dir,
       PROPAGATE_CLONE_URL: app.bare,
     });
-    expect(r.code).toBe(1);
-    expect(r.stderr).toMatch(/registry\.generated\.json/);
+    expect(r.prepare?.code).toBe(1);
+    expect(r.prepare?.stderr).toMatch(/registry\.generated\.json/);
     expect(sh("git rev-parse main", app.bare)).toBe(before);
   }, 60_000);
 });

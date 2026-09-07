@@ -7,8 +7,18 @@
 # 언제 도나: CI 워크플로우가 **main 에서 성공**했을 때(workflow_run). 손으로는 Actions 화면의
 #   「Run workflow」(workflow_dispatch) — 예행연습(dry_run)이 기본으로 켜져 있다.
 # 끄기:  저장소 변수 `PROPAGATE_ENABLED=false` (변수가 아예 없으면 켜진 것으로 본다)
-# 시크릿: `PROPAGATE_TOKEN`(세밀 권한 PAT · 앱 3저장소 contents:write) · `WEDLY_NOTIFY_KEY`(ERP 내부 알림 열쇠)
+# 시크릿:
+#   `PROPAGATE_READ_TOKEN` — 앱 3저장소 **읽기 전용** PAT. 클론에만 쓴다.
+#   `PROPAGATE_TOKEN`      — 앱 3저장소 contents:write PAT. **밀기에만** 쓴다.
+#   `WEDLY_NOTIFY_KEY`     — ERP 내부 알림 열쇠
 # 변수:  `PROPAGATE_ENABLED` · `WEDLY_NOTIFY_URL`(ERP 주소)
+#
+# ★job 이 둘인 이유 — 토큰과 앱 코드를 같은 자리에 두지 않는다(2026-09-08 리뷰 R2):
+#   `prepare` 는 **읽기 전용 토큰으로 클론만** 하고, 그 뒤 토큰 없는 단계에서 npm·앱 후처리를 돌려
+#   커밋할 파일만 artifact 로 올린다. `push` 는 그 파일을 받아 **새로 깨끗하게 클론**한 자리에 얹어
+#   커밋·푸시만 한다(npm·앱 코드가 한 줄도 돌지 않는다).
+#   같은 job 안에서 `env -u` 로 토큰을 지우는 것으로는 부족하다: 같은 사용자면 부모 프로세스의 환경을
+#   읽을 수 있고, 앱 코드가 askpass 도우미나 `.git/config` 를 바꿔 뒤 푸시에서 자격을 가로챌 수 있다.
 #
 # ★스크립트 인젝션 막기 — 이 파일의 규칙 하나:
 #   커밋 제목·사람이 적는 입력처럼 **믿을 수 없는 값은 `run:` 문자열에 `${{ }}` 로 넣지 않는다.**
@@ -34,16 +44,18 @@ on:
         type: string
         default: ""
 
-# 한 번에 한 실행만 — 늦게 온 반영이 먼저 온 반영을 앞지르지 못하게.
-# 취소하지 않고 줄을 세운다(취소하면 이미 핀을 바꾼 앱만 남아 3앱이 갈라진다).
-# ★위치가 중요하다: 워크플로우 맨 위(job 안이 아니라)에 둬야 **실행 하나**가 한 단위가 된다.
-#  job 에 두면 matrix 3갈래가 서로를 기다려 병렬 처리가 사라진다.
+# 한 번에 한 실행만 — 늦게 온 반영이 먼저 온 반영을 앞지르지 못하게. 취소하지 않고 줄을 세운다
+# (취소하면 이미 핀을 바꾼 앱만 남아 3앱이 갈라진다).
+# ★손으로 돌린 예행(workflow_dispatch)은 **다른 줄**에 세운다(리뷰 R3): 예행은 아무것도 밀지 않으므로
+#  실제 반영과 겹쳐도 무해한데, 같은 줄에 두면 예행 하나가 **대기 중인 진짜 반영을 취소**해 버린다.
+# ★같은 줄에서 대기 중인 실행은 GitHub 가 **최신 것 하나만** 남긴다. main 은 직선이라
+#  최신 커밋이 앞 커밋을 포함하므로, 중간 실행이 버려져도 반영 결과는 같다.
 concurrency:
-  group: propagate-main
+  group: propagate-${{ github.event_name == 'workflow_dispatch' && 'manual' || 'main' }}
   cancel-in-progress: false
 
-# 이 워크플로우는 자기 저장소를 읽기만 한다. 앱 3곳에 미는 권한은 기본 토큰이 아니라
-# 시크릿 PAT(`PROPAGATE_TOKEN`)에서 온다 — 기본 토큰은 다른 저장소에 아무 권한이 없다.
+# 이 워크플로우는 자기 저장소를 읽기만 한다. 앱 3곳을 다루는 권한은 기본 토큰이 아니라
+# 시크릿 PAT 두 개에서 온다 — 기본 토큰은 다른 저장소에 아무 권한이 없다.
 permissions:
   contents: read
 
@@ -51,9 +63,13 @@ jobs:
   # 1단계: 무엇을 반영할지 하나로 정한다(SHA·커밋 제목·예행 여부). 3갈래가 각자 정하지 않게.
   resolve:
     # 변수가 없으면 빈 값이라 `!= 'false'` 가 참 = 켜짐. `false` 를 넣은 동안만 통째로 건너뛴다.
+    # 마지막 줄(리뷰 R2)은 **남의 복제본에서 온 CI 실행**을 막는다 — 아래 pick 단계가 「main 의 조상인가」로
+    # 한 번 더 막지만, 겹으로 세워 둔다(공개 저장소라 누구나 복제본에서 CI 를 돌릴 수 있다).
     if: >-
       vars.PROPAGATE_ENABLED != 'false' &&
-      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -106,18 +122,20 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "propagate: 반영 대상 $SHA (예행=$DRY)"
 
-  # 2단계: 앱 3곳을 동시에. 한 곳이 실패해도 나머지는 계속한다(fail-fast: false).
-  propagate:
+  # 2단계: 앱 3곳을 동시에 **준비**한다(밀지 않는다). 한 곳이 실패해도 나머지는 계속한다.
+  # 이 job 에서 토큰을 쥐는 단계는 「앱 저장소 클론」 하나뿐이고, 그 단계는 git 말고 아무것도 돌리지 않는다.
+  prepare:
     needs: resolve
     runs-on: ubuntu-latest
-    # 핀 반영은 몇 분이면 끝나지만 마지막 「배포 확인」이 최대 30분을 기다린다(총괄 결정 6).
-    # 그래서 반영 30분 + 배포 확인 30분 + 여유 5분 = 65 로 둔다.
-    timeout-minutes: 65
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
         app: [erp, illua, lab]
     env:
+      PROPAGATE_APP_ID: ${{ matrix.app }}
+      # 산출물(커밋할 파일 + meta.json)이 담기는 자리 — 아래 upload-artifact 가 이 폴더를 통째로 올린다.
+      PROPAGATE_OUT: ${{ github.workspace }}/propagate-out
       # 잠금 파일의 `resolved` 가 `git+ssh://git@github.com/…` 라 npm 이 되돌림 경로에서 ssh 를 쓴다.
       # 실행기에는 ssh 열쇠가 없으므로 https 로 바꿔 준다(2026-09-08 로컬 예행에서 이 되돌림이
       # 실제로 쓰이는 것을 확인했다 — 안전망이 아니라 필요한 설정이다).
@@ -134,24 +152,36 @@ jobs:
         with:
           node-version: "22"
 
-      - name: 핀 반영 (${{ matrix.app }})
-        id: run
+      # ★토큰을 쥐는 단계 ①: 클론만 한다. npm 도, 앱 스크립트도 여기서 돌지 않는다.
+      #  쓰는 열쇠는 **읽기 전용** PAT 이라, 설령 새더라도 앱 저장소에 아무것도 밀 수 없다.
+      - name: 앱 저장소 클론 (${{ matrix.app }})
         shell: bash
         env:
-          PROPAGATE_APP_ID: ${{ matrix.app }}
+          PROPAGATE_TOKEN: ${{ secrets.PROPAGATE_READ_TOKEN }}
+        run: bash scripts/propagate/propagate.sh clone
+
+      # ↓ 여기서부터 앱 코드(npm·설계 등록부·design:check)가 돈다 — **토큰이 없는 자리다.**
+      - name: 핀 갱신 준비 (${{ matrix.app }})
+        id: prep
+        shell: bash
+        env:
           PROPAGATE_SHA: ${{ needs.resolve.outputs.sha }}
           # ★커밋 제목 — 아무나 적을 수 있는 글자라 반드시 env 로만 넘긴다.
           PROPAGATE_SUBJECT: ${{ needs.resolve.outputs.subject }}
-          PROPAGATE_PACKAGE_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ needs.resolve.outputs.sha }}
-          PROPAGATE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           PROPAGATE_PACKAGE_DIR: ${{ github.workspace }}
-          PROPAGATE_TOKEN: ${{ secrets.PROPAGATE_TOKEN }}
-          PROPAGATE_DRY_RUN: ${{ needs.resolve.outputs.dry_run == 'true' && '1' || '0' }}
-        run: bash scripts/propagate/propagate.sh
+        run: bash scripts/propagate/propagate.sh prepare
 
-      # ★`|| true` 인 이유(리뷰 R4): 이 job 은 이미 빨갛다. 알림까지 실패해도 더 빨개질 것이 없고,
-      #  GitHub 는 이미 실패 메일을 보낸다. 반대로 「배포 미확인 알림」은 그것 말고 아무도 모르는
-      #  자리라 `|| true` 없이 부른다 — 알림이 실패하면 job 이 빨개져 메일이 간다.
+      # 건너뛴 경우에도 meta.json 하나는 올라간다 — 밀기 job 이 그 이유를 그대로 이어받는다.
+      - name: 산출물 올리기 (${{ matrix.app }})
+        uses: actions/upload-artifact@v4
+        with:
+          name: propagate-${{ matrix.app }}
+          path: ${{ github.workspace }}/propagate-out
+          if-no-files-found: error
+          retention-days: 3
+
+      # `|| true` 인 이유(리뷰 R4): 이 job 은 이미 빨갛다. 알림까지 실패해도 더 빨개질 것이 없고,
+      # GitHub 는 이미 실패 메일을 보낸다.
       - name: 실패 알림
         if: failure()
         shell: bash
@@ -164,7 +194,74 @@ jobs:
           PKG_SUBJECT: ${{ needs.resolve.outputs.subject }}
         run: |
           bash scripts/propagate/notify.sh \
-            "정책매칭 공용 자동 반영 실패: $APP_ID" \
+            "정책매칭 공용 자동 반영 실패(준비 단계): $APP_ID" \
+            "$RUN_URL" \
+            "패키지 커밋 $PKG_SHA" \
+            "$PKG_SUBJECT" \
+            "앱 저장소 main 은 바뀌지 않았습니다(옛 핀 그대로). 실행 로그를 보고 사람이 핀을 맞추거나 다시 돌리세요." || true
+
+  # 3단계: 준비된 파일을 받아 **밀기만** 한다. 이 job 에서는 npm 도 앱 코드도 돌지 않는다.
+  # ★`!cancelled()` 인 이유: `needs: prepare` 는 matrix 3갈래를 **한 덩어리**로 본다. 한 앱이 실패하면
+  #  기본 조건에서는 나머지 두 앱의 밀기까지 건너뛴다. 그래서 「취소만 아니면 돈다」로 두고,
+  #  산출물이 없는 앱은 아래 밀기 단계가 2(입력 오류)로 빨갛게 끝낸다.
+  push:
+    needs: [resolve, prepare]
+    if: ${{ !cancelled() && needs.resolve.result == 'success' }}
+    runs-on: ubuntu-latest
+    # 밀기는 몇 초면 끝나지만 마지막 「배포 확인」이 최대 30분을 기다린다(총괄 결정 6).
+    timeout-minutes: 65
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [erp, illua, lab]
+    env:
+      PROPAGATE_APP_ID: ${{ matrix.app }}
+      PROPAGATE_OUT: ${{ github.workspace }}/propagate-out
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 이 job 이 이 저장소에서 쓰는 것은 scripts/propagate/* 뿐이다 — 이력은 필요 없다.
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # 준비 job 이 실패한 앱은 여기서 artifact 가 없다 — 그 사실을 밀기 단계가 말하게 두고
+      # 이 단계에서 job 을 멈추지는 않는다(`continue-on-error`).
+      - name: 산출물 받기 (${{ matrix.app }})
+        id: fetch
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: propagate-${{ matrix.app }}
+          path: ${{ github.workspace }}/propagate-out
+
+      # ★토큰을 쥐는 단계 ②: 새로 클론 → 산출물 얹기 → 커밋 → 푸시. npm 은 부르지 않는다.
+      - name: 밀기 (${{ matrix.app }})
+        id: run
+        shell: bash
+        env:
+          PROPAGATE_TOKEN: ${{ secrets.PROPAGATE_TOKEN }}
+          PROPAGATE_PACKAGE_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ needs.resolve.outputs.sha }}
+          PROPAGATE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PROPAGATE_DRY_RUN: ${{ needs.resolve.outputs.dry_run == 'true' && '1' || '0' }}
+        run: bash scripts/propagate/propagate.sh push
+
+      # 산출물을 못 받은 경우(=준비 job 이 그 앱에서 이미 실패)는 알리지 않는다 — 준비 job 이 이미 알렸다.
+      - name: 실패 알림
+        if: failure() && steps.fetch.outcome == 'success'
+        shell: bash
+        env:
+          WEDLY_NOTIFY_URL: ${{ vars.WEDLY_NOTIFY_URL }}
+          WEDLY_NOTIFY_KEY: ${{ secrets.WEDLY_NOTIFY_KEY }}
+          APP_ID: ${{ matrix.app }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PKG_SHA: ${{ needs.resolve.outputs.sha }}
+          PKG_SUBJECT: ${{ needs.resolve.outputs.subject }}
+        run: |
+          bash scripts/propagate/notify.sh \
+            "정책매칭 공용 자동 반영 실패(밀기 단계): $APP_ID" \
             "$RUN_URL" \
             "패키지 커밋 $PKG_SHA" \
             "$PKG_SUBJECT" \
@@ -201,6 +298,8 @@ jobs:
 
       # 30분 안에 그 커밋이 배포본에 안 보였을 때만 돈다. 빌드 실패인지 그냥 늦는 것인지는
       # 이 방법으로 구분할 수 없다 — 알림 문구가 그렇게 말하고 Railway 화면을 보라고 한다.
+      # ★여기는 `|| true` 를 붙이지 않는다(리뷰 R4): 배포 확인이 실패한 마당에 알림까지 실패하면
+      #  아무도 모른다. 알림이 실패하면 이 job 을 빨갛게 만들어 GitHub 실패 메일이 가게 한다.
       - name: 배포 미확인 알림
         if: steps.watch.outcome == 'failure'
         shell: bash
