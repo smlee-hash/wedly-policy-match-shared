@@ -22,7 +22,7 @@ import { describe, expect, it } from "vitest";
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const SCRIPT = resolve(HERE, "../../scripts/propagate/verify-lock.mjs");
+const SCRIPT = resolve(HERE, "../verify-lock.mjs");
 const SHA = "b404b4b1f44d0ffb8213fff771a0bec090ca6257";
 const OTHER = "e7d0ed8fe9428b1c720f2f5675cd29a39e99e9b1";
 const SPEC = (sha: string) => `github:smlee-hash/wedly-policy-match-shared#${sha}`;

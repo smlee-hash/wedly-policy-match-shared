@@ -16,7 +16,7 @@ import { describe, expect, it } from "vitest";
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const path = resolve(HERE, "../../scripts/propagate/apps.json");
+const path = resolve(HERE, "../apps.json");
 
 describe("scripts/propagate/apps.json", () => {
   const apps = JSON.parse(readFileSync(path, "utf8")) as Array<Record<string, unknown>>;

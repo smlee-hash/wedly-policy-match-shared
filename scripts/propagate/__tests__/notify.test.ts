@@ -25,7 +25,7 @@ import { beforeEach, describe, expect, it } from "vitest";
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const SCRIPT = resolve(HERE, "../../scripts/propagate/notify.sh");
+const SCRIPT = resolve(HERE, "../notify.sh");
 
 /** 시험에서만 쓰는 가짜 열쇠 — 진짜 열쇠는 이 저장소 어디에도 적지 않는다. */
 const FAKE_KEY = "test-key-NEVER-A-REAL-SECRET-9f2a";

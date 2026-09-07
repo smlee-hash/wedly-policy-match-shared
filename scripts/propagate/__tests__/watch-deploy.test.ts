@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { waitForCommit } from "../../scripts/propagate/watch-deploy.mjs";
+import { waitForCommit } from "../watch-deploy.mjs";
 
 /**
  * `scripts/propagate/watch-deploy.mjs` 시험 — 계획서 Task 7(총괄 결정 6).
@@ -21,7 +21,7 @@ import { waitForCommit } from "../../scripts/propagate/watch-deploy.mjs";
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const SCRIPT = resolve(HERE, "../../scripts/propagate/watch-deploy.mjs");
+const SCRIPT = resolve(HERE, "../watch-deploy.mjs");
 const URL_ = "https://wedly-erp-production.up.railway.app/api/build-id";
 const OLD = "a35d6e19f3aaf027032b0ecae11696dc47075f96";
 const NEW = "b404b4b1f44d0ffb8213fff771a0bec090ca6257";

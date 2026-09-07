@@ -135,7 +135,7 @@ export interface FundingMapLoaders {
 chore(정책매칭 공용): 핀 b404b4b — <이 저장소의 커밋 제목>
 ```
 
-**봇이 하지 않는 일**(사고를 막는 네 가지 · `src/propagate/propagate.test.ts` 가 실제로 잰다)
+**봇이 하지 않는 일**(사고를 막는 네 가지 · `scripts/propagate/__tests__/propagate.test.ts` 가 실제로 잰다)
 
 - **핀이 뒤로 가지 않는다.** 새 커밋이 지금 핀의 후손이 아니면(늦게 도착한 옛 반영·다른 갈래) 그 앱은 건너뛴다. 실패가 아니라 「건너뜀」이다.
 - **위 표의 파일 말고 다른 것이 바뀌면 멈춘다.** 무엇이 바뀌었는지 로그에 적고 아무것도 밀지 않는다.

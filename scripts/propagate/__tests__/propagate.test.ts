@@ -28,7 +28,7 @@ import { beforeEach, describe, expect, it } from "vitest";
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const SCRIPT = resolve(HERE, "../../scripts/propagate/propagate.sh");
+const SCRIPT = resolve(HERE, "../propagate.sh");
 const REPO = "smlee-hash/wedly-policy-match-shared";
 const SPEC = (sha: string) => `github:${REPO}#${sha}`;
 const RESOLVED = (sha: string) => `git+ssh://git@github.com/${REPO}.git#${sha}`;
