@@ -282,3 +282,5 @@ gh workflow run Propagate -R … -f dry_run=true -f sha=<40자리>  # 특정 커
 - `@wedly/ui-shared`·`@wedly/detail-modal-shared` 포크 통합 — 별건(§2-c)
 - 정책매칭 화면 본체(`/policy-match`)를 일루아에 만들기 — 상세창 탭만
 - 수집기·AI 구조화·슬랙 알림을 일루아에 두기 — 공고 자료는 공유 DB 에서 읽는다
+
+<!-- 자동 반영 봇 인수 시험 2026-09-08: 이 줄 하나의 커밋으로 앱 3곳의 핀이 봇에 의해 올라가야 한다 -->
