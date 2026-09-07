@@ -36,24 +36,30 @@
 8. **PAT**: 세밀 권한, 소유자 smlee-hash, 저장소 wedly-erp·wedly-illua-collab·wedly-policy-lab, 권한 Contents: Read and write(Metadata 자동), 만료 1년, 이름 `wedly-policy-propagate-bot`. Aside 로 발급([[github-token-rotation-via-aside]] 절차), 값은 `~/.agent-browser/propagate-pat.key`(600) 와 패키지 저장소 시크릿 `PROPAGATE_TOKEN` 에만 둔다. 채팅·문서·커밋에 값을 적지 않는다.
 9. **첫 가동 순서**: 변수 `PROPAGATE_ENABLED=false` 를 **워크플로우 파일을 밀기 전에** 건다 → 밀기(CI 만 돈다) → `workflow_dispatch dry_run=true` 로 예행 → 로그 확인 → 변수 `true` → 문서 1줄 커밋으로 실제 3앱 반영 → Railway 3곳 SUCCESS 확인 = 인수 기준.
 10. **하지 않는 것**: 하이브(설계 §6 D3), ERP 팝업 알림(봇 커밋은 사용자 화면 변경이 아니다), 카나리, 앱 저장소에 워크플로우 추가(PAT 에 workflow 권한을 주지 않는다).
+11. **2026-09-08 독립 리뷰(Astra) 반영 — 아래 5건은 판정대로 구현했다. 초안 코드(Task 3·5)보다 실제 코드가 앞선다.**
+    - **R1(P1)** 봇 시험을 `src/propagate/` → **`scripts/propagate/__tests__/`** 로 옮긴다. `package.json` 의 `files:["src",…]` 라 `src/**` 는 앱 3곳의 `node_modules` 로 들어가고, ERP `vitest.shared.config.ts`·일루아/랩 `vitest.shared-pkg.config.ts` 가 그 시험을 **배포 관문에서 돌린다**(실측) — 앱 쪽엔 `scripts/propagate/*` 가 없어 3앱 배포가 막힌다. vitest·tsconfig include 에 `scripts/**` 를 더하고, 회귀는 진짜 `npm pack --dry-run --json` 으로 잰다(`pack-excludes.test.ts`).
+      · 「포장에 `*.test.*` 가 하나도 없어야 한다」는 문구는 **`scripts/`·`__tests__`·봇 시험 이름 0건**으로 좁혔다. `src/**/*.test.ts` 200여 개는 위 세 앱의 공용 꾸러미 관문이 **일부러 돌리는** 시험이라 빼면 관문이 조용히 비어 버린다(그 반대까지 같은 시험이 잰다).
+    - **R2(P1)** `env -u` 로는 PAT 격리가 안 된다(같은 사용자의 부모 환경 읽기·askpass/`.git/config` 바꿔치기). **job 2단계 분리**: `prepare`(클론은 **읽기 전용 PAT `PROPAGATE_READ_TOKEN`**, 그 뒤 토큰 없는 자리에서 npm·후처리 → 산출물 artifact) → `push`(쓰기 PAT 로 새로 클론해 산출물만 얹어 커밋·푸시, npm 0회). 스크립트는 `propagate.sh <clone|prepare|push>` + 공용 `lib.sh`. `result` 에 `prepared` 추가. `resolve` 의 `if` 에 `head_repository.full_name == github.repository` 를 겹으로 더한다.
+    - **R3(P2)** 동시성 그룹을 `propagate-${{ github.event_name == 'workflow_dispatch' && 'manual' || 'main' }}` 로 나눈다 — 예행이 **대기 중인 진짜 반영을 취소**하던 문제. 같은 그룹의 대기 실행은 최신 하나만 남지만 main 은 직선이라 결과가 같다.
+    - **R4(P2)** `notify.sh` 종료 코드: 보냈으면 0, **설정 없음·3회 실패·본문 실패면 1**(총괄 결정 5 갱신 — 「알림은 실패를 알린다, 무시할지는 부르는 쪽이 정한다」). 워크플로우의 실패 알림만 `|| true`, 「배포 미확인 알림」은 그대로 둬 알림까지 실패하면 job 이 빨개진다.
+    - **R5(P3)** `watch-deploy`: 요청별 제한을 `min(15초, 남은 시간)` 으로, 응답을 받아도 `Date.now() <= deadline` 일 때만 성공으로 센다.
 
 ## 1. 파일 구조
 
 ```
-.github/workflows/propagate.yml            — 트리거·matrix·시크릿 주입·실패 알림 호출(얇게)
-scripts/propagate/apps.json                — 앱 3곳 정의(저장소·설치 여부·후처리 명령·커밋 대상 파일)
-scripts/propagate/propagate.sh             — 앱 1곳 처리(클론→검사→핀 갱신→커밋→푸시/예행). 환경변수로만 입력
+.github/workflows/propagate.yml            — 트리거·matrix·시크릿 주입·실패 알림 호출(얇게). 리뷰 뒤 prepare/push 두 job
+scripts/propagate/apps.json                — 앱 3곳 정의(저장소·설치 여부·후처리 명령·커밋 대상 파일·build-id 주소)
+scripts/propagate/lib.sh                   — (리뷰 R2) 세 단계가 함께 쓰는 조각(클론·가리개·apps.json 읽기·자격 잔류 검사)
+scripts/propagate/propagate.sh             — clone|prepare|push 세 단계. 환경변수로만 입력
 scripts/propagate/verify-lock.mjs          — package.json·package-lock 이 새 SHA 로 일치하는지 대조(exit 0/1)
-scripts/propagate/notify.sh                — ERP 내부 통로로 실패 알림(curl). 실패해도 exit 0
+scripts/propagate/notify.sh                — ERP 내부 통로로 알림(curl). 보냈으면 0, 못 보냈으면 1(리뷰 R4)
 scripts/propagate/watch-deploy.mjs         — (Task 7) 앱 공개 build-id 가 봇 커밋 SHA 로 바뀔 때까지 대기(비밀값 불필요)
-src/propagate/propagate.test.ts            — 가짜 원격 저장소·가짜 npm 으로 propagate.sh 시나리오 시험(패키지 CI 가 돌린다)
-src/propagate/verify-lock.test.ts          — verify-lock.mjs 단위 시험
-src/propagate/apps-json.test.ts            — apps.json 형식·저장소 이름 고정 시험
+scripts/propagate/__tests__/*.test.ts      — 봇 시험 7벌(propagate·verify-lock·apps-json·notify·watch-deploy·workflow·pack-excludes)
 docs/superpowers/plans/2026-09-07-p5-propagate-bot.md — 이 문서
 README.md                                  — 「자동 반영」 절 추가(끄는 법·예행·되돌리기)
 ```
 
-시험이 `src/propagate/` 에 있는 이유: 패키지 vitest 는 `src/**/*.test.ts` 만 줍는다(F5 · vitest.config.ts). 스크립트는 `scripts/` 에 두고 시험은 절대 경로로 부른다.
+★시험이 `src/` 가 아니라 **`scripts/propagate/__tests__/`** 에 있는 이유(리뷰 R1): `package.json` 의 `files` 가 `src` 를 통째로 포장해 앱 3곳의 `node_modules` 로 보내고, 세 앱이 그 폴더의 시험을 **배포 관문에서 돌린다**. 봇 시험은 `scripts/propagate/*.sh` 를 실제로 실행하므로 앱 쪽에서는 파일이 없어 죽는다 = 3앱 배포가 막힌다. 그래서 포장에서 빠지는 자리로 옮기고 vitest·tsconfig 의 include 에 `scripts/**` 를 더했다.
 
 ## 2. Task 목록
 
@@ -277,6 +283,8 @@ process.stdout.write(`verify-lock: OK ${sha}\n`);
 - [ ] **Step 4: 통과 확인** — `npx vitest run src/propagate/verify-lock.test.ts` → PASS (7)
 
 ### Task 3: propagate.sh + 가짜 저장소 시험
+
+> **★리뷰 뒤 2단계로 바뀜(2026-09-08 · 총괄 결정 11 R2) — 실제 구조는 코드를 보세요.** 아래 초안은 한 프로세스가 클론·핀 갱신·푸시를 모두 하던 판이다. 지금은 `propagate.sh <clone|prepare|push>` 셋으로 나뉘고 공용 조각은 `scripts/propagate/lib.sh` 에 있다. 시험도 `scripts/propagate/__tests__/propagate.test.ts` 로 옮겨 새 흐름으로 다시 짰다(기존 11건 동작은 그대로 유지).
 
 **Files:**
 - Create: `scripts/propagate/propagate.sh`
@@ -661,6 +669,8 @@ echo "notify: 3회 실패 — GitHub 실패 메일이 대신 남는다"; exit 0
 
 ### Task 5: propagate.yml
 
+> **★리뷰 뒤 2단계 job 으로 바뀜(2026-09-08 · 총괄 결정 11 R2·R3·R4) — 실제 구조는 파일을 보세요.** 아래 초안은 `propagate` job 하나가 시크릿을 쥔 채 앱 코드까지 돌리던 판이다. 지금은 `prepare`(읽기 전용 PAT·40분) → artifact → `push`(쓰기 PAT·65분)이고, 동시성 그룹이 손 실행/자동 반영으로 갈라져 있으며 알림 단계의 `|| true` 규칙이 다르다.
+
 **Files:**
 - Create: `.github/workflows/propagate.yml`
 
@@ -778,7 +788,7 @@ jobs:
 
 **Files:**
 - Modify: `README.md` (「자동 반영 봇」 절 추가)
-- 저장소 설정(코드 아님): 변수 `PROPAGATE_ENABLED`, `WEDLY_NOTIFY_URL`; 시크릿 `PROPAGATE_TOKEN`, `WEDLY_NOTIFY_KEY`
+- 저장소 설정(코드 아님): 변수 `PROPAGATE_ENABLED`, `WEDLY_NOTIFY_URL`; 시크릿 `PROPAGATE_READ_TOKEN`(읽기 전용 · 클론용 · 리뷰 R2), `PROPAGATE_TOKEN`(쓰기 · 밀기용), `WEDLY_NOTIFY_KEY`
 
 README 절 내용: 언제 도나 / 끄기(`gh variable set PROPAGATE_ENABLED -b false -R smlee-hash/wedly-policy-match-shared`) / 예행(`gh workflow run Propagate -R … -f dry_run=true`) / 되돌리기(패키지 `git revert` 1개 → 봇이 다시 3앱에 퍼뜨림) / 봇 커밋을 손으로 고치지 말 것 / PAT 만료일(발급 +1년)과 재발급 절차 메모 위치(`[[github-token-rotation-via-aside]]`).
 

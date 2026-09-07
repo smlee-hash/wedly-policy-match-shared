@@ -122,6 +122,19 @@ export interface FundingMapLoaders {
 **언제 도나.** 이 저장소 `main` 에 커밋이 올라가 CI(§6)가 초록이 되면, GitHub Actions 의
 `Propagate` 워크플로우(`.github/workflows/propagate.yml`)가 앱 3곳의 핀을 그 커밋으로 올려
 **커밋·푸시**한다. Railway 가 그 push 를 보고 3앱을 배포한다. 다른 가지의 CI 나 실패한 CI 로는 돌지 않는다.
+남의 복제본(fork)에서 돌린 CI 로도 돌지 않는다.
+
+**한 번에 두 걸음으로 움직인다(2026-09-08 리뷰 R2).** 열쇠를 쥔 자리에서 앱 코드를 돌리지 않으려고 나눴다.
+
+| 걸음 | 하는 일 | 쥐는 열쇠 |
+|---|---|---|
+| `prepare` | 앱 저장소를 클론한 뒤 **열쇠 없는 자리**에서 핀을 올리고 `npm`·후처리를 돌려, 커밋할 파일만 꾸러미(artifact)로 올린다 | 클론에만 **읽기 전용** PAT |
+| `push` | 그 파일을 받아 **새로 깨끗하게 클론**한 자리에 얹어 커밋·푸시한다. `npm` 도 앱 코드도 여기서는 한 줄도 돌지 않는다 | 쓰기 PAT |
+
+왜 이렇게까지 하나: 한 프로세스가 열쇠를 쥔 채 앱 코드를 돌리면, 그 코드가 부모 프로세스의 환경을 읽거나
+자격 도우미·`.git/config` 를 바꿔치기해 **뒤에 오는 푸시에서 열쇠를 가로챌** 수 있다. 걸음을 나누면
+앱 코드가 도는 자리에는 열쇠가 아예 없다. `scripts/propagate/__tests__/propagate.test.ts` 가
+「밀기 걸음은 npm 을 한 번도 부르지 않는다」를 실제로 잰다.
 
 | 앱 | 저장소 | 봇이 고치는 것 |
 |---|---|---|
@@ -182,20 +195,31 @@ gh workflow run Propagate -R … -f dry_run=true -f sha=<40자리>  # 특정 커
 
 | 이름 | 무엇 | 없으면 |
 |---|---|---|
-| 시크릿 `PROPAGATE_TOKEN` | 세밀 권한 PAT(`wedly-policy-propagate-bot`) · 앱 3저장소 Contents: Read and write · 만료 1년 | 봇이 클론부터 실패한다 |
-| 시크릿 `WEDLY_NOTIFY_KEY` | ERP 내부 알림 열쇠(= ERP `POLICY_LAB_INTERNAL_KEY`) | 알림만 건너뛴다(봇은 정상) |
-| 변수 `WEDLY_NOTIFY_URL` | ERP 주소 | 알림만 건너뛴다 |
+| 시크릿 `PROPAGATE_READ_TOKEN` | 세밀 권한 PAT · 앱 3저장소 **Contents: Read only** · 클론(준비 걸음)에만 쓴다 | 봇이 클론부터 실패한다 |
+| 시크릿 `PROPAGATE_TOKEN` | 세밀 권한 PAT(`wedly-policy-propagate-bot`) · 앱 3저장소 Contents: Read and write · **밀기 걸음에만** 쓴다 · 만료 1년 | 준비까지는 되고 밀기에서 실패한다 |
+| 시크릿 `WEDLY_NOTIFY_KEY` | ERP 내부 알림 열쇠(= ERP `POLICY_LAB_INTERNAL_KEY`) | 알림을 못 보낸다(아래 「알림이 실패하면」) |
+| 변수 `WEDLY_NOTIFY_URL` | ERP 주소 | 위와 같다 |
 | 변수 `PROPAGATE_ENABLED` | 끄는 스위치 | 켜진 것으로 본다 |
 
 **PAT 만료 = 봇 정지.** 만료되면 3앱 모두 클론에서 인증 실패로 죽고 슬랙 알림이 온다.
 만료일은 **발급일 + 1년**이며, 재발급 절차는 메모 `github-token-rotation-via-aside` 에 있다.
 발급한 뒤 이 자리에 **실제 만료일을 적어 둔다**(2026-09-08 현재 아직 발급 전 — 첫 가동 순서는 계획서 Task 6).
 
+**알림이 실패하면**(2026-09-08 리뷰 R4). `notify.sh` 는 보냈으면 0, **못 보냈으면 1** 로 끝난다.
+이미 빨간 job 의 「실패 알림」은 `|| true` 로 감싸 무시하지만, 「배포 확인 못 함」 알림은 감싸지 않는다 —
+그 자리는 알림 말고는 아무도 모르는 자리라, 알림까지 실패하면 job 을 빨갛게 만들어 GitHub 실패 메일이 가게 한다.
+
+**동시에 여러 번 돌면**(리뷰 R3). 자동 반영은 `propagate-main`, 손으로 돌린 예행은 `propagate-manual`
+줄에 각각 선다 — 예행이 **대기 중인 진짜 반영을 취소하지 못하게** 나눠 뒀다. 한 줄에서 대기 중인 실행은
+GitHub 가 최신 것 하나만 남기는데, `main` 은 직선이라 최신 커밋이 앞 커밋을 포함하므로 결과는 같다.
+
 ## 6. 시험과 CI
 
-- `npm test` — `src/**/*.test.ts(x)` 전량(vitest, 환경 `node`)
-- `npm run typecheck` — `tsc --noEmit`, **검사 범위는 `src` 전체**(`src/**/*.ts`, `src/**/*.tsx`)
+- `npm test` — `src/**/*.test.ts(x)` 전량 + `scripts/**/*.test.ts`(자동 반영 봇 시험) — vitest, 환경 `node`
+- `npm run typecheck` — `tsc --noEmit`, **검사 범위는 `src` 전체 + `scripts/**/*.ts`**
 - CI(`.github/workflows/ci.yml`)가 push·pull request 마다 위 둘을 돌린다
+
+★봇 시험(`scripts/propagate/__tests__/`)이 `src` 밖에 있는 이유: `package.json` 의 `files` 가 `src` 를 통째로 포장해 앱 3곳으로 보내고, 세 앱은 그 시험을 **자기 배포 관문에서 돌린다**(ERP `vitest.shared.config.ts` 등). 봇 시험은 앱에 없는 `scripts/propagate/*.sh` 를 실행하므로 거기 있으면 3앱 배포가 막힌다. 포장에 다시 새지 않는지는 `pack-excludes.test.ts` 가 진짜 `npm pack` 으로 잰다.
 
 ★`tsconfig.json` 의 `include` 를 **좁히지 마라.** `@wedly/ui-shared` 가 `include` 를 두 폴더로 좁혀 두는 바람에 상세창 코드가 타입 검사 없이 앱으로 나간 사고가 있었다. 이 보관함은 `src` 전체를 검사한다.
 
