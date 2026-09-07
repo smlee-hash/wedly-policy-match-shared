@@ -393,3 +393,55 @@ describe("자금 조달 지도 서랍(재설계 §G3) — 유지되는 기능(�
     expect(서랍(공고_무상, () => {}), "안 묶였으면 자리 자체가 없다").not.toContain("같은 공고");
   });
 });
+
+/**
+ * ★독립 리뷰(2026-09-07) 지적 3 — 「AI 상세 판정」은 `endpoints.verdict` 가 있는 앱에만 있다.
+ *
+ * 서랍은 공고 발에 언제나 「공고 원문 · 첨부 · AI 상세 판정」 안내와 「상세·AI 판정 열기」 단추를
+ * 그렸다. 판정 통로가 없는 앱(랩의 일부 배치·외부용)에서는 **있지도 않은 기능을 약속**하는 셈이라
+ * 화면 계약(`endpoints` 없으면 그 자리 자체가 없다)과 어긋난다. 기본값은 true — 일루아·ERP 의
+ * 기존 동작은 한 글자도 안 바뀐다(아래 대조군이 그것을 잠근다).
+ */
+describe("AI 판정 통로가 없는 앱 — 서랍이 AI 를 약속하지 않는다", () => {
+  const 서랍_AI없음 = (item: FundingItem, onOpenDetail?: (id: string) => void): string =>
+    renderToStaticMarkup(
+      <FundingDrawer
+        item={item}
+        onClose={() => {}}
+        onOpenDetail={onOpenDetail}
+        now={NOW}
+        aiVerdictAvailable={false}
+      />,
+    );
+
+  it("aiVerdictAvailable={false} 면 그려 낸 화면에 「AI」가 한 번도 안 나온다", () => {
+    const html = 서랍_AI없음(공고_무상, () => {});
+    expect(html, "안내문·단추 어디에도 AI 를 약속하지 않는다").not.toContain("AI");
+  });
+
+  it("단추 문구는 「상세 열기」 — 갈 곳은 그대로 있다", () => {
+    const html = 서랍_AI없음(공고_무상, () => {});
+    expect(html).toContain("상세 열기");
+    expect(html).not.toContain("상세·AI 판정 열기");
+    expect(html).toContain("<button");
+  });
+
+  it("갈 곳조차 없으면(onOpenDetail 없음) 단추도 없고 AI 도 없다", () => {
+    const html = 서랍_AI없음(공고_무상);
+    expect(html).not.toContain("AI");
+    expect(html).toContain("전체 공고 탐색");
+  });
+
+  it("★대조군 — 기본값(안 넘김)은 기존 문구 그대로다(ERP·일루아 동작 불변)", () => {
+    const html = 서랍(공고_무상, () => {});
+    expect(html).toContain("공고 원문 · 첨부 · AI 상세 판정");
+    expect(html).toContain("상세·AI 판정 열기");
+  });
+
+  it("aiVerdictAvailable={true} 를 대놓고 넘겨도 같다", () => {
+    const html = renderToStaticMarkup(
+      <FundingDrawer item={공고_무상} onClose={() => {}} onOpenDetail={() => {}} now={NOW} aiVerdictAvailable />,
+    );
+    expect(html).toContain("상세·AI 판정 열기");
+  });
+});

@@ -46,7 +46,7 @@ ERP `/policy-match` 화면(조립기 `PolicyMatchScreen` + 조각 넷 + `Modal`)
 | `features` | 앱이 대신 하는 일(`exportSources`·`parseError`·`sourcesTrailingPaddingClass`) | ERP 규약·엑셀 단추 없음·여백 0 |
 
 ```tsx
-import { PolicyMatchScreen } from "@wedly/policy-match-shared/ui/policy/PolicyMatchScreen";
+import PolicyMatchScreen from "@wedly/policy-match-shared/ui/policy/PolicyMatchScreen";
 import { ERP_POLICY_MATCH_ENDPOINTS } from "@wedly/policy-match-shared/ui/policy/endpoints";
 
 <PolicyMatchScreen
@@ -56,6 +56,8 @@ import { ERP_POLICY_MATCH_ENDPOINTS } from "@wedly/policy-match-shared/ui/policy
 ```
 
 **이 여섯 부품은 `./ui`(배럴)에 넣지 않았다** — "use client" 부품을 통째로 끌고 오기 때문이다. 낱개 주소로 부른다.
+
+`PolicyMatchScreen` 은 **기본 내보내기**다(위 예제). 이름으로 쓰고 싶으면 배럴(`…/ui/policy`)이나 같은 파일의 이름 내보내기(`import { PolicyMatchScreen } from "…/ui/policy/PolicyMatchScreen"`) 둘 다 된다 — 셋이 같은 부품을 가리킨다. **README 의 가져오기 예제가 실물과 맞는지는 `src/readme-imports.test.ts` 가 실제로 불러서 잰다**(예제를 고칠 땐 그 시험도 함께 돌린다).
 
 ### 2-a. 자료 읽기는 인자로 받는다
 

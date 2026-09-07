@@ -62,13 +62,20 @@ async function drain(res: AttachmentDownloadResult): Promise<Uint8Array> {
   return out;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   findUnique.mockReset();
-  wrapMock.mockClear();
+  // 감싸개 mock 은 시험마다 **실물 구현**으로 되돌린다 — 한 시험이 건 `mockReturnValue` 가 다음
+  // 시험으로 새면 거기서 상류를 진짜로 두드릴 수 있다(mockClear 는 구현을 안 지운다).
+  const actual = await vi.importActual<typeof import("../collect/board/attachment-fetch")>(
+    "../collect/board/attachment-fetch",
+  );
+  wrapMock.mockReset();
+  wrapMock.mockImplementation(actual.wrapAttachmentFetch);
   resetAttachmentRateLimitForTest();
   vi.unstubAllGlobals();
 });
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   resetAttachmentRateLimitForTest();
 });
@@ -416,5 +423,126 @@ describe("⑤⑥⑦ 시간 상한·302 추적·매직바이트", () => {
       vi.fn(async () => new Response(new TextEncoder().encode("not a file at all"), { status: 200 })),
     );
     expect((await call("a1", "0")).status).toBe(502);
+  });
+});
+
+
+/**
+ * ★독립 리뷰(2026-09-07) 지적 1·2·5 — 원문(ERP 라우트)에도 있던 결함 두 개와 시험 공백 하나.
+ *
+ * ① 잠금 고착: 본문을 흘리다 상류 연결이 끊기면 `reader.read()` 가 **거절**하는데, 그 길에는
+ *    잠금 해제가 없었다 → 그 공고는 프로세스가 죽을 때까지 429.
+ * ② 동시 1건 경쟁: 잠금 확인과 잠금 설정 사이에 DB 조회(`await`)가 있어 같은 공고 두 요청이
+ *    **둘 다** 통과했다. 기존 시험은 첫 호출을 `await` 해서 이 틈을 못 잡는다.
+ * ⑤ 30초 경계: 「본문이 머리글 상한에 안 끊긴다」 시험이 30ms 만 기다려, 본문 시계로 갈아 끼우는
+ *    `clearTimeout(timer)` 를 지워도 초록이었다 — 가짜 시계로 30초·10분 두 경계를 직접 넘어 본다.
+ */
+describe("리뷰 반영 — 잠금 해제·동시 경쟁·시간 경계", () => {
+  it("★본문 도중 연결이 끊겨도 잠금이 풀린다 — 같은 공고의 다음 요청이 429 가 아니다", async () => {
+    findUnique.mockResolvedValue(row([postAtt]));
+    let sentHead = false;
+    const body = new ReadableStream<Uint8Array>({
+      pull(c) {
+        if (sentHead) {
+          c.error(new Error("연결 끊김"));
+          return;
+        }
+        sentHead = true;
+        c.enqueue(PDF_HEAD); // 매직바이트 검사는 지나간다 — 끊기는 건 그 뒤 본문이다
+      },
+    });
+    wrapMock.mockReturnValueOnce(vi.fn(async () => new Response(body, { status: 200 })));
+    const first = await call("a1", "0");
+    expect(first.status).toBe(200);
+    await expect(drain(first)).rejects.toThrow();
+
+    wrapMock.mockReturnValueOnce(vi.fn(async () => new Response(HWP_HEAD, { status: 200 })));
+    const again = await call("a1", "0");
+    expect(again.status, "끊긴 내려받기가 잠금을 물고 있으면 여기서 429 가 된다").toBe(200);
+    await drain(again);
+  });
+
+  it("★같은 공고 두 요청이 **동시에** 와도 상류는 한 번만 두드린다 — 하나는 429", async () => {
+    findUnique.mockResolvedValue(row([postAtt]));
+    const send = vi.fn(async () => new Response(HWP_HEAD, { status: 200 }));
+    wrapMock.mockReturnValue(send);
+    const [a, b] = await Promise.all([call("a1", "0"), call("a1", "0")]);
+    expect([a.status, b.status].sort()).toEqual([200, 429]);
+    expect(send, "잠금을 DB 조회 뒤에 잡으면 둘 다 통과해 두 번 두드린다").toHaveBeenCalledTimes(1);
+    const ok = a.status === 200 ? a : b;
+    await drain(ok);
+  });
+
+  it("★본문은 머리글 상한(30초)을 넘겨도 계속 흐른다 — 가짜 시계로 45초를 보낸다", async () => {
+    vi.useFakeTimers();
+    findUnique.mockResolvedValue(row([postAtt]));
+    const TAIL = new Uint8Array([0x0a, 0x0b, 0x0c, 0x0d]);
+    let open: () => void = () => {};
+    const gate = new Promise<void>((r) => {
+      open = r;
+    });
+    let pulls = 0;
+    const body = new ReadableStream<Uint8Array>({
+      async pull(c) {
+        pulls += 1;
+        if (pulls === 1) {
+          c.enqueue(PDF_HEAD);
+          return;
+        }
+        if (pulls === 2) {
+          await gate; // 45초가 흐르는 동안 본문이 멈춰 있는 상황
+          c.enqueue(TAIL);
+          return;
+        }
+        c.close();
+      },
+    });
+    let usedSignal: AbortSignal | undefined;
+    wrapMock.mockReturnValueOnce(
+      vi.fn(async (_u: string, init?: RequestInit) => {
+        usedSignal = init?.signal as AbortSignal;
+        return new Response(body, { status: 200 });
+      }),
+    );
+    const res = await call("a1", "0");
+    expect(res.status).toBe(200);
+    const got = drain(res);
+    await vi.advanceTimersByTimeAsync(45_000);
+    expect(usedSignal?.aborted, "머리글 시계를 본문 시계로 안 갈아 끼우면 30초에 끊긴다").toBe(false);
+    open();
+    expect(await got).toEqual(new Uint8Array([...PDF_HEAD, ...TAIL]));
+  });
+
+  it("★본문이 10분을 넘기면 끊는다 — 신호를 끊고 잠금도 푼다", async () => {
+    vi.useFakeTimers();
+    findUnique.mockResolvedValue(row([postAtt]));
+    let ctrl: ReadableStreamDefaultController<Uint8Array> | null = null;
+    const body = new ReadableStream<Uint8Array>({
+      start(c) {
+        ctrl = c;
+        c.enqueue(PDF_HEAD);
+      },
+    });
+    let usedSignal: AbortSignal | undefined;
+    wrapMock.mockReturnValueOnce(
+      vi.fn(async (_u: string, init?: RequestInit) => {
+        usedSignal = init?.signal as AbortSignal;
+        // 진짜 fetch 는 신호가 끊기면 본문 스트림도 오류로 끝낸다 — 그 모양을 흉내 낸다.
+        usedSignal?.addEventListener("abort", () => ctrl?.error(new Error("시간 초과로 끊김")));
+        return new Response(body, { status: 200 });
+      }),
+    );
+    const res = await call("a1", "0");
+    expect(res.status).toBe(200);
+    await vi.advanceTimersByTimeAsync(9 * 60_000);
+    expect(usedSignal?.aborted, "9분에는 아직 살아 있어야 한다").toBe(false);
+    await vi.advanceTimersByTimeAsync(90_000);
+    expect(usedSignal?.aborted, "본문 상한 10분을 넘기면 끊는다").toBe(true);
+    await expect(drain(res)).rejects.toThrow();
+
+    wrapMock.mockReturnValueOnce(vi.fn(async () => new Response(HWP_HEAD, { status: 200 })));
+    const again = await call("a1", "0");
+    expect(again.status, "시간 초과로 끊긴 뒤에도 잠금이 남으면 429 가 된다").toBe(200);
+    await drain(again);
   });
 });

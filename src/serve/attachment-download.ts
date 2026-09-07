@@ -111,6 +111,17 @@ function cappedStream(
 ): ReadableStream<Uint8Array> {
   let total = head.byteLength;
   let sentHead = false;
+  /**
+   * ★잠금 해제는 **정확히 한 번**만 돈다(2026-09-07 독립 리뷰 지적 1). 종료 경로가 다섯이라
+   *  (정상 끝·상류 오류·크기 상한·손님 취소·시간 초과) 어느 하나라도 빠지면 그 공고는
+   *  프로세스가 죽을 때까지 429 가 되고, 두 번 불리면 **다음 요청의 잠금**을 지운다.
+   */
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    onDone();
+  };
   return new ReadableStream<Uint8Array>({
     async pull(controller) {
       if (!sentHead) {
@@ -120,9 +131,19 @@ function cappedStream(
           return;
         }
       }
-      const { done, value } = await reader.read();
+      let read: ReadableStreamReadResult<Uint8Array>;
+      try {
+        read = await reader.read();
+      } catch (err) {
+        // ★상류가 끊기거나(연결 오류) 시간 상한으로 abort 되면 read() 는 **거절**한다 —
+        //  옛 코드엔 이 길에 해제가 없어 잠금이 그대로 남았다(리뷰 지적 1의 실제 자리).
+        finish();
+        controller.error(err instanceof Error ? err : new Error(String(err)));
+        return;
+      }
+      const { done, value } = read;
       if (done) {
-        onDone();
+        finish();
         controller.close();
         return;
       }
@@ -130,14 +151,14 @@ function cappedStream(
       total += value.byteLength;
       if (total > maxBytes) {
         await reader.cancel().catch(() => {});
-        onDone();
+        finish();
         controller.error(new Error("첨부 크기 상한 초과"));
         return;
       }
       controller.enqueue(value);
     },
     async cancel(reason) {
-      onDone();
+      finish();
       await reader.cancel(reason).catch(() => {});
     },
   });
@@ -210,7 +231,13 @@ export async function downloadAttachment(
   q: Pick<ServeQuery, "findAnnouncement">,
   input: AttachmentDownloadInput,
 ): Promise<AttachmentDownloadResult> {
-  let lockKey = "";
+  /**
+   * ★잠금·시계·손님 신호를 푸는 **한 자리**. 잠금을 잡기 전엔 아무 일도 안 하는 빈 함수고,
+   *  잡은 뒤엔 어느 길로 끝나든 정확히 한 번만 돈다(아래 `finally`).
+   */
+  let release = () => {};
+  /** 흘려보내기로 넘어갔는가 — 넘어갔으면 잠금 해제는 그 스트림(`cappedStream`)이 맡는다. */
+  let handedOff = false;
   try {
     const announcementId = (input.id ?? "").trim();
     // 자리번호는 0 이상 정수만 — 「01x」·「1e2」·음수·소수는 전부 거절한다.
@@ -231,6 +258,24 @@ export async function downloadAttachment(
         "Retry-After": "5",
       });
     }
+    /**
+     * ★잠금은 **DB 를 보기 전에**, 확인 바로 다음 줄에서 잡는다(2026-09-07 독립 리뷰 지적 2).
+     *  확인과 설정 사이에 `await`(조회)를 두면 같은 공고 두 요청이 그 틈에 **둘 다** 통과해
+     *  「공고당 동시 1건」이 무너진다 — 상류를 두 번 두드리게 되는 자리다.
+     *  자바스크립트는 한 줄씩 돌므로 사이에 `await` 가 없으면 이 두 줄은 쪼개지지 않는다.
+     *  대신 조회 실패·404·400·302 같은 **모든 조기 반환**에서 풀어야 한다 → 아래 `finally`.
+     */
+    attachmentInflight.add(announcementId);
+    let released = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let onClientGone: (() => void) | undefined;
+    release = () => {
+      if (released) return;
+      released = true;
+      if (timer !== undefined) clearTimeout(timer);
+      if (onClientGone) input.signal?.removeEventListener?.("abort", onClientGone);
+      attachmentInflight.delete(announcementId);
+    };
 
     const row = await q.findAnnouncement<AttachmentRow>(announcementId, ATTACHMENT_ROW_SELECT);
     if (!row) return fail(404, "NOT_FOUND", "공고를 찾을 수 없습니다.");
@@ -272,17 +317,9 @@ export async function downloadAttachment(
      * 큰 내려받기가 아무도 안 보는 채로 끝까지 흐른다.
      */
     const ac = new AbortController();
-    let timer: ReturnType<typeof setTimeout> = setTimeout(() => ac.abort(), ATTACHMENT_HEADERS_TIMEOUT_MS);
-    const onClientGone = () => ac.abort();
+    timer = setTimeout(() => ac.abort(), ATTACHMENT_HEADERS_TIMEOUT_MS);
+    onClientGone = () => ac.abort();
     input.signal?.addEventListener?.("abort", onClientGone);
-    const release = () => {
-      clearTimeout(timer);
-      input.signal?.removeEventListener?.("abort", onClientGone);
-      attachmentInflight.delete(announcementId);
-    };
-
-    attachmentInflight.add(announcementId);
-    lockKey = announcementId;
 
     const headers: Record<string, string> = { ...(att.headers ?? {}) };
     if (!Object.keys(headers).some((k) => k.toLowerCase() === "content-type")) {
@@ -326,16 +363,16 @@ export async function downloadAttachment(
         break;
       }
     } catch {
-      release();
+      // 잠금·시계·신호는 아래 `finally` 가 푼다(조기 반환마다 손으로 적으면 한 자리를 빠뜨린다).
       return fail(502, "UPSTREAM_FAILED", "첨부를 받아오지 못했습니다. 원문에서 확인해 주세요.");
     }
     if (!upstream || !upstream.ok || !upstream.body) {
       await upstream?.body?.cancel().catch(() => {});
-      release();
       return fail(502, "UPSTREAM_FAILED", "첨부를 받아오지 못했습니다. 원문에서 확인해 주세요.");
     }
 
     // 머리글이 왔다 — 이제부터는 본문 상한(10분)이다.
+    // ★이 갈아 끼우기가 빠지면 30초짜리 머리글 시계가 살아 남아 **본문을 30초에 끊는다.**
     clearTimeout(timer);
     timer = setTimeout(() => ac.abort(), ATTACHMENT_BODY_TIMEOUT_MS);
 
@@ -351,10 +388,11 @@ export async function downloadAttachment(
     const rawType = (upstream.headers.get("content-type") ?? "").trim();
     if (/^text\/html/i.test(rawType) || !sniffAttachmentKind(head)) {
       await reader.cancel().catch(() => {});
-      release();
       return fail(502, "NOT_A_FILE", "첨부가 아닌 응답이 왔습니다. 원문에서 확인해 주세요.");
     }
 
+    // 여기서부터 잠금 해제는 **흘려보내는 스트림**이 맡는다(끝·오류·취소·상한 어느 쪽으로 끝나든 한 번).
+    handedOff = true;
     return {
       kind: "stream",
       status: 200,
@@ -368,7 +406,6 @@ export async function downloadAttachment(
       },
     };
   } catch (err) {
-    if (lockKey) attachmentInflight.delete(lockKey);
     // 오류를 **객체째** 밖으로 내보내지 않는다 — 어떤 오류는 `input` 에 경유 주소(비밀번호 포함)를 달고 온다.
     // 앱 일지에 남길 것은 `logMessage`(글자 한 줄)뿐이고, 손님에게는 `message` 만 간다.
     return {
@@ -378,5 +415,8 @@ export async function downloadAttachment(
       message: "첨부를 내려받지 못했습니다.",
       logMessage: err instanceof Error ? err.message : String(err),
     };
+  } finally {
+    // ★단 하나의 해제 자리 — 흘려보내기로 넘어간 경우만 빼고 **모든** 종료 경로가 여기를 지난다.
+    if (!handedOff) release();
   }
 }

@@ -98,17 +98,36 @@ function DotChip({ tone, children }: { tone?: FundingGroupTone; children: ReactN
   );
 }
 
-/** 공고 서랍의 발 — 원문·첨부·AI 상세 판정은 상세 화면 몫이라는 안내와 그리로 가는 단추. */
-function AnnouncementDetailLink({ item, onOpenDetail }: { item: FundingItem; onOpenDetail?: (id: string) => void }) {
+/**
+ * 공고 서랍의 발 — 원문·첨부(·AI 상세 판정)는 상세 화면 몫이라는 안내와 그리로 가는 단추.
+ *
+ * ★`aiVerdictAvailable` 이 false 면 **AI 를 한 글자도 안 적는다**(2026-09-07 독립 리뷰 지적 3).
+ *  AI 판정 통로(`endpoints.verdict`)가 없는 앱에서 「AI 상세 판정」이라고 적으면 화면이
+ *  **있지도 않은 기능**을 약속하는 셈이 된다 — 「없는 주소는 그 자리 자체가 없다」는 화면 계약과
+ *  같은 규칙이다. 갈 곳(상세)은 그대로라 단추는 남기고 이름만 「상세 열기」로 줄인다.
+ */
+function AnnouncementDetailLink({
+  item,
+  onOpenDetail,
+  aiVerdictAvailable,
+}: {
+  item: FundingItem;
+  onOpenDetail?: (id: string) => void;
+  aiVerdictAvailable: boolean;
+}) {
   return (
     <div className={PANEL}>
-      <h3 className="text-wedly-sub font-semibold text-wedly-t1">공고 원문 · 첨부 · AI 상세 판정</h3>
+      <h3 className="text-wedly-sub font-semibold text-wedly-t1">
+        {aiVerdictAvailable ? "공고 원문 · 첨부 · AI 상세 판정" : "공고 원문 · 첨부"}
+      </h3>
       <p className="mt-1 break-keep text-wedly-sub text-wedly-t2">
-        위 조건 목록이 이 공고의 판정 결과입니다. 원문·첨부와 AI 상세 판정은 상세 화면에서 봅니다.
+        {aiVerdictAvailable
+          ? "위 조건 목록이 이 공고의 판정 결과입니다. 원문·첨부와 AI 상세 판정은 상세 화면에서 봅니다."
+          : "위 조건 목록이 이 공고의 판정 결과입니다. 원문·첨부는 상세 화면에서 봅니다."}
       </p>
       {onOpenDetail ? (
         <button type="button" className={cn(LINK_BTN, "mt-2")} onClick={() => onOpenDetail(item.refId)}>
-          상세·AI 판정 열기
+          {aiVerdictAvailable ? "상세·AI 판정 열기" : "상세 열기"}
           <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       ) : (
@@ -464,11 +483,17 @@ interface Props {
   onClose: () => void;
   /** 공고의 상세·AI 판정 화면을 여는 손잡이(부모가 목록 보기로 전환한다). 없으면 단추를 안 그린다. */
   onOpenDetail?: (announcementId: string) => void;
+  /**
+   * 이 앱에 **AI 상세 판정 통로가 있는가**(`endpoints.verdict`). 기본 true —
+   * ERP·일루아의 기존 동작은 그대로다. false 면 공고 발의 안내·단추에서 AI 를 빼고
+   * 「상세 열기」로 적는다(없는 기능을 약속하지 않는다 · 2026-09-07 독립 리뷰 지적 3).
+   */
+  aiVerdictAvailable?: boolean;
   /** 마감 계산 기준 시각 — 생략하면 지금(new Date()). 시험이 고정값을 넣는다(FundingMap 과 같은 규칙). */
   now?: Date;
 }
 
-export default function FundingDrawer({ item, onClose, onOpenDetail, now }: Props) {
+export default function FundingDrawer({ item, onClose, onOpenDetail, aiVerdictAvailable = true, now }: Props) {
   if (!item) return null;
   const effectiveNow = now ?? new Date();
   // ★종류를 못 가른 줄은 **갈래 이름을 쓰지 않는다**(코덱스 반려 1, 2026-09-05). 미확인 줄은 갈래
@@ -548,7 +573,7 @@ export default function FundingDrawer({ item, onClose, onOpenDetail, now }: Prop
         )}
 
         {item.kind === "announcement" ? (
-          <AnnouncementDetailLink item={item} onOpenDetail={onOpenDetail} />
+          <AnnouncementDetailLink item={item} onOpenDetail={onOpenDetail} aiVerdictAvailable={aiVerdictAvailable} />
         ) : (
           <ProductDetail item={item} />
         )}

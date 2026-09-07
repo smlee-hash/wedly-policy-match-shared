@@ -582,12 +582,24 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
         trailingPaddingClass={features?.sourcesTrailingPaddingClass ?? ""}
       />
 
-      {/* 서랍은 화면 위에 덮이는 판(SidePanel)이라 자리는 맨 끝이면 된다 — 좁은 화면에선 전폭이 된다. */}
+      {/* 서랍은 화면 위에 덮이는 판(SidePanel)이라 자리는 맨 끝이면 된다 — 좁은 화면에선 전폭이 된다.
+          ★`aiVerdictAvailable` 은 다른 자리(「AI 판정」 단추·돌파구)와 **같은 규칙**이다 —
+          통로가 없는 앱에서는 서랍도 AI 를 약속하지 않는다(2026-09-07 독립 리뷰 지적 3). */}
       <FundingDrawer
         item={mapUi.openItem}
         onClose={() => dispatchMapUi({ type: "close" })}
         onOpenDetail={openDetailFromMap}
+        aiVerdictAvailable={!!endpoints.verdict}
       />
     </div>
   );
 }
+
+/**
+ * ★기본 내보내기와 **같은 부품을 이름으로도** 내보낸다(2026-09-07 독립 리뷰 지적 4).
+ *  낱개 주소(`…/ui/policy/PolicyMatchScreen`)에서 `{ PolicyMatchScreen }` 로 가져오는 코드가
+ *  이미 문서·앱에 적혀 있었는데 기본 내보내기밖에 없어 소비 앱 빌드에서만 TS2724 로 터졌다.
+ *  기본 내보내기는 그대로 둔다 — 기존 껍데기(`export { default } from …`)가 계속 돌아야 한다.
+ *  README 예제가 실제로 되는지는 `src/readme-imports.test.ts` 가 불러서 잰다.
+ */
+export { PolicyMatchScreen };
