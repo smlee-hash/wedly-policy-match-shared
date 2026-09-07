@@ -1,5 +1,14 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -802,6 +811,70 @@ else if (cmd === "check") {
     expect(r.stderr).toContain("후처리 실패: npm run design:check");
     expect(r.out).toContain("result=failed");
     expect(sh("git rev-parse main", app.bare)).toBe(before);
+  }, 60_000);
+
+  // ── 2차 리뷰 F2: 산출물을 얹을 자리가 심볼릭 링크면 밀지 않는다 ──
+
+  it("기준 커밋의 커밋 대상이 심볼릭 링크면 밀지 않는다 — `.git/config` 가 덮이지 않는다", () => {
+    // 앱 저장소의 기준 커밋이 `registry.generated.json` 을 `../../../.git/config` 로 걸어 두면,
+    // 밀기 단계가 그 자리에 파일을 쓰는 순간 **클론의 git 설정이 덮인다**(자격 도우미·url.insteadOf
+    // 를 심어 다음 git 호출에서 토큰을 빼돌리는 길). 그래서 덮어쓰기 전에 막아야 한다.
+    const app = fakeApp(tmp, "erp", pkg.c1, (w) => {
+      mkdirSync(join(w, "src/lib/design-system"), { recursive: true });
+      symlinkSync("../../../.git/config", join(w, "src/lib/design-system/registry.generated.json"));
+    });
+    const before = sh("git rev-parse main", app.bare);
+    const baseSha = before;
+    const MARKER = "[credential]\n\thelper = !사악한도우미\n";
+    writeArtifact(
+      tmp,
+      { app: "erp", result: "prepared", baseSha, pinFrom: pkg.c1, pinTo: pkg.c3, subject: "feat: 시험 커밋" },
+      {
+        "package.json": pkgJsonAt("erp", pkg.c3),
+        "package-lock.json": lockJsonAt(pkg.c3),
+        "src/lib/design-system/registry.generated.json": MARKER,
+      },
+    );
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "erp",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/심볼릭 링크/);
+    expect(sh("git rev-parse main", app.bare)).toBe(before); // 원격 불변
+
+    // 그리고 클론의 `.git/config` 는 산출물 내용으로 덮이지 않았다 — 여전히 git 설정 파일이다.
+    const cloneConfig = readFileSync(join(tmp, "work/push-erp/.git/config"), "utf8");
+    expect(cloneConfig).not.toContain("사악한도우미");
+    expect(cloneConfig).toContain('[remote "origin"]');
+    expect(sh("git config --get remote.origin.url", join(tmp, "work/push-erp"))).toBe(app.bare);
+  }, 60_000);
+
+  it("밀기 단계는 실행기가 심어 둔 git 설정을 눌러 버린다 — 남의 갈고리가 토큰 옆에서 돌지 않는다", () => {
+    // 2차 리뷰 F2: 밀기 job 은 토큰을 쥔 자리다. 실행기 환경이 `core.hooksPath` 같은 설정을 들고
+    // 있으면 그 갈고리가 우리 git 호출과 함께 돈다. 그래서 스크립트가 `GIT_CONFIG_COUNT` 로
+    // 자격 도우미·갈고리·대리 서버·ssh 명령을 전부 눌러 둔다.
+    // 재는 법: **일부러 죽는 갈고리**를 환경으로 물려준다. 눌러 두지 않으면 커밋이 실패한다.
+    const hooks = join(tmp, "적대적-갈고리");
+    mkdirSync(hooks, { recursive: true });
+    writeFileSync(join(hooks, "pre-commit"), "#!/usr/bin/env bash\necho '갈고리가 돌았습니다' >&2\nexit 1\n");
+    chmodSync(join(hooks, "pre-commit"), 0o755);
+
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const r = runAll(tmp, {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+      GIT_CONFIG_COUNT: "1",
+      GIT_CONFIG_KEY_0: "core.hooksPath",
+      GIT_CONFIG_VALUE_0: hooks,
+    });
+    expect(r.push?.code, r.push?.stderr).toBe(0);
+    expect(r.push?.stderr).not.toContain("갈고리가 돌았습니다");
+    expect(r.push?.out).toContain("result=updated");
   }, 60_000);
 
   it("커밋할 파일이 없으면(등록부 미생성) 1 로 끝나고 무엇이 없는지 알린다", () => {

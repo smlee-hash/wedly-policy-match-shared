@@ -164,6 +164,48 @@ meta_field() {
   ' "$META" "$1"
 }
 
+# 산출물 파일을 덮어쓸 자리가 **정말 그 자리인지** 본다(2026-09-08 2차 리뷰 F2 · P1).
+#
+# ★막는 사고: 앱 기준 커밋이 `src/lib/design-system/registry.generated.json` 을
+#  `../../../.git/config` 를 가리키는 **심볼릭 링크**로 담고 있으면, 그 자리에 파일을 쓰는 순간
+#  링크를 따라가 클론의 `.git/config` 가 덮인다 — 그 다음 git 호출에 남의 설정(자격 도우미·
+#  `url.insteadOf`)이 얹혀 **토큰이 남의 서버로 나갈 수 있다.**
+#
+# ★두 겹으로 본다:
+#  ① 파일 시스템: 경로를 `a`, `a/b`, `a/b/c` 로 하나씩 걸으며 `[ -L ]` 로 링크를 찾는다.
+#     마지막 칸은 이미 있다면 **보통 파일**이어야 하고, 중간 칸은 **폴더**여야 한다.
+#  ② git 색인: `git ls-files -s -- <경로>` 의 mode 가 `120000`(=심볼릭 링크)이면 거부.
+#     `core.symlinks=false` 인 클론에서는 링크가 **평범한 글자 파일**로 풀려 ①이 못 잡는다.
+assert_plain_commit_path() {
+  local rel="$1" acc="" rest="$1" part mode
+  case "$rel" in
+    ""|/*|.*|*/../*|*/..|../*) die "[$APP_ID] 커밋 대상 경로가 이상합니다: '${rel}' — 밀지 않았습니다" ;;
+  esac
+  while [ -n "$rest" ]; do
+    part="${rest%%/*}"
+    if [ "$part" = "$rest" ]; then rest=""; else rest="${rest#*/}"; fi
+    [ -n "$part" ] || die "[$APP_ID] 커밋 대상 경로가 이상합니다: '${rel}' — 밀지 않았습니다"
+    if [ -z "$acc" ]; then acc="$part"; else acc="$acc/$part"; fi
+
+    if [ -L "$acc" ]; then
+      die "[$APP_ID] 커밋 대상 경로에 심볼릭 링크가 있습니다: ${acc} — 밀지 않았습니다"
+    fi
+    if [ -n "$rest" ]; then
+      if [ -e "$acc" ] && [ ! -d "$acc" ]; then
+        die "[$APP_ID] 커밋 대상 경로의 중간이 폴더가 아닙니다: ${acc} — 밀지 않았습니다"
+      fi
+    elif [ -e "$acc" ] && [ ! -f "$acc" ]; then
+      die "[$APP_ID] 커밋 대상이 보통 파일이 아닙니다: ${acc} — 밀지 않았습니다"
+    fi
+
+    # git 이 그 칸을 링크로 기록해 뒀는가(경로가 정확히 그것인 항목만 본다)
+    mode="$(git ls-files -s -- "$acc" 2>/dev/null | awk -F'\t' -v p="$acc" '$2 == p { split($1, a, " "); print a[1]; exit }')"
+    if [ "$mode" = "120000" ]; then
+      die "[$APP_ID] 기준 커밋이 그 자리를 심볼릭 링크로 담고 있습니다: ${acc} — 밀지 않았습니다"
+    fi
+  done
+}
+
 checkout_base() {
   if git checkout -q --detach "$BASE_SHA" 2>/dev/null; then return 0; fi
   if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
@@ -209,6 +251,17 @@ run_push() {
 
   # 실행기의 전역·시스템 git 설정도 믿지 않는다(리뷰 R2) — 이 자리는 토큰을 쥐고 있다.
   export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+  # 그리고 **저장소 설정도** 눌러 둔다(2차 리뷰 F2). 이 자리에서 도는 git 은 남이 심어 둘 수 있는
+  # 자격 도우미·갈고리·대리 서버·ssh 명령을 하나도 쓰지 않아야 한다.
+  #   credential.helper=  (빈 값 = 지금까지 쌓인 도우미 목록을 초기화) · core.hooksPath=/dev/null
+  #   http.proxy=         (대리 서버로 토큰이 새 나가지 않게)        · core.sshCommand=false(늘 실패)
+  # ★로컬 경로 원격에서도 안전하다: git 은 자기가 띄우는 upload-pack·receive-pack 에게
+  #   `GIT_CONFIG_COUNT` 를 물려주지 않는다(local_repo_env). 그래서 시험의 서버 쪽 갈고리는 그대로 돈다.
+  export GIT_CONFIG_COUNT=4
+  export GIT_CONFIG_KEY_0="credential.helper" GIT_CONFIG_VALUE_0=""
+  export GIT_CONFIG_KEY_1="core.hooksPath" GIT_CONFIG_VALUE_1="/dev/null"
+  export GIT_CONFIG_KEY_2="http.proxy" GIT_CONFIG_VALUE_2=""
+  export GIT_CONFIG_KEY_3="core.sshCommand" GIT_CONFIG_VALUE_3="false"
 
   WORK="$WORK_PARENT/push-$APP_ID"
   clone_app "$WORK"
@@ -219,7 +272,11 @@ run_push() {
 
   for P in ${COMMIT_PATHS[@]+"${COMMIT_PATHS[@]}"}; do
     [ -f "$OUT/$P" ] || die "[$APP_ID] 산출물에 파일이 없습니다: ${P}"
+    assert_plain_commit_path "$P"
     mkdir -p "$(dirname "$P")"
+    # `rm -f` 먼저: 그 자리가 심볼릭 링크면 `cp` 가 **링크를 따라가** 엉뚱한 파일을 덮어쓴다.
+    # (위 검사가 이미 링크를 막지만, 덮어쓰기 자체도 링크를 따라가지 않게 해 둔다.)
+    rm -f "$P"
     cp "$OUT/$P" "$P"
   done
 
