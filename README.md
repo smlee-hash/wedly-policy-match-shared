@@ -125,7 +125,7 @@ export interface FundingMapLoaders {
 
 | 앱 | 저장소 | 봇이 고치는 것 |
 |---|---|---|
-| ERP | `wedly-erp` | `package.json`·`package-lock.json` + `npm ci` 뒤 설계 등록부 `src/lib/design-system/registry.generated.json` 재생성 |
+| ERP | `wedly-erp` | `package.json`·`package-lock.json` + `npm ci` 뒤 설계 등록부 `src/lib/design-system/registry.generated.json` 재생성 → **`npm run design:check`**(Railway 가 ERP `build` 첫 단계로 돌리는 바로 그 명령) |
 | 일루아 | `wedly-illua-collab` | `package.json`·`package-lock.json` |
 | 랩 | `wedly-policy-lab` | `package.json`·`package-lock.json` |
 
@@ -141,6 +141,15 @@ chore(정책매칭 공용): 핀 b404b4b — <이 저장소의 커밋 제목>
 - **위 표의 파일 말고 다른 것이 바뀌면 멈춘다.** 무엇이 바뀌었는지 로그에 적고 아무것도 밀지 않는다.
 - **사람 커밋을 덮어쓰지 않는다.** 같은 순간에 사람이 밀어 푸시가 거부되면 `origin/main` 위로 다시 얹어 최대 3번 다시 민다. 충돌하면 멈추고 사람을 부른다.
 - **실패를 조용히 넘기지 않는다.** 실패하면 슬랙(ERP 내부 알림 통로)으로 알린다. 그때 그 앱의 `main` 은 **옛 핀 그대로**다 — 반쯤 반영된 상태가 남지 않는다.
+
+**배포까지 확인한다.** 핀을 민 뒤 봇은 그 앱이 공개로 내놓는 `GET /api/build-id`(`{commitSha}`)를
+**30초마다 최대 30분** 물어, 방금 만든 봇 커밋이 배포본에 나타나는지 본다. 나타나면 거기서 끝이고,
+안 나타나면 슬랙(위와 같은 통로)으로 **「배포 확인 못 함」** 이 온다. 그때도 **반영 자체는 성공**이다 —
+앱 `main` 에는 새 핀이 이미 들어가 있다. 이 방법은 비밀값이 하나도 필요 없는 대신
+**「빌드 실패」와 「그냥 늦음」을 구분하지 못한다**. 알림이 오면 Railway 화면에서 그 서비스의 배포를 본다.
+빌드가 실패한 것이면 **옛 배포가 그대로 살아 있고**(새 핀은 코드에만 있다), 고칠 곳은 앱이 아니라
+대개 이 저장소다. Railway 토큰은 일부러 쓰지 않는다 — 프로젝트 토큰 하나면 그 환경의 **모든 변수**
+(운영 DB 주소·AI 열쇠까지)를 읽을 수 있어 공개 저장소 시크릿에 두기엔 위험이 너무 크다.
 
 **끄기 · 켜기** — 저장소 변수 하나다. 변수가 **아예 없으면 켜진 것**이고, `false` 일 때만 꺼진다.
 
