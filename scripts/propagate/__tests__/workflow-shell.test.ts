@@ -285,17 +285,27 @@ describe("propagate.yml — 밀기 job 의 실패 알림 토막", () => {
     tmp = mkdtempSync(join(tmpdir(), "notify-block-"));
   }, 30_000);
 
-  function runNotifyBlock(meta: Record<string, string> | null, env: Record<string, string> = {}) {
+  /**
+   * `meta` 대신 `"fifo"` 를 주면 `meta.json` 자리를 **이름있는 통로(FIFO)** 로 만든다(4차 리뷰 H3).
+   * ★`timeout` 을 5초로 둔 이유: 이 토막이 FIFO 앞에서 멈추면 시험이 **매달리는** 것이 아니라
+   *  빨갛게 끝나야 한다(`signal` 로 「죽여서 끝났다」를 잰다).
+   */
+  function runNotifyBlock(meta: Record<string, string> | null | "fifo", env: Record<string, string> = {}) {
     const out = join(tmp, "propagate-out");
     rmSync(out, { recursive: true, force: true });
     // 산출물은 봉인돼 오고(F9) 밀기 단계가 `<산출물>/plain` 에 풀어 둔다 — 알림 토막은 거기서 사유를 읽는다.
     mkdirSync(join(out, "plain"), { recursive: true });
-    if (meta) writeFileSync(join(out, "plain/meta.json"), JSON.stringify(meta, null, 2) + "\n");
+    const metaPath = join(out, "plain/meta.json");
+    if (meta === "fifo") spawnSync("mkfifo", [metaPath]);
+    else if (meta) writeFileSync(metaPath, JSON.stringify(meta, null, 2) + "\n");
     const args = join(tmp, `curl-args-${Math.random().toString(36).slice(2)}.txt`);
     writeFileSync(args, "");
+    const started = Date.now();
     const r = spawnSync("bash", ["-c", NOTIFY_FAILURE], {
       cwd: REPO_ROOT,
       encoding: "utf8",
+      timeout: 5_000,
+      killSignal: "SIGKILL",
       env: {
         ...process.env,
         PATH: `${fakeCurl(tmp)}:${process.env.PATH}`,
@@ -310,7 +320,14 @@ describe("propagate.yml — 밀기 job 의 실패 알림 토막", () => {
         ...env,
       },
     });
-    return { code: r.status, stdout: r.stdout, stderr: r.stderr, curlArgs: readFileSync(args, "utf8") };
+    return {
+      code: r.status,
+      signal: r.signal,
+      elapsed: Date.now() - started,
+      stdout: r.stdout,
+      stderr: r.stderr,
+      curlArgs: readFileSync(args, "utf8"),
+    };
   }
 
   it("준비 단계가 남긴 사유가 알림 줄에 실린다", () => {
@@ -329,6 +346,22 @@ describe("propagate.yml — 밀기 job 의 실패 알림 토막", () => {
     const r = runNotifyBlock(null);
     expect(r.code, r.stderr).toBe(0);
     expect(r.curlArgs).toContain("산출물을 받지 못했거나 봉인을 풀지 못했습니다");
+  }, 30_000);
+
+  // ── 2026-09-08 4차 리뷰 H3(P2): meta.json 이 FIFO 여도 이 토막은 멈추지 않는다 ──
+
+  it("meta.json 이 FIFO 여도 5초 안에 끝나고 기본 사유로 알린다 — 알림이 멈추지 않는다", () => {
+    // ★막던 사고: `readFileSync` 는 이름있는 통로를 만나면 **쓰는 쪽이 열 때까지 기다린다**
+    //  (실측: node 가 3초 넘게 안 돌아옴). 봉인 안에 FIFO `meta.json` 을 담아 보내면
+    //  밀기가 exit 1 로 끝난 뒤 이 알림 단계가 그 앞에서 멈춰 **아무도 실패를 모른 채**
+    //  job 이 제한 시간(65분)까지 매달린다. 그래서 읽기 전에 `lstat` 으로 종류부터 본다.
+    // ★재는 방식: 「멈추지 않는다」를 실제 시간으로 잰다(`timeout` 에 죽지 않았는지 + 걸린 시간).
+    const r = runNotifyBlock("fifo");
+    expect(r.signal, "FIFO 앞에서 멈춰 죽여야 끝났습니다").toBe(null);
+    expect(r.elapsed).toBeLessThan(5_000);
+    expect(r.code, r.stderr).toBe(0);
+    expect(r.curlArgs).toContain("산출물을 받지 못했거나 봉인을 풀지 못했습니다");
+    expect(r.curlArgs).toContain("정책매칭 공용 자동 반영 실패: erp");
   }, 30_000);
 
   it("커밋 제목에 명령을 숨겨도 글자로만 실린다 — 셸에서 실행되지 않는다", () => {

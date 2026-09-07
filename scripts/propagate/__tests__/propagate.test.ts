@@ -1467,6 +1467,35 @@ else if (cmd === "check") {
     expect(sh("git rev-parse main", app.bare)).toBe(before);
   }, 60_000);
 
+  // ── 2026-09-08 4차 리뷰 H3(P2): 링크만 보면 FIFO 가 지나간다 ──
+
+  it("meta.json 이 FIFO 인 꾸러미는 **풀지도 않는다** — 밀기 1, 원격 그대로", () => {
+    // ★막던 사고: 옛 판은 먼저 풀고 **심볼릭 링크만** 걸렀다. `meta.json` 이 이름있는 통로(FIFO)면
+    //  그 검사를 그냥 지나가고, 뒤의 `[ -f ]` 가 잡아 exit 1 로 끝나도 **FIFO 는 그 자리에 남는다.**
+    //  그때 도는 워크플로우의 「실패 알림」이 그 파일을 `readFileSync` 로 열다가 **영원히 멈춘다**
+    //  (읽는 쪽만 있고 쓰는 쪽이 없다) → 알림이 안 가고 job 이 제한 시간까지 매달린다.
+    // ★재는 방식: 「오류 문구」가 아니라 **푼 자리가 아예 안 생겼는지**로 본다.
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const before = sh("git rev-parse main", app.bare);
+    const plain = mkdtempSync(join(tmpdir(), "propagate-fifo-"));
+    writeFileSync(join(plain, "package.json"), pkgJsonAt("lab", pkg.c3));
+    writeFileSync(join(plain, "package-lock.json"), lockJsonAt(pkg.c3));
+    sh(`mkfifo "${join(plain, "meta.json")}"`, plain); // tar 는 FIFO 를 담을 수 있다(2026-09-08 실측)
+    sealInto(join(tmp, "artifact"), plain, KEYS.pubPem);
+
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/FIFO/);
+    // 푼 자리(`<산출물>/plain`)가 아예 안 생겼다 = 목록만 보고 멈췄다는 뜻
+    expect(existsSync(join(tmp, "artifact/plain")), "FIFO 가 든 꾸러미를 풀었습니다").toBe(false);
+    expect(sh("git rev-parse main", app.bare)).toBe(before);
+  }, 60_000);
+
   it("꾸러미 속 심볼릭 링크를 거절할 때도 임시 폴더에 열쇠가 남지 않는다", () => {
     const app = fakeApp(tmp, "lab", pkg.c1);
     const before = sh("git rev-parse main", app.bare);

@@ -264,7 +264,7 @@ seal_artifact() {
 #   봉인 파일이 아예 없으면 **2(입력 오류)**: 준비 job 이 죽어 artifact 를 못 받은 경우다.
 #   비밀키가 없거나 복호가 실패하면 **1**: 받긴 받았는데 열 수 없는 경우다(사람이 봐야 한다).
 unseal_artifact() {
-  local sealed="$1" plain="$2" dir=""
+  local sealed="$1" plain="$2" dir="" listing="" odd="" weird=""
   if [ ! -f "$sealed/bundle.enc" ] || [ ! -f "$sealed/key.enc" ]; then
     usage "[$APP_ID] 산출물이 없습니다: ${sealed}/{bundle.enc,key.enc} — 준비 단계의 artifact 를 내려받았는지 보세요"
   fi
@@ -283,13 +283,34 @@ unseal_artifact() {
   openssl enc -d -aes-256-cbc -pbkdf2 -pass "file:$dir/session.key" \
     -in "$sealed/bundle.enc" -out "$dir/bundle.tgz" 2>/dev/null \
     || die "[$APP_ID] 산출물을 풀지 못했습니다 — 봉인이 깨졌거나 다른 열쇠로 묶였습니다"
+  # ── 꾸러미는 **믿을 수 없는 입력**이다(공개키는 누구나 안다) — 풀기 전에 목록부터 본다 ──
+  #
+  # ★막는 사고(2026-09-08 4차 리뷰 H3 · P2): 옛 판은 먼저 풀고 나서 **심볼릭 링크만** 걸렀다.
+  #  그래서 `meta.json` 이 **이름있는 통로(FIFO)** 인 꾸러미는 링크 검사를 그냥 지나갔다.
+  #  밀기 스크립트의 `[ -f ]` 검사가 잡아 exit 1 로 끝나긴 하지만 **FIFO 는 그 자리에 남고**,
+  #  그때 도는 워크플로우의 「실패 알림」 단계가 그 파일을 `readFileSync` 로 열다가
+  #  **읽는 쪽만 있고 쓰는 쪽이 없어 그대로 멈춘다**(실측: node 가 3초 넘게 안 돌아옴).
+  #  알림이 안 가고 job 이 제한 시간(65분)까지 매달린다 — 실패를 아무도 모르는 상태가 된다.
+  #
+  # ★두 겹으로 본다: ① `tar -tvf` 목록에 보통 파일(`-`)·폴더(`d`) 말고 다른 항목
+  #  (링크 `l`·하드링크 `h`·FIFO `p`·장치 `b`/`c`)이 있으면 **풀지 않고** 멈춘다.
+  #  ② 그래도 푼 뒤 다시 한 번 `find` 로 모든 항목을 재 본다(tar 판마다 목록 모양이 다를 수 있다).
+  #  ★오류문에 목록을 싣지 않는다 — 파일 이름은 남이 지은 글자라 공개 로그로 새면 안 된다(F9·H2).
+  listing="$(tar -tzvf "$dir/bundle.tgz" 2>/dev/null)" \
+    || die "[$APP_ID] 산출물 꾸러미의 목록을 읽지 못했습니다 — 봉인 안이 tar.gz 가 아닙니다"
+  odd="$(printf '%s\n' "$listing" | awk 'NF { c = substr($1, 1, 1); if (c != "-" && c != "d") n++ } END { print n + 0 }')" \
+    || die "[$APP_ID] 산출물 꾸러미의 목록을 훑지 못했습니다"
+  if [ "$odd" != "0" ]; then
+    die "[$APP_ID] 산출물 꾸러미에 보통 파일·폴더가 아닌 항목이 ${odd}개 있습니다(심볼릭 링크·FIFO·장치) — 풀지 않았습니다"
+  fi
+
   rm -rf "$plain"
   mkdir -p "$plain" || die "[$APP_ID] 산출물을 풀 자리를 만들지 못했습니다: ${plain}"
   tar xzf "$dir/bundle.tgz" -C "$plain" || die "[$APP_ID] 산출물 꾸러미를 풀지 못했습니다"
-  # 꾸러미도 **믿을 수 없는 입력**이다(공개키는 누구나 안다). 링크가 섞여 있으면 그 자리에서 멈춘다 —
-  # 뒤의 `cp` 가 링크를 따라가 엉뚱한 파일을 읽지 않게.
-  if [ -n "$(find "$plain" -type l)" ]; then
-    die "[$APP_ID] 산출물 꾸러미에 심볼릭 링크가 있습니다 — 밀지 않았습니다"
+  weird="$(find "$plain" ! -type f ! -type d 2>/dev/null | wc -l | tr -d ' ')" \
+    || die "[$APP_ID] 푼 산출물을 훑지 못했습니다"
+  if [ "$weird" != "0" ]; then
+    die "[$APP_ID] 산출물 꾸러미를 푼 자리에 보통 파일·폴더가 아닌 것이 ${weird}개 있습니다(심볼릭 링크·FIFO·장치) — 밀지 않았습니다"
   fi
   rm -f "$dir/bundle.tgz" "$dir/session.key" "$dir/priv.pem"
   echo "propagate[$APP_ID]: 산출물 봉인을 풀었습니다 — $(find "$plain" -type f | wc -l | tr -d ' ')개 파일"

@@ -330,10 +330,18 @@ jobs:
           PKG_SUBJECT: ${{ needs.resolve.outputs.subject }}
         run: |
           # 사유는 **파일에서 읽어 인자로** 넘긴다 — 워크플로우 보간으로 넣으면 남이 적은 글자가 명령이 된다.
+          # ★읽기 전에 **보통 파일인지 먼저 본다**(2026-09-08 4차 리뷰 H3 · P2):
+          #  산출물 꾸러미가 `meta.json` 을 **이름있는 통로(FIFO)** 로 담아 오면 `readFileSync` 가
+          #  쓰는 쪽을 기다리며 **영원히 멈춘다** — 알림이 안 가고 이 job 이 제한 시간까지 매달린다.
+          #  `lstat` 은 열지 않고 종류만 보므로 멈추지 않는다. 링크·폴더·장치도 같이 걸러진다.
+          #  (밀기 단계가 애초에 그런 꾸러미를 풀지 않지만, 알림은 **마지막 보루**라 스스로도 지킨다.)
           REASON="$(node -e '
             const fs = require("node:fs");
             try {
-              const meta = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+              const file = process.argv[1];
+              const st = fs.lstatSync(file);
+              if (!st.isFile()) throw new Error("보통 파일이 아님");
+              const meta = JSON.parse(fs.readFileSync(file, "utf8"));
               const line = String(meta.error ?? "").replace(/\s+/g, " ").trim();
               process.stdout.write(line ? "사유: " + line.slice(0, 400) : "사유: 밀기 단계에서 실패했습니다 — 위 로그를 보세요.");
             } catch {
