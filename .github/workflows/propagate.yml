@@ -133,25 +133,40 @@ jobs:
             exit 1
           fi
 
-          # ★늦게 끝난 옛 CI 가 최신 핀을 못 밀어내게(2026-09-08 2차 리뷰 F6):
+          # ★늦게 끝난 옛 CI 가 최신 핀을 못 밀어내게(2026-09-08 2차 리뷰 F6 · 3차 리뷰 G3 으로 넓힘):
           #  같은 줄(concurrency)에서 대기 중인 실행은 GitHub 가 **최신 하나만** 남긴다. 그래서
           #  「옛 커밋의 CI 가 늦게 끝나 뒤늦게 도착 → 최신 커밋의 대기 실행을 밀어냄」이 되면
           #  앱 핀이 **한 커밋 뒤에서 멈춘 채** 아무도 모르게 남는다.
-          #  그럴 때 최신 커밋(TIP)도 CI 를 이미 통과했다면 그쪽으로 올린다. 통과 기록이 없거나
-          #  물어보다 실패하면 원래 커밋 그대로 간다 — 이 승격은 **막지 않는다**(있으면 좋은 것).
+          #
+          #  ★G3(3차 리뷰): 옛 판은 **끝 커밋(TIP) 하나만** 물어봤다. TIP 의 CI 가 아직 안 끝났거나
+          #   빨간 상태면 승격이 통째로 없던 일이 되어, 그 사이에 있던 **CI 를 통과한 중간 커밋(B)** 을
+          #   아무도 반영하지 않았다. 그래서 이제 `SHA..TIP` 을 **최신부터 훑어** CI 성공 기록이 있는
+          #   첫 커밋을 고른다. 한 번에 최대 30개만 본다(호출 수 상한 — 넘어가면 원래 커밋 그대로).
+          #   물어보다 실패하거나 성공 기록이 0이면 다음 커밋으로 넘어가고, 끝까지 못 찾으면
+          #   원래 커밋으로 간다 — 이 승격은 **막지 않는다**(있으면 좋은 것).
           if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
             TIP="$(git rev-parse origin/main)"
             if [ "$TIP" != "$SHA" ] && git merge-base --is-ancestor "$SHA" "$TIP" 2>/dev/null; then
-              TIP_RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${TIP}&status=success&per_page=1" --jq '.total_count' || echo "")"
-              case "$TIP_RUNS" in
-                ""|0|*[!0-9]*)
-                  echo "propagate: 최신 커밋 ${TIP} 의 CI 성공 기록을 찾지 못해 ${SHA} 그대로 갑니다(total_count='${TIP_RUNS}')"
-                  ;;
-                *)
-                  echo "propagate: 최신 커밋으로 올림 — ${SHA} → ${TIP} (그 커밋의 CI 도 이미 통과)"
-                  SHA="$TIP"
-                  ;;
-              esac
+              PROMOTE=""
+              while IFS= read -r CAND; do
+                [ -n "$CAND" ] || continue
+                CAND_RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${CAND}&status=success&per_page=1" --jq '.total_count' || echo "")"
+                case "$CAND_RUNS" in
+                  ""|0|*[!0-9]*)
+                    echo "propagate: ${CAND} 의 CI 성공 기록을 찾지 못했습니다(total_count='${CAND_RUNS}') — 한 커밋 앞으로"
+                    ;;
+                  *)
+                    PROMOTE="$CAND"
+                    break
+                    ;;
+                esac
+              done < <(git rev-list --first-parent -n 30 "${SHA}..${TIP}")
+              if [ -n "$PROMOTE" ]; then
+                echo "propagate: 최신 커밋으로 올림 — ${SHA} → ${PROMOTE} (그 커밋의 CI 도 이미 통과)"
+                SHA="$PROMOTE"
+              else
+                echo "propagate: ${SHA} 뒤 커밋(최대 30개)에서 CI 성공 기록을 찾지 못해 그대로 갑니다"
+              fi
             fi
           fi
 

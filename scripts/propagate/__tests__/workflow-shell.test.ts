@@ -54,12 +54,14 @@ function repo(tmp: string) {
   const a = commit("옛 커밋");
   const b = commit("최신 커밋");
   sh(`git update-ref refs/remotes/origin/main ${b}`, dir);
-  return { dir, a, b };
+  return { dir, a, b, commit };
 }
 
 /**
  * 가짜 `gh`: 부른 인자를 적어 두고 `FAKE_GH_MODE` 를 그대로 돌려준다.
  * `boom` 이면 진짜 `gh` 가 인증·네트워크로 죽었을 때처럼 1 로 끝난다.
+ * `map` 이면 인자의 `head_sha=` 를 뽑아 `FAKE_GH_OK` 목록에 있을 때만 1(성공 실행 있음)을 돌려준다 —
+ * 커밋마다 CI 결과가 다른 상황(3차 리뷰 G3)을 재려면 커밋별 대답이 필요하다.
  */
 function fakeGh(tmp: string) {
   const bin = join(tmp, "bin");
@@ -72,6 +74,11 @@ function fakeGh(tmp: string) {
       "set -u",
       `printf '%s\\n' "$*" >> "$FAKE_GH_LOG"`,
       `if [ "$FAKE_GH_MODE" = "boom" ]; then echo "gh: 물어보지 못했습니다" >&2; exit 1; fi`,
+      `if [ "$FAKE_GH_MODE" = "map" ]; then`,
+      `  sha="$(printf '%s\\n' "$*" | sed -n 's/.*head_sha=\\([0-9a-f]\\{40\\}\\).*/\\1/p')"`,
+      `  case " \${FAKE_GH_OK:-} " in *" $sha "*) printf '1\\n' ;; *) printf '0\\n' ;; esac`,
+      "  exit 0",
+      "fi",
       `printf '%s\\n' "$FAKE_GH_MODE"`,
       "",
     ].join("\n"),
@@ -105,6 +112,7 @@ function runPick(tmp: string, dir: string, env: Record<string, string>): PickRun
       PATH: `${fakeGh(tmp)}:${process.env.PATH}`,
       FAKE_GH_LOG: ghLog,
       FAKE_GH_MODE: "0",
+      FAKE_GH_OK: "",
       GITHUB_OUTPUT: outFile,
       GITHUB_REPOSITORY: "smlee-hash/wedly-policy-match-shared",
       GITHUB_EVENT_NAME: "workflow_run",
@@ -191,6 +199,53 @@ describe("propagate.yml — resolve(pick) 셸 토막", () => {
     expect(r.stdout + r.stderr).toMatch(/main 에 없습니다/);
     expect(r.out.sha).toBeUndefined();
   }, 30_000);
+
+  // ── 2026-09-08 3차 리뷰 G3(P2): 끝 커밋 하나만 보면 중간의 성공 커밋을 잃는다 ──
+
+  it("끝 커밋의 CI 가 빨갛고 그 앞 커밋이 통과했으면 **그 앞 커밋**으로 올린다", () => {
+    // A(늦게 도착한 이번 실행) → B(CI 통과) → C(CI 실패, main 끝).
+    // 옛 판은 C 만 물어보고 「기록 없음」으로 A 에 머물렀다 — 그러면 B 를 아무도 반영하지 않는다.
+    const b = pkg.commit("B 커밋");
+    const c = pkg.commit("C 커밋");
+    sh(`git update-ref refs/remotes/origin/main ${c}`, pkg.dir);
+    const r = runPick(tmp, pkg.dir, { WORKFLOW_RUN_SHA: pkg.a, FAKE_GH_MODE: "map", FAKE_GH_OK: b });
+    expect(r.code, r.stderr).toBe(0);
+    expect(r.out.sha).toBe(b);
+    expect(r.out.subject).toBe("B 커밋");
+    // 최신부터 훑는다: 먼저 C 를 묻고(0) 그다음 B 를 물어(1) 거기서 멈춘다
+    expect(r.ghCalls).toHaveLength(2);
+    expect(r.ghCalls[0]).toContain(`head_sha=${c}`);
+    expect(r.ghCalls[1]).toContain(`head_sha=${b}`);
+  }, 30_000);
+
+  it("뒤 커밋이 전부 CI 실패면 원래 커밋 그대로 간다 — 승격은 막지 않는다", () => {
+    const b = pkg.commit("B 커밋");
+    const c = pkg.commit("C 커밋");
+    sh(`git update-ref refs/remotes/origin/main ${c}`, pkg.dir);
+    const r = runPick(tmp, pkg.dir, { WORKFLOW_RUN_SHA: pkg.a, FAKE_GH_MODE: "map", FAKE_GH_OK: "" });
+    expect(r.code, r.stderr).toBe(0);
+    expect(r.out.sha).toBe(pkg.a);
+    expect(r.out.subject).toBe("옛 커밋");
+    // A 뒤의 커밋 셋(원래 「최신 커밋」·B·C)을 하나씩 다 물어보고도 못 찾았다
+    expect(r.ghCalls).toHaveLength(3);
+    expect(r.ghCalls.join("\n")).toContain(`head_sha=${b}`);
+    expect(r.stdout).toContain("찾지 못해");
+  }, 30_000);
+
+  it("30개 상한을 넘는 커밋은 묻지 않는다 — 그 너머에 성공 커밋이 있어도 원래 커밋 그대로", () => {
+    // A 뒤로 32개를 쌓고, **가장 오래된 것(31번째·32번째 자리)** 만 CI 통과로 둔다.
+    // 상한이 없으면 그걸 찾아 승격하겠지만, 호출 수를 지키려고 30개에서 멈춘다.
+    const made: string[] = [];
+    for (let i = 1; i <= 32; i += 1) made.push(pkg.commit(`c${i}`));
+    const tip = made[made.length - 1];
+    sh(`git update-ref refs/remotes/origin/main ${tip}`, pkg.dir);
+    const beyondCap = made[0]; // A 바로 다음 커밋 = 최신에서 세면 32번째
+    const r = runPick(tmp, pkg.dir, { WORKFLOW_RUN_SHA: pkg.a, FAKE_GH_MODE: "map", FAKE_GH_OK: beyondCap });
+    expect(r.code, r.stderr).toBe(0);
+    expect(r.out.sha).toBe(pkg.a);
+    expect(r.ghCalls).toHaveLength(30);
+    expect(r.ghCalls.join("\n")).not.toContain(`head_sha=${beyondCap}`);
+  }, 60_000);
 });
 
 /**
