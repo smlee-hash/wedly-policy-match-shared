@@ -211,13 +211,18 @@ plain_dir() { printf '%s/plain' "$(out_dir)"; }
 #   줄바꿈(0x0a)·NUL 이 섞일 수 있어 열쇠가 조용히 잘린다(그만큼 약해진다). hex 는 한 줄로 안전하고
 #   256비트를 그대로 담는다.
 
-# 1회용 열쇠·비밀키를 두는 임시 폴더(cleanup 이 지운다). 700 으로 만든다.
+# 1회용 열쇠·비밀키를 두는 임시 폴더를 **부모 셸의 `CRYPTO_DIR`** 에 만든다(700). 경로는 찍지 않는다.
+#
+# ★막는 사고(2026-09-08 4차 리뷰 H1 · P2): 옛 판은 경로를 stdout 으로 돌려줬고 부르는 쪽이
+#  `dir="$(crypto_dir)"` 로 받았다. 명령 치환은 **하위 셸**이라 거기서 정한 `CRYPTO_DIR` 이
+#  부모에 남지 않는다 → EXIT 갈고리의 `cleanup` 은 지울 자리를 모른 채 끝났고,
+#  복호가 실패한 순간(짝이 아닌 비밀키·깨진 암호문·tar 오류·링크 거부) **비밀키 `priv.pem` 과
+#  1회용 열쇠 `session.key` 가 임시 폴더에 그대로 남았다.**
+#  그래서 이제 부모 셸에서 그냥 `crypto_dir` 을 부르고 값은 `$CRYPTO_DIR` 로 읽는다.
 crypto_dir() {
-  if [ -z "$CRYPTO_DIR" ]; then
-    CRYPTO_DIR="$(mktemp -d "${TMPDIR:-/tmp}/propagate-crypto.XXXXXX")" || return 1
-    chmod 700 "$CRYPTO_DIR"
-  fi
-  printf '%s' "$CRYPTO_DIR"
+  if [ -n "$CRYPTO_DIR" ]; then return 0; fi
+  CRYPTO_DIR="$(mktemp -d "${TMPDIR:-/tmp}/propagate-crypto.XXXXXX")" || return 1
+  chmod 700 "$CRYPTO_DIR"
 }
 
 # seal_artifact <평문폴더> <올릴폴더> — 성공 0, 실패 1(사유는 stderr).
@@ -232,7 +237,8 @@ seal_artifact() {
     echo "propagate: 산출물 공개키(저장소 변수 PROPAGATE_ARTIFACT_PUBKEY)가 없습니다 — 평문으로는 올리지 않습니다" >&2
     return 1
   fi
-  dir="$(crypto_dir)" || return 1
+  crypto_dir || return 1   # 하위 셸이 아니라 **이 셸**에서 부른다 — 그래야 cleanup 이 지울 수 있다(H1)
+  dir="$CRYPTO_DIR"
   {
     printf '%s\n' "$PROPAGATE_ARTIFACT_PUBKEY" > "$dir/pub.pem" &&
     openssl rand -hex 32 > "$dir/session.key" &&
@@ -264,7 +270,8 @@ unseal_artifact() {
   fi
   [ -n "${PROPAGATE_ARTIFACT_PRIVKEY:-}" ] \
     || die "[$APP_ID] 산출물 비밀키(시크릿 PROPAGATE_ARTIFACT_PRIVKEY)가 없습니다 — 봉인을 풀 수 없습니다"
-  dir="$(crypto_dir)" || die "[$APP_ID] 임시 폴더를 만들지 못했습니다"
+  crypto_dir || die "[$APP_ID] 임시 폴더를 만들지 못했습니다"   # 하위 셸에서 부르면 cleanup 이 못 지운다(H1)
+  dir="$CRYPTO_DIR"
   # 비밀키는 **600 파일**로만 둔다(명령줄·환경 노출을 줄인다). cleanup 이 폴더째 지운다.
   ( umask 077; printf '%s\n' "$PROPAGATE_ARTIFACT_PRIVKEY" > "$dir/priv.pem" ) \
     || die "[$APP_ID] 비밀키를 임시 파일로 쓰지 못했습니다"

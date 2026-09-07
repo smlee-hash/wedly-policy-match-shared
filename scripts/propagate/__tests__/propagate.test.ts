@@ -3,6 +3,7 @@ import {
   chmodSync,
   existsSync,
   mkdirSync,
+  lstatSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
@@ -114,6 +115,68 @@ function sealInto(destDir: string, plainDir: string, pubPem: string) {
   );
   rmSync(work, { recursive: true, force: true });
   return destDir;
+}
+
+/**
+ * 봉인 규격은 그대로 두되 **꾸러미 자리에 tar 가 아닌 것**을 넣는다(4차 리뷰 H1 의 「tar 오류」 경우).
+ * 열쇠는 진짜 공개키로 봉인하므로 `pkeyutl -decrypt` 와 `enc -d` 는 통과하고 tar 에서만 죽는다.
+ */
+function sealRawInto(destDir: string, raw: string, pubPem: string) {
+  const work = mkdtempSync(join(tmpdir(), "propagate-sealraw-"));
+  writeFileSync(join(work, "pub.pem"), pubPem);
+  writeFileSync(join(work, "raw.bin"), raw);
+  rmSync(destDir, { recursive: true, force: true });
+  mkdirSync(destDir, { recursive: true });
+  sh(
+    [
+      `openssl rand -hex 32 > "${work}/session.key"`,
+      `openssl enc -aes-256-cbc -pbkdf2 -pass file:"${work}/session.key" -in "${work}/raw.bin" -out "${destDir}/bundle.enc"`,
+      `openssl pkeyutl -encrypt -pubin -inkey "${work}/pub.pem" -pkeyopt rsa_padding_mode:oaep ` +
+        `-in "${work}/session.key" -out "${destDir}/key.enc"`,
+    ].join(" && "),
+    work,
+  );
+  rmSync(work, { recursive: true, force: true });
+  return destDir;
+}
+
+/** 폴더 안의 **모든 항목**(폴더 포함)을 상대 경로로 훑는다 — 「지웠는가」는 파일만 봐서는 못 잰다 */
+function walkAll(dir: string, prefix = ""): string[] {
+  if (!existsSync(dir)) return [];
+  const out: string[] = [];
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const rel = `${prefix}${e.name}`;
+    if (e.isDirectory()) {
+      out.push(`${rel}/`);
+      out.push(...walkAll(join(dir, e.name), `${rel}/`));
+    } else {
+      out.push(rel);
+    }
+  }
+  return out.sort();
+}
+
+/**
+ * 임시 폴더에 **열쇠 재료가 한 조각도 안 남았는지** 잰다(2026-09-08 4차 리뷰 H1 · P2).
+ * 재는 것 셋: ① `propagate-crypto.*` 작업 폴더가 남지 않았다 ② `*.pem`·`session.key` 가 없다
+ * ③ 남아 있는 어떤 파일에도 비밀키 본문(`PRIVATE KEY`)이 없다.
+ */
+function expectNoKeyLeftovers(dir: string, where: string) {
+  const left = walkAll(dir);
+  expect(left.filter((p) => p.includes("propagate-crypto")), `${where}: 봉인 작업 폴더가 남았습니다 — ${left.join(" ")}`)
+    .toEqual([]);
+  expect(
+    left.filter((p) => /\.pem$|session\.key$/.test(p)),
+    `${where}: 열쇠 파일이 남았습니다 — ${left.join(" ")}`,
+  ).toEqual([]);
+  for (const rel of left) {
+    if (rel.endsWith("/")) continue;
+    const full = join(dir, rel);
+    if (!lstatSync(full).isFile()) continue;
+    expect(readFileSync(full).toString("latin1"), `${where}: ${rel} 안에 비밀키가 남아 있습니다`).not.toContain(
+      "PRIVATE KEY",
+    );
+  }
 }
 
 /** 봉인된 산출물을 풀어 평문 폴더 경로를 돌려준다 — 시험이 안을 들여다볼 때 쓴다 */
@@ -283,6 +346,8 @@ interface StepRun {
 }
 
 let stepCounter = 0;
+/** H1 시험이 TMPDIR 를 시험마다 새 폴더로 못 박을 때 쓰는 번호 */
+let pinnedTmpCounter = 0;
 
 /** `propagate.sh <단계>` 를 한 번 돌린다. 단계마다 기록 파일을 따로 준다. */
 function runStep(tmp: string, step: "clone" | "prepare" | "push", env: Record<string, string>): StepRun {
@@ -1323,5 +1388,109 @@ else if (cmd === "check") {
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(/package\.json/);
     expect(sh("git rev-parse main", bare)).toBe(before); // 원격 불변
+  }, 60_000);
+
+  // ── 2026-09-08 4차 리뷰 H1(P2): 복호가 실패해도 비밀키·1회용 열쇠가 임시 폴더에 남지 않는다 ──
+  //
+  // ★막던 사고: 옛 판은 `dir="$(crypto_dir)"` 로 임시 폴더를 만들었다. 명령 치환은 **하위 셸**이라
+  //  거기서 정한 `CRYPTO_DIR` 이 부모에 남지 않았고, EXIT 갈고리의 cleanup 은 지울 자리를 몰랐다.
+  //  그래서 봉인을 못 푼 순간(짝이 아닌 비밀키·깨진 암호문·tar 오류·링크 거부) **`priv.pem` 과
+  //  `session.key` 가 실행기 임시 폴더에 그대로 남았다.** Actions 실행기는 job 이 끝나면 사라지지만
+  //  로컬 예행·자체 호스팅 실행기에서는 그대로 남고, 같은 job 의 뒤 단계가 그 파일을 읽을 수 있다.
+  // ★재는 방식: `TMPDIR` 를 시험 폴더로 못 박아 두고 **종료 뒤 그 폴더를 통째로 훑는다** —
+  //  「오류 문구가 맞는가」가 아니라 「열쇠가 남았는가」를 직접 본다.
+
+  /** 네 가지 실패 경우가 공통으로 쓰는 자리 — TMPDIR 를 시험 폴더로 못 박고 밀기를 한 번 돌린다 */
+  function pushWithPinnedTmp(env: Record<string, string>) {
+    const tmpDir = join(tmp, `tmpdir-${(pinnedTmpCounter += 1)}`);
+    mkdirSync(tmpDir, { recursive: true });
+    const r = runStep(tmp, "push", { ...env, TMPDIR: tmpDir });
+    return { r, tmpDir };
+  }
+
+  it("짝이 아닌 비밀키로 실패해도 임시 폴더에 비밀키가 남지 않는다", () => {
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const before = sh("git rev-parse main", app.bare);
+    writeArtifact(
+      tmp,
+      { app: "lab", result: "prepared", baseSha: before, pinFrom: pkg.c1, pinTo: pkg.c3, subject: "feat: 시험 커밋" },
+      { "package.json": pkgJsonAt("lab", pkg.c3), "package-lock.json": lockJsonAt(pkg.c3) },
+    );
+    const { r, tmpDir } = pushWithPinnedTmp({
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+      PROPAGATE_ARTIFACT_PRIVKEY: OTHER_KEYS.privPem,
+    });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/열쇠를 풀지 못했습니다/);
+    expectNoKeyLeftovers(tmpDir, "짝이 아닌 비밀키");
+    expect(sh("git rev-parse main", app.bare)).toBe(before);
+  }, 60_000);
+
+  it("암호문이 깨져 실패해도 임시 폴더에 비밀키·1회용 열쇠가 남지 않는다", () => {
+    // 여기서는 `pkeyutl -decrypt` 까지 성공해 **1회용 열쇠 파일까지** 만들어진 뒤 죽는다 —
+    // 옛 판이 남기던 것이 비밀키 하나가 아니라 둘이었다는 뜻이다.
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const before = sh("git rev-parse main", app.bare);
+    writeArtifact(
+      tmp,
+      { app: "lab", result: "prepared", baseSha: before, pinFrom: pkg.c1, pinTo: pkg.c3, subject: "feat: 시험 커밋" },
+      { "package.json": pkgJsonAt("lab", pkg.c3), "package-lock.json": lockJsonAt(pkg.c3) },
+    );
+    writeFileSync(join(tmp, "artifact/bundle.enc"), "이건 암호문이 아니다");
+    const { r, tmpDir } = pushWithPinnedTmp({
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/풀지 못했습니다/);
+    expectNoKeyLeftovers(tmpDir, "깨진 암호문");
+    expect(sh("git rev-parse main", app.bare)).toBe(before);
+  }, 60_000);
+
+  it("꾸러미가 tar 가 아니어서 실패해도 임시 폴더에 열쇠가 남지 않는다", () => {
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const before = sh("git rev-parse main", app.bare);
+    sealRawInto(join(tmp, "artifact"), "이건 tar 가 아니다", KEYS.pubPem);
+    const { r, tmpDir } = pushWithPinnedTmp({
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.code).toBe(1);
+    expectNoKeyLeftovers(tmpDir, "tar 오류");
+    expect(sh("git rev-parse main", app.bare)).toBe(before);
+  }, 60_000);
+
+  it("꾸러미 속 심볼릭 링크를 거절할 때도 임시 폴더에 열쇠가 남지 않는다", () => {
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const before = sh("git rev-parse main", app.bare);
+    const plain = mkdtempSync(join(tmpdir(), "propagate-linky-h1-"));
+    writeFileSync(
+      join(plain, "meta.json"),
+      JSON.stringify(
+        { app: "lab", result: "prepared", baseSha: before, pinFrom: pkg.c1, pinTo: pkg.c3, subject: "feat: 시험 커밋" },
+        null,
+        2,
+      ) + "\n",
+    );
+    writeFileSync(join(plain, "package-lock.json"), lockJsonAt(pkg.c3));
+    symlinkSync("/etc/passwd", join(plain, "package.json"));
+    sealInto(join(tmp, "artifact"), plain, KEYS.pubPem);
+    const { r, tmpDir } = pushWithPinnedTmp({
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/심볼릭 링크/);
+    expectNoKeyLeftovers(tmpDir, "링크 거부");
+    expect(sh("git rev-parse main", app.bare)).toBe(before);
   }, 60_000);
 });
