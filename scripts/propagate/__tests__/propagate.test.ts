@@ -877,6 +877,71 @@ else if (cmd === "check") {
     expect(r.push?.out).toContain("result=updated");
   }, 60_000);
 
+  // ── 2차 리뷰 F3: 밀기는 `resolve` 가 정한 SHA 만 믿는다 ──
+
+  it("산출물이 다른 SHA 를 가리키면 밀지 않는다 — meta 와 파일을 함께 바꿔도 소용없다", () => {
+    // 앱 코드가 산출물을 통째로 지어 「다른 커밋으로 핀을 올리라」고 시키는 상황.
+    // meta.pinTo 와 package.json·package-lock 을 **함께** 그 SHA 로 맞춰도 통과하면 안 된다 —
+    // 이 자리가 믿는 것은 resolve 가 정한 PROPAGATE_SHA 하나뿐이다.
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const before = sh("git rev-parse main", app.bare);
+    writeArtifact(
+      tmp,
+      { app: "lab", result: "prepared", baseSha: before, pinFrom: pkg.c1, pinTo: pkg.x1, subject: "feat: 시험 커밋" },
+      { "package.json": pkgJsonAt("lab", pkg.x1), "package-lock.json": lockJsonAt(pkg.x1) },
+    );
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3, // resolve 가 정한 것은 c3
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/다른 커밋을 가리킵니다/);
+    expect(sh("git rev-parse main", app.bare)).toBe(before);
+  }, 60_000);
+
+  it("산출물의 pinFrom 이 저장소의 실제 핀과 다르면 밀지 않는다", () => {
+    // 산출물이 「원래 핀은 c2 였다」고 거짓말하는 상황(실제 저장소 핀은 c1).
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    const before = sh("git rev-parse main", app.bare);
+    writeArtifact(
+      tmp,
+      { app: "lab", result: "prepared", baseSha: before, pinFrom: pkg.c2, pinTo: pkg.c3, subject: "feat: 시험 커밋" },
+      { "package.json": pkgJsonAt("lab", pkg.c3), "package-lock.json": lockJsonAt(pkg.c3) },
+    );
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/기준 커밋의 핀이 산출물과 다릅니다/);
+    expect(sh("git rev-parse main", app.bare)).toBe(before);
+  }, 60_000);
+
+  it("지금 핀이 이번 커밋의 조상이 아니면 밀기 단계도 스스로 막는다 — 핀이 뒤로 가지 않는다", () => {
+    // 앱 핀이 곁가지 x1 인데 반영 대상이 c3 인 경우. 준비 단계가 이미 막지만, 밀기도 다시 본다
+    // (산출물이 준비 단계를 거치지 않고 들어올 수 있으므로).
+    const app = fakeApp(tmp, "lab", pkg.x1);
+    const before = sh("git rev-parse main", app.bare);
+    writeArtifact(
+      tmp,
+      { app: "lab", result: "prepared", baseSha: before, pinFrom: pkg.x1, pinTo: pkg.c3, subject: "feat: 시험 커밋" },
+      { "package.json": pkgJsonAt("lab", pkg.c3), "package-lock.json": lockJsonAt(pkg.c3) },
+    );
+    const r = runStep(tmp, "push", {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: app.bare,
+    });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/조상이 아닙니다/);
+    expect(sh("git rev-parse main", app.bare)).toBe(before);
+  }, 60_000);
+
   it("커밋할 파일이 없으면(등록부 미생성) 1 로 끝나고 무엇이 없는지 알린다", () => {
     // ERP 후처리가 설계 등록부를 못 만든 경우. verify-lock 은 등록부를 보지 않으므로 여기까지 통과한다.
     const app = fakeApp(tmp, "erp", pkg.c1, (w) => {

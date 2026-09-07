@@ -210,8 +210,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # 이 job 이 이 저장소에서 쓰는 것은 scripts/propagate/* 뿐이다 — 이력은 필요 없다.
-          fetch-depth: 1
+          # ★이력이 필요하다(2026-09-08 2차 리뷰 F3): 밀기 단계도 「지금 핀이 이번 커밋의 조상인가」를
+          #  **자기 눈으로** 다시 본다. 산출물이 말하는 SHA 를 그대로 믿지 않기 때문이다.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -233,6 +234,10 @@ jobs:
         shell: bash
         env:
           PROPAGATE_TOKEN: ${{ secrets.PROPAGATE_TOKEN }}
+          # ★이 두 개가 이 job 이 믿는 유일한 입력이다(2차 리뷰 F3): resolve 가 정한 커밋과
+          #  그것을 확인할 수 있는 패키지 저장소. 산출물(artifact)은 여기에 맞는지로만 판정한다.
+          PROPAGATE_SHA: ${{ needs.resolve.outputs.sha }}
+          PROPAGATE_PACKAGE_DIR: ${{ github.workspace }}
           PROPAGATE_PACKAGE_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ needs.resolve.outputs.sha }}
           PROPAGATE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           PROPAGATE_DRY_RUN: ${{ needs.resolve.outputs.dry_run == 'true' && '1' || '0' }}

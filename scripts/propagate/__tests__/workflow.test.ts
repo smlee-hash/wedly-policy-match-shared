@@ -141,6 +141,15 @@ describe(".github/workflows/propagate.yml", () => {
     expect(YAML).toContain("cancel-in-progress: false");
   });
 
+  it("밀기 job 은 resolve 가 정한 SHA 와 패키지 이력을 받는다 — 산출물을 그대로 믿지 않는다", () => {
+    // 2차 리뷰 F3: 밀기 단계가 「어디서 어디로」를 스스로 확인하려면 이 둘이 있어야 한다.
+    const push = jobSection("push");
+    expect(push).toContain("PROPAGATE_SHA: ${{ needs.resolve.outputs.sha }}");
+    expect(push).toContain("PROPAGATE_PACKAGE_DIR: ${{ github.workspace }}");
+    // 후손 검사를 하려면 이력이 있어야 한다(fetch-depth: 1 이면 merge-base 가 늘 실패한다)
+    expect(push).toMatch(/uses: actions\/checkout@v4[\s\S]*?fetch-depth: 0/);
+  });
+
   it("남의 복제본에서 온 CI 실행으로는 돌지 않는다", () => {
     expect(jobSection("resolve")).toContain(
       "github.event.workflow_run.head_repository.full_name == github.repository",

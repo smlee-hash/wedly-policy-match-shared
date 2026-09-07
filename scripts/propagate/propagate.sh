@@ -23,9 +23,10 @@
 #
 # 환경변수
 #   PROPAGATE_APP_ID      apps.json 의 id (erp|illua|lab)            [clone·prepare·push]
-#   PROPAGATE_SHA         반영할 패키지 커밋 40자리                  [prepare]
+#   PROPAGATE_SHA         반영할 패키지 커밋 40자리                  [prepare·push]
+#                         (push 는 이 값만 믿는다 — 산출물이 말하는 SHA 는 여기에 맞는지로만 본다)
 #   PROPAGATE_SUBJECT     패키지 커밋 제목(커밋 메시지용)            [prepare → meta.json → push]
-#   PROPAGATE_PACKAGE_DIR 전체 이력이 있는 패키지 저장소 경로        [prepare · 후손 검사]
+#   PROPAGATE_PACKAGE_DIR 전체 이력이 있는 패키지 저장소 경로        [prepare·push · 후손 검사]
 #   PROPAGATE_OUT         산출물 폴더(기본 <workdir>/out-<앱>)       [prepare·push]
 #   PROPAGATE_TOKEN       PAT(없으면 PROPAGATE_CLONE_URL 필요)       [clone·push]
 #   PROPAGATE_CLONE_URL   앱 저장소 주소를 통째로 지정(시험·예행용)  [clone·push]
@@ -244,10 +245,21 @@ run_push() {
 
   BASE_SHA="$(meta_field baseSha)"
   PIN_TO="$(meta_field pinTo)"
+  PIN_FROM="$(meta_field pinFrom)"
   SUBJECT="$(meta_field subject)"
   [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]] || die "[$APP_ID] 산출물의 baseSha 가 40자리 SHA 가 아닙니다: '${BASE_SHA}'"
   [[ "$PIN_TO" =~ ^[0-9a-f]{40}$ ]] || die "[$APP_ID] 산출물의 pinTo 가 40자리 SHA 가 아닙니다: '${PIN_TO}'"
+  [[ "$PIN_FROM" =~ ^[0-9a-f]{40}$ ]] || die "[$APP_ID] 산출물의 pinFrom 이 40자리 SHA 가 아닙니다: '${PIN_FROM}'"
   [ -n "$SUBJECT" ] || SUBJECT="(제목 없음)"
+
+  # ★산출물이 말하는 SHA 를 그대로 믿지 않는다(2026-09-08 2차 리뷰 F3 · P1).
+  #  산출물은 앱 코드가 돈 실행기에서 온 **믿을 수 없는 입력**이다. 이 자리가 믿는 것은
+  #  `resolve` 가 정한 `PROPAGATE_SHA` 하나뿐이고, 산출물은 거기에 맞는지로만 판정한다.
+  SHA="${PROPAGATE_SHA:-}"
+  [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || usage "PROPAGATE_SHA(resolve 가 정한 커밋) 가 40자리 SHA 여야 합니다 (받은 값: '${SHA}')"
+  [ -d "${PROPAGATE_PACKAGE_DIR:-}" ] || usage "PROPAGATE_PACKAGE_DIR(패키지 저장소 경로) 가 필요합니다 — 핀이 앞으로만 가는지 여기서 다시 봅니다"
+  [ "$PIN_TO" = "$SHA" ] \
+    || die "[$APP_ID] 산출물이 다른 커밋을 가리킵니다: 산출물 ${PIN_TO:0:7} ≠ 이번 반영 ${SHA:0:7} — 밀지 않았습니다"
 
   # 실행기의 전역·시스템 git 설정도 믿지 않는다(리뷰 R2) — 이 자리는 토큰을 쥐고 있다.
   export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
@@ -270,6 +282,15 @@ run_push() {
   git config user.email "$BOT_EMAIL"
   checkout_base
 
+  # 기준 커밋 **그 자리의 실제 핀**을 읽어 산출물이 말한 pinFrom 과 맞춰 본다(2차 리뷰 F3).
+  # 산출물이 「어디서 어디로」를 스스로 정하지 못하게 하는 자리다.
+  read_current_pin
+  [ "$CURRENT" = "$PIN_FROM" ] \
+    || die "[$APP_ID] 기준 커밋의 핀이 산출물과 다릅니다: 저장소 ${CURRENT:0:7} ≠ 산출물 ${PIN_FROM:0:7} — 밀지 않았습니다"
+  if ! git -C "$PROPAGATE_PACKAGE_DIR" merge-base --is-ancestor "$PIN_FROM" "$SHA" 2>/dev/null; then
+    die "[$APP_ID] 지금 핀 ${PIN_FROM:0:7} 이 이번 커밋 ${SHA:0:7} 의 조상이 아닙니다 — 핀이 뒤로 갈 수 있어 밀지 않았습니다"
+  fi
+
   for P in ${COMMIT_PATHS[@]+"${COMMIT_PATHS[@]}"}; do
     [ -f "$OUT/$P" ] || die "[$APP_ID] 산출물에 파일이 없습니다: ${P}"
     assert_plain_commit_path "$P"
@@ -280,7 +301,8 @@ run_push() {
     cp "$OUT/$P" "$P"
   done
 
-  node "$PROPAGATE_HERE/verify-lock.mjs" . "$PIN_TO" \
+  # 대조 기준은 산출물의 pinTo 가 아니라 **resolve 가 정한 SHA** 다.
+  node "$PROPAGATE_HERE/verify-lock.mjs" . "$SHA" \
     || die "[$APP_ID] 산출물의 핀·잠금 파일이 어긋납니다(위 verify-lock 줄 참고) — 밀지 않았습니다"
 
   git add -- ${COMMIT_PATHS[@]+"${COMMIT_PATHS[@]}"} \
@@ -288,7 +310,7 @@ run_push() {
   if git diff --cached --quiet; then
     die "[$APP_ID] 바뀐 것이 없습니다(핀은 바뀌었는데 diff 가 비어 있음)"
   fi
-  git commit -q -m "chore(정책매칭 공용): 핀 ${PIN_TO:0:7} — ${SUBJECT}" -m "패키지 커밋: ${PROPAGATE_PACKAGE_URL:-}
+  git commit -q -m "chore(정책매칭 공용): 핀 ${SHA:0:7} — ${SUBJECT}" -m "패키지 커밋: ${PROPAGATE_PACKAGE_URL:-}
 자동 반영 실행: ${PROPAGATE_RUN_URL:-}
 (propagate.yml 이 만든 커밋 — 손으로 되돌리지 말고 패키지 쪽을 revert 한다)" \
     || die "[$APP_ID] 커밋 실패"
