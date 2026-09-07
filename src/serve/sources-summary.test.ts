@@ -1,8 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { buildSourcesSummary, mergeSourceCounts, type SourcesEntry } from "./sources-summary";
 import { collectSourceNames } from "../collect/source-names";
+import { proxyOnlySourceIds } from "../collect/board/source-list";
 
-const NAMES = collectSourceNames();
+/**
+ * ★회차 목록은 **설정값에 따라 달라진다** — `collectSourceNames()` 는 `POLICY_BOARD_PROXY_URL`
+ *  이 있으면 국내 경유 전용 출처(대전신보 등)를 넣고, 없으면 뺀다. 그래서 그 함수 결과를
+ *  그대로 기본 명부로 쓰면 **같은 시험이 내 컴퓨터에선 초록, 서버에선 빨강**이 된다
+ *  (2026-09-07 ERP Railway 빌드 실측: 「회차 목록에 없는 출처」 시험이 expected 'error' to be
+ *  'waiting' 으로 깨졌다 — 서버엔 경유 설정이 있어 대전신보가 회차 **안**이었다).
+ *
+ * 그래서 두 갈래를 **설정값과 무관하게 손으로 고정**한다.
+ */
+/** 경유가 **꺼진** 환경의 회차 목록 — 국내 경유 전용 출처가 빠져 있다. */
+const PROXY_ONLY = new Set(proxyOnlySourceIds());
+const NAMES = collectSourceNames().filter((n) => !PROXY_ONLY.has(n));
+/** 경유가 **켜진** 환경의 회차 목록 — 국내 경유 전용 출처까지 든다(순서는 판정에 안 쓰인다). */
+const NAMES_PROXIED = [...new Set([...collectSourceNames(), ...proxyOnlySourceIds()])];
+
 const find = (entries: SourcesEntry[], id: string) => entries.find((e) => e.id === id)!;
 
 function build(over: Partial<Parameters<typeof buildSourcesSummary>[0]> = {}) {
@@ -128,18 +143,30 @@ describe("수집원 현황 — 명부 + 건수 + 마지막 수집", () => {
     expect(find(entries, "bizinfo").lastSaved).toBe(3);
   });
 
+  const DJ_LEDGER = {
+    lastReport: { ranAt: "2026-09-05T11:58:21Z", perSource: [
+      { name: "djsinbo", saved: 0, error: "게시판 추출 전 단계 실패: selector: fetch failed" },
+    ] },
+  };
+
   it("이번 회차 목록에 없는 출처에는 옛 회차의 오류·건수를 붙이지 않는다", () => {
-    // 시험 환경엔 국내 경유 설정이 없어 djsinbo 는 회차 밖 → 명부 자리값 waiting
-    const { entries } = build({
-      ledgerValue: { lastReport: { ranAt: "2026-09-05T11:58:21Z", perSource: [
-        { name: "djsinbo", saved: 0, error: "게시판 추출 전 단계 실패: selector: fetch failed" },
-      ] } },
-    });
+    // 경유가 꺼진 환경의 명부 — djsinbo 는 회차 밖 → 명부 자리값 waiting.
+    // ★명부를 손으로 넘긴다. `collectSourceNames()` 기본값은 설정값에 따라 갈려 서버에서만 깨진다.
+    const { entries } = build({ names: NAMES, ledgerValue: DJ_LEDGER });
     const dj = find(entries, "djsinbo");
     expect(dj.status).toBe("waiting");
     expect(dj.lastError).toBeNull();
     expect(dj.lastSaved).toBeNull();
     expect(dj.note).toContain("국내 경유");
+  });
+
+  it("★회차 목록에 **있는** 출처(경유가 켜진 환경)에는 그 회차 오류가 그대로 붙어 error", () => {
+    // 같은 장부인데 명부만 다르다 — 서버(경유 설정 있음)가 보는 모습.
+    const { entries } = build({ names: NAMES_PROXIED, ledgerValue: DJ_LEDGER });
+    const dj = find(entries, "djsinbo");
+    expect(dj.status).toBe("error");
+    expect(dj.lastError).toBe("게시판 추출 전 단계 실패: selector: fetch failed");
+    expect(dj.lastSaved).toBe(0);
   });
 
   it("꼬리 시각은 글자일 때만 싣는다 — 장부가 깨져도 죽지 않는다", () => {
