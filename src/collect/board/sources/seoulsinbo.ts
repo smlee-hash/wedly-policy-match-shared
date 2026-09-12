@@ -58,7 +58,7 @@ const DROP_STAFF =
   /평가위원|(?:신규|경력|직원|임시직)\s*채용\s*(?:공고|안내)|채용\s*공고|채용\s*현황|친인척\s*채용|노동이사|제20\d{2}인사-/;
 
 /**
- * 붙박이 공지 중 **1년 넘게 붙어 있는 것은 버린다**(koreaexim 방식).
+ * 1년 넘은 붙박이도 보존하되 등록일을 넘겨 과거 공고로 저장한다.
  * 실측 붙박이 「계약관련서식」(2024-08-21)이 이 갈래다 — DROP 에도 걸린다.
  */
 const PINNED_MAX_AGE_MS = 365 * 24 * 3600_000;
@@ -69,16 +69,18 @@ export function isSeoulsinboDropTitle(title: string): boolean {
 
 /** 수집기 쪽 번호 → 게시판 코드. 앞 PAGES_PER_BOARD 쪽이 공지사항, 그다음이 사업공고. */
 export function seoulsinboBoardOf(page: number): string {
-  const i = Math.min(Math.max(0, Math.floor((page - 1) / PAGES_PER_BOARD)), BOARDS.length - 1);
+  const i = Math.floor((Math.max(1, page) - 1) / PAGES_PER_BOARD) % BOARDS.length;
   return BOARDS[i];
 }
 
 export function seoulsinboListUrl(page: number): string {
-  const p = ((Math.max(1, page) - 1) % PAGES_PER_BOARD) + 1;
+  const index = Math.max(1, page) - 1;
+  const p = Math.floor(index / (BOARDS.length * PAGES_PER_BOARD)) * PAGES_PER_BOARD
+    + (index % PAGES_PER_BOARD) + 1;
   return `${BASE}${LIST}?mng_cd=${seoulsinboBoardOf(page)}&pageIndex=${p}`;
 }
 
-export function parseSeoulsinboList(html: string, page = 1, now = Date.now()): BoardRow[] {
+export function parseSeoulsinboList(html: string, page = 1, now = Date.now(), validationOnly = false): BoardRow[] {
   const out: BoardRow[] = [];
   const seen = new Set<string>();
   // 게시판 코드는 목록 HTML 안 숨은 칸에서 읽는다 — 못 읽으면 쪽 번호로 되짚는다.
@@ -92,7 +94,7 @@ export function parseSeoulsinboList(html: string, page = 1, now = Date.now()): B
     const title = (a?.querySelector("span.ellipsis")?.text ?? a?.text ?? "")
       .replace(/\s+/g, " ")
       .trim();
-    if (!title || isSeoulsinboDropTitle(title)) continue;
+    if (!title || (!validationOnly && isSeoulsinboDropTitle(title))) continue;
     /**
      * 등록일은 **4번째 td 칸을 직접** 집는다(번호|제목|작성자|작성일|첨부파일).
      * ⚠️ 행 전체 글자(`tr.text`)에서 찾으면 안 된다 — 번호 칸 「179」 + 「2026-08-05」가
@@ -103,11 +105,6 @@ export function parseSeoulsinboList(html: string, page = 1, now = Date.now()): B
     const d = dateCell.match(YMD);
     const ymd = d ? `${d[1]}-${d[2].padStart(2, "0")}-${d[3].padStart(2, "0")}` : "";
     const pinned = Boolean(tr.querySelector("td.notice"));
-    // 붙박이를 나이로 건너뛸 때도 번호를 기억한다 — 같은 글이 본문 칸에 한 번 더 나온다.
-    if (pinned && ymd && now - Date.parse(`${ymd}T00:00:00Z`) > PINNED_MAX_AGE_MS) {
-      seen.add(bno);
-      continue;
-    }
     seen.add(bno);
     out.push({
       title,
@@ -131,7 +128,7 @@ export function parseSeoulsinboList(html: string, page = 1, now = Date.now()): B
        * ⚠️ 같은 글이 붙박이 칸과 본문 칸에 두 번 나오는데(23384 등) `seen` 이 **붙박이를 먼저**
        *    담으므로 이 빈 날짜가 이긴다. 엔진의 쪽 사이 중복 제거(detailUrl)도 앞 쪽이 이긴다.
        */
-      dateText: pinned || !ymd ? "" : `${ymd} ~`,
+      dateText: !ymd || (!validationOnly && pinned && now - Date.parse(`${ymd}T00:00:00Z`) <= PINNED_MAX_AGE_MS) ? "" : `${ymd} ~`,
       category: "",
       agency: "서울신용보증재단",
     });
@@ -139,7 +136,12 @@ export function parseSeoulsinboList(html: string, page = 1, now = Date.now()): B
   return out;
 }
 
+export function parseSeoulsinboRaw(html: string, page = 1): BoardRow[] {
+  return parseSeoulsinboList(html, page, Date.now(), true);
+}
+
 export const seoulsinboConfig: BoardConfig = {
+  emptyStreakStop: BOARDS.length * PAGES_PER_BOARD,
   id: "seoulsinbo",
   label: "서울신용보증재단",
   agency: "서울신용보증재단",
@@ -162,6 +164,7 @@ export const seoulsinboConfig: BoardConfig = {
     },
   },
   customParse: parseSeoulsinboList,
+  validationParse: parseSeoulsinboRaw,
   /**
    * ★`detailContentSelector` 를 **일부러 안 적는다.**
    * 상세 본문(2026-09-03 `view/23384.do` 실측)은 `textarea#editor1` 안에 공고문 **이미지**

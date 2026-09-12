@@ -1,5 +1,6 @@
+import { createSbaPageSession, SbaPageEndError } from "./sba-page-session";
 import { parseHtml } from "../html";
-import type { BoardConfig, BoardFetchInit, BoardRow } from "../types";
+import type { BoardConfig, BoardRow } from "../types";
 
 /**
  * 서울경제진흥원(SBA) 사업신청 > **전체사업**(`Posting.aspx`).
@@ -23,7 +24,7 @@ import type { BoardConfig, BoardFetchInit, BoardRow } from "../types";
  *
  * ★붙박이(공지) 줄이 없다 — 표가 유형/사업명/접수일정 세 칸뿐이고 모든 줄이 접수기간을 달고
  *   내려간다(1·2·마지막 쪽 실측). 그래서 koreaexim 식 「1년 넘은 붙박이 버리기」가 필요 없다.
- * ★쪽넘김이 주소가 아니다 — `__doPostBack` POST 다. `sbaListInit` 주석 참고.
+ * ★쪽넘김이 주소가 아니다 — `__doPostBack` POST 다. 회차별 createListSession 이 상태를 보존한다.
  * ★브라우저 UA 가 필요하다(UA 없는 curl 은 HTTP 400/166B). 엔진이 이미 붙이므로 설정은 없다.
  */
 const BASE = "https://www.sba.seoul.kr";
@@ -48,81 +49,14 @@ export function isSbaDropTitle(title: string): boolean {
   return DROP.test(title);
 }
 
-/**
- * 쪽넘김에 쓸 **직전 응답의 상태**. ASP.NET WebForms 는 쪽 이동이 주소가 아니라
- * `__doPostBack` POST 라서, 「그 응답이 준 `__VIEWSTATE`」가 없으면 2쪽을 못 연다
- * (2026-09-03 실측: `__VIEWSTATE` 없이 POST 하면 HTTP 200 인데 55KB 짜리 빈 화면·0행).
- *
- * 엔진은 `list.init(page)` 를 **쪽 번호만 보고** 부르므로 직전 응답을 넘겨줄 자리가 없다.
- * 그래서 `parseSbaList` 가 지나가며 여기에 담아 두고 `sbaListInit` 이 꺼내 쓴다.
- * 엔진이 1쪽 → 파싱 → 2쪽 순서로 도는 것이 이 짝을 성립시킨다(engine.collectLaterPages 는 순차).
- *
- * 쪽 대상(`ctlNN`)도 **응답의 쪽 목록에서 읽는다** — 숫자를 손으로 계산하지 않는다.
- * 쪽 목록에 없는 쪽(11쪽 이상)은 아예 POST 를 만들지 않아 엉뚱한 쪽을 받아 오지 않는다.
- */
-type SbaPostback = { viewState: string; generator: string; targets: Map<number, string> };
-let postback: SbaPostback | null = null;
-
-/** 시험용 — 모듈에 남은 직전 응답 상태를 지운다. 운영 코드에서는 부르지 않는다. */
-export function resetSbaPostbackForTest(): void {
-  postback = null;
-}
-
-const DOPOSTBACK = /__doPostBack\(\s*'([^']+)'/;
-
-function capturePostback(root: ReturnType<typeof parseHtml>): void {
-  const viewState = root.querySelector("#__VIEWSTATE")?.getAttribute("value") ?? "";
-  const generator = root.querySelector("#__VIEWSTATEGENERATOR")?.getAttribute("value") ?? "";
-  if (!viewState) return;
-  const targets = new Map<number, string>();
-  for (const a of root.querySelectorAll("a[id*='PagingRepeater_PageNum_']")) {
-    const page = Number((a.text ?? "").trim());
-    const target = (a.getAttribute("href") ?? "").match(DOPOSTBACK)?.[1] ?? "";
-    if (!Number.isInteger(page) || page < 1 || !target || targets.has(page)) continue;
-    targets.set(page, target);
-  }
-  if (targets.size === 0) return;
-  postback = { viewState, generator, targets };
-}
-
-/**
- * 목록 요청 방식. 1쪽은 그냥 GET, 2쪽부터는 직전 응답의 상태를 담은 포스트백 POST.
- *
- * 상태가 없거나(1쪽을 아직 안 읽음) 그 쪽이 응답의 쪽 목록에 없으면 **GET 으로 물러선다** —
- * 그러면 1쪽을 다시 받아 전부 중복이 되고, 엔진이 「빈 쪽 둘」로 스스로 멈춘다. 틀린 쪽을 저장하는 일은 없다.
- *
- * ⚠️ 쪽 목록 창은 **1~10 에서 움직이지 않는다**(10쪽 응답에서도 1~10만 나오고 다음 창은 「▶」 버튼이 연다).
- *    그래서 `maxPages` 를 10 위로 올리는 것만으로는 11쪽을 못 받는다 — 「▶」 포스트백을 따라가는
- *    코드가 먼저 필요하다. 지금은 창 밖 쪽을 조용히 GET 으로 흘려 잘못된 자료를 만들지 않는다.
- */
-export function sbaListInit(page: number): BoardFetchInit {
-  if (page <= 1) return { method: "GET" };
-  const state = postback;
-  const target = state?.targets.get(page);
-  if (!state || !target) return { method: "GET" };
-  const body = new URLSearchParams({
-    __EVENTTARGET: target,
-    __EVENTARGUMENT: "",
-    __VIEWSTATE: state.viewState,
-    __VIEWSTATEGENERATOR: state.generator,
-  }).toString();
-  return {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
-  };
-}
-
 /** "2026-08-26" 처럼 이미 하이픈 형식인 칸만 받는다. 빈 칸·다른 글자는 빈 문자열. */
 function ymd(cell: string | undefined): string {
   const m = (cell ?? "").replace(/\s+/g, " ").trim().match(YMD);
   return m ? `${m[1]}-${m[2]}-${m[3]}` : "";
 }
 
-export function parseSbaList(html: string, _page = 1): BoardRow[] {
+export function parseSbaRaw(html: string, _page = 1): BoardRow[] {
   const root = parseHtml(html);
-  // 쪽넘김에 쓸 상태를 먼저 챙긴다 — 행이 0줄이어도 다음 쪽 시도는 살려 둔다.
-  capturePostback(root);
 
   const out: BoardRow[] = [];
   const seen = new Set<string>();
@@ -138,7 +72,7 @@ export function parseSbaList(html: string, _page = 1): BoardRow[] {
 
     const title = (tr.querySelector("span[id*='new_name_']")?.text ?? "").replace(/\s+/g, " ").trim();
     // 마지막 쪽(233쪽)에 제목·날짜가 통째로 빈 줄이 실제로 있다(실측) — 그런 줄은 담지 않는다.
-    if (!title || DROP.test(title)) continue;
+    if (!title) continue;
     seen.add(mid);
 
     /**
@@ -164,6 +98,10 @@ export function parseSbaList(html: string, _page = 1): BoardRow[] {
   return out;
 }
 
+export function parseSbaList(html: string, page = 1): BoardRow[] {
+  return parseSbaRaw(html, page).filter(r => !isSbaDropTitle(r.title));
+}
+
 export const sbaConfig: BoardConfig = {
   id: "sba",
   label: "서울경제진흥원(SBA)",
@@ -177,9 +115,8 @@ export const sbaConfig: BoardConfig = {
   list: {
     // POST 라 주소는 쪽과 무관하게 같다 — 쪽 번호는 init 의 포스트백 본문이 나른다.
     url: () => `${BASE}${LIST_PATH}`,
-    // 쪽 목록 창이 1~10 이라 여기가 자연스러운 상한이다(sbaListInit 주석).
+    // 최신 회차는 10쪽, 과거 쪽은 이어 읽기 장부가 계속 수집한다.
     maxPages: 10,
-    init: sbaListInit,
     rowSelector: "tr.grid_list.tbody",
     fields: {
       title: { selector: "span[id*='new_name_']" },
@@ -188,7 +125,10 @@ export const sbaConfig: BoardConfig = {
       category: { selector: "span[id*='lb_apply_templatename_']" },
     },
   },
+  createListSession: createSbaPageSession,
+  isListEndError: (error) => error instanceof SbaPageEndError,
   customParse: parseSbaList,
+  validationParse: parseSbaRaw,
   /**
    * ★`detailContentSelector` 를 **일부러 안 적는다**(ccei 와 같은 갈래).
    *

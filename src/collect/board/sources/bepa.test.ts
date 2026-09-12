@@ -116,6 +116,11 @@ describe("부산경제진흥원 지원사업안내 목록 읽기 — 실사이�
 });
 
 describe("부산경제진흥원 설정", () => {
+  it("두 쪽씩 한 바퀴 돈 뒤 각 게시판의 3쪽부터 이어 읽는다", () => {
+    expect(bepaConfig.list.url(11)).toBe("https://bepa.kr/kor/view.do?no=1505&pageIndex=3");
+    expect(bepaConfig.list.url(20)).toBe("https://bepa.kr/kor/view.do?no=1670&pageIndex=4");
+    expect(new Set(Array.from({ length: 100 }, (_, i) => bepaConfig.list.url(i + 1))).size).toBe(100);
+  });
   it("쪽넘김은 GET pageIndex · 지원사업안내 5판을 훑고 공지(1508)는 안 붙인다", () => {
     expect(bepaConfig.list.url(1)).toBe("https://bepa.kr/kor/view.do?no=1505&pageIndex=1");
     expect(bepaConfig.list.url(2)).toBe("https://bepa.kr/kor/view.do?no=1505&pageIndex=2");

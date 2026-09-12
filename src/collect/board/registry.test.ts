@@ -111,10 +111,11 @@ describe("board registry", () => {
     vi.unstubAllGlobals();
   });
 
-  it("118곳이 등록되고 각각 고유 id", () => {
-    expect(BOARD_SOURCES.length).toBe(118);
+  it("124곳이 등록되고 각각 고유 id", () => {
+    expect(BOARD_SOURCES.length).toBe(124);
     const ids = BOARD_SOURCES.map((c) => c.id);
-    expect(new Set(ids).size).toBe(118);
+    expect(new Set(ids).size).toBe(124);
+    expect(ids).toContain("kocca-finance");
     // 2026-09-06 P2 w6 연결 2곳
     for (const id of ["hespa", "jbio"]) expect(ids).toContain(id);
     expect(ids).toContain("dgtp");
@@ -136,7 +137,7 @@ describe("board registry", () => {
   });
 
   it("BOARD_SOURCES 는 BOARD_SOURCE_IDS 의 부분집합이다", () => {
-    expect(BOARD_SOURCE_IDS.size).toBe(118);
+    expect(BOARD_SOURCE_IDS.size).toBe(124);
     expect(BOARD_SOURCES.every((c) => BOARD_SOURCE_IDS.has(c.id))).toBe(true);
   });
 
@@ -149,8 +150,8 @@ describe("board registry", () => {
     delete process.env.POLICY_BOARD_PROXY_URL;
     try {
       const wrapped = boardSyncSources(deps);
-      // 프록시 없으면 국내 IP 전용 14곳(기존 6곳 전북TP·대전신보·서울신보·세종TP·안양·진주바이오 + 2026-09-06 P2 8곳 hrdk·kfme·kwbiz·pomia·uesc·suncheon·gbia·ikse)이 빠져 104곳. 118은 BOARD_SOURCES 쪽.
-      expect(wrapped).toHaveLength(104);
+      // 프록시 없으면 국내 IP 전용 14곳(기존 6곳 전북TP·대전신보·서울신보·세종TP·안양·진주바이오 + 2026-09-06 P2 8곳 hrdk·kfme·kwbiz·pomia·uesc·suncheon·gbia·ikse)이 빠져 105곳. 119는 BOARD_SOURCES 쪽.
+      expect(wrapped).toHaveLength(110);
       expect(wrapped.every((s) => s.clockOnly === true)).toBe(true);
       expect(wrapped.every((s) => s.staleAfterDays === 30)).toBe(true);
       expect(typeof wrapped[0].fetchAll).toBe("function");
@@ -217,6 +218,12 @@ describe("board registry", () => {
           "kidp",
           "kita",
           "kocca",
+          "kocca-finance",
+          "molit",
+          "mof",
+          "mois",
+          "mpva",
+          "mnd",
           "kodma",
           "kofic",
           "koreaexim",
@@ -669,7 +676,7 @@ describe("국내 경유가 필요한 출처", () => {
       for (const id of ["hanam", "sscf"]) expect(ids).toContain(id);
       // 2026-09-06 P2 경유 전환 8곳은 설정값이 없으면 빠진다(hrdk·kfme·kwbiz·pomia·uesc·suncheon·gbia·ikse).
       for (const id of ["hrdk", "kfme", "kwbiz", "pomia", "uesc", "suncheon", "gbia", "ikse"]) expect(ids).not.toContain(id);
-      expect(ids).toHaveLength(104);
+      expect(ids).toHaveLength(110);
     } finally {
       if (before !== undefined) process.env.POLICY_BOARD_PROXY_URL = before;
     }

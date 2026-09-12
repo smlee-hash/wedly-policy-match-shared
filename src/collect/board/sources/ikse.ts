@@ -43,8 +43,6 @@ export function isIkseDropTitle(title: string): boolean {
   return DROP.test(title);
 }
 
-/** 붙박이 공지 중 **1년 넘게 붙어 있는 것은 버린다**(실측: 2020-10-26 짜리가 아직 위에 있다). */
-const PINNED_MAX_AGE_MS = 365 * 24 * 3600_000;
 
 /** `26-08-26` → `2026-08-26`. 두 자리 연도는 2000년대로만 편다(이 게시판 최고령이 2020년). */
 export function ikseYmd(text: string): string {
@@ -53,7 +51,7 @@ export function ikseYmd(text: string): string {
   return `20${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
 }
 
-export function parseIkseList(html: string, _page = 1, now = Date.now()): BoardRow[] {
+export function parseIkseList(html: string, _page = 1, _now = Date.now(), validationOnly = false): BoardRow[] {
   const out: BoardRow[] = [];
   const seen = new Set<string>();
   for (const a of parseHtml(html).querySelectorAll(ROW)) {
@@ -65,14 +63,8 @@ export function parseIkseList(html: string, _page = 1, now = Date.now()): BoardR
      * 같은 공고가 새 줄이 된다.
      */
     const title = (a.querySelector("p.tit0")?.text ?? "").replace(/\s+/g, " ").trim();
-    if (!title || DROP.test(title)) continue;
+    if (!title || (!validationOnly && DROP.test(title))) continue;
     const ymd = ikseYmd((a.querySelector("p.date")?.text ?? "").replace(/\s+/g, " ").trim());
-    // 붙박이 공지는 번호 대신 공지 아이콘(img)이 들어간다.
-    const pinned = !!a.querySelector("p.no img");
-    if (pinned && ymd && now - Date.parse(`${ymd}T00:00:00Z`) > PINNED_MAX_AGE_MS) {
-      seen.add(id);
-      continue;
-    }
     seen.add(id);
     out.push({
       title,
@@ -85,6 +77,10 @@ export function parseIkseList(html: string, _page = 1, now = Date.now()): BoardR
     });
   }
   return out;
+}
+
+export function parseIkseRaw(html: string, page = 1): BoardRow[] {
+  return parseIkseList(html, page, Date.now(), true);
 }
 
 export const ikseConfig: BoardConfig = {
@@ -107,6 +103,7 @@ export const ikseConfig: BoardConfig = {
     },
   },
   customParse: parseIkseList,
+  validationParse: parseIkseRaw,
   /**
    * 상세 실측(wr_id=2638): 본문 `div.view_content`(한글 붙여넣기 HTML 전문), 첨부 상자 `ul.view_file`.
    * ★첨부 주소는 `href` 에 없다 — `href="javascript:;"` 이고 진짜 주소는

@@ -170,16 +170,16 @@ describe("망가뜨려 보기", () => {
     expect(broken.every((r) => r.dateText === "")).toBe(true);
   });
 
-  it("★1년 넘은 붙박이 공지는 담지 않는다 — 거르개가 없어도 나이로 걸린다", () => {
-    // 실측 붙박이 `wr_id=1102`(20-10-26)는 「매뉴얼」 거르개에도 걸린다. 그 글자를 지워도 빠져야 한다.
+  it("오래된 붙박이 정책도 과거 공고로 보존한다", () => {
+    // 비정책 매뉴얼만 제외하며, 실제 지원사업이면 연도와 관계없이 보존한다.
     const html = listHtml.replace(
       "[안내] 사회적기업가를 위한 창업상담매뉴얼을 공개합니다!",
       "2020년 사회적기업 지원사업 모집 공고",
     );
     const out = parseIkseList(html, 1, NOW);
     expect(isIkseDropTitle("2020년 사회적기업 지원사업 모집 공고")).toBe(false);
-    expect(out.some((r) => r.detailUrl.includes("wr_id=1102"))).toBe(false);
-    expect(out).toHaveLength(9);
+    expect(out.find((r) => r.detailUrl.includes("wr_id=1102"))?.dateText).toBe("2020-10-26 ~");
+    expect(out).toHaveLength(10);
   });
 
   it("첨부 함수 이름이 바뀌면 첨부를 지어내지 않는다", () => {

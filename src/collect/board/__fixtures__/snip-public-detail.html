@@ -1,0 +1,323 @@
+
+
+
+
+
+<!-- 20210615 LYJ 사업관리 상세-->
+<!DOCTYPE html>
+<html lang="ko">
+	<head>
+	    <meta charset="UTF-8">
+	    <title>Document</title>
+	    
+		<script type="text/javascript" src="/snip/js/jquery.js"></script>
+		   	
+		<!-- include libraries(jQuery, bootstrap) --> 
+		<script src="/snip/boot/jquery.js"></script> 
+		<script src="/snip/boot/bootstrap.js"></script> 
+		
+		<link rel="stylesheet" href="/snip/css/common.css">
+	    <link rel="stylesheet" href="/snip/css/board.css">
+	    
+		<!-- include summernote css/js--> 
+		<link href="/snip/css/summernote.css" rel="stylesheet"> 
+		<script src="/snip/js/summernote.js"></script>
+
+		
+	  	<script type="text/javascript">
+			$(document).ready( function() {//화면 사이즈 조정
+				$('html, body', window.parent.document).animate({scrollTop : 300});
+		   		// 파일 크기
+		   		
+						var size = bytesToSize(165376);
+						$("#fileSizeFILE_000000000119039").append("("+size+")");
+				
+				$('#summernote').summernote({
+			        minHeight: 370,
+			        maxHeight: 800,
+			        focus: false, 
+			        lang : 'ko-KR',
+			        disableDragAndDrop : true,
+			        toolbar: [
+					],
+			  });
+		
+
+				// To disable
+				$('#summernote').summernote('disable');
+				$('.note-statusbar').hide(); 
+				var cells = document.getElementsByClassName("modal"); 
+		         for (var i = 0; i < cells.length; i++) { 
+		             cells[i].style.display = 'none';
+		         }
+	   			var iFrameID = window.frameElement.id;
+	   			
+		   			
+			   	
+			   		var hpx = $(".listTit").height()+ $(".titleArea").height()+$(".titArea5").height()+$(".titArea4").height()+$(".btnArea").height()+600;
+			   	
+		   		window.parent.document.getElementById(iFrameID).style.height = hpx + "px";
+		   		
+		   		
+				
+			});
+			function bytesToSize(bytes) {
+				   var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+				   if (bytes == 0) return '0 Byte';
+				   var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+				   return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
+			}
+	   		//파일 다운로드
+	   		function fn_fileDown(fileId) {
+  		          if (confirm("파일을 다운로드 하시겠습니까?") == true){           
+  		             location.href = "/user/snip/attatchFileDownload.face?comAtchFileId="+fileId+"&dataType=biz";
+  		             //alert("파일이 다운되었습니다.");
+  		             //location.reload();
+  		             return;   
+  		          }
+	   		 }
+		    // 파일 미리보기
+			function fn_Preview(fileMask , fileId){
+		
+					window.open('https://portal.snip.or.kr:8443/snip/filePreview.jsp?fileId='+fileId+'&dataType=biz');
+				
+	   		}
+			function fn_conApTm(){
+					alert("금일 신청이 마감되었습니다.");
+			}
+		  function QnAPopup(){//사업 문의 팝업 띄우기
+	            var url = "/snip/busin/businQnA.face?pjtCd=4167&pjtAnncSn=2026-0253";
+	            var name = "사업문의";
+	        	var w = 800;
+	        	var h = 600;
+	        	var LeftPosition = ((screen.width-w)/2);
+	        	var TopPosition = ((screen.height-h)/2);
+	        	var option = "width="+w+", height="+h+",top="+TopPosition+",left="+LeftPosition+",scrollbars=yes";
+	            window.open(url, name, option);
+	        }
+			function fn_roleCheck(){//로그인 안한 사용자일경우
+				if(confirm('로그인 후에 신청이 가능합니다. 로그인화면으로 이동하시겠습니까?')) { 	
+			    	$.ajax({
+			    		url : "/user/snipComm/destiAjax.face",
+			    		type : "POST",
+			    		dataType : "json",
+			    		data : {"des" : "/portal/snip/MainMenu/businessManagement/application.page"},
+			    		success : function(data){
+			    			if(data.status  == "SUCCESS"){
+			    				window.top.location.href='https://www.snip.or.kr/SNIP/contents/snipLogin.do?destination=/portal/snip/MainMenu/businessManagement/application.page';
+			    			}
+			    		},
+			    		error:function(request,status,error){
+			    			alert("처리 중 에러가 발생하였습니다.");
+			    			alert("code:"+request.status+"\n"+"message:"+request.responseText+"\n"+"error:"+error);
+			    		}
+			    	});
+				} else {
+					return;
+				}
+			}
+			function fn_roleCheck2(){//기업 회원이 아닌경우
+				alert("기업회원만 신청이 가능합니다.")
+			}
+			function fn_roleCheck3(){//개인 회원이 아닌경우
+				alert("개인회원만 신청이 가능합니다.")
+			}
+			function fn_roleQstCheck(){
+				if(confirm('로그인 후에 문의가 가능합니다. 로그인화면으로 이동하시겠습니까?')) { 	
+			    	$.ajax({
+			    		url : "/user/snipComm/destiAjax.face",
+			    		type : "POST",
+			    		dataType : "json",
+			    		data : {"des" : "/portal/snip/MainMenu/businessManagement/application.page"},
+			    		success : function(data){
+			    			if(data.status  == "SUCCESS"){
+			    				window.top.location.href='https://www.snip.or.kr/SNIP/contents/snipLogin.do?destination=/portal/snip/MainMenu/businessManagement/application.page';
+			    			}
+			    		},
+			    		error:function(request,status,error){
+			    			alert("처리 중 에러가 발생하였습니다.");
+			    			alert("code:"+request.status+"\n"+"message:"+request.responseText+"\n"+"error:"+error);
+			    		}
+			    	});
+				} else {
+					return;
+				}
+			
+			}
+			function fn_goLink(){
+				window.open('https://www.one-click.co.kr/cm/CM0100M001GE.nice?cporcd=181&pdt_seq=1&orgclbyctnidtkey=');
+			}
+			function fn_roleQstCheck2(){//기업회원이 아닌경우
+				alert("기업회원만 문의가 가능합니다.")
+			}
+			function fn_applyCheck( ){//신청 여부 확인
+				$.ajax({
+					type : "POST",
+					url : "/snip/busin/businApplyCheck.face",
+					data : $("#businForm").serialize(),
+					dataType : "JSON",
+					success : function(data) {
+						 if (data.status == "FAIL") {
+							 alert('이전에 신청한 이력이 있습니다.');// 성공 코드 
+						} else if (data.status == "SUCCESS") {
+							location.href='/snip/busin/businApplyForm.face?pjtCd=4167&beAf=beAf&pjtAnncSn=2026-0253';
+						}else if(data.status == "EMSUCCESS") {
+							alert('해당 사업은 임시저장한 사업입니다.\n마이페이지에서 수정이 가능합니다.'); // 성공 코드 
+						}else if(data.status == "NoAp"){
+							alert('해당 사업의 모집기간과 마감시각이 지나 신청이 불가능합니다.'); // 성공 코드 
+						}
+					},
+					error : function() {
+					}
+			});
+			}
+		  	function fn_read(rentId , rentId2){//이전글 다음글 row클릭 시
+				location.href="/user/snip/busin/businDetail.face?pjtAnncSn="+rentId+"&pjtCd="+rentId2;
+			}
+		  	function fn_textCopy() {    
+		  		var copyText = document.getElementById("businUrl");
+		  		copyText.select();
+		  		copyText.setSelectionRange(0, 99999); /*For mobile devices*/
+		  		document.execCommand("copy");
+		  	  	alert('사업공고 상세 URL이 복사되었습니다');
+		  	}
+		  	
+			 $(function(){
+			        $(document).ajaxStart(function(){
+			            $(".loadScreen").show(); //미리 만들어둔 loadingBar
+			        }).ajaxStop(function(){
+			            $(".loadScreen").hide();            
+			        });
+			        $('#list').click(function(){
+				            if (this.href != null && this.target != "_blank") {
+				            	
+				            	$(".bodyDiv").css("visibility","hidden");
+				                $(".loadScreen").show(); //미리 만들어둔 loadingBar                
+				            }
+				        });
+			       
+			    });
+			 $(function(){    
+		        $('a').click(function(e){
+		        	var click_id = $(this).attr('id');
+		        	var click_class = $(this).attr('class');
+					if(click_id!='noWindowOpen'&&click_class!='noWindowOpen'&&click_id!='list'){     
+						window.open(this.href);
+						return false;
+						//e.preventDefault();
+					}
+			    });
+		       
+			});
+
+		</script>
+		<style type="text/css">
+		.note-editable{
+		 	background-color: white !important;
+		}
+		#businUrl{
+			position: relative;
+			border: black 1px solid;
+			left: 730px;
+			width: 200px;
+		}
+		</style>
+	</head>
+	<body class="iframe">
+	<div class="loadScreen" style="display:none;">
+    <div class="load_wrap">
+        <p>데이터를 로딩중입니다.<br>잠시만 기다려주세요.</p>
+    </div>
+	</div>
+	<div class="listTit">
+		<input id="businUrl"  value="https://portal.snip.or.kr:8443/portal/snip/MainMenu/businessManagement/application.page?portlet=2026-0253&portlet2=4167&ptlYn=Y" readonly="readonly">	 
+		<a href="javascript:void(0);"  style="float:right;" onclick = "fn_textCopy();"class="btn blue" id = "noWindowOpen"><span>URL 복사</span></a>
+	 </div>
+      <div class="titleArea" style="word-break:break-all;">
+        <h2>
+        	         	
+      						<span style="vertical-align: middle;" class="status green">진행중</span>
+      					
+      					
+      					
+      					
+        
+        해외 전시회 개별 참가 지원 모집공고</h2>
+      
+        <ul>
+        	<li style="width: 100%">사업명 : 글로벌 진출 지원(해외 전시회 참가지원 프로그램)</li>
+            
+            <li>모집기간 : ~ 
+            				2026.10.23
+            			
+            </li>
+            <li>마감시각 : 18:00</li>
+            <li>마감일자 : 마감 40일전</li>
+            
+            <li>신청 가능 회원 : 					
+        			
+						기업
+					
+					
+					
+			</li>		
+            
+
+            <li>등록일 : 
+            				2026.09.11 
+            			
+            </li>
+            
+            <li>조회수 : 98</li>
+            <li>담당자 연락처 : 031-782-3073</li>
+        </ul>
+    </div>
+    	
+		    <div class="titArea4">
+		    	<p class="tit">첨부파일<br>
+		            
+		            	<a style="margin-left:0px;margin-top:2px;" href="javascript:void(0);" id = "noWindowOpen">2_개별참가(해외 전시회) 진원신청서 (1).hwp<span id = "fileSizeFILE_000000000119039" class = "noWindowOpen"></span></a>
+			            <a style="margin-top:2px;" href="javascript:void(0);" onclick="javascript:fn_fileDown('4EA62D6FB90D5191F52D052A866FB18922C223BD88E5A7F833DDE1431D21DADB');" class="btn green" id = "noWindowOpen"><span>다운로드</span></a>	
+			            <a style="margin-top:2px;" href="javascript:void(0);" onclick="fn_Preview('202609111251196920.hwp','4EA62D6FB90D5191F52D052A866FB18922C223BD88E5A7F833DDE1431D21DADB');" id = "noWindowOpen" class="btn blue"><span>바로보기</span></a>
+	            	<br>
+		            
+		        </p>
+		    </div>
+	    
+    	 
+		 
+    	<div class="titArea5">
+  			<textarea id="summernote" name="content" style = "display:none;" disabled>
+  			사업 공고문 내용을 입력합니다.<img src="https://portal.snip.or.kr:8443/gwCustSnip/2026/202609111144439170.png" title="1_해외 전시회 개별 참가 지원 모집공고문.png" width="974" height="546" rwidth="974" rheight="546" style="border-color: rgb(0, 0, 0); width: 974px; height: 546px;"><br style="clear:both;">
+  			</textarea>
+		</div>
+        		<div class="btnArea C">
+        		
+        		<a href="javascript:void(0);" onclick="fn_roleQstCheck();"
+        									   onclick="QnAPopup();"
+        									    class="btn green" id = "noWindowOpen" ><span >문의하기</span></a>
+        	 
+	  			 
+	        		
+	             		<a href="javascript:fn_roleCheck();" class="btn blue" id = "noWindowOpen"><span>신청하기</span></a>
+	        		    		
+	                
+	    		
+    	  
+    	<a href="https://m.one-click.co.kr/#/snip" target="_blank" class="btn orange"  title="세무회계 온라인제출" id = "noWindowOpen"><span>세무회계 온라인제출</span></a>
+        <div class="subBtn R">
+        		<form name="businForm" id="businForm" method="post" action="" autocomplete="off">
+					<input type = "hidden" name = "pjtCd" value="4167">
+					<input type = "hidden" name = "pjtAnncSn" value="2026-0253">
+			        <a href="/user/snip/busin/businList.face" id ="list" class="btn blue"><span>목록</span></a>
+			     </form> 
+			     
+        </div> 
+
+        	
+    	
+    </div>
+    
+</body>
+	
+</html>

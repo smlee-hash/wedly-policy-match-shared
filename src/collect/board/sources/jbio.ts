@@ -82,6 +82,20 @@ export function parseJbioList(html: string): BoardRow[] {
   return out;
 }
 
+class JbioListEnd extends Error {}
+function jbioListUrl(page: number): string {
+  return `${BASE}/boardList.do?boardId=${BOARD_ID}&sub=${SUB}&nowPage=${page}`;
+}
+/** 붙박이는 마지막 쪽 다음에도 남는다. 기관 쪽수·현재 요청·빈 일반 목록을 함께 확인한다. */
+function jbioListEnded(html: string, page: number): boolean {
+  const root = parseHtml(html);
+  const match = root.querySelector(".boardSearch .count-2")?.text.trim().match(/^(\d+)\/(\d+)$/);
+  const actual = root.querySelector("input#nowPage")?.getAttribute("value");
+  const empty = root.querySelectorAll("table.basicList tbody td[colspan]").some(td => /게시물이\s*없습니다/.test(td.text));
+  return !!match && Number(match[1]) === page && actual === String(page)
+    && Number(match[2]) >= 1 && Number(match[2]) < page && empty;
+}
+
 export const jbioConfig: BoardConfig = {
   id: "jbio",
   label: "진주바이오산업진흥원",
@@ -91,7 +105,7 @@ export const jbioConfig: BoardConfig = {
   charset: "utf-8",
   list: {
     // 1쪽에도 `nowPage=1` 을 붙인다 — 엔진이 url(1)·url(2) 를 견줘 쪽 변수를 알아내는 길을 열어 둔다.
-    url: (p) => `${BASE}/boardList.do?boardId=${BOARD_ID}&sub=${SUB}&nowPage=${p}`,
+    url: jbioListUrl,
     // 1쪽 11행에 연 8~10건이라 3쪽이면 약 3년 치다. 더 파도 2025년 이전 글만 늘어난다.
     maxPages: 3,
     rowSelector: "table.basicList tbody tr",
@@ -102,6 +116,12 @@ export const jbioConfig: BoardConfig = {
     },
   },
   customParse: parseJbioList,
+  createListSession: fetchText => async page => {
+    const html = await fetchText(jbioListUrl(page));
+    if (jbioListEnded(html, page)) throw new JbioListEnd();
+    return html;
+  },
+  isListEndError: error => error instanceof JbioListEnd,
   /** 상세 본문(2026-09-06 `dataNo=1650` 실측): HWP 에서 붙여넣은 인라인 style 범벅이 `div.conText` 안에 있다. */
   detailContentSelector: "div.conText",
   /** 첨부는 `div.conField ul li a.file` → `/fileDownload.do?fileNo=…&boardId=5`. 바닥글과 섞이지 않게 범위를 좁힌다. */

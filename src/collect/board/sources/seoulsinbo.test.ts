@@ -157,16 +157,10 @@ describe("날짜·붙박이", () => {
     }
   });
 
-  it("★1년 넘게 붙어 있는 붙박이는 아예 안 담는다 — 날짜를 비우면 90일간 되살아난다", () => {
+  it("오래된 붙박이 정책도 날짜와 함께 보존해 과거 공고로 수집한다", () => {
     const old = parseSeoulsinboList(listHtml, 1, Date.parse("2030-01-01T00:00:00Z"));
-    // 붙박이 6건은 나이로 빠지고 일반 행 5건만 남는다(나이 규칙은 붙박이에만 건다).
-    expect(old).toHaveLength(5);
-    expect(old.every((r) => !r.detailUrl.includes("/23384."))).toBe(true);
-    expect(old.map((r) => r.title)).not.toContain("2026년 자영업클리닉 모집공고");
-    // ★붙박이가 본문 칸에 한 번 더 나오는 글도 함께 빠져야 한다 — 안 그러면 90일간 되살아난다.
-    expect(old.length).toBeLessThan(rows.length);
-    // 2026-09-03 기준으로는 2026-02-12 붙박이까지 살아 있다(1년 안쪽) — 날짜는 안 넘기지만 행은 남는다.
-    expect(rows.some((r) => r.detailUrl.includes("/21372."))).toBe(true);
+    expect(old.map(r => r.detailUrl)).toEqual(rows.map(r => r.detailUrl));
+    expect(old.every(r => /^20\d{2}-\d{2}-\d{2} ~$/.test(r.dateText))).toBe(true);
   });
 
   it("날짜는 4번째 td 칸에서만 집는다 — 행 전체 글자면 번호·첨부와 붙는다", () => {
@@ -227,6 +221,11 @@ describe("제목 거르개 — 버릴 것만 버린다", () => {
 });
 
 describe("서울신용보증재단 설정", () => {
+  it("한 바퀴 뒤 공지사항과 사업공고의 7쪽부터 계속 읽는다", () => {
+    expect(seoulsinboConfig.list.url(13)).toBe("https://www.seoulshinbo.co.kr/wbase/contents/bbs/list.do?mng_cd=STRY9788&pageIndex=7");
+    expect(seoulsinboConfig.list.url(19)).toBe("https://www.seoulshinbo.co.kr/wbase/contents/bbs/list.do?mng_cd=STRY0006&pageIndex=7");
+    expect(new Set(Array.from({ length: 100 }, (_, i) => seoulsinboConfig.list.url(i + 1))).size).toBe(100);
+  });
   it("1~6쪽은 공지사항, 7~12쪽은 사업공고 — 두 게시판을 번갈아 읽는다", () => {
     expect(seoulsinboBoardOf(1)).toBe("STRY9788");
     expect(seoulsinboBoardOf(6)).toBe("STRY9788");

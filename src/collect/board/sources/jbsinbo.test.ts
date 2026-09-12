@@ -1,8 +1,14 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { parseHtml } from "../html";
 import { pagingParamsOf } from "../engine";
-import { isJbsinboDropTitle, parseJbsinboList, jbsinboConfig } from "./jbsinbo";
+import {
+  isJbsinboDropTitle,
+  parseJbsinboList,
+  parseJbsinboValidationList,
+  jbsinboConfig,
+} from "./jbsinbo";
 
 /**
  * ★손으로 쓴 HTML 대신 **실사이트 고정본**으로 잰다.
@@ -16,16 +22,17 @@ const NOW = Date.parse("2026-09-03T00:00:00Z");
 const rows = parseJbsinboList(listHtml, 1, NOW);
 const rowsP2 = parseJbsinboList(listP2Html, 2, NOW);
 const combined = parseJbsinboList(listHtml + listP2Html, 1, NOW);
+const raw = parseJbsinboValidationList(listHtml, 1);
 
 describe("전북신용보증재단 공지사항 목록 읽기 — 실사이트 고정본", () => {
-  it("1쪽 고정본에서 DROP·중복을 뺀 2건을 읽고 첫 행이 맞다", () => {
-    expect(rows.length).toBeGreaterThanOrEqual(2);
+  it("1쪽 고정본에서 DROP·카드뉴스 제외 뒤 지원사업 1건이 남고 첫 행이 맞다", () => {
+    expect(rows.length).toBeGreaterThanOrEqual(1);
     expect(rows.length).toBeLessThanOrEqual(10);
-    expect(rows).toHaveLength(2);
+    expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
-      title: "(카드뉴스) 2026 추석 명절 청탁금지법 선물 바로 알기",
-      detailUrl: "https://www.jbcredit.or.kr/site/menu/MENU_000000000000090/board/view/NTT_005641",
-      dateText: "2026-09-02 ~",
+      title: "2026년 전북특별자치도 자영업자 사회보험료 지원사업 안내",
+      detailUrl: "https://www.jbcredit.or.kr/site/menu/MENU_000000000000090/board/view/NTT_005546",
+      dateText: "2026-06-08 ~",
       agency: "전북신용보증재단",
     });
   });
@@ -41,10 +48,10 @@ describe("전북신용보증재단 공지사항 목록 읽기 — 실사이트 �
     for (const r of dated) expect(r.dateText).toMatch(/^\d{4}-\d{2}-\d{2} ~$/);
   });
 
-  it("1쪽+2쪽을 합쳐 파싱해도 상세 열쇠 중복이 없고 5건이다", () => {
+  it("1쪽+2쪽을 합쳐 파싱해도 상세 열쇠 중복이 없고 4건이다", () => {
     const urls = combined.map((r) => r.detailUrl);
     expect(new Set(urls).size).toBe(urls.length);
-    expect(combined).toHaveLength(5);
+    expect(combined).toHaveLength(4);
     const concat = [...rows, ...rowsP2];
     expect(new Set(concat.map((r) => r.detailUrl)).size).toBe(concat.length);
   });
@@ -65,9 +72,27 @@ describe("전북신용보증재단 공지사항 목록 읽기 — 실사이트 �
   });
 
   it("날짜는 작성일 칸(두 번째 td.m_grey)에서만 집는다 — 행 전체 글자면 번호·조회수와 붙는다", () => {
-    const r = rows.find((x) => x.detailUrl.includes("NTT_005641"));
-    expect(r?.dateText).toBe("2026-09-02 ~");
-    expect(r?.dateText).not.toMatch(/177|5$/);
+    const r = rows.find((x) => x.detailUrl.includes("NTT_005546"));
+    expect(r?.dateText).toBe("2026-06-08 ~");
+    expect(r?.dateText).not.toMatch(/168|116/);
+    const card = raw.find((x) => x.detailUrl.includes("NTT_005641"));
+    expect(card?.dateText).toBe("2026-09-02 ~");
+    expect(card?.dateText).not.toMatch(/177|5$/);
+  });
+});
+
+describe("거르개 전 원본 행 — 제목·정규 주소·등록일", () => {
+  it("1쪽 고정본 13행에서 중복 NTT 를 뺀 12건이고 붙박이 등록일을 비우지 않는다", () => {
+    expect(parseHtml(listHtml).querySelectorAll(jbsinboConfig.list.rowSelector)).toHaveLength(13);
+    expect(raw).toHaveLength(12);
+    expect(raw.every((r) => /^https:\/\/www\.jbcredit\.or\.kr\/site\/menu\/MENU_000000000000090\/board\/view\/NTT_\d+$/.test(r.detailUrl))).toBe(true);
+    expect(new Set(raw.map((r) => r.detailUrl)).size).toBe(raw.length);
+    expect(raw.every((r) => /^\d{4}-\d{2}-\d{2} ~$/.test(r.dateText))).toBe(true);
+    const pinned = raw.find((r) => r.detailUrl.includes("NTT_004430"));
+    expect(pinned?.title).toContain("신용보증 상담예약제");
+    expect(pinned?.dateText).toBe("2024-07-12 ~");
+    expect(raw.some((r) => r.title.includes("카드뉴스") && r.title.includes("청탁금지법"))).toBe(true);
+    expect(jbsinboConfig.validationParse?.(listHtml, 1)).toEqual(raw);
   });
 });
 
@@ -118,6 +143,16 @@ describe("거르개 — 버릴 것만 지정한다", () => {
     expect(isJbsinboDropTitle("직원 채용 지원사업")).toBe(false);
     expect(isJbsinboDropTitle("2026년 전북특별자치도 자영업자 사회보험료 지원사업 안내")).toBe(false);
   });
+
+  it("카드뉴스·청탁금지법 선물 안내는 버리고, 기업 지원사업 제목은 살린다", () => {
+    expect(isJbsinboDropTitle("(카드뉴스) 2026 추석 명절 청탁금지법 선물 바로 알기")).toBe(true);
+    expect(isJbsinboDropTitle("청탁금지법 선물 한도 안내")).toBe(true);
+    expect(isJbsinboDropTitle("청탁금지법 준수 중소기업 지원사업")).toBe(false);
+    expect(isJbsinboDropTitle("(카드뉴스) 2026 소상공인 특례보증 지원사업 안내")).toBe(false);
+    expect(rows.some((r) => r.title.includes("카드뉴스") || r.title.includes("청탁금지법"))).toBe(
+      false,
+    );
+  });
 });
 
 describe("붙박이 공지 — 1년 넘은 것은 담지 않는다", () => {
@@ -152,8 +187,10 @@ describe("전북신용보증재단 설정", () => {
     expect(jbsinboConfig.agency).toBe("전북신용보증재단");
   });
 
-  it("서식 변경 감지가 살아 있다 — 1은 검사를 끈 것과 같다", () => {
+  it("서식 변경 감지가 살아 있다 — 최소 행은 거르개 전 원본에 적용한다", () => {
     expect(jbsinboConfig.expectMinRows).toBeGreaterThanOrEqual(2);
+    expect(raw.length).toBeGreaterThanOrEqual(jbsinboConfig.expectMinRows!);
+    expect(typeof jbsinboConfig.validationParse).toBe("function");
   });
 
   it("목록 행에 첨부 파일 링크가 섞여 heuristic 을 끈다", () => {
@@ -187,5 +224,11 @@ describe("망가뜨려 보기", () => {
     const broken = parseJbsinboList(listHtml.replaceAll('class="m_grey"', 'class="m_grey-x"'), 1, NOW);
     expect(broken.length).toBeGreaterThan(0);
     expect(broken.every((r) => r.dateText === "")).toBe(true);
+    const brokenRaw = parseJbsinboValidationList(
+      listHtml.replaceAll('class="m_grey"', 'class="m_grey-x"'),
+      1,
+    );
+    expect(brokenRaw.length).toBeGreaterThan(0);
+    expect(brokenRaw.every((r) => r.dateText === "")).toBe(true);
   });
 });

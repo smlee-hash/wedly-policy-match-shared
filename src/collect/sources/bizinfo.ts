@@ -14,7 +14,10 @@ import {
 const BASE = "https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do";
 const ORIGIN = "https://www.bizinfo.go.kr";
 const PAGE_UNIT = 100;
-const MAX_PAGES = 50; // 안전 상한 — 넘으면 로그로 알린다(조용한 잘림 금지)
+const SAFETY_MAX_PAGES = 500; // 넘으면 미완료. 잘린 목록을 성공으로 돌리지 않는다.
+const PAGE_ATTEMPTS = 3;
+const BACKOFF_MS = 50;
+const BACKOFF_CAP_MS = 200;
 export const FETCH_TIMEOUT_MS = 30_000;
 
 type Raw = Record<string, unknown>;
@@ -119,21 +122,195 @@ export function keepIdentifiable(list: NormalizedAnnouncement[]): NormalizedAnno
   return kept;
 }
 
-/** 전 페이지 수집. 실패는 상태코드+본문 일부를 담아 던진다(olcademy sheet-client 관행). */
+function incomplete(reason: string): Error {
+  return new Error(`기업마당 수집이 끝나지 않았습니다(${reason})`);
+}
+
+function redactSecrets(text: string, key: string): string {
+  let out = text;
+  if (key) {
+    out = out.split(key).join("[redacted]");
+    const enc = encodeURIComponent(key);
+    if (enc !== key) out = out.split(enc).join("[redacted]");
+  }
+  return out.replace(/crtfcKey=[^&\s"'\\]+/gi, "crtfcKey=[redacted]");
+}
+
+function throwSafe(message: string, key: string): never {
+  throw new Error(redactSecrets(message, key));
+}
+
+function isTransientNetwork(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const name = String((err as { name?: string }).name ?? "");
+  const code = String((err as { code?: string }).code ?? "");
+  if (name === "TimeoutError" || name === "AbortError") return true;
+  if (code === "ABORT_ERR" || code === "ETIMEDOUT" || code === "ECONNRESET") return true;
+  if (/timeout/i.test(name)) return true;
+  return err instanceof TypeError;
+}
+
+function backoffMs(attempt: number): number {
+  return Math.min(BACKOFF_CAP_MS, BACKOFF_MS * attempt);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** 있을 때만 읽는다. 값이 있으면 음이 아닌 정수만 받는다. */
+function readTotCnt(value: unknown): number | null {
+  if (value === undefined) return null;
+  if (typeof value === "number") {
+    if (!Number.isInteger(value) || value < 0 || !Number.isSafeInteger(value)) {
+      throw incomplete("건수");
+    }
+    return value;
+  }
+  if (typeof value === "string") {
+    const t = value.trim();
+    if (!/^(0|[1-9]\d*)$/.test(t)) throw incomplete("건수");
+    const n = Number(t);
+    if (!Number.isSafeInteger(n)) throw incomplete("건수");
+    return n;
+  }
+  throw incomplete("건수");
+}
+
+function expectedItemsOnPage(page: number, total: number): number {
+  if (total === 0) return page === 1 ? 0 : -1;
+  const pages = Math.ceil(total / PAGE_UNIT);
+  if (page < 1 || page > pages) return -1;
+  if (page < pages) return PAGE_UNIT;
+  return total % PAGE_UNIT === 0 ? PAGE_UNIT : total % PAGE_UNIT;
+}
+
+function neededPages(total: number): number {
+  return total === 0 ? 1 : Math.ceil(total / PAGE_UNIT);
+}
+
+/**
+ * 수집 루프는 jsonArray 봉투만 인정한다.
+ * extractBizinfoItems 는 정규화 시험용 호환 헬퍼이며 여기서 쓰지 않는다.
+ */
+function parseBizinfoPage(json: unknown): { items: Raw[]; declaredTotal: number | null } {
+  if (json === null || typeof json !== "object" || Array.isArray(json)) {
+    throw new Error("기업마당 응답 형식이 올바르지 않습니다");
+  }
+  const obj = json as Raw;
+  if (!Array.isArray(obj.jsonArray)) {
+    throw new Error("기업마당 응답 형식이 올바르지 않습니다");
+  }
+  const rawItems = obj.jsonArray as unknown[];
+  const totals: number[] = [];
+  const top = readTotCnt(obj.totCnt);
+  if (top !== null) totals.push(top);
+
+  const items: Raw[] = [];
+  for (const raw of rawItems) {
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+      throw incomplete("항목");
+    }
+    const item = raw as Raw;
+    const title = stripTags(s(item.pblancNm) || s(item.title));
+    const idOrLink = s(item.pblancId) || s(item.pblancUrl) || s(item.link);
+    if (!title || !idOrLink) throw incomplete("항목");
+    const n = readTotCnt(item.totCnt);
+    if (n !== null) totals.push(n);
+    items.push(item);
+  }
+
+  let declaredTotal: number | null = null;
+  if (totals.length > 0) {
+    declaredTotal = totals[0]!;
+    if (totals.some((n) => n !== declaredTotal)) throw incomplete("건수");
+  }
+  return { items, declaredTotal };
+}
+
+async function fetchPageJson(page: number, key: string): Promise<unknown> {
+  const url = `${BASE}?crtfcKey=${encodeURIComponent(key)}&dataType=json&pageUnit=${PAGE_UNIT}&pageIndex=${page}`;
+  for (let attempt = 1; attempt <= PAGE_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+      if (res.ok) {
+        try {
+          return await res.json();
+        } catch {
+          throwSafe("기업마당 응답 형식이 올바르지 않습니다", key);
+        }
+      }
+      const status = res.status;
+      if (status === 429 || status >= 500) {
+        if (attempt < PAGE_ATTEMPTS) {
+          await sleep(backoffMs(attempt));
+          continue;
+        }
+        throwSafe(`기업마당 호출 실패(${status})`, key);
+      }
+      throwSafe(`기업마당 호출 실패(${status})`, key);
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith("기업마당")) {
+        throwSafe(err.message, key);
+      }
+      if (isTransientNetwork(err) && attempt < PAGE_ATTEMPTS) {
+        await sleep(backoffMs(attempt));
+        continue;
+      }
+      if (isTransientNetwork(err)) throwSafe("기업마당 호출 시간 초과", key);
+      throwSafe("기업마당 호출에 실패했습니다", key);
+    }
+  }
+  throwSafe("기업마당 호출에 실패했습니다", key);
+}
+
+/** 전 페이지 수집. 잘림·키·주소·본문은 오류에 넣지 않는다. */
 export async function fetchBizinfoAll(): Promise<NormalizedAnnouncement[]> {
   const key = process.env.BIZINFO_API_KEY;
   if (!key) throw new Error("BIZINFO_API_KEY 없음 — 환경변수를 등록하세요");
   const out: NormalizedAnnouncement[] = [];
-  for (let page = 1; page <= MAX_PAGES; page++) {
-    const res = await fetch(
-      `${BASE}?crtfcKey=${encodeURIComponent(key)}&dataType=json&pageUnit=${PAGE_UNIT}&pageIndex=${page}`,
-      { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
-    );
-    if (!res.ok) throw new Error(`기업마당 호출 실패(${res.status}) ${(await res.text().catch(() => "")).slice(0, 200)}`);
-    const items = extractBizinfoItems(await res.json());
-    out.push(...items.map(normalizeBizinfoItem));
-    if (items.length < PAGE_UNIT) return keepIdentifiable(out);
+  const seen = new Set<string>();
+  let declaredTotal: number | null = null;
+
+  for (let page = 1; page <= SAFETY_MAX_PAGES; page++) {
+    const parsed = parseBizinfoPage(await fetchPageJson(page, key));
+
+    if (parsed.declaredTotal !== null) {
+      if (declaredTotal === null) {
+        declaredTotal = parsed.declaredTotal;
+        if (neededPages(declaredTotal) > SAFETY_MAX_PAGES) throw incomplete("쪽상한");
+      } else if (parsed.declaredTotal !== declaredTotal) {
+        throw incomplete("건수");
+      }
+    }
+
+    if (declaredTotal !== null) {
+      const expected = expectedItemsOnPage(page, declaredTotal);
+      if (expected < 0 || parsed.items.length !== expected) {
+        throw incomplete(parsed.items.length === 0 ? "조기종료" : "건수");
+      }
+    }
+
+    for (const item of parsed.items) {
+      const ann = normalizeBizinfoItem(item);
+      const id = ann.sourceId || ann.url;
+      if (!ann.title || !id) throw incomplete("항목");
+      if (seen.has(id)) throw incomplete("반복");
+      seen.add(id);
+      out.push(ann);
+    }
+
+    if (declaredTotal !== null) {
+      const pages = neededPages(declaredTotal);
+      if (page === pages) {
+        if (out.length !== declaredTotal) throw incomplete("건수");
+        return out;
+      }
+      continue;
+    }
+
+    if (parsed.items.length < PAGE_UNIT) return out;
   }
-  console.warn(`[policy-match] 기업마당 ${MAX_PAGES}쪽 상한 도달 — 이후 쪽은 다음 주기에`);
-  return keepIdentifiable(out);
+
+  throw incomplete("쪽상한");
 }

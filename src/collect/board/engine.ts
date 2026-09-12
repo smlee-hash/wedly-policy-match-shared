@@ -33,7 +33,18 @@ export interface BoardDeps {
   onPageCap?: (info: PageCapInfo) => void | Promise<void>;
 }
 
-type PageExtract = (page: number) => Promise<BoardRow[]>;
+type PageExtractResult = {
+  rows: BoardRow[];
+  /** 거르개 전 원본 행. validationParse 를 켠 선택자 층만 채운다. */
+  validationRows?: BoardRow[];
+  /**
+   * 같은 HTML 을 `list.rowSelector` 로 읽은 행.
+   * custom/validationParse 가 지어낸 행만 주고 실제 목록이 비면 실패로 돌린다.
+   */
+  structureRows?: BoardRow[];
+};
+
+type PageExtract = (page: number) => Promise<PageExtractResult>;
 
 /**
  * UTC 자정(그 날짜). 달력에 없는 날짜는 null.
@@ -184,6 +195,57 @@ export function pagingParamsOf(cfg: BoardConfig): string[] {
   return out;
 }
 
+function trustExtract(extracted: PageExtractResult, cfg: BoardConfig): {
+  rows: BoardRow[];
+  evidence?: BoardRow[];
+  structure?: BoardRow[];
+} {
+  const rows = dropUntrusted(extracted.rows, cfg);
+  if (extracted.validationRows === undefined) return { rows };
+  return {
+    rows,
+    evidence: dropUntrusted(extracted.validationRows, cfg),
+    structure: extracted.structureRows === undefined
+      ? undefined
+      : dropUntrusted(extracted.structureRows, cfg),
+  };
+}
+
+/**
+ * 원본 증거 판정. empty 는 「실제 행이 없음」(연속 빈 쪽). ok=false 는 서식 깨짐·지어낸 행.
+ * 구조 행은 날짜 칸이 작성자일 수 있어 allowUndated 로 본다. 날짜 관문은 evidence 가 맡는다.
+ */
+function rawEvidenceOk(
+  evidence: BoardRow[],
+  structure: BoardRow[] | undefined,
+  ctx: { expectMinRows?: number; allowUndated?: boolean },
+): { ok: boolean; reason?: string; empty: boolean } {
+  if (evidence.length === 0) {
+    if (structure && structure.length > 0) {
+      return { ok: false, reason: "원본 행은 있는데 정규 주소가 없음", empty: false };
+    }
+    return { ok: true, empty: true };
+  }
+  if (structure) {
+    if (structure.length === 0) {
+      return { ok: false, reason: "원본 목록 구조가 없음", empty: false };
+    }
+    const sv = validateRows(structure, {
+      expectMinRows: ctx.expectMinRows,
+      prevCount: 0,
+      allowUndated: true,
+    });
+    if (!sv.ok) return { ok: false, reason: sv.reason ?? "원본 목록 구조 검증 미통과", empty: false };
+  }
+  const ev = validateRows(evidence, {
+    expectMinRows: ctx.expectMinRows,
+    prevCount: 0,
+    allowUndated: ctx.allowUndated,
+  });
+  if (!ev.ok) return { ok: false, reason: ev.reason ?? "원본 행 검증 미통과", empty: false };
+  return { ok: true, empty: false };
+}
+
 function dropUntrusted(rows: BoardRow[], cfg: BoardConfig): BoardRow[] {
   const allowed = new Set(allowedHostsOf(cfg));
   const drop = [...(cfg.dropUrlParams ?? []), ...(cfg.keepPagingParamsInDetail ? [] : pagingParamsOf(cfg))];
@@ -206,12 +268,17 @@ function failSummary(reasons: string[]): string {
 
 type CollectedPages = {
   rows: BoardRow[];
-  /** 설정된 상한 쪽을 실제로 읽었을 때 그 쪽의 신규 건수. 상한에 닿기 전에 멈추면 0. */
+  /**
+   * 설정된 상한 쪽을 실제로 읽었을 때 그 쪽의 신규 건수. 상한에 닿기 전에 멈추면 0.
+   * validationParse 가 있으면 **거르개 전 원본 행의 새 정규 주소** 수다.
+   * 정책 행이 0이어도 원본에 새 글이 있으면 더 있을 수 있다는 뜻(hitCap).
+   */
   lastPageNew: number;
   reachedCap: boolean;
   /**
    * 마지막 쪽을 정상 파싱했거나, 상한 전에 바닥을 본 경우만 true.
    * 0행·검증실패·HTTP 오류면 false — 이때는 장부를 건드리지 않는다.
+   * 원본이 비거나 깨진 쪽은 없는 쪽과 구별이 안 되므로 완료로 쓰지 않는다.
    */
   lastPageOk: boolean;
 };
@@ -238,7 +305,8 @@ async function reportPageCap(deps: BoardDeps, collected: CollectedPages): Promis
  */
 export function pagelessSource(cfg: BoardConfig): boolean {
   try {
-    return cfg.list.url(1) === cfg.list.url(2);
+    return !cfg.list.init && !cfg.createListSession && cfg.list.url(1) === cfg.list.url(2) &&
+      (!cfg.feed || cfg.feed.url(1) === cfg.feed.url(2));
   } catch {
     return false;
   }
@@ -248,14 +316,17 @@ export function pagelessSource(cfg: BoardConfig): boolean {
 async function collectLaterPages(
   extract: PageExtract,
   page1: BoardRow[],
+  page1Evidence: BoardRow[] | undefined,
   maxPages: number,
   cfg: BoardConfig,
 ): Promise<CollectedPages> {
   const cap = Math.min(Math.max(0, maxPages), PAGE_HARD_CAP);
   const collected = [...page1];
   const seen = new Set(page1.map((r) => r.detailUrl).filter((u) => u.length > 0));
+  const seenRaw = new Set((page1Evidence ?? []).map((r) => r.detailUrl).filter((u) => u.length > 0));
   if (cap < 2) {
-    const lastPageNew = cap === 1 ? page1.filter((r) => r.detailUrl.length > 0).length : 0;
+    const capRows = page1Evidence ?? page1;
+    const lastPageNew = cap === 1 ? capRows.filter((r) => r.detailUrl.length > 0).length : 0;
     /**
      * ★**쪽 개념이 아예 없는 출처**는 「상한 도달」이 아니다(2026-09-06 독립 리뷰 3번).
      *
@@ -279,7 +350,39 @@ async function collectLaterPages(
   let lastPageOk = true;
   for (let p = 2; p <= cap; p++) {
     try {
-      const rows = dropUntrusted(await extract(p), cfg);
+      const trusted = trustExtract(await extract(p), cfg);
+      if (trusted.evidence !== undefined) {
+        const check = rawEvidenceOk(trusted.evidence, trusted.structure, {
+          allowUndated: cfg.allowUndatedRows,
+        });
+        if (!check.ok) {
+          lastPageOk = false;
+          break;
+        }
+        if (check.empty) {
+          lastPageOk = false;
+          emptyStreak += 1;
+          if (emptyStreak >= EMPTY_STREAK_STOP) break;
+          continue;
+        }
+        lastPageOk = true;
+        let addedRaw = 0;
+        for (const r of trusted.evidence) {
+          if (!r.detailUrl || seenRaw.has(r.detailUrl)) continue;
+          seenRaw.add(r.detailUrl);
+          addedRaw += 1;
+        }
+        for (const r of trusted.rows) {
+          if (r.detailUrl && seen.has(r.detailUrl)) continue;
+          collected.push(r);
+          if (r.detailUrl) seen.add(r.detailUrl);
+        }
+        if (p === cap) { reachedCap = true; lastPageNew = addedRaw; }
+        emptyStreak = addedRaw === 0 ? emptyStreak + 1 : 0;
+        if (emptyStreak >= EMPTY_STREAK_STOP) break;
+        continue;
+      }
+      const rows = trusted.rows;
       // 0행도 「빈 쪽」으로 센다 — 제목 거르개를 지나 남는 게 없는 쪽이 중간에 끼면
       // 여기서 즉시 끊겨 뒷쪽을 통째로 잃었다(적대 리뷰 ②: 수출바우처 8쪽이 전부 「선정결과·수행기관」이라
       // 0행이 되어 9·10·11쪽의 공고 9건이 안 들어오고 있었다).
@@ -293,6 +396,7 @@ async function collectLaterPages(
         lastPageOk = false;
         break;
       }
+      lastPageOk = true;
       let added = 0;
       for (const r of rows) {
         if (r.detailUrl && seen.has(r.detailUrl)) continue;
@@ -318,28 +422,37 @@ async function collectLaterPages(
 function feedExtract(cfg: BoardConfig, deps: BoardDeps): PageExtract {
   return async (page) => {
     const text = await deps.fetchText(cfg.feed!.url(page), cfg.charset);
-    return cfg.feed!.kind === "rss"
+    const rows = cfg.feed!.kind === "rss"
       ? extractFromRss(text, cfg.feed!.map)
       : extractFromJson(text, cfg.feed!.itemPath ?? "data", cfg.feed!.map);
+    return { rows };
   };
 }
 
-function selectorExtract(cfg: BoardConfig, deps: BoardDeps): PageExtract {
+function selectorExtract(cfg: BoardConfig, readPage: (page: number) => Promise<string>): PageExtract {
   return async (page) => {
-    const html = await deps.fetchText(cfg.list.url(page), cfg.charset, cfg.list.init?.(page));
-    return cfg.customParse ? cfg.customParse(html, page) : extractBySelector(html, cfg);
+    const html = await readPage(page);
+    const rows = cfg.customParse ? cfg.customParse(html, page) : extractBySelector(html, cfg);
+    if (!cfg.validationParse) return { rows };
+    return {
+      rows,
+      validationRows: cfg.validationParse(html, page),
+      structureRows: extractBySelector(html, cfg),
+    };
   };
 }
 
-function heuristicExtract(cfg: BoardConfig, deps: BoardDeps): PageExtract {
+function heuristicExtract(cfg: BoardConfig, readPage: (page: number) => Promise<string>): PageExtract {
   return async (page) => {
-    const html = await deps.fetchText(cfg.list.url(page), cfg.charset, cfg.list.init?.(page));
-    return extractByHeuristic(html, cfg.baseUrl);
+    const html = await readPage(page);
+    return { rows: extractByHeuristic(html, cfg.baseUrl) };
   };
 }
 
 /** 단계 하강 + 검증 관문. 1페이지에서 채택한 단계로 뒤 페이지를 읽는다. 전부 실패면 onAllFailed 후 throw. */
 export async function fetchBoardAll(cfg: BoardConfig, deps: BoardDeps): Promise<NormalizedAnnouncement[]> {
+  const readPage = cfg.createListSession?.((url, init) => deps.fetchText(url, cfg.charset, init)) ??
+    ((page: number) => deps.fetchText(cfg.list.url(page), cfg.charset, cfg.list.init?.(page)));
   // 1페이지 채택은 구조 검증만(prevCount 0). 급락은 합친 결과에서 본다.
   const page1Ctx = { expectMinRows: cfg.expectMinRows, prevCount: 0 };
   const finalCtx = { expectMinRows: cfg.expectMinRows, prevCount: deps.prevOpenCount };
@@ -347,7 +460,7 @@ export async function fetchBoardAll(cfg: BoardConfig, deps: BoardDeps): Promise<
 
   const attempts: Array<{ layer: ExtractLayerName; extract: PageExtract }> = [];
   if (cfg.feed) attempts.push({ layer: "feed", extract: feedExtract(cfg, deps) });
-  attempts.push({ layer: "selector", extract: selectorExtract(cfg, deps) });
+  attempts.push({ layer: "selector", extract: selectorExtract(cfg, readPage) });
   // customParse 는 사람이 확정한 구조다. heuristic 추측이 첨부 파일 링크를 공고로
   // 저장하면 다음 회차에 지워지지 않는다(2026-09-02 한국수출입은행 ECONNRESET).
   // 단 모든 customParse 게시판을 일괄로 막지는 않는다 — 광주TP 는 구조가 바뀌면 heuristic 이
@@ -355,18 +468,53 @@ export async function fetchBoardAll(cfg: BoardConfig, deps: BoardDeps): Promise<
   if (cfg.skipHeuristic) {
     reasons.push("heuristic: 설정(skipHeuristic)으로 건너뜀");
   } else {
-    attempts.push({ layer: "heuristic", extract: heuristicExtract(cfg, deps) });
+    attempts.push({ layer: "heuristic", extract: heuristicExtract(cfg, readPage) });
   }
 
   for (const a of attempts) {
     try {
-      const page1 = dropUntrusted(await a.extract(1), cfg);
-      const page1v = validateRows(page1, { ...page1Ctx, allowUndated: cfg.allowUndatedRows });
-      if (!page1v.ok) {
-        reasons.push(`${a.layer}: ${page1v.reason ?? "검증 미통과"}`);
-        continue;
+      const trusted = trustExtract(await a.extract(1), cfg);
+      if (trusted.evidence !== undefined) {
+        const check = rawEvidenceOk(trusted.evidence, trusted.structure, {
+          expectMinRows: cfg.expectMinRows,
+          allowUndated: cfg.allowUndatedRows,
+        });
+        if (!check.ok || check.empty) {
+          reasons.push(`${a.layer}: ${check.reason ?? (check.empty ? "행 0개" : "검증 미통과")}`);
+          continue;
+        }
+      } else {
+        const page1v = validateRows(trusted.rows, { ...page1Ctx, allowUndated: cfg.allowUndatedRows });
+        if (!page1v.ok) {
+          reasons.push(`${a.layer}: ${page1v.reason ?? "검증 미통과"}`);
+          continue;
+        }
       }
-      const collected = await collectLaterPages(a.extract, page1, cfg.list.maxPages, cfg);
+      const collected = await collectLaterPages(
+        a.extract,
+        trusted.rows,
+        trusted.evidence,
+        cfg.list.maxPages,
+        cfg,
+      );
+      if (trusted.evidence !== undefined) {
+        if (collected.rows.length === 0) {
+          await reportPageCap(deps, collected);
+          return [];
+        }
+        const finalv = validateRows(collected.rows, {
+          prevCount: 0,
+          // 날짜는 위 원본 행에서 검증했다. 붙박이 공지처럼 개시일을 의도적으로
+          // 비우는 정책 행만 남아도, 정상 원본 목록 전체를 실패로 바꾸지 않는다.
+          allowUndated: true,
+        });
+        if (!finalv.ok) {
+          reasons.push(`${a.layer}: ${finalv.reason ?? "합산 검증 미통과"}`);
+          continue;
+        }
+        await reportPageCap(deps, collected);
+        return toNormalized(collected.rows, cfg);
+      }
       const finalv = validateRows(collected.rows, { ...finalCtx, allowUndated: cfg.allowUndatedRows });
       if (!finalv.ok) {
         reasons.push(`${a.layer}: ${finalv.reason ?? "합산 검증 미통과"}`);
@@ -384,7 +532,7 @@ export async function fetchBoardAll(cfg: BoardConfig, deps: BoardDeps): Promise<
     reasons.push("selfheal: customParse 게시판이라 건너뜀");
   } else {
     try {
-      const html = await deps.fetchText(cfg.list.url(1), cfg.charset, cfg.list.init?.(1));
+      const html = await readPage(1);
       const healed = await selfHeal(html, cfg, { prevCount: 0 }, deps.askModel);
       if (healed.ok && healed.rows && healed.rule) {
         const healedCfg: BoardConfig = {
@@ -392,12 +540,12 @@ export async function fetchBoardAll(cfg: BoardConfig, deps: BoardDeps): Promise<
           list: { ...cfg.list, rowSelector: healed.rule.rowSelector, fields: healed.rule.fields },
         };
         const extract: PageExtract = async (page) => {
-          if (page === 1) return healed.rows!;
-          const pageHtml = await deps.fetchText(cfg.list.url(page), cfg.charset, cfg.list.init?.(page));
-          return extractBySelector(pageHtml, healedCfg);
+          if (page === 1) return { rows: healed.rows! };
+          const pageHtml = await readPage(page);
+          return { rows: extractBySelector(pageHtml, healedCfg) };
         };
         const page1 = dropUntrusted(healed.rows, cfg);
-        const collected = await collectLaterPages(extract, page1, cfg.list.maxPages, cfg);
+        const collected = await collectLaterPages(extract, page1, undefined, cfg.list.maxPages, cfg);
         const finalv = validateRows(collected.rows, { ...finalCtx, allowUndated: cfg.allowUndatedRows });
         if (finalv.ok) {
           try { await deps.onHealedRule?.(healed.rule); } catch { /* persist 실패는 채택을 막지 않음 */ }

@@ -123,25 +123,31 @@ describe("수집원 명부 — 상태 5종(2026-09-05 P0)", () => {
     }
   });
 
-  it("P2 대상 아님(22)·대기(1)도 id 없이 사유가 있다", () => {
+  it("P2 제외 중 재연결 전(17)은 id 없이 사유가 있다", () => {
     const p2ExcludedLabels = [
       "창원시 고시공고", "대구 원스톱기업지원센터", "정보통신기획평가원(IITP)", "제주시 산하 기업지원 기관",
-      "국토교통과학기술진흥원(KAIA)", "창업진흥원(KISED)", "행정안전부", "국가보훈부",
-      "양산시 산하 기업지원 기관", "여수시 산하 기업지원 기관", "국토교통부 본청", "광주시(경기) 산하 기업지원 기관",
+      "국토교통과학기술진흥원(KAIA)", "창업진흥원(KISED)",
+      "양산시 산하 기업지원 기관", "여수시 산하 기업지원 기관", "광주시(경기) 산하 기업지원 기관",
       "나라장터 입찰공고 API", "낙찰정보 API", "누리장터 민간입찰 API", "계약과정통합 API",
       "경기기업비서(egbiz)", "서울기업지원센터(sbsc)", "울산TP 자체 게시판", "보증드림",
-      "국방부 본청", "해양수산부 본청",
     ];
-    expect(p2ExcludedLabels.length).toBe(22);
+    expect(p2ExcludedLabels.length).toBe(17);
     for (const label of p2ExcludedLabels) {
       const row = SOURCE_DIRECTORY.find((s) => s.label === label);
       expect(row?.status, label).toBe("excluded");
       expect(row?.id, label).toBeUndefined();
       expect(row?.note.length, label).toBeGreaterThan(10);
     }
-    const kocca = SOURCE_DIRECTORY.find((s) => s.label === "KOCCA 금융지원정보 API");
-    expect(kocca?.status).toBe("waiting");
-    expect(kocca?.id).toBeUndefined();
-    expect(kocca?.note).toBe("기관회원 승인 대기");
+  });
+
+  it("한국콘텐츠진흥원 금융지원은 공개 게시판으로 등록되고 API 승인을 주장하지 않는다", () => {
+    const row = SOURCE_DIRECTORY.find((s) => s.id === "kocca-finance");
+    expect(row?.label).toBe("한국콘텐츠진흥원 금융지원");
+    expect(row?.url).toBe("https://www.kocca.kr/kocca/bbs/list/B0158960.do?menuNo=204392");
+    expect(row?.status).toBe("candidate");
+    expect(row?.note).toContain("공개 금융지원 게시판");
+    expect(row?.note).toContain("API");
+    expect(row?.note).not.toContain("승인 대기");
+    expect(SOURCE_DIRECTORY.find((s) => s.label === "KOCCA 금융지원정보 API")).toBeUndefined();
   });
 });

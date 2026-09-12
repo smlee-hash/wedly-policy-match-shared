@@ -37,10 +37,14 @@ const ROW = "table.bbs_list tbody tr";
 const DROP =
   /금고\s*지정|재무감사|설문조사|실태조사|고객만족도|경영평가|개인정보\s*제3자|영업점\s*이전|시스템\s*개선|서비스\s*중단|브로커|업무제안\s*공모|컨설턴트\s*모집|면접전형|입찰|합격자|평가위원|사기|피싱|사칭/;
 const DROP_STAFF = /(?:신규|경력|직원)\s*채용\s*(?:공고|안내)|채용\s*공고/;
+/**
+ * 실측한 청탁금지법 선물 안내만 제외한다. 카드뉴스 형식의 지원사업은 보존한다.
+ */
+const DROP_ADMIN = /청탁금지법\s*선물/;
 
 /** 시험이 제목 글자만으로 거르개를 잴 수 있게 내보낸다. */
 export function isJbsinboDropTitle(title: string): boolean {
-  return DROP.test(title) || DROP_STAFF.test(title);
+  return DROP.test(title) || DROP_STAFF.test(title) || DROP_ADMIN.test(title);
 }
 
 /**
@@ -50,8 +54,10 @@ export function isJbsinboDropTitle(title: string): boolean {
  */
 const PINNED_MAX_AGE_MS = 365 * 24 * 3600_000;
 
-export function parseJbsinboList(html: string, _page = 1, now = Date.now()): BoardRow[] {
-  const out: BoardRow[] = [];
+type JbsinboRaw = { id: string; title: string; ymd: string; pinned: boolean };
+
+function jbsinboRawRows(html: string): JbsinboRaw[] {
+  const out: JbsinboRaw[] = [];
   const seen = new Set<string>();
   for (const tr of parseHtml(html).querySelectorAll(ROW)) {
     const a = tr.querySelector("td.title > a") ?? tr.querySelector("td.title a");
@@ -62,7 +68,7 @@ export function parseJbsinboList(html: string, _page = 1, now = Date.now()): Boa
     a?.querySelector("span.blind")?.remove();
     a?.querySelector("i.notice")?.remove();
     const title = (a?.text ?? "").replace(/\s+/g, " ").trim();
-    if (!title || isJbsinboDropTitle(title)) continue;
+    if (!title) continue;
     /**
      * 등록일은 **두 번째 `td.m_grey` 칸을 직접** 집는다.
      * 첫 `td.line.m_grey` 는 작성자명, 그다음 `td.m_grey` 가 작성일이다.
@@ -75,16 +81,34 @@ export function parseJbsinboList(html: string, _page = 1, now = Date.now()): Boa
     const ymd = d ? `${d[1]}-${d[2].padStart(2, "0")}-${d[3].padStart(2, "0")}` : "";
     const numText = (tr.querySelector("td.pc")?.text ?? "").replace(/\s+/g, " ").trim();
     const pinned = numText === "공지" || !!tr.querySelector("i.notice");
-    if (pinned && ymd && now - Date.parse(`${ymd}T00:00:00Z`) > PINNED_MAX_AGE_MS) continue;
     seen.add(id);
-    out.push({
-      title,
-      // ★pageIndex 는 쪽 번호라 주소에 넣으면 같은 글이 쪽마다 다른 줄로 저장된다.
-      detailUrl: `${BASE}${VIEW}/${id}`,
-      dateText: pinned || !ymd ? "" : `${ymd} ~`,
-      category: "",
-      agency: "전북신용보증재단",
-    });
+    out.push({ id, title, ymd, pinned });
+  }
+  return out;
+}
+
+function jbsinboRow(raw: JbsinboRaw, dateText: string): BoardRow {
+  return {
+    title: raw.title,
+    // ★pageIndex 는 쪽 번호라 주소에 넣으면 같은 글이 쪽마다 다른 줄로 저장된다.
+    detailUrl: `${BASE}${VIEW}/${raw.id}`,
+    dateText,
+    category: "",
+    agency: "전북신용보증재단",
+  };
+}
+
+/** 거르개 전 원본. 붙박이도 실제 등록일을 남긴다. */
+export function parseJbsinboValidationList(html: string, _page = 1): BoardRow[] {
+  return jbsinboRawRows(html).map((raw) => jbsinboRow(raw, raw.ymd ? `${raw.ymd} ~` : ""));
+}
+
+export function parseJbsinboList(html: string, _page = 1, now = Date.now()): BoardRow[] {
+  const out: BoardRow[] = [];
+  for (const raw of jbsinboRawRows(html)) {
+    if (isJbsinboDropTitle(raw.title)) continue;
+    if (raw.pinned && raw.ymd && now - Date.parse(`${raw.ymd}T00:00:00Z`) > PINNED_MAX_AGE_MS) continue;
+    out.push(jbsinboRow(raw, raw.pinned || !raw.ymd ? "" : `${raw.ymd} ~`));
   }
   return out;
 }
@@ -107,6 +131,7 @@ export const jbsinboConfig: BoardConfig = {
     },
   },
   customParse: parseJbsinboList,
+  validationParse: parseJbsinboValidationList,
   /**
    * 상세 GET 실측(NTT_005546, 2026-09-03): 본문은 `#writeContents`(ck-content, 지원사업 안내 문단).
    * 첨부는 본문과 다른 칸 `td.file`(`/site/resource/file/FILE_…` · hwp).
@@ -114,8 +139,9 @@ export const jbsinboConfig: BoardConfig = {
   detailContentSelector: "#writeContents",
   attachmentsScopeSelector: "td.file",
   /**
-   * 한 쪽 10건의 절반은 5 이지만, DROP 뒤 1쪽 실측이 2건이다. 5 로 두면 서식이 멀쩡한데도
-   * 1쪽 관문이 거짓 실패한다. 0행이면 서식 변경이므로 2 로 둔다.
+   * 최소 행은 거르개 전 원본(validationParse)에 적용한다. DROP·카드뉴스 뒤 정책 행이
+   * 1건이어도 원본 13행(중복 NTT 제외)이 살아 있으면 서식이 멀쩡하다. 원본 0행이면
+   * 서식 변경이므로 2 로 둔다 — 1은 검사를 끈 것과 같다.
    */
   expectMinRows: 2,
   /**

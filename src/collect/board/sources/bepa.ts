@@ -62,8 +62,10 @@ function cleanTitle(raw: string): string {
 }
 
 function listUrl(p: number): string {
-  const i = Math.min(Math.max(0, Math.floor((p - 1) / PAGES_PER_BOARD)), BOARDS.length - 1);
-  const page = ((p - 1) % PAGES_PER_BOARD) + 1;
+  const index = Math.max(1, p) - 1;
+  const cycle = BOARDS.length * PAGES_PER_BOARD;
+  const i = Math.floor((index % cycle) / PAGES_PER_BOARD);
+  const page = Math.floor(index / cycle) * PAGES_PER_BOARD + (index % PAGES_PER_BOARD) + 1;
   return `${BASE}${LIST}?no=${BOARDS[i]}&pageIndex=${page}`;
 }
 
@@ -105,6 +107,7 @@ export function parseBepaList(html: string, _page = 1, now = Date.now()): BoardR
 }
 
 export const bepaConfig: BoardConfig = {
+  emptyStreakStop: BOARDS.length * PAGES_PER_BOARD,
   id: "bepa",
   label: "부산경제진흥원",
   agency: "부산경제진흥원",

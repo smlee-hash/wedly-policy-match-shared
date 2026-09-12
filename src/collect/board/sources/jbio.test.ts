@@ -156,3 +156,20 @@ describe("망가뜨려 보기", () => {
     expect(parsed.every((r) => r.dateText === "")).toBe(true);
   });
 });
+
+it("붙박이가 남아도 공식 쪽수와 빈 목록이 함께 끝을 확인한다", async () => {
+  const { fetchBoardWindow } = await import("../page-window");
+  const html = readFileSync(join(__dirname, "../__fixtures__/jbio-page21.html"), "utf-8");
+  const result = await fetchBoardWindow(jbioConfig, { prevOpenCount: 0, fetchText: async () => html, askModel: async () => "{}", onAllFailed: () => {} }, { startPage: 21, pageBudget: 1 });
+  expect(result).toMatchObject({ complete: true, reason: "source-end", nextPage: 21 });
+});
+
+it.each(["쪽수 불일치", "빈 목록 미확인", "쪽수 미확인"])("%s이면 진주 공고의 끝으로 단정하지 않는다", async kind => {
+  const { fetchBoardWindow } = await import("../page-window");
+  let html = readFileSync(join(__dirname, "../__fixtures__/jbio-page21.html"), "utf-8");
+  if (kind === "쪽수 불일치") html = html.replace("21/20", "20/20");
+  if (kind === "빈 목록 미확인") html = html.replace("게시물이 없습니다.", "요청 처리 오류");
+  if (kind === "쪽수 미확인") html = html.replace("count-2", "count-changed");
+  const result = await fetchBoardWindow(jbioConfig, { prevOpenCount: 0, fetchText: async () => html, askModel: async () => "{}", onAllFailed: () => {} }, { startPage: 21, pageBudget: 1 });
+  expect(result.complete).toBe(false);
+});

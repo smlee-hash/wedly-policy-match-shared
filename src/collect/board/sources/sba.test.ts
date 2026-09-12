@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { beforeEach, describe, expect, it } from "vitest";
-import { isSbaDropTitle, parseSbaList, resetSbaPostbackForTest, sbaConfig, sbaListInit } from "./sba";
+import { describe, expect, it } from "vitest";
+import { isSbaDropTitle, parseSbaList, sbaConfig } from "./sba";
 
 /**
  * ★손으로 쓴 HTML 대신 **실사이트 고정본**으로 잰다.
@@ -12,9 +12,6 @@ const listP2Html = readFileSync(join(__dirname, "../__fixtures__/sba-list-p2.htm
 
 const VIEW = "https://www.sba.seoul.kr/Pages/BusinessApply/PostingDetail.aspx";
 
-beforeEach(() => {
-  resetSbaPostbackForTest();
-});
 
 describe("서울경제진흥원(SBA) 전체사업 목록 읽기 — 실사이트 고정본", () => {
   it("1쪽 10줄을 읽고 첫 행이 맞다", () => {
@@ -98,59 +95,10 @@ describe("지원사업이 아닌 글 거르개", () => {
   });
 });
 
-describe("포스트백 쪽넘김(ASP.NET WebForms)", () => {
-  it("1쪽은 그냥 GET 이다", () => {
-    expect(sbaListInit(1)).toEqual({ method: "GET" });
-  });
-
-  it("1쪽을 읽기 전에는 2쪽도 GET 으로 물러선다 — 엉뚱한 본문을 보내지 않는다", () => {
-    expect(sbaListInit(2)).toEqual({ method: "GET" });
-  });
-
-  it("1쪽을 읽고 나면 2쪽은 그 응답의 __VIEWSTATE 를 담은 POST 다", () => {
-    parseSbaList(listHtml, 1);
-    const init = sbaListInit(2);
-    expect(init.method).toBe("POST");
-    expect(init.headers?.["Content-Type"]).toBe("application/x-www-form-urlencoded");
-    const body = new URLSearchParams(init.body ?? "");
-    expect(body.get("__EVENTTARGET")).toBe(
-      "ctl00$ctl00$ContentPlaceHolder1$MainContents$GridView1$ctl13$PagingRepeater$ctl01$PageNum",
-    );
-    expect(body.get("__EVENTARGUMENT")).toBe("");
-    expect(body.get("__VIEWSTATEGENERATOR")).toBe("88AF516D");
-    const vs = body.get("__VIEWSTATE") ?? "";
-    expect(vs.length).toBeGreaterThan(1000);
-    expect(listHtml).toContain(vs);
-  });
-
-  it("쪽마다 다른 대상을 보낸다 — 3쪽은 ctl02, 10쪽은 ctl09", () => {
-    parseSbaList(listHtml, 1);
-    const target = (p: number) => new URLSearchParams(sbaListInit(p).body ?? "").get("__EVENTTARGET") ?? "";
-    expect(target(3)).toContain("PagingRepeater$ctl02$PageNum");
-    expect(target(10)).toContain("PagingRepeater$ctl09$PageNum");
-    expect(target(3)).not.toBe(target(10));
-  });
-
-  it("쪽 번호가 그 응답의 쪽 목록에 없으면 POST 하지 않는다 — 11쪽은 창 밖", () => {
-    parseSbaList(listHtml, 1);
-    expect(sbaListInit(11)).toEqual({ method: "GET" });
-    expect(sbaConfig.list.maxPages).toBeLessThanOrEqual(10);
-  });
-
-  it("2쪽 응답으로도 상태를 갱신한다 — 낡은 __VIEWSTATE 를 계속 쓰지 않는다", () => {
-    parseSbaList(listHtml, 1);
-    const first = new URLSearchParams(sbaListInit(3).body ?? "").get("__VIEWSTATE");
-    parseSbaList(listP2Html, 2);
-    const second = new URLSearchParams(sbaListInit(3).body ?? "").get("__VIEWSTATE");
-    expect(second).not.toBe(first);
-    expect(listP2Html).toContain(second ?? "");
-  });
-
-  it("목록 주소는 쪽과 무관하게 같다 — 쪽은 POST 본문이 나른다", () => {
-    expect(sbaConfig.list.url(1)).toBe("https://www.sba.seoul.kr/Pages/BusinessApply/Posting.aspx");
-    expect(sbaConfig.list.url(2)).toBe(sbaConfig.list.url(1));
-    expect(sbaConfig.list.init?.(1)).toEqual({ method: "GET" });
-  });
+it("등록된 수집기가 회차별 쪽 세션을 사용한다", () => {
+  expect(sbaConfig.createListSession).toBeTypeOf("function");
+  expect(sbaConfig.list.init).toBeUndefined();
+  expect(sbaConfig.validationParse).toBeTypeOf("function");
 });
 
 describe("서울경제진흥원(SBA) 설정", () => {
@@ -224,13 +172,4 @@ describe("망가뜨려 보기", () => {
     expect(rows.every((r) => r.dateText === "")).toBe(true);
   });
 
-  it("쪽 목록이 깨지면 POST 를 만들지 않는다 — 대상을 지어내지 않는다", () => {
-    parseSbaList(listHtml.replaceAll("PagingRepeater_PageNum_", "x_PageNum_"), 1);
-    expect(sbaListInit(2)).toEqual({ method: "GET" });
-  });
-
-  it("__VIEWSTATE 가 없으면 POST 를 만들지 않는다", () => {
-    parseSbaList(listHtml.replaceAll('id="__VIEWSTATE"', 'id="__VIEWSTATEX"'), 1);
-    expect(sbaListInit(2)).toEqual({ method: "GET" });
-  });
 });

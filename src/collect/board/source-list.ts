@@ -67,6 +67,10 @@ import { jepaConfig } from "./sources/jepa";
 import { tourazConfig } from "./sources/touraz";
 import { koregConfig } from "./sources/koreg";
 import { koccaConfig } from "./sources/kocca";
+import { molitConfig } from "./sources/molit";
+import { mofConfig } from "./sources/mof";
+import { moisConfig, mpvaConfig, mndConfig } from "./sources/ministries";
+import { koccaFinanceConfig } from "./sources/kocca-finance";
 import { jbaConfig } from "./sources/jba";
 import { sjtpConfig } from "./sources/sjtp";
 import { cbtpConfig } from "./sources/cbtp";
@@ -197,6 +201,12 @@ export const BOARD_SOURCES: BoardConfig[] = [
   tourazConfig,
   koregConfig,
   koccaConfig,
+  koccaFinanceConfig,
+  molitConfig,
+  mofConfig,
+  moisConfig,
+  mpvaConfig,
+  mndConfig,
   jbaConfig,
   sjtpConfig,
   cbtpConfig,

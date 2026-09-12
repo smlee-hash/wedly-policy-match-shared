@@ -6,7 +6,7 @@ import { pagingParamsOf } from "../engine";
 import { harvestBoardAttachments } from "../detail-fill";
 import { parseApplyPeriod } from "../../../engine/types";
 import { safeAttachmentUrl } from "../../attachment-text";
-import { isMainbizDropTitle, mainbizConfig, parseMainbizList } from "./mainbiz";
+import { isMainbizDropTitle, mainbizConfig, parseMainbizList, parseMainbizValidationList } from "./mainbiz";
 
 /**
  * ★손으로 쓴 HTML 대신 **실사이트 고정본**으로 잰다.
@@ -17,6 +17,7 @@ const listHtml = readFileSync(join(__dirname, "../__fixtures__/mainbiz-list.html
 const detailHtml = readFileSync(join(__dirname, "../__fixtures__/mainbiz-detail.html"), "utf-8");
 const NOW = Date.parse("2026-09-06T00:00:00Z");
 const rows = parseMainbizList(listHtml, 1, NOW);
+const raw = parseMainbizValidationList(listHtml, 1);
 
 const FIRST = {
   title: "[월드옥타] 2026 수출컨소시엄 부스기업 모집",
@@ -57,6 +58,24 @@ describe("메인비즈협회 중소기업지원정보 목록 읽기 — 실사�
       expect(r.detailUrl).not.toContain(">XT");
     }
     expect(new Set(rows.map((r) => r.detailUrl)).size).toBe(rows.length);
+  });
+
+  it("거르개 전 원본은 1쪽 10행 전부이고 종료·거르개 대상도 등록일을 남긴다", () => {
+    expect(raw).toHaveLength(10);
+    expect(raw.some((r) => r.detailUrl.includes("bidx=5902"))).toBe(true);
+    expect(raw.some((r) => r.title.includes("예산안"))).toBe(true);
+    expect(raw.every((r) => !/N$/.test(r.title))).toBe(true);
+    expect(raw.every((r) => /^\d{4}-\d{2}-\d{2} ~$/.test(r.dateText))).toBe(true);
+    expect(
+      raw.every((r) =>
+        /^https:\/\/www\.mainbiz\.or\.kr\/notice\/company\.asp\?bidx=\d+&gbn=2&smem=2&bgbn=V$/.test(
+          r.detailUrl,
+        ),
+      ),
+    ).toBe(true);
+    expect(raw.every((r) => !r.detailUrl.includes("page="))).toBe(true);
+    expect(new Set(raw.map((r) => r.detailUrl)).size).toBe(raw.length);
+    expect(mainbizConfig.validationParse?.(listHtml, 1)).toEqual(raw);
   });
 
   it("쪽 주소는 GET page — url(1)·url(2) 가 쪽 변수만 다르다", () => {
@@ -219,9 +238,14 @@ describe("메인비즈협회 설정", () => {
     expect(mainbizConfig.baseUrl).toBe("https://www.mainbiz.or.kr/");
   });
 
-  it("서식 변경 감지가 살아 있다 — 1은 검사를 끈 것과 같다", () => {
+  it("서식 변경 감지가 살아 있다 — 최소 행은 거르개 전 원본에 적용한다", () => {
     expect(mainbizConfig.expectMinRows).toBeGreaterThanOrEqual(2);
-    expect(rows.length).toBeGreaterThanOrEqual(mainbizConfig.expectMinRows!);
+    expect(raw.length).toBeGreaterThanOrEqual(mainbizConfig.expectMinRows!);
+    expect(typeof mainbizConfig.validationParse).toBe("function");
+    // 빈 검색조건은 HTTP 500. c520cd3 목록 주소(판 선택+쪽만)를 유지한다.
+    expect(mainbizConfig.list.url(1)).toBe(
+      "https://www.mainbiz.or.kr/notice/company.asp?page=1&gbn=2&smem=2",
+    );
   });
 
   it("추측 단계를 끈다 — href 의 &GT 가 > 로 풀려 깨진 주소가 저장된다", () => {
@@ -245,6 +269,12 @@ describe("망가뜨려 보기", () => {
     const broken = parseMainbizList(listHtml.replaceAll('class="date"', 'class="date-x"'), 1, NOW);
     expect(broken.length).toBeGreaterThan(0);
     expect(broken.every((r) => r.dateText === "")).toBe(true);
+    const brokenRaw = parseMainbizValidationList(
+      listHtml.replaceAll('class="date"', 'class="date-x"'),
+      1,
+    );
+    expect(brokenRaw).toHaveLength(10);
+    expect(brokenRaw.every((r) => r.dateText === "")).toBe(true);
   });
 
   it("상태 칸(td.sort)이 사라지면 종료 행이 다시 들어온다 — 그 칸이 실제로 판정에 쓰인다", () => {

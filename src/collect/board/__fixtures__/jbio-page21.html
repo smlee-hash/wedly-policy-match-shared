@@ -1,0 +1,94 @@
+<div class="boardSearch">
+			<div class="v1"><!-- v1 -->
+				<p class="page">총 게시물 :<span class="count-1">194</span>건, 페이지 : <span class="count-2">21/20</span></p>
+				<div class="search">
+					<form name="boardForm" id="boardForm" method="get" action="/boardList.do;jsessionid=70D580B1542E39AEDE1F942C029ACB50" onsubmit="return boardSearch();">
+						<input type="hidden" name="boardId" id="boardId" value="5" />
+						<fieldset>
+							<label for="searchCategory">검색 항목</label>
+							<select name="searchCategory" id="searchCategory" title="검색항목">
+								<option value="title" >제목</option>
+								<option value="writer" >작성자</option>
+							</select>
+													
+							<label for="searchKeyword" class="blind">검색어 입력</label>
+							<input type="text" name="searchKeyword" id="searchKeyword" value="" /> 
+							<input type="hidden" name="nowPage" id="nowPage" value="21" /> 
+							<input type="hidden" name="dataNo" id="dataNo" value="" /> 
+							<input type="hidden" name="sub" id="sub" value="02_02"/>
+							
+							<label for="searchSubmit" class="blind">검색 버튼</label>
+							<input type="submit" id="searchSubmit" value="검색">		
+						</fieldset>
+					</form>
+				</div>
+			</div>
+		</div>
+		<div class="board">
+			<table class="basicList">
+				<caption>번호, 제목, 작성자, 작성일, 조회수 순으로 구분한 게시판입니다.</caption>
+				<colgroup>
+					<col style="width:10%;">
+					<col style="width:auto;">
+					<col style="width:8%;">
+					<col style="width:18%;">
+					<col style="width:15%;">
+					
+					
+						
+						
+							<col style="width:8%;">
+						
+					
+					
+				</colgroup>
+				<thead>
+					<tr>
+						<th>번호</th>
+						<th>제목</th>
+						<th>첨부</th>
+						<th>작성자</th>
+						<th>작성일</th>
+						
+							
+							
+								<th>조회수</th>
+							
+						
+					</tr>
+				</thead>
+				<tbody>
+					
+						
+							<tr>
+								<td class="num" style="color:red;">공지</td>
+								<td class="title"><a href="javascript:viewData('1650');" title="[수정공고] 「2026 인도네시아 자카르타 K-뷰티&푸드 소비재 수출상담회 지역 수출컨소시엄」참여기업 모집">[수정공고] 「2026 인도네시아 자카르타 K-뷰티&푸드 소비재 수출상담회 지역 수출컨소시엄」참여기업 모집</a></td>
+								<td class="file">
+									
+										<img src="/images/common/ico_file.gif" alt="첨부파일 있음">
+									
+								</td>
+								<td class="name">기업지원실</td>
+								<td class="date">2026-08-21 16:52</td>
+								<td class="hit">193</td>
+							</tr>
+						
+					
+					
+						
+						
+							<tr>
+								<td colspan="6">게시물이 없습니다.</td>
+							</tr>
+						
+					
+				</tbody>
+			</table>
+			
+		<div class="paging">
+			<a href="javascript:goPage('1');"><img src="/images/common/rfc_bbs_btn_first.gif" alt="첫 페이지"/></a><a href="javascript:goPage('20');"><img src="/images/common/rfc_bbs_btn_prev.gif" alt="이전 10개의 페이지"></a><a href="javascript:goPage('20');"><img src="/images/common/rfc_bbs_btn_next.gif" alt="다음 10개의 페이지"></a><a href="javascript:goPage('20');"><img src="/images/common/rfc_bbs_btn_last.gif" alt="마지막 페이지"></a>
+		</div>
+	</div>
+
+
+	

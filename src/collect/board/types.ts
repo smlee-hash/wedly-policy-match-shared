@@ -240,6 +240,17 @@ export interface BoardConfig {
   /** 절대화 직후 상세 URL 에서 지울 쿼리 키(페이지 번호 등). */
   dropUrlParams?: string[];
   customParse?: (html: string, page: number) => BoardRow[];
+  /** 상태를 주고받는 게시판의 목록 요청. 상태는 수집 회차별로 격리한다. */
+  createListSession?: (fetchText: (url: string, init?: BoardFetchInit) => Promise<string>) => (page: number) => Promise<string>;
+  /** 기관의 마지막 쪽을 실제 확인한 전용 오류만 판별한다. 통신 오류는 해당하지 않는다. */
+  isListEndError?: (error: unknown) => boolean;
+  /**
+   * 거르개 전 목록 원본 행. **켠 출처만** 쓴다.
+   * 제목·정규 상세주소·등록일로 1쪽 최소 행·날짜 관문을 본다. 지원사업 거르개·종료·
+   * 오래된 붙박이를 거치기 전 값이며, DOM 행 수만으로 통과시키지 않는다.
+   * 붙박이도 실제 등록일을 비우지 않는다.
+   */
+  validationParse?: (html: string, page: number) => BoardRow[];
   render?: boolean;         // ④ 필요 시에만
   /**
    * 국내 IP 로만 열리는 곳(전북TP 실측: 해외에서 443·80 둘 다 타임아웃, 국내 0.25초 응답).
@@ -297,7 +308,8 @@ export interface BoardConfig {
   /**
    * 날짜 없는 행이 대부분인 쪽도 통과시킨다. 중소벤처24 는 접수중 1,630건 중 997건이 「예산 소진시까지」
    * ·「상시 접수」라 접수기간이 아예 없고(2026-09-03 실측), 그 줄만 모인 쪽에서 「날짜가 있는 행이 부족」
-   * 검증이 수집을 끊어 어떤 정렬로도 담을 수 없었다. 원천이 상태(접수중)를 따로 주는 게시판만 켠다.
+   * 검증이 수집을 끊어 어떤 정렬로도 담을 수 없었다. 원천에 접수기간 공란이 실제로 있음을 확인한
+   * 게시판에서만 켠다. 날짜 검증 예외일 뿐이며 공란을 모집중으로 판정하는 근거가 아니다.
    */
   allowUndatedRows?: true;
 }

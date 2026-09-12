@@ -85,8 +85,10 @@ function titleOf(a: HTMLElement): string {
   return parts.join("").replace(/\s+/g, " ").trim();
 }
 
-export function parseMainbizList(html: string, _page = 1, now = Date.now()): BoardRow[] {
-  const out: BoardRow[] = [];
+type MainbizRaw = { id: string; title: string; ymd: string; pinned: boolean; sort: string };
+
+function mainbizRawRows(html: string): MainbizRaw[] {
+  const out: MainbizRaw[] = [];
   const seen = new Set<string>();
   for (const tr of parseHtml(html).querySelectorAll(ROW)) {
     const a = tr.querySelector("td.tit a");
@@ -94,18 +96,8 @@ export function parseMainbizList(html: string, _page = 1, now = Date.now()): Boa
     const id = (a.getAttribute("href") ?? "").match(BIDX)?.[1] ?? "";
     if (!id || seen.has(id)) continue;
     const title = titleOf(a);
-    if (!title || isMainbizDropTitle(title)) continue;
-    /**
-     * ★상태 칸이 「종료」면 담지 않는다(2026-09-06 적대 리뷰 보통3).
-     * 목록엔 마감일이 없어서 담으면 등록일 개시형으로 90일간 「모집중」 행세를 한다.
-     * 「진행중」·「진행예정」만 담는다 — 이미 저장된 줄은 목록에서 사라지면
-     * `markStaleClosed` 가 닫는다.
-     */
+    if (!title) continue;
     const sort = (tr.querySelector("td.sort")?.text ?? "").replace(/\s+/g, " ").trim();
-    if (sort === "종료") {
-      seen.add(id);
-      continue;
-    }
     /**
      * 등록일은 **`td.date` 칸을 직접** 집는다.
      * ⚠️ 행 전체 글자(`tr.text`)에서 찾으면 안 된다 — 번호 「459」 + 「2026.09.02」가
@@ -116,18 +108,40 @@ export function parseMainbizList(html: string, _page = 1, now = Date.now()): Boa
     // 붙박이 판정은 CSS 가 아니라 번호 칸이다 — 숫자가 아니면(`주요`) 붙박이.
     const num = (tr.querySelector("td.num")?.text ?? "").replace(/\s+/g, " ").trim();
     const pinned = num !== "" && !/^\d+$/.test(num);
-    if (pinned && ymd && now - Date.parse(`${ymd}T00:00:00Z`) > PINNED_MAX_AGE_MS) {
-      seen.add(id);
-      continue;
-    }
     seen.add(id);
-    out.push({
-      title,
-      detailUrl: `${BASE}${LIST}?bidx=${id}&gbn=2&smem=2&bgbn=V`,
-      dateText: ymd ? `${ymd} ~` : "",
-      category: "",
-      agency: "메인비즈협회",
-    });
+    out.push({ id, title, ymd, pinned, sort });
+  }
+  return out;
+}
+
+function mainbizRow(raw: MainbizRaw): BoardRow {
+  return {
+    title: raw.title,
+    detailUrl: `${BASE}${LIST}?bidx=${raw.id}&gbn=2&smem=2&bgbn=V`,
+    dateText: raw.ymd ? `${raw.ymd} ~` : "",
+    category: "",
+    agency: "메인비즈협회",
+  };
+}
+
+/** 거르개 전 원본. 종료·포럼 등도 제목·정규 주소·등록일을 남긴다. */
+export function parseMainbizValidationList(html: string, _page = 1): BoardRow[] {
+  return mainbizRawRows(html).map(mainbizRow);
+}
+
+export function parseMainbizList(html: string, _page = 1, now = Date.now()): BoardRow[] {
+  const out: BoardRow[] = [];
+  for (const raw of mainbizRawRows(html)) {
+    if (isMainbizDropTitle(raw.title)) continue;
+    /**
+     * ★상태 칸이 「종료」면 담지 않는다(2026-09-06 적대 리뷰 보통3).
+     * 목록엔 마감일이 없어서 담으면 등록일 개시형으로 90일간 「모집중」 행세를 한다.
+     * 「진행중」·「진행예정」만 담는다 — 이미 저장된 줄은 목록에서 사라지면
+     * `markStaleClosed` 가 닫는다.
+     */
+    if (raw.sort === "종료") continue;
+    if (raw.pinned && raw.ymd && now - Date.parse(`${raw.ymd}T00:00:00Z`) > PINNED_MAX_AGE_MS) continue;
+    out.push(mainbizRow(raw));
   }
   return out;
 }
@@ -152,6 +166,7 @@ export const mainbizConfig: BoardConfig = {
     },
   },
   customParse: parseMainbizList,
+  validationParse: parseMainbizValidationList,
   /**
    * ★추측 단계를 끈다(2026-09-06 적대 리뷰 보통5). 이 사이트의 제목 href 는
    * `…&SFIELD=&GTXT=&gbn=2…` 인데 파서가 `&GT` 를 옛 이름 실체(`>`)로 풀어
@@ -176,7 +191,8 @@ export const mainbizConfig: BoardConfig = {
   detailApplyPeriod: { selector: "div.board_view_top div.info span.each", strip: /^기간\s*[::]\s*/ },
   /** 첨부는 본문과 다른 상자 `div.board_view_file` — 위쪽 메뉴·바닥글 링크가 섞이지 않게 못 박는다. */
   attachmentsScopeSelector: "div.board_view_file",
-  // 1쪽 10건에서 거르개·종료 제외 뒤 실측 2건(순도는 높지만 양이 적은 판이다).
-  // 0행이면 서식 변경이므로 2로 둔다 — 1은 검사를 끈 것과 같다.
+  // 최소 행은 거르개 전 원본(validationParse)에 적용한다. 거르개·종료 뒤 정책 행이
+  // 1건이어도 원본 10행이 살아 있으면 서식이 멀쩡하다. 원본 0행이면 서식 변경이므로
+  // 2로 둔다 — 1은 검사를 끈 것과 같다.
   expectMinRows: 2,
 };
