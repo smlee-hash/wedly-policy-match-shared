@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { fetchBoardWindow } from "../page-window";
 import {
   isSeoulsinboDropTitle,
   parseSeoulsinboList,
@@ -21,6 +22,7 @@ const F = join(__dirname, "../__fixtures__");
 const listHtml = readFileSync(join(F, "seoulsinbo-list.html"), "utf-8");
 const listP2Html = readFileSync(join(F, "seoulsinbo-list-p2.html"), "utf-8");
 const bizHtml = readFileSync(join(F, "seoulsinbo-biz-p1.html"), "utf-8");
+const endHtml = readFileSync(join(F, "seoulsinbo-end-298.html"), "utf-8");
 const NOW = Date.parse("2026-09-03T00:00:00Z");
 const rows = parseSeoulsinboList(listHtml, 1, NOW);
 const rowsP2 = parseSeoulsinboList(listP2Html, 2, NOW);
@@ -308,5 +310,212 @@ describe("망가뜨려 보기", () => {
     expect(target?.dateText).toBe("");
     // 다른 행 날짜는 멀쩡해야 한다 — 날짜를 행 전체에서 긁고 있지 않다는 증거.
     expect(broken.find((r) => r.detailUrl.includes("/22683."))?.dateText).toBe("2026-07-01 ~");
+  });
+});
+
+const END_PAGE = 298;
+const LAST_BIZ_PAGE = 43;
+
+function listSession(fetchText: (url: string) => Promise<string>) {
+  const create = seoulsinboConfig.createListSession;
+  if (!create) throw new Error("createListSession 이 없다");
+  return create(fetchText);
+}
+
+async function readThroughSession(page: number, html: string): Promise<string> {
+  return listSession(async (url) => {
+    expect(url).toBe(seoulsinboListUrl(page));
+    return html;
+  })(page);
+}
+
+function asPastEnd(html: string, pageIndex: number, mng: string, last: number, total: number): string {
+  return html
+    .replace(
+      '<input id="pageIndex" name="pageIndex" type="hidden" value="148"/>',
+      `<input id="pageIndex" name="pageIndex" type="hidden" value="${pageIndex}"/>`,
+    )
+    .replace(
+      '<input type="hidden" name="mng_cd" value="STRY0006">',
+      `<input type="hidden" name="mng_cd" value="${mng}">`,
+    )
+    .replace(
+      'onclick="bbs.goList(19); return false;" class="last"',
+      `onclick="bbs.goList(${last}); return false;" class="last"`,
+    )
+    .replaceAll('<span class="number">190개</span>', `<span class="number">${total}개</span>`);
+}
+
+function windowDeps(fetchText: (url: string) => Promise<string>) {
+  return {
+    prevOpenCount: 0,
+    fetchText,
+    askModel: async () => "{}",
+    onAllFailed: () => {},
+  };
+}
+
+describe("서울신용보증재단 — 게시판별 끝 다음 쪽", () => {
+  it("수집기 298쪽은 사업공고 pageIndex=148 이다", () => {
+    expect(seoulsinboListUrl(END_PAGE)).toBe(
+      "https://www.seoulshinbo.co.kr/wbase/contents/bbs/list.do?mng_cd=STRY0006&pageIndex=148",
+    );
+    expect(seoulsinboBoardOf(END_PAGE)).toBe("STRY0006");
+    expect(seoulsinboListUrl(LAST_BIZ_PAGE)).toBe(
+      "https://www.seoulshinbo.co.kr/wbase/contents/bbs/list.do?mng_cd=STRY0006&pageIndex=19",
+    );
+    expect(seoulsinboConfig.emptyStreakStop).toBe(12);
+    expect(seoulsinboConfig.createListSession).toBeTypeOf("function");
+    expect(seoulsinboConfig.isListEndError).toBeUndefined();
+  });
+
+  it("끝 다음 고정본은 PC 표만 빈 목록으로 바꾸고 바깥 HTML 은 그대로 둔다", async () => {
+    const out = await readThroughSession(END_PAGE, endHtml);
+    expect(out).not.toBe(endHtml);
+    const webAt = endHtml.indexOf("pre_info_list_tbl for_web");
+    const tbodyOpen = endHtml.indexOf("<tbody>", webAt);
+    const tbodyClose = endHtml.indexOf("</tbody>", tbodyOpen);
+    expect(out.slice(0, tbodyOpen + "<tbody>".length)).toBe(endHtml.slice(0, tbodyOpen + "<tbody>".length));
+    expect(out.slice(out.indexOf("</tbody>", out.indexOf("<tbody>", webAt)))).toBe(endHtml.slice(tbodyClose));
+    const web = out.slice(out.indexOf("pre_info_list_tbl for_web"), out.indexOf("pre_info_list_tbl for_mob"));
+    expect(web).toContain("게시물이 없습니다");
+    expect(web).not.toContain("bbs.goView");
+    expect(out).toContain('onclick="bbs.goList(19); return false;" class="last"');
+    expect(out).toContain('name="mng_cd" value="STRY0006"');
+    expect(out.slice(out.indexOf("pre_info_list_tbl for_mob"))).toContain("bbs.goView('148', '23037')");
+    expect(parseSeoulsinboList(out, END_PAGE, NOW)).toHaveLength(0);
+    expect(parseSeoulsinboList(endHtml, END_PAGE, NOW).some((r) => r.title.includes("골목형상점가"))).toBe(true);
+  });
+
+  it("마지막 쪽·옛 고정본의 붙박이·본문 행은 지우지 않는다", async () => {
+    expect(await readThroughSession(1, listHtml)).toBe(listHtml);
+    expect(await readThroughSession(2, listP2Html)).toBe(listP2Html);
+    expect(await readThroughSession(7, bizHtml)).toBe(bizHtml);
+    const lastHtml = endHtml.replace(
+      '<input id="pageIndex" name="pageIndex" type="hidden" value="148"/>',
+      '<input id="pageIndex" name="pageIndex" type="hidden" value="19"/>',
+    );
+    const lastOut = await readThroughSession(LAST_BIZ_PAGE, lastHtml);
+    expect(lastOut).toBe(lastHtml);
+    expect(parseSeoulsinboList(lastOut, LAST_BIZ_PAGE, NOW).some((r) => r.title.includes("골목형상점가"))).toBe(true);
+  });
+
+  it.each([
+    [
+      "현재 쪽",
+      (html: string) => html.replace(
+        '<input id="pageIndex" name="pageIndex" type="hidden" value="148"/>',
+        '<input id="pageIndex" name="pageIndex" type="hidden" value="147"/>',
+      ),
+    ],
+    [
+      "게시판",
+      (html: string) => html.replace(
+        '<input type="hidden" name="mng_cd" value="STRY0006">',
+        '<input type="hidden" name="mng_cd" value="STRY9788">',
+      ),
+    ],
+    [
+      "끝쪽",
+      (html: string) => html.replace(
+        'onclick="bbs.goList(19); return false;" class="last"',
+        'onclick="bbs.goList(200); return false;" class="last"',
+      ),
+    ],
+    [
+      "총건수",
+      (html: string) => html.replaceAll('<span class="number">190개</span>', '<span class="number">191개</span>'),
+    ],
+    [
+      "일반 행",
+      (html: string) => html.replace(
+        '<td class="notice"><p class="notice_text">공지</p></td>',
+        "<td>1</td>",
+      ),
+    ],
+    ["일반 직접 링크", (html: string) => html.replace('<td class="no_result" colspan="5">', '<td><a href="/wbase/contents/bbs/view/123.do">새 공고</a></td><td class="no_result" colspan="5">')],
+    ["일반 행 빈 링크", (html: string) => html.replace('<td class="no_result" colspan="5">', '<td>새 공고</td><td class="no_result" colspan="5">')],
+    ["알 수 없는 빈 행", (html: string) => html.replace('class="no_result"', 'class="unknown-empty"')],
+    ["pageIndex 없음", (html: string) => html.replace('id="pageIndex"', 'id="pageIndex-x"')],
+    ["a.last 없음", (html: string) => html.replace('class="last"', 'class="last-x"')],
+    [".number 없음", (html: string) => html.replaceAll('class="number"', 'class="number-x"')],
+    ["PC 표", (html: string) => html.replace("pre_info_list_tbl for_web", "pre_info_list_tbl for_web-x")],
+  ])("%s가 어긋나거나 없으면 빈 목록으로 꾸미지 않는다", async (_kind, twist) => {
+    const html = twist(endHtml);
+    expect(await readThroughSession(END_PAGE, html)).toBe(html);
+  });
+
+  it("세션 두 개는 상태를 나누지 않는다", async () => {
+    let aCalls = 0;
+    const a = listSession(async (url) => {
+      aCalls += 1;
+      expect(url).toBe(seoulsinboListUrl(END_PAGE));
+      return endHtml;
+    });
+    const b = listSession(async (url) => {
+      expect(url).toBe(seoulsinboListUrl(1));
+      return listHtml;
+    });
+    const past = await a(END_PAGE);
+    const live = await b(1);
+    expect(parseSeoulsinboList(past, END_PAGE, NOW)).toHaveLength(0);
+    expect(live).toBe(listHtml);
+    expect(parseSeoulsinboList(live, 1, NOW)).toHaveLength(11);
+    expect(aCalls).toBe(1);
+    expect(await b(1)).toBe(listHtml);
+  });
+
+  it("한 세션이 한 게시판 끝을 봤어도 마지막 쪽 행을 지우지 않는다", async () => {
+    const lastHtml = endHtml.replace(
+      '<input id="pageIndex" name="pageIndex" type="hidden" value="148"/>',
+      '<input id="pageIndex" name="pageIndex" type="hidden" value="19"/>',
+    );
+    const session = listSession(async (url) => {
+      if (url === seoulsinboListUrl(END_PAGE)) return endHtml;
+      if (url === seoulsinboListUrl(LAST_BIZ_PAGE)) return lastHtml;
+      throw new Error(url);
+    });
+    expect(parseSeoulsinboList(await session(END_PAGE), END_PAGE, NOW)).toHaveLength(0);
+    const last = await session(LAST_BIZ_PAGE);
+    expect(last).toBe(lastHtml);
+    expect(parseSeoulsinboList(last, LAST_BIZ_PAGE, NOW).some((r) => r.title.includes("골목형상점가"))).toBe(true);
+  });
+
+  it("첫 게시판이 끝나도 둘째에 글이 있으면 멈추지 않고, 둘 다 끝나야 12쪽 연속 빈 쪽으로 멈춘다", async () => {
+    const firstEnded = await fetchBoardWindow(
+      seoulsinboConfig,
+      windowDeps(async (url) => {
+        const u = new URL(url);
+        const mng = u.searchParams.get("mng_cd") ?? "";
+        const p = Number(u.searchParams.get("pageIndex"));
+        if (mng === "STRY9788") return asPastEnd(endHtml, p, "STRY9788", 6, 60);
+        return bizHtml;
+      }),
+      { startPage: 13, pageBudget: 12 },
+    );
+    expect(firstEnded.complete).toBe(false);
+    expect(firstEnded.reason).toBe("page-budget");
+    expect(firstEnded.reason).not.toBe("source-end");
+    expect(firstEnded.endStreak).toBe(0);
+    expect(firstEnded.announcements.length).toBeGreaterThan(0);
+
+    const bothEnded = await fetchBoardWindow(
+      seoulsinboConfig,
+      windowDeps(async (url) => {
+        const u = new URL(url);
+        const mng = u.searchParams.get("mng_cd") ?? "";
+        const p = Number(u.searchParams.get("pageIndex"));
+        return asPastEnd(endHtml, p, mng, 6, 60);
+      }),
+      { startPage: 13, pageBudget: 12 },
+    );
+    expect(bothEnded).toMatchObject({
+      complete: true,
+      reason: "empty-list",
+      nextPage: 25,
+      endStreak: 12,
+    });
+    expect(bothEnded.announcements).toHaveLength(0);
+    expect(bothEnded.reason).not.toBe("source-end");
   });
 });

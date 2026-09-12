@@ -37,9 +37,12 @@ const BOARDS = ["STRY9788", "STRY0006"] as const;
 const PAGES_PER_BOARD = 6;
 const ROW = ".pre_info_list_tbl.for_web table tbody tr";
 const GO = /bbs\.goView\(\s*['"](\d+)['"]\s*,\s*['"](\d+)['"]\s*\)/;
+const GO_LIST = /bbs\.goList\(\s*([1-9]\d*)\s*\)/;
 const YMD = /(20\d{2})[.\-/](\d{1,2})[.\-/](\d{1,2})/;
 /** 목록 HTML 이 스스로 자기 게시판 코드를 들고 있다 — 쪽 번호로 되짚지 않는다. */
 const MNG_IN_HTML = /<input[^>]+name="mng_cd"[^>]+value="([A-Z0-9]+)"/;
+const LIST_PAGE_SIZE = 10;
+const EMPTY_PC_TBODY = "<tr><td colspan=\"5\">게시물이 없습니다</td></tr>";
 
 /**
  * 지원사업이 아닌 글. **버릴 것만** 지정한다.
@@ -73,11 +76,85 @@ export function seoulsinboBoardOf(page: number): string {
   return BOARDS[i];
 }
 
-export function seoulsinboListUrl(page: number): string {
+function seoulsinboBoardPageIndex(page: number): number {
   const index = Math.max(1, page) - 1;
-  const p = Math.floor(index / (BOARDS.length * PAGES_PER_BOARD)) * PAGES_PER_BOARD
+  return Math.floor(index / (BOARDS.length * PAGES_PER_BOARD)) * PAGES_PER_BOARD
     + (index % PAGES_PER_BOARD) + 1;
-  return `${BASE}${LIST}?mng_cd=${seoulsinboBoardOf(page)}&pageIndex=${p}`;
+}
+
+export function seoulsinboListUrl(page: number): string {
+  return `${BASE}${LIST}?mng_cd=${seoulsinboBoardOf(page)}&pageIndex=${seoulsinboBoardPageIndex(page)}`;
+}
+
+function parsePositiveSafeInt(raw: string): number | undefined {
+  if (!/^[1-9]\d*$/.test(raw)) return undefined;
+  const n = Number(raw);
+  return Number.isSafeInteger(n) ? n : undefined;
+}
+
+function parseListTotal(text: string): number | undefined {
+  const m = text.replace(/\s+/g, "").match(/^([\d,]+)개/);
+  if (!m) return undefined;
+  const digits = m[1].replaceAll(",", "");
+  if (!/^\d+$/.test(digits)) return undefined;
+  const n = Number(digits);
+  return Number.isSafeInteger(n) && n >= 0 ? n : undefined;
+}
+
+function replaceForWebTbody(html: string, inner: string): string | undefined {
+  const webAt = html.indexOf("pre_info_list_tbl for_web");
+  if (webAt < 0) return undefined;
+  const mobAt = html.indexOf("pre_info_list_tbl for_mob", webAt);
+  const regionEnd = mobAt < 0 ? html.length : mobAt;
+  const region = html.slice(webAt, regionEnd);
+  const open = region.match(/<tbody\b[^>]*>/i);
+  if (!open || open.index === undefined) return undefined;
+  const innerAt = webAt + open.index + open[0].length;
+  const closeRel = html.slice(innerAt, regionEnd).search(/<\/tbody>/i);
+  if (closeRel < 0) return undefined;
+  return `${html.slice(0, innerAt)}${inner}${html.slice(innerAt + closeRel)}`;
+}
+
+/**
+ * 끝 다음 쪽은 붙박이만 영원히 돌아온다. 요청한 쪽·게시판·끝쪽·총건수가 맞고
+ * PC 표에 붙박이가 아닌 goView 행이 없을 때만 이 게시판이 끝났다고 본다.
+ */
+function seoulsinboBoardPastEndProven(html: string, page: number): boolean {
+  const requested = seoulsinboBoardPageIndex(page);
+  const expectedBoard = seoulsinboBoardOf(page);
+  const root = parseHtml(html);
+  if (root.querySelector("input#pageIndex")?.getAttribute("value") !== String(requested)) return false;
+  const mng = root.querySelector('input[name="mng_cd"]')?.getAttribute("value") ?? html.match(MNG_IN_HTML)?.[1];
+  if (mng !== expectedBoard) return false;
+  const tbody = root.querySelector(".pre_info_list_tbl.for_web table tbody");
+  if (!tbody) return false;
+  const last = parsePositiveSafeInt(
+    (root.querySelector(".tbl_pagination a.last")?.getAttribute("onclick") ?? "").match(GO_LIST)?.[1] ?? "",
+  );
+  if (last === undefined || last >= requested) return false;
+  const total = parseListTotal(root.querySelector(".pre_info_list_tbl.for_web .number")?.text ?? "");
+  if (total === undefined || Math.ceil(total / LIST_PAGE_SIZE) !== last) return false;
+  let sawEmptyMarker = false;
+  for (const tr of tbody.querySelectorAll("tr")) {
+    if (tr.querySelector("td.notice")) continue;
+    const cells = tr.querySelectorAll("td");
+    // 링크 모양이 바뀐 일반 행도 끝으로 오인하지 않는다. 실제 빈 목록 표지만 허용한다.
+    if (cells.length !== 1 || !tr.querySelector("td.no_result") || tr.querySelector("a")
+      || cells[0].getAttribute("colspan") !== "5"
+      || !/^내역이없습니다\.?$/.test(tr.text.replace(/\s+/g, ""))) return false;
+    sawEmptyMarker = true;
+  }
+  return sawEmptyMarker;
+}
+
+/** 이 칸만 끝났으면 PC 표를 빈 목록으로 바꾼다. 출처 전체 끝은 던지지 않는다. */
+function blankSeoulsinboListIfBoardPastEnd(html: string, page: number): string {
+  try {
+    if (!seoulsinboBoardPastEndProven(html, page)) return html;
+    return replaceForWebTbody(html, EMPTY_PC_TBODY) ?? html;
+  } catch {
+    return html;
+  }
 }
 
 export function parseSeoulsinboList(html: string, page = 1, now = Date.now(), validationOnly = false): BoardRow[] {
@@ -165,6 +242,14 @@ export const seoulsinboConfig: BoardConfig = {
   },
   customParse: parseSeoulsinboList,
   validationParse: parseSeoulsinboRaw,
+  /**
+   * 끝 다음 쪽은 붙박이만 돌아온다. 그 게시판 목록만 빈 표로 바꿔 12쪽 연속 빈 쪽이
+   * 두 게시판을 한 바퀴 돈 뒤에야 멈추게 한다. 출처 전체 끝 오류는 던지지 않는다.
+   */
+  createListSession: fetchText => async page => {
+    const html = await fetchText(seoulsinboListUrl(page));
+    return blankSeoulsinboListIfBoardPastEnd(html, page);
+  },
   /**
    * ★`detailContentSelector` 를 **일부러 안 적는다.**
    * 상세 본문(2026-09-03 `view/23384.do` 실측)은 `textarea#editor1` 안에 공고문 **이미지**
