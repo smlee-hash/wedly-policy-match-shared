@@ -7,10 +7,11 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "node-html-parser": "^6.1.13",
-    "iconv-lite": "^0.7.2",
-    "undici": "^8.10.0",
     "cfb": "^1.2.2",
+    "fast-xml-parser": "5.11.1",
+    "iconv-lite": "^0.7.2",
+    "node-html-parser": "^6.1.13",
+    "undici": "^8.10.0",
     "unpdf": "^1.6.2"
   },
   "exports": {
