@@ -60,10 +60,15 @@ describe("메인비즈협회 중소기업지원정보 목록 읽기 — 실사�
   });
 
   it("쪽 주소는 GET page — url(1)·url(2) 가 쪽 변수만 다르다", () => {
+    // 빈 검색조건(cur_pack·SFIELD·GTXT·bcate·date_ing)은 HTTP 500. 판 선택 gbn=2&smem=2 와 쪽만 보낸다.
     expect(mainbizConfig.list.url(1)).toBe(
-      "https://www.mainbiz.or.kr/notice/company.asp?page=1&cur_pack=0&SFIELD=&GTXT=&gbn=2&bcate=&date_ing=&smem=2",
+      "https://www.mainbiz.or.kr/notice/company.asp?page=1&gbn=2&smem=2",
     );
-    expect(mainbizConfig.list.url(2)).toContain("page=2");
+    expect(mainbizConfig.list.url(2)).toBe(
+      "https://www.mainbiz.or.kr/notice/company.asp?page=2&gbn=2&smem=2",
+    );
+    expect(mainbizConfig.list.url(1).replace("page=1", "page=2")).toBe(mainbizConfig.list.url(2));
+    expect(mainbizConfig.list.url(1)).not.toMatch(/cur_pack|SFIELD|GTXT|bcate|date_ing/);
     expect(pagingParamsOf(mainbizConfig)).toEqual(["page"]);
     expect(mainbizConfig.list.maxPages).toBe(5);
   });

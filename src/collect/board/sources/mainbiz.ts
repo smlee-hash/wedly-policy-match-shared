@@ -12,8 +12,11 @@ import type { BoardConfig, BoardRow } from "../types";
  * **금지 경로 없음**(같은 물결의 이노비즈·김해의생명·포항소재와 달리 방침상 걸림돌이 없다).
  *
  * 구조: `table.board_list tbody tr`(칸 6개 — 번호|상태|제목|파일|등록일|조회).
- * 제목 `td.tit > a`, 상세 열쇠는 그 href 의 `bidx`. 쪽넘김 GET `page=n` · 한 쪽 10건 ·
- * 전체 약 47쪽(마지막 페이징 링크 `?page=47`). charset utf-8(`<meta charset="UTF-8">`).
+ * 제목 `td.tit > a`, 상세 열쇠는 그 href 의 `bidx`. 쪽넘김 GET `page=n&gbn=2&smem=2` ·
+ * 한 쪽 10건 · 전체 약 47쪽(마지막 페이징 링크 `?page=47`). charset utf-8(`<meta charset="UTF-8">`).
+ *
+ * ⚠️ 목록 주소에 빈 검색조건(`cur_pack=0&SFIELD=&GTXT=&bcate=&date_ing=`)을 붙이면
+ *    HTTP 500 이다(2026-09-13 실측). 판 선택 `gbn=2&smem=2` 와 쪽 `page=n` 만 보낸다.
  *
  * ⚠️ href 를 **그대로 쓰면 안 된다.** 원문은 `…&SFIELD=&GTXT=&gbn=2…` 인데 파서가
  *    `&GT` 를 옛 이름 실체(`>`)로 풀어 `…&SFIELD=>XT=&gbn=2…` 가 된다(2026-09-06 고정본 실측).
@@ -138,8 +141,8 @@ export const mainbizConfig: BoardConfig = {
   charset: "utf-8",
   list: {
     url: (p) =>
-      // 2026-09-06 실측 목록 주소 그대로(고정본을 받은 요청) — 변수를 빼면 다른 판이 올 수 있다.
-      `${BASE}${LIST}?page=${p}&cur_pack=0&SFIELD=&GTXT=&gbn=2&bcate=&date_ing=&smem=2`,
+      // 빈 검색조건은 HTTP 500. 판 선택(gbn=2, smem=2)과 쪽만 보낸다(2026-09-13 실측 200).
+      `${BASE}${LIST}?page=${p}&gbn=2&smem=2`,
     maxPages: 5,
     rowSelector: ROW,
     fields: {

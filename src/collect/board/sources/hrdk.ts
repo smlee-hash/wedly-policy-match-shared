@@ -13,8 +13,8 @@ import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
  *
  * 함정 셋(전부 실측):
  * ① **전 페이지 euc-kr**(`charset=euc-kr`) — UTF-8 로 읽으면 제목이 통째로 깨진다.
- * ② 등록일이 **자바 `Date.toString()`** 그대로다(`Wed Sep 02 15:17:41 KST 2026`).
- *    공용 날짜 파서는 `20\d{2}[.\-/]\d{1,2}` 를 찾으므로 이 서식을 한 글자도 못 읽는다.
+ * ② 등록일 서식이 두 갈래다. 직접 응답은 자바 `Date.toString()`(`Wed Sep 02 15:17:41 KST 2026`)
+ *    이고, 설정된 프록시 1쪽은 ISO(`2026-09-02`)다. 공용 날짜 파서는 자바 서식을 못 읽는다.
  * ③ 첨부가 **POST 전용**이다 — `<a href="#" onclick="goDown('<base64>')">` 라 주소가 아예 없고,
  *    `POST /cms/download/downloadFile2.hrd` body `attachSeq2=<base64>` 여야 200 + HWP 89,088바이트가 온다
  *    (세션·쿠키·Referer 불필요, GET 은 안 된다).
@@ -54,18 +54,32 @@ const MONTHS: Record<string, string> = {
 };
 /** `Wed Sep 02 15:17:41 KST 2026` — 요일 · 달 · 일 · 시각 · 시간대 · 해. */
 const JAVA_DATE = /\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+([A-Z][a-z]{2})\s+(\d{1,2})\s+\d{1,2}:\d{2}:\d{2}\s+\S+\s+(20\d{2})\b/;
+/** 프록시 1쪽 실측 ISO `2026-09-02`. */
+const ISO_DATE = /^(20\d{2})-(\d{1,2})-(\d{1,2})$/;
+
+/** 달력에 있는 날짜만 `YYYY-MM-DD`. UTC로 재조립해 로컬 시간대 밀림을 막는다. */
+function ymdIfReal(y: number, m: number, d: number): string {
+  const probe = new Date(Date.UTC(y, m - 1, d));
+  if (probe.getUTCFullYear() !== y || probe.getUTCMonth() !== m - 1 || probe.getUTCDate() !== d) return "";
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
 
 /**
- * 자바 `Date.toString()` 을 `YYYY-MM-DD` 로. 못 읽으면 빈 문자열.
+ * 자바 `Date.toString()` 또는 ISO `YYYY-MM-DD` 를 `YYYY-MM-DD` 로. 못 읽으면 빈 문자열.
  * ★시간대(`KST`)는 **쓰지 않는다** — 화면에 보이는 날짜를 그대로 옮길 뿐이고, 여기서 시각을
  *  더 다루면 목록 등록일이 서버 시간대에 따라 하루씩 밀린다(다른 수집기와 같은 규칙).
  */
 export function parseJavaDate(text: string): string {
-  const m = (text ?? "").replace(/\s+/g, " ").match(JAVA_DATE);
-  if (!m) return "";
-  const month = MONTHS[m[1]];
-  if (!month) return "";
-  return `${m[3]}-${month}-${m[2].padStart(2, "0")}`;
+  const raw = (text ?? "").replace(/\s+/g, " ").trim();
+  const java = raw.match(JAVA_DATE);
+  if (java) {
+    const month = MONTHS[java[1]];
+    if (!month) return "";
+    return ymdIfReal(Number(java[3]), Number(month), Number(java[2]));
+  }
+  const iso = raw.match(ISO_DATE);
+  if (!iso) return "";
+  return ymdIfReal(Number(iso[1]), Number(iso[2]), Number(iso[3]));
 }
 
 export function parseHrdkList(html: string): BoardRow[] {

@@ -58,6 +58,23 @@ describe("한국산업인력공단 공지사항 — 실사이트 고정본", () 
     expect(rows.every((r) => !/^\d{3}20/.test(r.dateText))).toBe(true);
   });
 
+  it("날짜 칸을 프록시 ISO 로 바꿔도 같은 행이 나온다", () => {
+    const isoHtml = listHtml
+      .replaceAll("Wed Sep 02 15:17:41 KST 2026", "2026-09-02")
+      .replaceAll("Mon Aug 31 18:43:29 KST 2026", "2026-08-31")
+      .replaceAll("Fri Aug 28 10:00:59 KST 2026", "2026-08-28")
+      .replaceAll("Fri Aug 21 17:56:41 KST 2026", "2026-08-21")
+      .replaceAll("Fri Aug 21 10:01:15 KST 2026", "2026-08-21")
+      .replaceAll("Fri Jul 31 13:49:44 KST 2026", "2026-07-31")
+      .replaceAll("Thu Jul 30 14:15:48 KST 2026", "2026-07-30")
+      .replaceAll("Thu Jul 23 18:01:36 KST 2026", "2026-07-23")
+      .replaceAll("Tue Jul 14 10:11:38 KST 2026", "2026-07-14")
+      .replaceAll("Mon Jul 13 15:01:08 KST 2026", "2026-07-13");
+    expect(isoHtml).toContain(">2026-09-02<");
+    expect(isoHtml).not.toMatch(/KST 20\d{2}/);
+    expect(parseHrdkList(isoHtml)).toEqual(rows);
+  });
+
   it("쪽 주소는 pageNo 로 넘어간다", () => {
     expect(hrdkConfig.list.url(1)).toBe("https://www.hrdkorea.or.kr/3/1/1?pageNo=1");
     expect(hrdkConfig.list.url(3)).toBe("https://www.hrdkorea.or.kr/3/1/1?pageNo=3");
@@ -65,17 +82,37 @@ describe("한국산업인력공단 공지사항 — 실사이트 고정본", () 
   });
 });
 
-/** 자바 `Date.toString()` 은 공용 날짜 파서가 한 글자도 못 읽는다 — 전용 파서를 따로 잰다. */
-describe("자바 날짜(`Wed Sep 02 15:17:41 KST 2026`) 읽기", () => {
+/** 목록 날짜는 `parseJavaDate` 가 집는다 — 자바 `Date.toString()` 과 프록시 ISO 를 같이 잰다. */
+describe("자바 날짜(`Wed Sep 02 15:17:41 KST 2026`)·ISO(`2026-09-02`) 읽기", () => {
   it("달 이름을 숫자로 바꿔 ISO 로 낸다", () => {
     expect(parseJavaDate("Wed Sep 02 15:17:41 KST 2026")).toBe("2026-09-02");
     expect(parseJavaDate("Fri Aug 28 10:00:59 KST 2026")).toBe("2026-08-28");
     expect(parseJavaDate("Mon Jul 13 15:01:08 KST 2026")).toBe("2026-07-13");
     expect(parseJavaDate("Thu Jan 1 09:00:00 KST 2026")).toBe("2026-01-01");
+    expect(parseJavaDate("Wed Sep 02 00:00:00 KST 2026")).toBe("2026-09-02");
+    expect(parseJavaDate("Wed Sep 02 23:59:59 KST 2026")).toBe("2026-09-02");
+  });
+
+  it("프록시 ISO 날짜도 같은 YYYY-MM-DD 로 낸다 — 앞뒤 공백은 자른다", () => {
+    expect(parseJavaDate("2026-09-02")).toBe("2026-09-02");
+    expect(parseJavaDate("  2026-09-02  ")).toBe("2026-09-02");
+    expect(parseJavaDate("  Wed Sep 02 15:17:41 KST 2026  ")).toBe("2026-09-02");
+  });
+
+  it("윤년 2월 29일은 허용하고 평년·없는 날은 빈 문자열이다 — 지어내지 않는다", () => {
+    expect(parseJavaDate("2024-02-29")).toBe("2024-02-29");
+    expect(parseJavaDate("Thu Feb 29 00:00:00 KST 2024")).toBe("2024-02-29");
+    expect(parseJavaDate("2026-02-29")).toBe("");
+    expect(parseJavaDate("Sun Feb 29 00:00:00 KST 2026")).toBe("");
+    expect(parseJavaDate("2026-02-30")).toBe("");
+    expect(parseJavaDate("2026-09-31")).toBe("");
+    expect(parseJavaDate("Wed Sep 31 15:17:41 KST 2026")).toBe("");
+    expect(parseJavaDate("2026-04-31")).toBe("");
+    expect(parseJavaDate("2026-13-01")).toBe("");
+    expect(parseJavaDate("2026-00-10")).toBe("");
   });
 
   it("모르는 서식·달 이름은 빈 문자열이다 — 지어내지 않는다", () => {
-    expect(parseJavaDate("2026-09-02")).toBe("");
     expect(parseJavaDate("Wed Foo 02 15:17:41 KST 2026")).toBe("");
     expect(parseJavaDate("")).toBe("");
   });
