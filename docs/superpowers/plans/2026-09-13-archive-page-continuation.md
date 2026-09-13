@@ -10,7 +10,7 @@ Actual end data:
 - KOTRA3: div.card > div.card-inner > div.card-body contains only 조회된 데이터가 없습니다. and no links; hidden limtTotCnt91; pagination1. Source alternates business kinds across pages; require consecutive2empty pages, never conclude from one.
 - IRIS5: ul.dbody > li contains 데이터가 존재하지 않습니다.
 - Ansan8: table.p-table.simple tbody tr contains 등록된 게시글이 존재하지 않습니다.
-- GWSinbo3: table.basic_board tbody contains 등록된 게시글이 없습니다.; actual empty row lacks tr.hover_list.
+- GWSinbo3: table.basic_board tbody is whitespace only; the immediately adjacent div.no_list_size outside the table contains 등록된 게시글이 없습니다. Root actual parser proof confirmed text nodes must not be treated as element children.
 - SeoulTP8: table.board-list tbody tr contains 조회결과가 존재하지 않습니다.
 - GyeongnamTP7: #gridData tr.table-contents contains 해당되는 결과가 존재하지 않습니다.
 - Kosmes6 JSON: {"pageInfo":{"rowMax":44,"pageCount":10,"startPage":1,"startRowNum":51,"scopeRow":50,"endRowNum":61,"rowCount":10,"endPage":5,"maxPage":5,"nowPage":6},"ds_infoList":[]}.

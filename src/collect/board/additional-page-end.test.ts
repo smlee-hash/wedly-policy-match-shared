@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { isProvenAdditionalSourceEnd } from "./additional-page-end";
+import { isProvenEmptyBoardPage } from "./page-end";
 import { gjsinboConfig } from "./sources/gjsinbo";
 import { pipaConfig } from "./sources/pipa";
 import type { BoardConfig } from "./types";
@@ -113,6 +114,8 @@ describe("isProvenAdditionalSourceEnd — 평택산업진흥원", () => {
     const html = pipaEnd();
     expect(isProvenAdditionalSourceEnd(html, pipaConfig, 12)).toBe(true);
     expect(isProvenAdditionalSourceEnd(html, pipaConfig, 13)).toBe(true);
+    expect(isProvenEmptyBoardPage(html, pipaConfig, 12)).toBe(true);
+    expect(isProvenEmptyBoardPage('<form action="/login"><input type="password"></form>' + html, pipaConfig, 12)).toBe(false);
   });
 
   it("검색 폼이 있어도 관측된 끝 모양이면 끝이다", () => {
@@ -331,5 +334,28 @@ describe("isProvenAdditionalSourceEnd — 공통 거절", () => {
     )).toBe(false);
     expect(isProvenAdditionalSourceEnd("", pipaConfig, 12)).toBe(false);
     expect(isProvenAdditionalSourceEnd("[]", gjsinboConfig, 11)).toBe(false);
+  });
+});
+
+
+describe("추가 출처 끝 판정의 잘못된 호출·중복 구조", () => {
+  it("고정 공지와 페이지 호출 앞뒤의 알 수 없는 코드를 거부한다", () => {
+    for (const call of ["fn_goView('851', 'notice')", "fn_egov_link_page(1); return false;"]) {
+      for (const mutated of [`unknown(); ${call}`, `${call}; unknown()`]) {
+        expect(isProvenAdditionalSourceEnd(pipaEnd().replace(call, mutated), pipaConfig, 12)).toBe(false);
+      }
+    }
+  });
+  it("첫 행 상자가 비어 있어도 중복 행 상자의 내용을 무시하지 않는다", () => {
+    const html = gjsinboEnd().replace('<div class="rows">', '<div class="rows"><span>불러오는 중</span></div><div class="rows">');
+    const emptyFirst = gjsinboEnd().replace('<div class="bbs-basic-list">', '<div class="bbs-basic-list"><div class="rows"></div>');
+    expect(isProvenAdditionalSourceEnd(html, gjsinboConfig, 11)).toBe(false);
+    expect(isProvenAdditionalSourceEnd(emptyFirst, gjsinboConfig, 11)).toBe(false);
+  });
+  it("상세 동작과 중복 쿼리가 섞인 링크는 목록 쪽넘김 증거가 아니다", () => {
+    for (const suffix of ['&action=view&data_id=7', '&d=notification3', '&bbs_id=2', '&search_page=99', '&search_page=10']) {
+      const prevHref = '/index?d=notification1&search_page=10&bbs_id=1' + suffix;
+      expect(isProvenAdditionalSourceEnd(gjsinboEnd({ prevHref }), gjsinboConfig, 11)).toBe(false);
+    }
   });
 });

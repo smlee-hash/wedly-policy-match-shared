@@ -1,5 +1,6 @@
 import { parseHtml, type HTMLElement } from "./html";
 import { isProvenCwipEnd } from "./cwip-page-end";
+import { isProvenAdditionalSourceEnd } from "./additional-page-end";
 import type { BoardConfig } from "./types";
 
 /**
@@ -78,6 +79,7 @@ function listBoundContainers(html: string, cfg: BoardConfig): HTMLElement[] | nu
 function isProvenEmptyListHtml(html: string, cfg: BoardConfig, requestedPage?: number): boolean {
   try {
     if (isAuthChallengeHtml(html)) return false;
+    if (isProvenAdditionalSourceEnd(html, cfg, requestedPage ?? 0)) return true;
     if (isProvenCwipEnd(html, cfg, requestedPage)) return true;
     if (cfg.id === "gwsinbo") {
       const table = parseHtml(html).querySelector("table.basic_board");

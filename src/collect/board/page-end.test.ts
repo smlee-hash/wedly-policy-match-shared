@@ -67,6 +67,14 @@ const SMARTFACTORY_END = {
 };
 
 describe("isProvenEmptyBoardPage — 목록 상자", () => {
+  it("암호 없는 로그인 폼과 본문 오류도 빈 목록으로 완료하지 않는다", () => {
+    for (const shell of [
+      '<form action="/login"><input name="email"></form>',
+      '<p>Access denied</p>',
+      '<title>500 Internal Server Error</title>',
+    ]) expect(isProvenEmptyBoardPage(shell + KOTRA_EMPTY, kotraConfig, 3)).toBe(false);
+  });
+
   it("로그인·접근 제한 응답은 정상 목록처럼 생긴 빈 상자가 있어도 끝이 아니다", () => {
     expect(isProvenEmptyBoardPage(`<form action="/login"><input type="password"><button>로그인</button></form>${KOTRA_EMPTY}`, kotraConfig)).toBe(false);
     expect(isProvenEmptyBoardPage(`<html><title>Access denied</title><h1>접근이 제한되었습니다.</h1>${KOTRA_EMPTY}</html>`, kotraConfig)).toBe(false);
