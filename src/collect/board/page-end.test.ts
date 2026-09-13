@@ -39,7 +39,7 @@ const KOTRA_EMPTY = `<div class="card"><div class="card-inner"><div class="card-
 <input type="hidden" id="limtTotCnt" value="91"><div class="pagination">1</div>`;
 const IRIS_EMPTY = `<ul class="dbody"><li><div class="form-row" style="text-align:center;"><div class="group"><span class="title">데이터가 존재하지 않습니다.</span></div></div></li></ul>`;
 const ANSAN_EMPTY = `<table class="p-table simple"><tbody><tr><td colspan="5">등록된 게시글이 존재하지 않습니다.</td></tr></tbody></table>`;
-const GWSINBO_EMPTY = `<table class="basic_board"><tbody><tr><td colspan="4">등록된 게시글이 없습니다.</td></tr></tbody></table>`;
+const GWSINBO_EMPTY = `<table class="basic_board"><thead><tr><th>제목</th></tr></thead><tbody></tbody></table><div class="no_list_size"><p>등록된 게시글이 없습니다.</p></div>`;
 const SEOULTP_EMPTY = `<table class="board-list"><tbody><tr><td colspan="5">조회결과가 존재하지 않습니다.</td></tr></tbody></table>`;
 const GYEONGNAM_EMPTY = `<table><tbody id="gridData"><tr class="table-contents"><td>해당되는 결과가 존재하지 않습니다.</td></tr></tbody></table>`;
 
@@ -103,6 +103,11 @@ describe("isProvenEmptyBoardPage — 목록 상자", () => {
     expect(isProvenEmptyBoardPage("<div>없음</div>", generic)).toBe(false);
     expect(isProvenEmptyBoardPage("<html><body>오류</body></html>", generic)).toBe(false);
     expect(isProvenEmptyBoardPage("<html><p>검색 결과가 없습니다. 접근이 제한되었습니다.</p></html>", generic)).toBe(false);
+  });
+
+  it("강원신보의 표 바깥 안내는 비어 있는 표 바로 다음에 있어야 한다", () => {
+    expect(isProvenEmptyBoardPage(GWSINBO_EMPTY.replace("<tbody></tbody>", '<tbody><tr><td><a href="/view?id=1">공고</a></td></tr></tbody>'), gwsinboConfig)).toBe(false);
+    expect(isProvenEmptyBoardPage(GWSINBO_EMPTY.replace('<div class="no_list_size">', '<footer><div class="no_list_size">') + '</footer>', gwsinboConfig)).toBe(false);
   });
 });
 

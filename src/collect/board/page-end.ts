@@ -64,6 +64,15 @@ function listBoundContainers(html: string, cfg: BoardConfig): HTMLElement[] | nu
 
 function isProvenEmptyListHtml(html: string, cfg: BoardConfig): boolean {
   try {
+    if (cfg.id === "gwsinbo") {
+      const table = parseHtml(html).querySelector("table.basic_board");
+      const body = table?.querySelector("tbody");
+      const notice = table?.nextElementSibling;
+      // 실응답은 빈 tbody 뒤, 표 바로 바깥의 no_list_size에 안내를 둔다.
+      if (table && body && !body.text.trim() && !body.querySelector("*") &&
+          !hasAnnouncementLink(table) && notice?.classList.contains("no_list_size") &&
+          !hasAnnouncementLink(notice) && /^등록된게시글이없습니다\.?$/.test(notice.text.replace(/\s+/g, ""))) return true;
+    }
     const containers = listBoundContainers(html, cfg);
     if (!containers || containers.length === 0) return false;
     if (containers.some((node) => hasAnnouncementLink(node))) return false;

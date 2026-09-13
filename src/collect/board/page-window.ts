@@ -1,11 +1,17 @@
 import type { NormalizedAnnouncement } from "../../engine/types";
 import { allowedHostsOf, fetchBoardAll, pagelessSource, pagingParamsOf, type BoardDeps } from "./engine";
+import { GTP_ARCHIVE_COLLECTION_REVISION, gtpArchiveWindowConfig } from "./gtp-archive";
 import type { BoardConfig, BoardRow } from "./types";
 import { extractBySelector } from "./layers/selector";
 import { isProvenEmptyBoardPage } from "./page-end";
 import { validateRows } from "./validate";
 
 export { isProvenEmptyBoardPage };
+
+/** GTP 지난 공고 날짜 복원만 출처 해시에 넣는다. 다른 출처는 커서를 그대로 둔다. */
+export function archiveCollectionRevisionOf(cfg: BoardConfig): string | null {
+  return cfg.id === "gtp" ? GTP_ARCHIVE_COLLECTION_REVISION : null;
+}
 
 export type BoardWindowOptions = {
   startPage: number;
@@ -128,7 +134,7 @@ export async function fetchBoardWindow(
   let endStreak = Number.isSafeInteger(options.endStreak) && options.endStreak! >= 0 ? options.endStreak! : 0;
   const endAfter = cfg.emptyStreakStop ?? 2;
   const guarded = guardFetch(deps.fetchText, signal);
-  const session = cfg.createListSession?.((url, init) => guarded(url, cfg.charset, init));
+  const session = gtpArchiveWindowConfig(cfg).createListSession?.((url, init) => guarded(url, cfg.charset, init));
   const result = (nextPage: number, complete: boolean, reason: BoardWindowResult["reason"]): BoardWindowResult => ({
     announcements: [...announcements.values()], nextPage, complete, reason, lastPageRead, endStreak,
   });

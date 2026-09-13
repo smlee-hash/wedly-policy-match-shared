@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it, expect, vi } from "vitest";
 import { pagingParamsOf, type BoardDeps } from "./engine";
-import { fetchBoardWindow } from "./page-window";
+import { GTP_ARCHIVE_COLLECTION_REVISION } from "./gtp-archive";
+import { archiveCollectionRevisionOf, fetchBoardWindow } from "./page-window";
 import { gtpConfig } from "./sources/gtp";
 import { gwtpConfig, parseGwtpList } from "./sources/gwtp";
 import { kosmesConfig } from "./sources/kosmes";
@@ -548,4 +549,132 @@ describe("출처 끝 증거", () => {
     }), { startPage: 6, pageBudget: 2 });
     expect(errored).toMatchObject({ complete: false, reason: "incomplete" });
   });
+});
+
+function gtpArchiveRow(opts: { id: string; title: string; agency: string; period: string }): string {
+  return `<tr>
+    <td>1</td>
+    <td class="subject"><a href="#none" onclick="fn_goView('${opts.id}'); return false;" title="${opts.title}">${opts.title.slice(0, 12)}</a></td>
+    <td>기술</td>
+    <td></td>
+    <td>${opts.agency}</td>
+    <td class="last">${opts.period}</td>
+  </tr>`;
+}
+
+describe("경기TP 지난 공고 창", () => {
+  const closed = Array.from({ length: 10 }, (_, i) => {
+    const id = String(172310 + i);
+    const day = String(10 + i).padStart(2, "0");
+    return {
+      id,
+      title: `2026년 지원사업 공고 ${id}번`,
+      agency: i % 2 ? "경기도" : "경기 테크노파크",
+      start: `2026-08-${day}`,
+      end: `2026-08-${String(11 + i).padStart(2, "0")}`,
+    };
+  });
+
+  it("출처 개정값은 GTP 만 고정이고 다른 출처는 비운다", () => {
+    expect(archiveCollectionRevisionOf(gtpConfig)).toBe(GTP_ARCHIVE_COLLECTION_REVISION);
+    expect(archiveCollectionRevisionOf(kosmesConfig)).toBeNull();
+    expect(archiveCollectionRevisionOf(kotraConfig)).toBeNull();
+    expect(archiveCollectionRevisionOf({ ...gtpConfig, id: "dgtp" })).toBeNull();
+    expect(gtpConfig.createListSession).toBeUndefined();
+  });
+
+  it("마감 10줄은 상세의 지난 기간으로 10건을 남기고 쪽은 한 칸만 진행한다", async () => {
+    const fetched: string[] = [];
+    const list = `<table class="t01"><tbody>${closed.map((row) => gtpArchiveRow({ ...row, period: "마감" })).join("")}</tbody></table>`;
+    const out = await fetchBoardWindow(gtpConfig, deps({
+      fetchText: async (url) => {
+        fetched.push(url);
+        if (url.includes("webBusinessList.do")) return list;
+        const id = new URL(url).searchParams.get("b_idx") ?? "";
+        const row = closed.find((item) => item.id === id);
+        if (!row) throw new Error(`unexpected ${url}`);
+        return `<dl><dt>접수 기간</dt><dd>${row.start} 00:00&nbsp;~&nbsp;${row.end} 18:00</dd></dl>`;
+      },
+    }), { startPage: 5, pageBudget: 1 });
+    expect(out.complete).toBe(false);
+    expect(out.reason).toBe("page-budget");
+    expect(out.nextPage).toBe(6);
+    expect(out.lastPageRead).toBe(5);
+    expect(out.announcements).toHaveLength(10);
+    expect(out.announcements.map((a) => a.sourceId)).toEqual(
+      closed.map((row) => `https://pms.gtp.or.kr/web/business/webBusinessView.do?b_idx=${row.id}`),
+    );
+    expect(out.announcements.map((a) => a.title)).toEqual(closed.map((row) => row.title));
+    expect(out.announcements.map((a) => a.agency)).toEqual(closed.map((row) => row.agency));
+    expect(out.announcements.map((a) => a.applyPeriodText)).toEqual(
+      closed.map((row) => `${row.start} ~ ${row.end}`),
+    );
+    expect(fetched.filter((url) => url.includes("webBusinessView.do"))).toHaveLength(10);
+    expect(gtpConfig.createListSession).toBeUndefined();
+  });
+
+  it("상세가 비면 그 쪽을 비우지 않고 커서를 그대로 둔다", async () => {
+    const list = `<table class="t01"><tbody>${closed.map((row) => gtpArchiveRow({ ...row, period: "마감" })).join("")}</tbody></table>`;
+    const out = await fetchBoardWindow(gtpConfig, deps({
+      fetchText: async (url) => url.includes("webBusinessList.do") ? list : "<div>본문만</div>",
+    }), { startPage: 5, pageBudget: 2 });
+    expect(out).toMatchObject({
+      complete: false,
+      reason: "incomplete",
+      nextPage: 5,
+      lastPageRead: 4,
+    });
+    expect(out.announcements).toHaveLength(0);
+  });
+
+  it("날짜 있는 줄은 상세를 부르지 않고 마감 줄만 채운다", async () => {
+    const fetched: string[] = [];
+    const list = `<table class="t01"><tbody>${[
+      gtpArchiveRow({ id: "172300", title: "2026년 지원사업 공고 열린줄", agency: "경기도", period: "2026-09-01 09:00 <br>~ 2026-09-21 17:00" }),
+      gtpArchiveRow({ id: "172316", title: "2026년 지원사업 공고 316번", agency: "안산시", period: "마감" }),
+    ].join("")}</tbody></table>`;
+    const out = await fetchBoardWindow(gtpConfig, deps({
+      fetchText: async (url) => {
+        fetched.push(url);
+        if (url.includes("webBusinessList.do")) return list;
+        if (url.includes("b_idx=172316")) return `<dl><dt>접수 기간</dt><dd>2026-08-07 00:00&nbsp;~&nbsp;2026-08-31 18:00</dd></dl>`;
+        throw new Error(`unexpected ${url}`);
+      },
+    }), { startPage: 5, pageBudget: 1 });
+    expect(out.announcements.map((a) => a.sourceId)).toEqual([
+      "https://pms.gtp.or.kr/web/business/webBusinessView.do?b_idx=172300",
+      "https://pms.gtp.or.kr/web/business/webBusinessView.do?b_idx=172316",
+    ]);
+    expect(out.announcements.map((a) => a.applyPeriodText)).toEqual([
+      "2026-09-01 ~ 2026-09-21",
+      "2026-08-07 ~ 2026-08-31",
+    ]);
+    expect(fetched.filter((url) => url.includes("webBusinessView.do"))).toEqual([
+      "https://pms.gtp.or.kr/web/business/webBusinessView.do?b_idx=172316",
+    ]);
+  });
+
+  it("상세 요청 중단도 가드 fetch 를 타고 미완료로 남긴다", async () => {
+    const ac = new AbortController();
+    const fetched: string[] = [];
+    const list = `<table class="t01"><tbody>${gtpArchiveRow({
+      id: "172316",
+      title: "2026년 지원사업 공고 316번",
+      agency: "경기도",
+      period: "마감",
+    })}</tbody></table>`;
+    const out = await fetchBoardWindow(gtpConfig, deps({
+      fetchText: async (url) => {
+        fetched.push(url);
+        if (url.includes("webBusinessView.do")) {
+          setTimeout(() => ac.abort(), 10);
+          return new Promise<string>(() => {});
+        }
+        return list;
+      },
+    }), { startPage: 5, pageBudget: 1, signal: ac.signal });
+    expect(out).toMatchObject({ complete: false, reason: "incomplete", nextPage: 5, lastPageRead: 4 });
+    expect(out.announcements).toHaveLength(0);
+    expect(fetched.some((url) => url.includes("webBusinessView.do"))).toBe(true);
+  }, 500);
 });
