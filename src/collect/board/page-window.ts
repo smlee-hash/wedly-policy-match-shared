@@ -1,9 +1,11 @@
 import type { NormalizedAnnouncement } from "../../engine/types";
-import { allowedHostsOf, fetchBoardAll, pagelessSource, type BoardDeps } from "./engine";
+import { allowedHostsOf, fetchBoardAll, pagelessSource, pagingParamsOf, type BoardDeps } from "./engine";
 import type { BoardConfig, BoardRow } from "./types";
-import { parseHtml } from "./html";
 import { extractBySelector } from "./layers/selector";
+import { isProvenEmptyBoardPage } from "./page-end";
 import { validateRows } from "./validate";
+
+export { isProvenEmptyBoardPage };
 
 export type BoardWindowOptions = {
   startPage: number;
@@ -40,12 +42,27 @@ function requireWindowOptions(startPage: number, pageBudget: number): void {
   if (!Number.isSafeInteger(startPage + pageBudget)) throw new Error("시작 쪽이 허용 범위를 넘었습니다");
 }
 
+/** 원본 설정의 유효 삭제 변수. 절대 쪽으로 옮긴 url(1)·url(2) 로 다시 추론하지 않는다. */
+function frozenDropUrlParams(cfg: BoardConfig): string[] {
+  const inferred = cfg.keepPagingParamsInDetail ? [] : pagingParamsOf(cfg);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const key of [...(cfg.dropUrlParams ?? []), ...inferred]) {
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out;
+}
+
 /** fetchBoardAll 은 상대 1쪽만 부르므로, 그 1쪽을 절대 쪽으로 대응시킨다. */
 function bindAbsolutePage(cfg: WindowConfig, absolutePage: number): WindowConfig {
   const at = (rel: number) => absolutePage + rel - 1;
   const bound: WindowConfig = {
     ...cfg,
     expectMinRows: 1,
+    dropUrlParams: frozenDropUrlParams(cfg),
+    keepPagingParamsInDetail: true,
     list: {
       ...cfg.list,
       maxPages: 1,
@@ -58,20 +75,6 @@ function bindAbsolutePage(cfg: WindowConfig, absolutePage: number): WindowConfig
   if (absolutePage > 1 && cfg.feed && cfg.feed.url(1) === cfg.feed.url(2) && !pagelessSource(cfg)) bound.feed = undefined;
   if (cfg.validationParse) bound.validationParse = (html, rel) => cfg.validationParse!(html, at(rel));
   return bound;
-}
-
-/** 기관의 목록 상자 안에 있는 명시적인 빈 목록 표시만 인정한다. */
-export function isProvenEmptyBoardPage(html: string, cfg: BoardConfig): boolean {
-  const selector = cfg.list.rowSelector.trim();
-  if (selector.includes(",")) return false;
-  const parentSelector = selector.replace(/(?:\s*>\s*|\s+)(?:tr|li|a)(?:[.#][\w-]+)*$/, "");
-  if (parentSelector === selector || !parentSelector) return false;
-  try {
-    const parent = parseHtml(html).querySelector(parentSelector);
-    if (!parent || parent.querySelector("a[href]")) return false;
-    const text = parent.text.replace(/\s+/g, "");
-    return /(?:등록된|검색된|조회된)?(?:게시물|게시글|공고|자료|데이터)(?:이|가)?없습니다|검색결과가?없습니다|등록된글이없습니다/.test(text);
-  } catch { return false; }
 }
 
 function hasValidFilteredOutRows(html: string, cfg: BoardConfig, page: number): boolean {
@@ -162,7 +165,7 @@ export async function fetchBoardWindow(
     } catch {
       if (signal?.aborted) return result(page, false, "incomplete");
       if (sourceEnd) return result(page, true, "source-end");
-      if (primaryHtml !== undefined && isProvenEmptyBoardPage(primaryHtml, cfg)) {
+      if (primaryHtml !== undefined && isProvenEmptyBoardPage(primaryHtml, cfg, page)) {
         lastPageRead = page;
         endStreak += 1;
         if (endStreak >= endAfter) return result(page + 1, true, "empty-list");

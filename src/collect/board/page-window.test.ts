@@ -1,7 +1,14 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it, expect, vi } from "vitest";
+import { pagingParamsOf, type BoardDeps } from "./engine";
 import { fetchBoardWindow } from "./page-window";
+import { gtpConfig } from "./sources/gtp";
+import { gwtpConfig, parseGwtpList } from "./sources/gwtp";
+import { kosmesConfig } from "./sources/kosmes";
+import { kotraConfig } from "./sources/kotra";
+import { smartfactoryConfig } from "./sources/smartfactory";
 import type { BoardConfig } from "./types";
-import type { BoardDeps } from "./engine";
 
 const RSS = `<?xml version="1.0"?><rss><channel>
 <item><title>2026 지원사업 공고 피드1</title><link>https://x.kr/v/f1</link><pubDate>2026-08-01</pubDate></item>
@@ -271,6 +278,8 @@ describe("fetchBoardWindow", () => {
     expect(board.expectMinRows).toBe(3);
     expect(board.list.url(2)).toBe("https://x.kr/b/list?p=2");
     expect(board.list.init!(2).body).toBe("page=2");
+    expect(board.dropUrlParams).toBeUndefined();
+    expect(board.keepPagingParamsInDetail).toBeUndefined();
   });
 
   it("빈 쪽·오류 HTML 로 complete 하지 않는다", async () => {
@@ -324,4 +333,219 @@ it("행이 링크인 목록도 목록 안의 명시적인 빈 표식을 확인�
   const board = cfg({ list: { ...cfg().list, rowSelector: "div.board_list ul.content_wrap > a" }, skipHeuristic: true });
   const result = await fetchBoardWindow(board, deps({ fetchText: async () => '<div class="board_list"><ul class="content_wrap"><li>등록된 게시물이 없습니다.</li></ul></div>' }), { startPage: 102, pageBudget: 3 });
   expect(result).toMatchObject({ complete: true, nextPage: 104, reason: "empty-list" });
+});
+
+function gwtpLikeUrl(page: number): string {
+  if (page <= 1) return "https://www.gwtp.or.kr/gwtp/bbsNew_list.php?code=sub01b&keyvalue=sub01";
+  const query = `startPage=${(page - 1) * 15}&code=sub01b&table=cs_bbs_data_new`;
+  return `https://www.gwtp.or.kr/gwtp/bbsNew_list.php?bbs_data=${Buffer.from(query, "utf-8").toString("base64")}||`;
+}
+
+function gwtpLikeRows(count: number, startPage = 15): string {
+  const rows = Array.from({ length: count }, (_, i) => {
+    const idx = 3400 + i;
+    const query =
+      `idx=${idx}&startPage=${startPage}&listNo=${i}&table=cs_bbs_data_new&code=sub01b` +
+      `&search_item=&search_order=&url=sub01b&keyvalue=sub01&bbs_malname=`;
+    const b64 = Buffer.from(query, "utf-8").toString("base64");
+    return `<tr><td class="subject"><a href="https://www.gwtp.or.kr/gwtp/bbsNew_view.php?bbs_data=${b64}||">2026 지원사업 공고 ${idx}번</a></td><td class="date">2026-08-01</td></tr>`;
+  }).join("");
+  return `<table><tbody>${rows}</tbody></table>`;
+}
+
+describe("절대 쪽 주소 정규화", () => {
+  it("GWTP 절대 2쪽은 bbs_data 를 쪽 변수로 재추론하지 않아 29개 주소를 유지하고 3쪽으로 간다", async () => {
+    expect(pagingParamsOf({
+      ...cfg({ skipHeuristic: true, list: { ...cfg().list, url: gwtpLikeUrl } }),
+    })).toEqual([]);
+    const html = gwtpLikeRows(29);
+    const board = cfg({
+      skipHeuristic: true,
+      expectMinRows: 1,
+      baseUrl: "https://www.gwtp.or.kr/gwtp/",
+      list: {
+        ...cfg().list,
+        url: gwtpLikeUrl,
+        rowSelector: "tbody tr",
+        fields: {
+          title: { selector: "td.subject a" },
+          detailUrl: { selector: "td.subject a", attr: "href" },
+          date: { selector: "td.date" },
+        },
+      },
+    });
+    const out = await fetchBoardWindow(board, deps({ fetchText: async () => html }), { startPage: 2, pageBudget: 1 });
+    const ids = out.announcements.map((a) => a.sourceId);
+    expect(new Set(ids).size).toBe(29);
+    expect(ids.every((id) => id.includes("bbs_data="))).toBe(true);
+    expect(out).toMatchObject({ nextPage: 3, complete: false, reason: "page-budget" });
+  });
+
+  it("GWTP 고정본 2쪽은 일반 파서와 같은 고유 주소를 유지한다", async () => {
+    const html = readFileSync(join(__dirname, "__fixtures__/gwtp-list-p2.html"), "utf-8");
+    const parsed = parseGwtpList(html, 2);
+    const expected = [...new Set(parsed.map((r) => r.detailUrl))].sort();
+    const out = await fetchBoardWindow(gwtpConfig, deps({ fetchText: async () => html }), { startPage: 2, pageBudget: 1 });
+    expect(out.announcements.map((a) => a.sourceId).sort()).toEqual(expected);
+    expect(out.nextPage).toBe(3);
+    expect(out.complete).toBe(false);
+    expect(pagingParamsOf(gwtpConfig)).toEqual([]);
+  });
+
+  it("일반 질의 쪽 변수는 절대 쪽에서도 상세 주소에서 지운다", async () => {
+    const board = cfg({
+      skipHeuristic: true,
+      list: {
+        ...cfg().list,
+        url: (p) => `https://x.kr/b/list?p=${p}`,
+      },
+    });
+    const out = await fetchBoardWindow(board, deps({
+      fetchText: async (url) => {
+        const p = Number(new URL(url).searchParams.get("p"));
+        return `<table><tbody><tr><td class="subject"><a href="/v?id=${p}&p=${p}">2026 지원사업 공고 ${p}번</a></td><td class="date">2026-08-01</td></tr></tbody></table>`;
+      },
+    }), { startPage: 41, pageBudget: 1 });
+    expect(out.announcements).toHaveLength(1);
+    expect(out.announcements[0].sourceId).toBe("https://x.kr/v?id=41");
+    expect(out.announcements[0].sourceId).not.toContain("p=");
+  });
+
+  it("경로 쪽넘김 표식은 절대 쪽에서도 상세 주소에서 지운다", async () => {
+    const board = cfg({
+      skipHeuristic: true,
+      list: {
+        ...cfg().list,
+        url: (p) => `https://x.kr/index/page/${p}`,
+      },
+    });
+    const out = await fetchBoardWindow(board, deps({
+      fetchText: async () => `<table><tbody><tr><td class="subject"><a href="/view/page/41/id/1130">2026 지원사업 공고 1130번</a></td><td class="date">2026-08-01</td></tr></tbody></table>`,
+    }), { startPage: 41, pageBudget: 1 });
+    expect(out.announcements).toHaveLength(1);
+    expect(out.announcements[0].sourceId).toBe("https://x.kr/view/id/1130");
+  });
+
+  it("손으로 적은 dropUrlParams 는 절대 쪽에서도 지운다", async () => {
+    const board = cfg({
+      skipHeuristic: true,
+      dropUrlParams: ["tag"],
+    });
+    const out = await fetchBoardWindow(board, deps({
+      fetchText: async (url) => {
+        const p = Number(new URL(url).searchParams.get("p"));
+        return `<table><tbody><tr><td class="subject"><a href="/v?id=${p}&p=${p}&tag=x">2026 지원사업 공고 ${p}번</a></td><td class="date">2026-08-01</td></tr></tbody></table>`;
+      },
+    }), { startPage: 41, pageBudget: 1 });
+    expect(out.announcements[0].sourceId).toBe("https://x.kr/v?id=41");
+  });
+
+  it("keepPagingParamsInDetail 출처는 절대 쪽에서도 쪽 변수를 남긴다", async () => {
+    const board = cfg({
+      skipHeuristic: true,
+      keepPagingParamsInDetail: true,
+      list: {
+        ...cfg().list,
+        url: (p) => `https://x.kr/b/list?pageIndex=${p}`,
+      },
+    });
+    const out = await fetchBoardWindow(board, deps({
+      fetchText: async () => `<table><tbody><tr><td class="subject"><a href="/v?id=23384&pageIndex=41">2026 지원사업 공고 23384번</a></td><td class="date">2026-08-01</td></tr></tbody></table>`,
+    }), { startPage: 41, pageBudget: 1 });
+    expect(out.announcements[0].sourceId).toContain("pageIndex=41");
+    expect(board.keepPagingParamsInDetail).toBe(true);
+    expect(board.dropUrlParams).toBeUndefined();
+  });
+});
+
+describe("출처 끝 증거", () => {
+  const kotraEmpty = `<div class="card"><div class="card-inner"><div class="card-body">조회된 데이터가 없습니다.</div></div></div><input type="hidden" id="limtTotCnt" value="91">`;
+  const kotraRow = `<div class="card"><div class="card-inner"><div class="card-body"><a class="card-tit" href="javascript:fn_selectBizMntInfoDetailNew('/subList/20000020753/subhome/bizAply/selectBizMntInfoDetail.do?&dtlBizMntNo=26CN0O6&cpbizYn=N');">2026 멕시코 경제사절단</a><dl><dt>신청기간</dt><dd>2026-08-27 ~ 2026-09-03</dd></dl></div></div></div>`;
+  const kosmesEnd = JSON.stringify({
+    pageInfo: {
+      rowMax: 44, pageCount: 10, startPage: 1, startRowNum: 51, scopeRow: 50,
+      endRowNum: 61, rowCount: 10, endPage: 5, maxPage: 5, nowPage: 6,
+    },
+    ds_infoList: [],
+  });
+  const sfPage = {
+    blockPage: "10", pageBasic: "1", startNumber: "60", showPage: "10",
+    totalPageCount: "6", endNumber: "51", currentPage: "7", totalCount: "51",
+  };
+  const smartfactoryEnd = JSON.stringify({
+    paginationInfo: sfPage,
+    pbancList: [],
+    key: "list",
+    modelAndView: {
+      model: { pbancList: [], paginationInfo: sfPage, key: "list" },
+      modelMap: { pbancList: [], paginationInfo: sfPage, key: "list" },
+    },
+  });
+
+  it("KOTRA 빈 쪽 하나만으로는 끝내지 않고 연속 두 쪽만 끝낸다", async () => {
+    const one = await fetchBoardWindow(kotraConfig, deps({ fetchText: async () => kotraEmpty }), { startPage: 3, pageBudget: 1 });
+    expect(one).toMatchObject({ complete: false, nextPage: 4, endStreak: 1 });
+    const both = await fetchBoardWindow(kotraConfig, deps({ fetchText: async () => kotraEmpty }), { startPage: 3, pageBudget: 2 });
+    expect(both).toMatchObject({ complete: true, nextPage: 5, reason: "empty-list", endStreak: 2 });
+  });
+
+  it("KOTRA 한 목록만 비어도 다른 목록을 끝내지 않는다", async () => {
+    const out = await fetchBoardWindow(kotraConfig, deps({
+      fetchText: async (_url, _c, init) => {
+        const body = String(init?.body ?? "");
+        return body.includes("sch_appl_yn=Y") ? kotraRow : kotraEmpty;
+      },
+    }), { startPage: 3, pageBudget: 2 });
+    expect(out.complete).toBe(false);
+    expect(out.endStreak).toBe(0);
+    expect(out.announcements.some((a) => a.sourceId.includes("26CN0O6"))).toBe(true);
+  });
+
+  it("중진공·스마트공장 관측 JSON 끝은 연속 빈 쪽으로 완료한다", async () => {
+    let kp = 6;
+    const kosmes = await fetchBoardWindow(kosmesConfig, deps({ fetchText: async () => {
+      const body = JSON.parse(kosmesEnd);
+      Object.assign(body.pageInfo, { nowPage: kp, startRowNum: (kp - 1) * 10 + 1, scopeRow: (kp - 1) * 10, endRowNum: kp * 10 + 1 });
+      kp++;
+      return JSON.stringify(body);
+    } }), { startPage: 6, pageBudget: 2 });
+    expect(kosmes).toMatchObject({ complete: true, nextPage: 8, reason: "empty-list" });
+    let sp = 7;
+    const sf = await fetchBoardWindow(smartfactoryConfig, deps({ fetchText: async () => {
+      const body = JSON.parse(smartfactoryEnd);
+      for (const page of [body.paginationInfo, body.modelAndView.model.paginationInfo, body.modelAndView.modelMap.paginationInfo]) {
+        Object.assign(page, { currentPage: String(sp), startNumber: String((sp - 1) * 10) });
+      }
+      sp++;
+      return JSON.stringify(body);
+    } }), { startPage: 7, pageBudget: 2 });
+    expect(sf).toMatchObject({ complete: true, nextPage: 9, reason: "empty-list" });
+  });
+
+  it("JSON의 쪽 번호가 요청과 다르면 진행 위치를 유지한다", async () => {
+    const stale = await fetchBoardWindow(kosmesConfig, deps({ fetchText: async () => kosmesEnd }), { startPage: 7, pageBudget: 2 });
+    expect(stale).toMatchObject({ complete: false, nextPage: 7, reason: "incomplete", endStreak: 0 });
+  });
+
+  it("경기TP 마감 10줄은 건너뛰지 않고 미완료로 남긴다", async () => {
+    const rows = Array.from({ length: 10 }, (_, i) =>
+      `<tr><td class="subject"><a href="#none" onclick="fn_goView('${172000 + i}'); return false;" title="2026 지원사업 공고 ${i + 1}번">2026 지원사업 공고 ${i + 1}번</a></td><td class="last">마감</td></tr>`,
+    ).join("");
+    const out = await fetchBoardWindow(gtpConfig, deps({
+      fetchText: async () => `<table class="t01"><tbody>${rows}</tbody></table>`,
+    }), { startPage: 5, pageBudget: 2 });
+    expect(out.complete).toBe(false);
+    expect(out.reason).toBe("incomplete");
+    expect(out.nextPage).toBe(5);
+    expect(out.announcements).toHaveLength(0);
+  });
+
+  it("알 수 없는 JSON·오류 본문은 끝으로 보지 않는다", async () => {
+    const unknown = await fetchBoardWindow(kosmesConfig, deps({ fetchText: async () => JSON.stringify({ items: [] }) }), { startPage: 6, pageBudget: 2 });
+    expect(unknown).toMatchObject({ complete: false, reason: "incomplete", nextPage: 6 });
+    const errored = await fetchBoardWindow(kosmesConfig, deps({
+      fetchText: async () => JSON.stringify({ pageInfo: { resultCd: "999", resultMsg: "시스템 오류가 발생하였습니다." } }),
+    }), { startPage: 6, pageBudget: 2 });
+    expect(errored).toMatchObject({ complete: false, reason: "incomplete" });
+  });
 });
