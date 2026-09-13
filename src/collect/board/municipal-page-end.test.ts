@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { isProvenEmptyBoardPage } from "./page-end";
 import { isProvenMunicipalEnd } from "./municipal-page-end";
 import { gopaConfig } from "./sources/gopa";
 import { hanamConfig } from "./sources/hanam";
@@ -320,5 +321,40 @@ describe("isProvenMunicipalEnd — 공통 거절", () => {
     )).toBe(false);
     expect(isProvenMunicipalEnd("", hanamConfig, 18)).toBe(false);
     expect(isProvenMunicipalEnd("[]", gopaConfig, 18)).toBe(false);
+  });
+});
+
+
+describe("공통 빈 페이지 판정 연결", () => {
+  it("두 출처의 관측된 끝을 연결하고 오류 응답은 공통 방어에서 거부한다", () => {
+    for (const [cfg, html] of [[gopaConfig, gopaEnd()], [hanamConfig, hanamEnd()]] as const) {
+      expect(isProvenEmptyBoardPage(html, cfg, 18)).toBe(true);
+      expect(isProvenEmptyBoardPage('<form action="/login"><input name="email"></form>'+html, cfg, 18)).toBe(false);
+      expect(isProvenEmptyBoardPage('<p>Access denied</p>'+html, cfg, 18)).toBe(false);
+      expect(isProvenEmptyBoardPage('<form action="/search"><input name="q"></form>'+html, cfg, 18)).toBe(true);
+    }
+  });
+});
+
+
+describe("최종 검토의 로그인·공통 우회·쪽넘김 변형", () => {
+  it("하이픈과 밑줄을 쓴 명시적 로그인 폼도 거부한다", () => {
+    for (const ident of ["login-form", "login_form", "frm-login", "sign-in-form", "log_on_form"]) {
+      expect(isProvenEmptyBoardPage(`<form id="${ident}"><input name="email"><button>로그인</button></form>`+gopaEnd(),gopaConfig,18)).toBe(false);
+    }
+  });
+  it("출처 전용 끝 판정이 거부한 페이지는 일반 빈 문구로 우회하지 않는다", () => {
+    const html=gopaEnd({emptyText:"등록된 게시물이 없습니다."});
+    expect(isProvenMunicipalEnd(html,gopaConfig,17)).toBe(false);
+    expect(isProvenEmptyBoardPage(html,gopaConfig,17)).toBe(false);
+  });
+  it("하남의 알 수 없는 활성 쪽넘김을 무시하지 않는다", () => {
+    for (const replacement of [
+      '<button class="p-page__link next-one" onclick="loadPage(19)">다음 페이지</button>',
+      '<span class="p-page__link next-one" role="button" onclick="loadPage(19)">다음 페이지</span>',
+    ]) {
+      const html=hanamEnd().replace(/<a[^>]+class="p-page__link next-one">다음 페이지<\/a>/,replacement);
+      expect(isProvenMunicipalEnd(html,hanamConfig,18)).toBe(false);
+    }
   });
 });

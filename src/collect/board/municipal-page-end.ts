@@ -168,9 +168,11 @@ function isHanamPagination(
   last: number,
   current: number,
 ): boolean {
+  if (pagination.querySelector('button, input, select, textarea, [role="button"], [onclick], [onkeydown], [onkeyup]')) return false;
   const groups = pagination.querySelectorAll(".p-page__link-group");
   if (groups.length !== 1) return false;
   const group = groups[0]!;
+  if (pagination.querySelectorAll(".p-page__link").some(el => !isUnder(el, group) && tagNameOf(el) !== "a")) return false;
   const numericSeen = new Set<number>();
   let sawNumeric = false;
   for (const kid of elementChildren(group)) {

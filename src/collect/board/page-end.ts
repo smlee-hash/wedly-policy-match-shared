@@ -1,4 +1,5 @@
 import { parseHtml, type HTMLElement } from "./html";
+import { isProvenMunicipalEnd } from "./municipal-page-end";
 import { isProvenCwipEnd } from "./cwip-page-end";
 import { isProvenAdditionalSourceEnd } from "./additional-page-end";
 import type { BoardConfig } from "./types";
@@ -92,8 +93,9 @@ function formLooksLikeLogin(form: HTMLElement): boolean {
     (input) => (input.getAttribute("type") ?? "").toLowerCase() === "password",
   )) return true;
   if (pathLooksLikeLogin(formActionPath(form))) return true;
-  const ident = `${form.getAttribute("name") ?? ""} ${form.getAttribute("id") ?? ""}`.trim();
-  return /(?:^|\s)(?:frm)?login(?:form)?(?:\s|$)/i.test(ident);
+  return [form.getAttribute("name"), form.getAttribute("id")].some(value =>
+    /^(?:frm|form)?(?:login|signin|logon)(?:form|frm)?$/i.test((value ?? "").replace(/[\s_-]+/g, "")),
+  );
 }
 
 /** 로그인 폼(암호 칸이 없어도)·보이는 접근 제한·500 제목은 빈 목록이 있어도 끝이 아니다. */
@@ -120,8 +122,9 @@ function listBoundContainers(html: string, cfg: BoardConfig): HTMLElement[] | nu
 function isProvenEmptyListHtml(html: string, cfg: BoardConfig, requestedPage?: number): boolean {
   try {
     if (isAuthChallengeHtml(html)) return false;
-    if (isProvenAdditionalSourceEnd(html, cfg, requestedPage ?? 0)) return true;
-    if (isProvenCwipEnd(html, cfg, requestedPage)) return true;
+    if (cfg.id === "gopa" || cfg.id === "hanam") return isProvenMunicipalEnd(html, cfg, requestedPage);
+    if (cfg.id === "pipa" || cfg.id === "gjsinbo") return isProvenAdditionalSourceEnd(html, cfg, requestedPage ?? 0);
+    if (cfg.id === "cwip") return isProvenCwipEnd(html, cfg, requestedPage);
     if (cfg.id === "gwsinbo") {
       const table = parseHtml(html).querySelector("table.basic_board");
       const body = table?.querySelector("tbody");
