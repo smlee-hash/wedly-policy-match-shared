@@ -7,6 +7,7 @@ import { noteSuccess } from "./alert";
 import { boardCapKey, notePageCap, parseBoardCap, type BoardCapRecord } from "./page-cap";
 import { BOARD_SOURCES } from "./source-list";
 import { proxyDispatcher, boardFetch, boardProxyUrl } from "./proxy";
+import { readCollectionBaselineCount, saveCollectionBaseline } from "./collection-baseline";
 
 export { BOARD_SOURCES } from "./source-list";
 
@@ -24,7 +25,6 @@ export const RETRY_DELAY_MS = 700;
 export const DETAIL_FETCH_TIMEOUT_MS = 30_000;
 export const DETAIL_FETCH_BODY_MAX_BYTES = 20 * 1024 * 1024;
 const HEAL_COOLDOWN_MS = 24 * 3600 * 1000;
-const PREV_OPEN_WINDOW_MS = 26 * 3600 * 1000;
 
 export function asFailCount(value: unknown): number {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -482,12 +482,10 @@ function capStore(id: string, deps: Pick<CollectDeps, "jsonCacheGet" | "jsonCach
 }
 
 async function realDeps(cfg: BoardConfig, deps: CollectDeps): Promise<BoardDeps> {
+  // countOpenAnnouncements 는 주입 계약 호환용으로 남긴다. 급락 비교는 쓰지 않는다.
   let prevOpenCount = 0;
   try {
-    prevOpenCount = await deps.countOpenAnnouncements(
-      cfg.id,
-      new Date(Date.now() - PREV_OPEN_WINDOW_MS),
-    );
+    prevOpenCount = await readCollectionBaselineCount(cfg, deps.jsonCacheGet);
   } catch {
     prevOpenCount = 0;
   }
@@ -530,8 +528,15 @@ export function boardSyncSources(deps: CollectDeps): AnnouncementSyncSource[] {
       staleAfterDays: 30,
       fetchAll: async () => {
         const resolved = await applyPersistedBoardRule(cfg, deps);
-        const list = await fetchBoardAll(resolved, await realDeps(resolved, deps));
+        let completeRead = false;
+        const list = await fetchBoardAll(resolved, {
+          ...await realDeps(resolved, deps),
+          onCollectionComplete: (info) => {
+            completeRead = info.complete;
+          },
+        });
         try { await noteSuccess(cfg.id, { store: alertStore(cfg.id, deps) }); } catch { /* 리셋 실패는 수집 성공을 막지 않음 */ }
+        if (completeRead) await saveCollectionBaseline(resolved, list.length, deps.jsonCacheSet);
         return list;
       },
     }));

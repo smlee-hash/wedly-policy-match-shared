@@ -42,6 +42,13 @@ import { tpBusan } from "./sources/tp-busan";
 import { tpJeonbuk } from "./sources/tp-jeonbuk";
 import { ulsan } from "./sources/ulsan";
 import { koreaeximConfig } from "./sources/koreaexim";
+import { boardCapKey } from "./page-cap";
+import {
+  COLLECTION_BASELINE_TTL_MS,
+  collectionBaselineKey,
+  collectionBaselineSignature,
+  type CollectionBaselineRecord,
+} from "./collection-baseline";
 
 function headerGet(location?: string | null) {
   return {
@@ -331,22 +338,12 @@ describe("board registry", () => {
     expect(asFailCount({ n: 1 })).toBe(0);
   });
 
-  it("prevOpenCount 는 26시간 창의 open 만 센다", async () => {
+  it("목록 비교는 열린 공고 합계를 부르지 않는다", async () => {
+    countOpenAnnouncements.mockResolvedValue(231);
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("net"); }));
     const src = boardSyncSources(deps).find((s) => s.name === "tp-busan");
     await expect(src!.fetchAll()).rejects.toThrow();
-    expect(countOpenAnnouncements).toHaveBeenCalledWith("tp-busan", expect.any(Date));
-    const gt = countOpenAnnouncements.mock.calls[0][1];
-    const delta = Date.now() - gt.getTime();
-    expect(delta).toBeGreaterThan(25 * 3600 * 1000);
-    expect(delta).toBeLessThan(27 * 3600 * 1000);
-  });
-
-  it("prevOpenCount 조회 실패는 0 으로 흡수한다", async () => {
-    countOpenAnnouncements.mockRejectedValue(new Error("db"));
-    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("net"); }));
-    const src = boardSyncSources(deps).find((s) => s.name === "ulsan");
-    await expect(src!.fetchAll()).rejects.toThrow();
+    expect(countOpenAnnouncements).not.toHaveBeenCalled();
   });
 
   it("fetchBoardText 는 HTTP 오류·목록용 3MB 초과·외부 호스트를 거절한다(limits 안 주면 원래 좁은 상한 그대로)", async () => {
@@ -656,6 +653,206 @@ describe("board registry", () => {
     const list = await src!.fetchAll();
     expect(list.length).toBeGreaterThan(0);
     expect(noteSuccess).toHaveBeenCalledWith("ulsan", expect.anything());
+  });
+
+  /**
+   * 운영 실측(GBIA 2026-09-13): 정상 5쪽이 75행인데 복구된 열린 공고 231건과 비교해 거짓 급락.
+   * 비교 기준은 출처·설정별 성공 수집 기록이다. 엔진·부산TP 선택자 경로로 75→20 을 재현한다.
+   */
+  describe("수집 성공 기준값", () => {
+    const BUSAN_PER_PAGE = 15;
+
+    function busanListHtml(ids: number[]): string {
+      const rows = ids.map((id) =>
+        `<tr><td class="subject"><a href="?mCode=MN013&mode=view&board_seq=${id}"><span class="subjectWr">2026년 지원사업 공고 ${id}번 모집</span></a></td><td class="period">2026.08.26 ~ 2026.09.04</td></tr>`,
+      ).join("");
+      return `<table class="bdListTbl"><tbody>${rows}</tbody></table>`;
+    }
+
+    function stubBusanPages(total: number, perPage = BUSAN_PER_PAGE) {
+      vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+        const page = Number(new URL(String(url)).searchParams.get("page") ?? "1");
+        const start = (page - 1) * perPage + 1;
+        const ids = start > total
+          ? []
+          : Array.from({ length: Math.min(perPage, total - start + 1) }, (_, i) => start + i);
+        return okRes(busanListHtml(ids));
+      }));
+    }
+
+    function validRecord(cfg: typeof tpBusan, count: number, observedAt = new Date().toISOString()): CollectionBaselineRecord {
+      return {
+        v: 1,
+        source: cfg.id,
+        count,
+        observedAt,
+        signature: collectionBaselineSignature(cfg),
+      };
+    }
+
+    function installCache(initial: Record<string, unknown> = {}) {
+      const cache = new Map<string, unknown>(Object.entries(initial));
+      jsonCacheGet.mockImplementation(async (key: string) => cache.get(key) ?? null);
+      jsonCacheSet.mockImplementation(async (key: string, value: unknown) => {
+        cache.set(key, value);
+      });
+      return cache;
+    }
+
+    function busanSrc() {
+      return boardSyncSources(deps).find((s) => s.name === "tp-busan")!;
+    }
+
+    function baselineWrites() {
+      return jsonCacheSet.mock.calls.filter(([key]) => key === collectionBaselineKey("tp-busan"));
+    }
+
+    it("첫 비교는 아카이브 231이 있어도 75행을 채택하고 75를 기록한다", async () => {
+      countOpenAnnouncements.mockResolvedValue(231);
+      const cache = installCache();
+      stubBusanPages(75);
+      const list = await busanSrc().fetchAll();
+      expect(list).toHaveLength(75);
+      expect(countOpenAnnouncements).not.toHaveBeenCalled();
+      expect(cache.get(collectionBaselineKey("tp-busan"))).toEqual(expect.objectContaining({
+        v: 1,
+        source: "tp-busan",
+        count: 75,
+        signature: collectionBaselineSignature(tpBusan),
+      }));
+      expect(jsonCacheSet).toHaveBeenCalledWith(
+        boardCapKey("tp-busan"),
+        expect.objectContaining({ hitCap: false }),
+      );
+      expect(noteSuccess).toHaveBeenCalledWith("tp-busan", expect.anything());
+    });
+
+    it("같은 설정의 다음 75행은 통과하고 기준값을 유지한다", async () => {
+      const cache = installCache();
+      stubBusanPages(75);
+      const src = busanSrc();
+      expect(await src.fetchAll()).toHaveLength(75);
+      expect(await src.fetchAll()).toHaveLength(75);
+      expect(cache.get(collectionBaselineKey("tp-busan"))).toEqual(expect.objectContaining({ count: 75 }));
+      expect(countOpenAnnouncements).not.toHaveBeenCalled();
+    });
+
+    it("실제 75→20 급락은 실패하고 직전 75를 지킨다", async () => {
+      const key = collectionBaselineKey("tp-busan");
+      const prior = validRecord(tpBusan, 75);
+      const cache = installCache({ [key]: prior });
+      stubBusanPages(20);
+      await expect(busanSrc().fetchAll()).rejects.toThrow(/급락 20 < 직전 75/);
+      expect(cache.get(key)).toBe(prior);
+      expect(baselineWrites()).toHaveLength(0);
+    });
+
+    it("네트워크 실패는 기존 기준값을 덮지 않는다", async () => {
+      const key = collectionBaselineKey("tp-busan");
+      const prior = validRecord(tpBusan, 75);
+      const cache = installCache({ [key]: prior });
+      vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("net"); }));
+      await expect(busanSrc().fetchAll()).rejects.toThrow();
+      expect(cache.get(key)).toBe(prior);
+      expect(baselineWrites()).toHaveLength(0);
+      expect(noteSuccess).not.toHaveBeenCalled();
+    });
+
+    it("뒤쪽 요청 실패로 일부만 반환해도 성공 기준값은 덮지 않는다", async () => {
+      const key = collectionBaselineKey("tp-busan");
+      const prior = validRecord(tpBusan, 75);
+      const cache = installCache({ [key]: prior });
+      vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+        const page = Number(new URL(String(url)).searchParams.get("page") ?? "1");
+        if (page >= 5) throw new Error("late page unavailable");
+        return okRes(busanListHtml(Array.from({ length: 15 }, (_, i) => (page - 1) * 15 + i + 1)));
+      }));
+      expect(await busanSrc().fetchAll()).toHaveLength(60);
+      expect(cache.get(key)).toBe(prior);
+      expect(baselineWrites()).toHaveLength(0);
+    });
+
+    it("쪽수 장부 쓰기 실패와 무관하게 완료 수집은 기준값을 저장한다", async () => {
+      const cache = installCache();
+      jsonCacheSet.mockImplementation(async (key: string, value: unknown) => {
+        if (String(key) === boardCapKey("tp-busan")) throw new Error("cap disk");
+        cache.set(key, value);
+      });
+      stubBusanPages(75);
+      expect(await busanSrc().fetchAll()).toHaveLength(75);
+      expect(cache.get(collectionBaselineKey("tp-busan"))).toEqual(expect.objectContaining({ count: 75 }));
+    });
+
+    it("빈 목록 실패는 기준값을 만들지 않는다", async () => {
+      installCache();
+      vi.stubGlobal("fetch", vi.fn(async () => okRes("<div>없음</div>")));
+      await expect(busanSrc().fetchAll()).rejects.toThrow(/게시판 추출 전 단계 실패/);
+      expect(baselineWrites()).toHaveLength(0);
+    });
+
+    it.each([
+      ["없음", null],
+      ["음수", { count: -1 }],
+      ["소수", { count: 75.5 }],
+      ["안전정수 아님", { count: Number.MAX_SAFE_INTEGER + 1 }],
+      ["미래", { observedAt: new Date(Date.now() + 60_000).toISOString() }],
+      ["만료", { observedAt: new Date(Date.now() - COLLECTION_BASELINE_TTL_MS).toISOString() }],
+      ["다른 출처", { source: "ulsan" }],
+      ["다른 설정", { signature: "old-config" }],
+    ] as const)("깨진 기준값(%s)은 첫 비교로 20행을 통과시킨다", async (_label, patch) => {
+      const key = collectionBaselineKey("tp-busan");
+      const broken = patch === null ? null : { ...validRecord(tpBusan, 75), ...patch };
+      installCache({ [key]: broken });
+      stubBusanPages(20);
+      const list = await busanSrc().fetchAll();
+      expect(list).toHaveLength(20);
+      expect(jsonCacheSet).toHaveBeenCalledWith(key, expect.objectContaining({ count: 20 }));
+    });
+
+    it("설정이 바뀐 출처만 비교를 리셋하고 다른 출처 기준값은 그대로다", async () => {
+      const busanKey = collectionBaselineKey("tp-busan");
+      const ulsanKey = collectionBaselineKey("ulsan");
+      const ulsanPrior = validRecord(ulsan, 40);
+      const cache = installCache({
+        [busanKey]: { ...validRecord(tpBusan, 75), signature: "old-config" },
+        [ulsanKey]: ulsanPrior,
+      });
+      stubBusanPages(20);
+      expect(await busanSrc().fetchAll()).toHaveLength(20);
+      expect(cache.get(ulsanKey)).toBe(ulsanPrior);
+      expect(cache.get(busanKey)).toEqual(expect.objectContaining({
+        count: 20,
+        signature: collectionBaselineSignature(tpBusan),
+      }));
+    });
+
+    it("기준값 저장 실패는 검증된 75행을 그대로 돌려주고 경고한다", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      jsonCacheGet.mockResolvedValue(null);
+      jsonCacheSet.mockImplementation(async (key: string) => {
+        if (String(key) === collectionBaselineKey("tp-busan")) throw new Error("disk full token=secret-value");
+      });
+      stubBusanPages(75);
+      try {
+        const list = await busanSrc().fetchAll();
+        expect(list).toHaveLength(75);
+        const printed = warn.mock.calls.map((c) => c.map(String).join(" ")).join("\n");
+        expect(printed).toMatch(/\[policy-board\] 수집 기준값 저장 실패 tp-busan/);
+        expect(printed).not.toMatch(/secret-value/);
+        expect(noteSuccess).toHaveBeenCalledWith("tp-busan", expect.anything());
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    it("기준값 읽기 실패는 첫 비교(0)로 75행을 채택한다", async () => {
+      jsonCacheGet.mockImplementation(async (key: string) => {
+        if (String(key) === collectionBaselineKey("tp-busan")) throw new Error("db");
+        return null;
+      });
+      stubBusanPages(75);
+      expect(await busanSrc().fetchAll()).toHaveLength(75);
+    });
   });
 });
 
