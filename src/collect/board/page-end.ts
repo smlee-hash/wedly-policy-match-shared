@@ -1,4 +1,5 @@
 import { parseHtml, type HTMLElement } from "./html";
+import { isProvenCwipEnd } from "./cwip-page-end";
 import type { BoardConfig } from "./types";
 
 /**
@@ -48,6 +49,18 @@ function isEmptyListText(text: string): boolean {
   return EMPTY_LIST_TEXT.test(text.replace(/\s+/g, ""));
 }
 
+/** 암호 로그인 칸·접근 제한 제목은 빈 목록 상자가 있어도 끝이 아니다. */
+function isAuthChallengeHtml(html: string): boolean {
+  const root = parseHtml(html);
+  if (root.querySelectorAll("form input").some(
+    (input) => (input.getAttribute("type") ?? "").toLowerCase() === "password",
+  )) return true;
+  return ["title", "h1", "h2"].flatMap((sel) => root.querySelectorAll(sel)).some((node) => {
+    const text = node.text.replace(/\s+/g, "");
+    return /accessdenied/i.test(text) || /접근이제한/.test(text);
+  });
+}
+
 /** 행 선택자의 목록 상자. 콤마 선택자·상자 없음은 빈 목록으로 보지 않는다. */
 function listBoundContainers(html: string, cfg: BoardConfig): HTMLElement[] | null {
   const selector = cfg.list.rowSelector.trim();
@@ -62,8 +75,10 @@ function listBoundContainers(html: string, cfg: BoardConfig): HTMLElement[] | nu
   return items.length > 0 ? items : null;
 }
 
-function isProvenEmptyListHtml(html: string, cfg: BoardConfig): boolean {
+function isProvenEmptyListHtml(html: string, cfg: BoardConfig, requestedPage?: number): boolean {
   try {
+    if (isAuthChallengeHtml(html)) return false;
+    if (isProvenCwipEnd(html, cfg, requestedPage)) return true;
     if (cfg.id === "gwsinbo") {
       const table = parseHtml(html).querySelector("table.basic_board");
       const body = table?.querySelector("tbody");
@@ -102,6 +117,9 @@ function isKosmesListEndJson(root: Record<string, unknown>): boolean {
   if (Math.ceil(n.rowMax / n.rowCount) !== n.maxPage) return false;
   if (n.startRowNum !== (n.nowPage - 1) * n.rowCount + 1) return false;
   if (n.startRowNum <= n.rowMax) return false;
+  if (n.scopeRow !== n.startRowNum - 1) return false;
+  if (n.endRowNum !== n.startRowNum + n.rowCount) return false;
+  if (n.startPage !== Math.floor((n.nowPage - 1) / n.pageCount) * n.pageCount + 1) return false;
   return true;
 }
 
@@ -135,17 +153,19 @@ function smartfactoryCopies(root: Record<string, unknown>): {
 /** 스마트공장 selectBsnsPbancPage — 빈 pbancList 와 쪽 메타가 서로 맞을 때만. */
 function isSmartfactoryListEndJson(root: Record<string, unknown>): boolean {
   const { lists, pages, keys } = smartfactoryCopies(root);
-  if (lists.length === 0 || pages.length === 0) return false;
-  if (keys.length === 0 || keys.some((key) => key !== "list")) return false;
+  if (lists.length !== 3 || pages.length !== 3 || keys.length !== 3) return false;
+  if (keys.some((key) => key !== "list")) return false;
   if (lists.some((list) => !Array.isArray(list) || list.length !== 0)) return false;
   const parsed = pages.map((page) => requiredNumbers(page, SF_PAGE_KEYS));
   if (parsed.some((page) => page === null)) return false;
   const first = parsed[0]!;
   if (parsed.some((page) => SF_PAGE_KEYS.some((key) => page![key] !== first[key]))) return false;
-  if (first.currentPage < 1 || first.totalPageCount < 1 || first.totalCount < 1 || first.showPage < 1) return false;
+  if (first.currentPage < 1 || first.totalPageCount < 1 || first.totalCount < 1 || first.showPage < 1 || first.blockPage < 1) return false;
   if (first.currentPage <= first.totalPageCount) return false;
   if (Math.ceil(first.totalCount / first.showPage) !== first.totalPageCount) return false;
   if (first.startNumber !== (first.currentPage - 1) * first.showPage) return false;
+  if (first.endNumber !== first.totalCount) return false;
+  if (first.pageBasic !== Math.floor((first.currentPage - 1) / first.blockPage) * first.blockPage + 1) return false;
   return true;
 }
 
@@ -173,5 +193,5 @@ function isProvenSourceJsonEnd(text: string, source: string, requestedPage?: num
  */
 export function isProvenEmptyBoardPage(html: string, cfg: BoardConfig, requestedPage?: number): boolean {
   if (looksLikeJson(html)) return isProvenSourceJsonEnd(html, cfg.id, requestedPage);
-  return isProvenEmptyListHtml(html, cfg);
+  return isProvenEmptyListHtml(html, cfg, requestedPage);
 }

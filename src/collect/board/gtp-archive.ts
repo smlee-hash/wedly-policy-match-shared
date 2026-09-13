@@ -36,13 +36,18 @@ function officialClosedPeriodText(detailHtml: string): string {
   return labelled[0]!;
 }
 
-/** 목록 「마감」 줄은 이미 끝난 기간만 살린다. 날짜를 지어내지 않는다. */
+/**
+ * 목록 「마감」 줄은 이미 끝난 기간만 살린다.
+ * 두 날짜가 범위 기호로 이어진 칸만 인정하고, 사이 물결을 지어내지 않는다.
+ */
 function validatedClosedPeriod(detailHtml: string, now: number): string {
   const raw = officialClosedPeriodText(detailHtml);
   if (!raw) failArchivePage();
-  const days = normalizeDateText(raw).match(/20\d{2}-\d{2}-\d{2}/g) ?? [];
-  if (days.length !== 2) failArchivePage();
-  const text = `${days[0]} ~ ${days[1]}`;
+  const range = normalizeDateText(raw).match(
+    /^(20\d{2}-\d{2}-\d{2})(?:\s+\d{1,2}:\d{2})?\s*~\s*(20\d{2}-\d{2}-\d{2})(?:\s+\d{1,2}:\d{2})?$/,
+  );
+  if (!range) failArchivePage();
+  const text = `${range[1]} ~ ${range[2]}`;
   const { start, end } = parseApplyPeriod(text);
   if (!start || !end || start.getTime() > end.getTime() || end.getTime() >= now) failArchivePage();
   return text;
@@ -51,13 +56,14 @@ function validatedClosedPeriod(detailHtml: string, now: number): string {
 function closedPolicyPeriodCells(root: HTMLElement): { id: string; cell: HTMLElement }[] {
   const closed: { id: string; cell: HTMLElement }[] = [];
   for (const tr of root.querySelectorAll("table.t01 tbody tr")) {
-    if (tr.querySelectorAll("td").length < 6) continue;
     const periodCell = tr.querySelector("td.last");
     if (compactText(periodCell?.text ?? "") !== CLOSED_LABEL) continue;
     const a = tr.querySelector("td.subject a");
     const title = compactText(a?.getAttribute("title") || a?.text || "");
     if (!title) failArchivePage();
     if (isGtpDropTitle(title)) continue;
+    // 마감 정책 줄은 칸이 모자라도 건너뛰지 않는다. 공고가 아닌 제목만 기존 거르개를 쓴다.
+    if (tr.querySelectorAll("td").length < 6) failArchivePage();
     const id = (a?.getAttribute("onclick") ?? "").match(B_IDX)?.[1] ?? "";
     if (!id || !periodCell) failArchivePage();
     closed.push({ id, cell: periodCell });

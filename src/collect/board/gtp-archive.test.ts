@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createGtpArchiveListSession,
   GTP_ARCHIVE_COLLECTION_REVISION,
@@ -79,6 +79,18 @@ async function readArchive(
 ): Promise<string> {
   return createGtpArchiveListSession(fetchText)(page);
 }
+
+// 시험 시계를 2026-09-13에 고정한다. 12월 기간이 해가 지나 과거가 되면 실패 시험이 뒤집힌다.
+const ARCHIVE_TEST_NOW = new Date("2026-09-13T00:00:00+09:00");
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(ARCHIVE_TEST_NOW);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("경기TP 지난 공고 기간 — 일반 파서는 그대로", () => {
   it("날짜 없는 「마감」 줄은 일반 파서가 담지 않는다", () => {
@@ -209,6 +221,7 @@ describe("경기TP 지난 공고 기간 — 실패는 미완료", () => {
   }
 
   it("상세 오류·없는 기간·여러 기간·잘못된 날짜·아직 안 끝난 기간은 실패한다", async () => {
+    expect(Date.now()).toBe(ARCHIVE_TEST_NOW.getTime());
     await expectArchiveFail(async () => { throw new Error("ECONNRESET"); });
     await expectArchiveFail("<div>본문만</div>");
     await expectArchiveFail(`<dl>
