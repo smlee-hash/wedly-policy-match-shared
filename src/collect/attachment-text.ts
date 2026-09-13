@@ -12,6 +12,7 @@ import { BOARD_SOURCES } from "./board/source-list";
 import type { PolicyAttachmentRequest } from "./board/types";
 import { allowedHostsOf } from "./board/engine";
 import { isProxyTransportError } from "./board/proxy";
+import { extractHwpText } from "./hwp-text";
 
 export const EXTRACTABLE_KINDS = ["pdf", "hwp", "hwpx"] as const;
 export type ExtractableKind = (typeof EXTRACTABLE_KINDS)[number];
@@ -74,7 +75,7 @@ const KIND_SET = new Set<string>(ATTACHMENT_KINDS);
 const EXTRACTABLE_SET = new Set<string>(EXTRACTABLE_KINDS);
 /** 「기타」 첨부도 내려받아 볼 후보에 넣는다 — 이름은 없어도 내용은 pdf·hwp 일 때가 많다(중기중앙회·창조경제혁신센터 실측). */
 const CANDIDATE_KINDS = new Set<string>([...EXTRACTABLE_KINDS, "etc"]);
-/** 전문을 뽑을 수 있는 형식(pdf·hwpx)을 먼저 읽는다 — hwp 는 미리보기 1,000자뿐이라 뒤로. etc 는 맨 뒤. */
+/** 전문을 뽑을 수 있는 형식(pdf·hwpx)을 먼저 읽는다 — 호환을 위해 hwp 순위는 그대로 뒤. etc 는 맨 뒤. */
 const KIND_RANK: Record<string, number> = { pdf: 0, hwpx: 0, hwp: 1, etc: 2 };
 
 /** POST 첨부에 수집기가 머리글을 안 적었을 때 붙는 기본 형식(브라우저 form 제출과 같다). */
@@ -134,8 +135,8 @@ export type AttachmentFetch = (url: string, init?: RequestInit) => Promise<Respo
 
 /**
  * hwpx(한글 2014+)에서 글자를 뽑는 함수 — 앱이 넣어 준다(원문: 앱의 documents/extract-text
- * 의 `extractHwpx`, adm-zip 로 `Contents/section*.xml` 을 푼다). pdf·hwp 는 이 보관함이 이미
- * `unpdf`·`cfb` 로 직접 뽑지만, hwpx 추출기는 adm-zip 을 끌고 와 여기 두지 않고 주입으로 받는다.
+ * 의 `extractHwpx`, adm-zip 로 `Contents/section*.xml` 을 푼다). pdf 는 unpdf, hwp 는 본문(실패 시
+ * 미리보기)을 이 보관함이 직접 뽑지만, hwpx 추출기는 adm-zip 을 끌고 와 여기 두지 않고 주입으로 받는다.
  * ★**필수 주입**이다(P3 회귀 방어) — 안 넘기면 타입 오류다. 옛날엔 안 넘기면 조용히 빈 글로
  * 취급해서, hwpx 첨부에만 본문이 있는 공고가 빈 채로 저장되고 회차는 성공으로 끝나는 사고가 있었다.
  */
@@ -285,7 +286,7 @@ async function extractByKind(
       ? await extractPdfBytes(Uint8Array.from(buf))
       : kind === "hwpx"
         ? await extractHwpx(buf)
-        : await extractHwpPreview(buf);
+        : extractHwpText(buf) || extractHwpPreview(buf);
   return stripUnstorableChars(raw);
 }
 
