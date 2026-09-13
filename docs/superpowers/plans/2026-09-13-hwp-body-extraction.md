@@ -19,3 +19,11 @@ Primary format references read byroot:
 Include source comment acknowledging Hancom public file-format documentation. Implementation extracts source text only; it does not infer deadlines from multiple application phases. Older nonempty saved previewtexts are a separate remediation question and not overwritten by this parser patch.
 
 Root integration corrections: unsigned malformed-test header; correct closing control code fixture, reject mismatched closing markers; exact256-byte header plus full zero-padded signature; stop paragraph decoding before output budget allocation; personal-information protection flag13. Regression failures recorded before changes. Native run timed out after emitting3files; preserve artifact but do not credit native completion.
+
+## Independent review corrections (2026-09-13)
+
+Root reproduced review-9593ada9858a4d0e8e739bd5c44ea00f in four failing tests.
+- Preserve preview fallback but carry incomplete provenance in existing skippedFiles and persisted [미확인 첨부: name] marker; cached text must retain incomplete state. Full BodyText success unchanged; caps and PDF/HWPX behavior unchanged.
+- Reject malformed required FileHeader/BodyText stream lengths when declared size exceeds available bytes; do not silently omit a malformed final section and accept preceding text.
+- Bounded inflate must consume the entire compressed section. Reject trailing garbage or a second deflate stream. Keep maxOutputLength and all existing budgets.
+Owned corrections: hwp-text.ts/test, attachment-text.ts/test, hwp-text-integration.test.ts. Existing regression expectations only change for intended fallback provenance. No network/DB/date/status/UI/dependency changes.
