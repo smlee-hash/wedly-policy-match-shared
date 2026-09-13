@@ -110,6 +110,25 @@ describe("collectionBaselineSignature", () => {
     expect(collectionBaselineSignature(config(50))).not.toBe(collectionBaselineSignature(config(50, "GET")));
   });
 
+  it("POST 요청 표본은 SHA256 만 남기고 본문·머리글·함수 본문을 실지 않는다", () => {
+    const cfg = cfgOf({
+      list: {
+        ...cfgOf().list,
+        init: function secretInitName(page) {
+          return {
+            method: "POST",
+            headers: { authorization: "Bearer secret-token-value", "content-type": "application/json" },
+            body: JSON.stringify({ password: "secret-value", page }),
+          };
+        },
+      },
+    });
+    const sig = collectionBaselineSignature(cfg);
+    expect(sig).toMatch(/"listInit":"[0-9a-f]{64}"/);
+    expect(sig).not.toMatch(/secretInitName|secret-token-value|secret-value|Bearer|password|authorization/i);
+    expect(sig).not.toMatch(/function|\(\)\s*=>/);
+  });
+
   it("출처 id 가 다르면 서명이 갈린다", () => {
     expect(collectionBaselineKey("gbia")).toBe("board-collection-baseline:gbia");
     expect(collectionBaselineKey("ulsan")).not.toBe(collectionBaselineKey("gbia"));

@@ -741,6 +741,142 @@ describe("fetchBoardAll", () => {
   });
 });
 
+describe("onCollectionComplete", () => {
+  it("쪽을 끝까지 읽으면 complete: true 이고 결과는 그대로다", async () => {
+    const onCollectionComplete = vi.fn();
+    const paged: BoardConfig = {
+      ...cfg,
+      list: { ...cfg.list, url: (p) => `https://x.kr/b/list?p=${p}`, maxPages: 3 },
+    };
+    const out = await fetchBoardAll(paged, deps({
+      onCollectionComplete,
+      fetchText: async (url) => {
+        const p = Number(new URL(url).searchParams.get("p"));
+        if (p === 1) return rowsHtml([1, 2]);
+        if (p === 2) return rowsHtml([3, 4]);
+        return rowsHtml([5, 6]);
+      },
+    }));
+    expect(out).toHaveLength(6);
+    expect(onCollectionComplete).toHaveBeenCalledWith({ complete: true });
+  });
+
+  it("뒤쪽 HTTP 오류로 일부를 돌려주면 complete: false 이고 그까지 유지한다", async () => {
+    const onCollectionComplete = vi.fn();
+    const onPageCap = vi.fn();
+    const paged: BoardConfig = {
+      ...cfg,
+      list: { ...cfg.list, url: (p) => `https://x.kr/b/list?p=${p}`, maxPages: 5 },
+    };
+    const out = await fetchBoardAll(paged, deps({
+      onCollectionComplete,
+      onPageCap,
+      fetchText: async (url) => {
+        const p = Number(new URL(url).searchParams.get("p"));
+        if (p >= 5) throw new Error("late page unavailable");
+        return rowsHtml([(p - 1) * 3 + 1, (p - 1) * 3 + 2, (p - 1) * 3 + 3]);
+      },
+    }));
+    expect(out).toHaveLength(12);
+    expect(onCollectionComplete).toHaveBeenCalledWith({ complete: false });
+    expect(onPageCap).not.toHaveBeenCalled();
+  });
+
+  it("뒤 페이지 검증 실패로 중단하면 complete: false 다", async () => {
+    const onCollectionComplete = vi.fn();
+    const paged: BoardConfig = {
+      ...cfg,
+      list: { ...cfg.list, url: (p) => `https://x.kr/b/list?p=${p}`, maxPages: 3 },
+    };
+    const junkPage = `<table><tbody>${[7, 8, 9].map((id) =>
+      `<tr><td class="subject"><a href="/v?id=${id}">공지사항</a></td><td class="date">2026-08-01</td></tr>`,
+    ).join("")}</tbody></table>`;
+    const out = await fetchBoardAll(paged, deps({
+      onCollectionComplete,
+      fetchText: async (url) => {
+        const p = Number(new URL(url).searchParams.get("p"));
+        if (p === 1) return rowsHtml([1, 2, 3]);
+        if (p === 2) return junkPage;
+        return rowsHtml([7, 8, 9]);
+      },
+    }));
+    expect(out).toHaveLength(3);
+    expect(onCollectionComplete).toHaveBeenCalledWith({ complete: false });
+  });
+
+  it("상한 전 빈 쪽으로 멈추면 complete: true 다", async () => {
+    const onCollectionComplete = vi.fn();
+    const paged: BoardConfig = {
+      ...cfg,
+      list: { ...cfg.list, url: (p) => `https://x.kr/b/list?p=${p}`, maxPages: 8 },
+    };
+    await fetchBoardAll(paged, deps({
+      onCollectionComplete,
+      fetchText: async () => rowsHtml([1, 2, 3]),
+    }));
+    expect(onCollectionComplete).toHaveBeenCalledWith({ complete: true });
+  });
+
+  it("마지막 빈 쪽은 장부 없이 complete: true 다", async () => {
+    const onCollectionComplete = vi.fn();
+    const onPageCap = vi.fn();
+    const paged: BoardConfig = {
+      ...cfg,
+      list: { ...cfg.list, url: (p) => `https://x.kr/b/list?p=${p}`, maxPages: 3 },
+    };
+    const out = await fetchBoardAll(paged, deps({
+      onCollectionComplete,
+      onPageCap,
+      fetchText: async (url) => {
+        const p = Number(new URL(url).searchParams.get("p"));
+        if (p === 1) return rowsHtml([1, 2, 3]);
+        if (p === 2) return rowsHtml([4, 5, 6]);
+        return `<table><tbody></tbody></table>`;
+      },
+    }));
+    expect(out).toHaveLength(6);
+    expect(onPageCap).not.toHaveBeenCalled();
+    expect(onCollectionComplete).toHaveBeenCalledWith({ complete: true });
+  });
+
+  it("전 단계 실패면 onCollectionComplete 를 부르지 않는다", async () => {
+    const onCollectionComplete = vi.fn();
+    await expect(fetchBoardAll(cfg, deps({
+      onCollectionComplete,
+      fetchText: async () => "<div>깨진 페이지</div>",
+      prevOpenCount: 20,
+    }))).rejects.toThrow(/게시판 추출 전 단계 실패/);
+    expect(onCollectionComplete).not.toHaveBeenCalled();
+  });
+
+  it("onCollectionComplete 가 던져도 수집 결과는 그대로 돌아온다", async () => {
+    const onCollectionComplete = vi.fn(async () => { throw new Error("disk full"); });
+    const out = await fetchBoardAll(cfg, deps({ onCollectionComplete }));
+    expect(out).toHaveLength(3);
+  });
+
+  it("onPageCap 이 던져도 onCollectionComplete 는 호출된다", async () => {
+    const onPageCap = vi.fn(async () => { throw new Error("db down"); });
+    const onCollectionComplete = vi.fn();
+    const paged: BoardConfig = {
+      ...cfg,
+      list: { ...cfg.list, url: (p) => `https://x.kr/b/list?p=${p}`, maxPages: 3 },
+    };
+    const out = await fetchBoardAll(paged, deps({
+      onPageCap,
+      onCollectionComplete,
+      fetchText: async (url) => {
+        const p = Number(new URL(url).searchParams.get("p"));
+        if (p === 1) return rowsHtml([1, 2]);
+        if (p === 2) return rowsHtml([3]);
+        return rowsHtml([4]);
+      },
+    }));
+    expect(out).toHaveLength(4);
+    expect(onCollectionComplete).toHaveBeenCalledWith({ complete: true });
+  });
+});
+
 describe("fetchBoardDetail", () => {
   it("detailContentSelector 매칭 전부 텍스트를 줄바꿈으로 이어 붙인다", async () => {
     const html = `<div>

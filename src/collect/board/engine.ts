@@ -31,6 +31,12 @@ export interface BoardDeps {
    * 값은 이미 받아 온 마지막 쪽의 신규 건수라 추가 요청이 없다.
    */
   onPageCap?: (info: PageCapInfo) => void | Promise<void>;
+  /**
+   * 검증을 통과해 결과를 돌려줄 때. complete 는 쪽을 오류 없이 끝까지 읽었을 때만 true.
+   * 뒤쪽 실패로 일부만 돌려줘도 호출하고, 그 결과는 유지한다. 기준값 저장은 complete 와만
+   * 연결하고 onPageCap 장부 쓰기 성공과는 무관하다.
+   */
+  onCollectionComplete?: (info: { complete: boolean }) => void | Promise<void>;
 }
 
 type PageExtractResult = {
@@ -281,6 +287,11 @@ type CollectedPages = {
    * 원본이 비거나 깨진 쪽은 없는 쪽과 구별이 안 되므로 완료로 쓰지 않는다.
    */
   lastPageOk: boolean;
+  /**
+   * 쪽을 오류·검증실패 없이 상한 또는 바닥까지 읽었으면 true.
+   * 뒤쪽 HTTP 오류·서식 깨짐으로 일부를 돌려주면 false. lastPageOk(장부)와 다르다.
+   */
+  complete: boolean;
 };
 
 function pageCapOf(c: CollectedPages): PageCapInfo {
@@ -296,6 +307,15 @@ async function reportPageCap(deps: BoardDeps, collected: CollectedPages): Promis
     await withDeadline(pending, PAGE_CAP_WRITE_TIMEOUT_MS);
   } catch {
     /* 장부 쓰기가 채택을 막지 않음 — onHealedRule 과 같은 자리 */
+  }
+}
+
+async function reportCollectionComplete(deps: BoardDeps, collected: CollectedPages): Promise<void> {
+  if (!deps.onCollectionComplete) return;
+  try {
+    await deps.onCollectionComplete({ complete: collected.complete });
+  } catch {
+    /* 기준값 저장 실패가 채택을 막지 않음 */
   }
 }
 
@@ -337,7 +357,7 @@ async function collectLaterPages(
      * 쪽이 있는데 1쪽만 보기로 한 출처(주소가 달라진다)는 예전대로 hitCap 을 남긴다.
      */
     const pageless = pagelessSource(cfg);
-    return { rows: collected, lastPageNew, reachedCap: cap === 1 && !pageless, lastPageOk: true };
+    return { rows: collected, lastPageNew, reachedCap: cap === 1 && !pageless, lastPageOk: true, complete: true };
   }
   // 신규 0인 쪽 하나로 멈추면, 고정 공지가 쪽마다 되풀이되는 게시판에서 뒷쪽을 통째로 잃는다
   // (2026-09-01 사장님 「단 1건도 놓치면 안 된다」). 연속 두 쪽이 빌 때만 멈춘다 —
@@ -348,6 +368,7 @@ async function collectLaterPages(
   let lastPageNew = 0;
   let reachedCap = false;
   let lastPageOk = true;
+  let complete = true;
   for (let p = 2; p <= cap; p++) {
     try {
       const trusted = trustExtract(await extract(p), cfg);
@@ -357,6 +378,7 @@ async function collectLaterPages(
         });
         if (!check.ok) {
           lastPageOk = false;
+          complete = false;
           break;
         }
         if (check.empty) {
@@ -394,6 +416,7 @@ async function collectLaterPages(
       }
       if (!validateRows(rows, { prevCount: 0, allowUndated: cfg.allowUndatedRows }).ok) {
         lastPageOk = false;
+        complete = false;
         break;
       }
       lastPageOk = true;
@@ -413,10 +436,11 @@ async function collectLaterPages(
       if (emptyStreak >= EMPTY_STREAK_STOP) break;
     } catch {
       lastPageOk = false;
+      complete = false;
       break;
     }
   }
-  return { rows: collected, lastPageNew, reachedCap, lastPageOk };
+  return { rows: collected, lastPageNew, reachedCap, lastPageOk, complete };
 }
 
 function feedExtract(cfg: BoardConfig, deps: BoardDeps): PageExtract {
@@ -500,6 +524,7 @@ export async function fetchBoardAll(cfg: BoardConfig, deps: BoardDeps): Promise<
       if (trusted.evidence !== undefined) {
         if (collected.rows.length === 0) {
           await reportPageCap(deps, collected);
+          await reportCollectionComplete(deps, collected);
           return [];
         }
         const finalv = validateRows(collected.rows, {
@@ -513,6 +538,7 @@ export async function fetchBoardAll(cfg: BoardConfig, deps: BoardDeps): Promise<
           continue;
         }
         await reportPageCap(deps, collected);
+        await reportCollectionComplete(deps, collected);
         return toNormalized(collected.rows, cfg);
       }
       const finalv = validateRows(collected.rows, { ...finalCtx, allowUndated: cfg.allowUndatedRows });
@@ -521,6 +547,7 @@ export async function fetchBoardAll(cfg: BoardConfig, deps: BoardDeps): Promise<
         continue;
       }
       await reportPageCap(deps, collected);
+      await reportCollectionComplete(deps, collected);
       return toNormalized(collected.rows, cfg);
     } catch (e) {
       reasons.push(`${a.layer}: ${e instanceof Error ? e.message : String(e)}`);
@@ -550,6 +577,7 @@ export async function fetchBoardAll(cfg: BoardConfig, deps: BoardDeps): Promise<
         if (finalv.ok) {
           try { await deps.onHealedRule?.(healed.rule); } catch { /* persist 실패는 채택을 막지 않음 */ }
           await reportPageCap(deps, collected);
+          await reportCollectionComplete(deps, collected);
           return toNormalized(collected.rows, cfg);
         }
         reasons.push(`selfheal: ${finalv.reason ?? "합산 검증 미통과"}`);

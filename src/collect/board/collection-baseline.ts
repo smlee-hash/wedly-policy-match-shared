@@ -1,4 +1,5 @@
-import type { BoardConfig } from "./types";
+import { createHash } from "node:crypto";
+import type { BoardConfig, BoardFetchInit } from "./types";
 
 /**
  * 직전 **같은 설정으로 성공한 목록 수집** 건수.
@@ -31,6 +32,38 @@ function sampleUrl(fn: ((page: number) => string) | undefined, page: number): st
   }
 }
 
+/** 1·2쪽 요청의 평문 method/headers/body 만. 함수 본문은 넣지 않는다. */
+function sampleInit(
+  fn: ((page: number) => BoardFetchInit) | undefined,
+  page: number,
+): { method: string; headers: Record<string, string> | null; body: string | null } | null {
+  if (typeof fn !== "function") return null;
+  try {
+    const req = fn(page);
+    if (!req || typeof req !== "object") return null;
+    const method = req.method === "POST" || req.method === "GET" ? req.method : null;
+    if (method == null) return null;
+    let headers: Record<string, string> | null = null;
+    if (req.headers && typeof req.headers === "object" && !Array.isArray(req.headers)) {
+      headers = {};
+      for (const [k, v] of Object.entries(req.headers)) {
+        if (typeof v === "string") headers[k] = v;
+      }
+    }
+    return {
+      method,
+      headers,
+      body: typeof req.body === "string" ? req.body : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function sha256Utf8(text: string): string {
+  return createHash("sha256").update(text, "utf8").digest("hex");
+}
+
 /** 키 순서를 고정한다. 함수·bigint 은 넣지 않는다(번들 런타임마다 toString 이 갈린다). */
 function canonicalJson(value: unknown): string {
   if (value === null) return "null";
@@ -42,6 +75,15 @@ function canonicalJson(value: unknown): string {
   const rec = value as Record<string, unknown>;
   const keys = Object.keys(rec).filter((k) => rec[k] !== undefined).sort();
   return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJson(rec[k])}`).join(",")}}`;
+}
+
+/** 요청 표본은 비밀값이 섞일 수 있어 원문을 저장하지 않고 SHA256 만 남긴다. */
+function hashedListInit(cfg: BoardConfig): string | null {
+  if (typeof cfg.list.init !== "function") return null;
+  return sha256Utf8(canonicalJson({
+    init1: sampleInit(cfg.list.init, 1),
+    init2: sampleInit(cfg.list.init, 2),
+  }));
 }
 
 function signaturePayload(cfg: BoardConfig): unknown {
@@ -64,8 +106,8 @@ function signaturePayload(cfg: BoardConfig): unknown {
       : null,
     hasCreateListSession: typeof cfg.createListSession === "function",
     hasCustomParse: typeof cfg.customParse === "function",
-    hasListInit: typeof cfg.list.init === "function",
     hasValidationParse: typeof cfg.validationParse === "function",
+    listInit: hashedListInit(cfg),
     id: cfg.id,
     keepPagingParamsInDetail: !!cfg.keepPagingParamsInDetail,
     list: {

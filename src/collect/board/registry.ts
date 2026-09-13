@@ -528,9 +528,15 @@ export function boardSyncSources(deps: CollectDeps): AnnouncementSyncSource[] {
       staleAfterDays: 30,
       fetchAll: async () => {
         const resolved = await applyPersistedBoardRule(cfg, deps);
-        const list = await fetchBoardAll(resolved, await realDeps(resolved, deps));
+        let completeRead = false;
+        const list = await fetchBoardAll(resolved, {
+          ...await realDeps(resolved, deps),
+          onCollectionComplete: (info) => {
+            completeRead = info.complete;
+          },
+        });
         try { await noteSuccess(cfg.id, { store: alertStore(cfg.id, deps) }); } catch { /* 리셋 실패는 수집 성공을 막지 않음 */ }
-        await saveCollectionBaseline(resolved, list.length, deps.jsonCacheSet);
+        if (completeRead) await saveCollectionBaseline(resolved, list.length, deps.jsonCacheSet);
         return list;
       },
     }));

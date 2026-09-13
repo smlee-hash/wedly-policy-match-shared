@@ -772,6 +772,17 @@ describe("board registry", () => {
       expect(baselineWrites()).toHaveLength(0);
     });
 
+    it("쪽수 장부 쓰기 실패와 무관하게 완료 수집은 기준값을 저장한다", async () => {
+      const cache = installCache();
+      jsonCacheSet.mockImplementation(async (key: string, value: unknown) => {
+        if (String(key) === boardCapKey("tp-busan")) throw new Error("cap disk");
+        cache.set(key, value);
+      });
+      stubBusanPages(75);
+      expect(await busanSrc().fetchAll()).toHaveLength(75);
+      expect(cache.get(collectionBaselineKey("tp-busan"))).toEqual(expect.objectContaining({ count: 75 }));
+    });
+
     it("빈 목록 실패는 기준값을 만들지 않는다", async () => {
       installCache();
       vi.stubGlobal("fetch", vi.fn(async () => okRes("<div>없음</div>")));
