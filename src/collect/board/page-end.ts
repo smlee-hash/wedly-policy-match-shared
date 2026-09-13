@@ -50,16 +50,57 @@ function isEmptyListText(text: string): boolean {
   return EMPTY_LIST_TEXT.test(text.replace(/\s+/g, ""));
 }
 
-/** 암호 로그인 칸·접근 제한 제목은 빈 목록 상자가 있어도 끝이 아니다. */
-function isAuthChallengeHtml(html: string): boolean {
-  const root = parseHtml(html);
-  if (root.querySelectorAll("form input").some(
+const HIDDEN_TEXT_TAGS = new Set(["script", "style", "noscript", "template"]);
+
+function isExplicitChallengeText(text: string): boolean {
+  return /accessdenied/i.test(text) || /접근이제한/.test(text) || /500internalservererror/i.test(text);
+}
+
+function visibleCompactText(root: HTMLElement): string {
+  const parts: string[] = [];
+  const walk = (el: HTMLElement) => {
+    if (HIDDEN_TEXT_TAGS.has((el.tagName ?? "").toLowerCase())) return;
+    for (const node of el.childNodes) {
+      if (node.nodeType === 3) parts.push(node.text);
+      else if (node.nodeType === 1) walk(node as HTMLElement);
+    }
+  };
+  walk(root);
+  return parts.join("").replace(/\s+/g, "");
+}
+
+function formActionPath(form: HTMLElement): string {
+  const action = (form.getAttribute("action") ?? "").trim();
+  if (!action || action === "#" || /^javascript:/i.test(action)) return "";
+  try {
+    return new URL(action, "https://example.invalid/").pathname;
+  } catch {
+    return action.split(/[?#]/, 1)[0] ?? "";
+  }
+}
+
+function pathLooksLikeLogin(path: string): boolean {
+  return path.split("/").some((seg) => {
+    if (!seg) return false;
+    const name = seg.replace(/\.[^.]+$/, "").toLowerCase();
+    return name.includes("login") || /^sign[-_]?in$/.test(name) || /^log[-_]?on$/.test(name);
+  });
+}
+
+function formLooksLikeLogin(form: HTMLElement): boolean {
+  if (form.querySelectorAll("input").some(
     (input) => (input.getAttribute("type") ?? "").toLowerCase() === "password",
   )) return true;
-  return ["title", "h1", "h2"].flatMap((sel) => root.querySelectorAll(sel)).some((node) => {
-    const text = node.text.replace(/\s+/g, "");
-    return /accessdenied/i.test(text) || /접근이제한/.test(text);
-  });
+  if (pathLooksLikeLogin(formActionPath(form))) return true;
+  const ident = `${form.getAttribute("name") ?? ""} ${form.getAttribute("id") ?? ""}`.trim();
+  return /(?:^|\s)(?:frm)?login(?:form)?(?:\s|$)/i.test(ident);
+}
+
+/** 로그인 폼(암호 칸이 없어도)·보이는 접근 제한·500 제목은 빈 목록이 있어도 끝이 아니다. */
+function isAuthChallengeHtml(html: string): boolean {
+  const root = parseHtml(html);
+  if (root.querySelectorAll("form").some(formLooksLikeLogin)) return true;
+  return isExplicitChallengeText(visibleCompactText(root));
 }
 
 /** 행 선택자의 목록 상자. 콤마 선택자·상자 없음은 빈 목록으로 보지 않는다. */

@@ -339,12 +339,23 @@ describe("isProvenAdditionalSourceEnd — 공통 거절", () => {
 
 
 describe("추가 출처 끝 판정의 잘못된 호출·중복 구조", () => {
+  it("필드가 유일하고 같으면 목록 쿼리의 순서는 중요하지 않다", () => {
+    expect(isProvenAdditionalSourceEnd(gjsinboEnd({prevHref: '/index?bbs_id=1&d=notification1&search_page=10'}), gjsinboConfig, 11)).toBe(true);
+  });
   it("고정 공지와 페이지 호출 앞뒤의 알 수 없는 코드를 거부한다", () => {
     for (const call of ["fn_goView('851', 'notice')", "fn_egov_link_page(1); return false;"]) {
       for (const mutated of [`unknown(); ${call}`, `${call}; unknown()`]) {
         expect(isProvenAdditionalSourceEnd(pipaEnd().replace(call, mutated), pipaConfig, 12)).toBe(false);
       }
     }
+  });
+  it("관측된 호출 문법의 공백과 return false는 끝으로 남긴다", () => {
+    const spaced = pipaEnd({
+      includePinned: false,
+      extraRows: pipaPinned("851", "2026년 안내책자 자료", "fn_goView( '851' , 'notice' )")
+        + pipaPinned("962", "[모집] 안내", "fn_goView('962', 'notice'); return false;"),
+    }).replace("fn_egov_link_page(11); return false;", "fn_egov_link_page( 11 ); return false;");
+    expect(isProvenAdditionalSourceEnd(spaced, pipaConfig, 12)).toBe(true);
   });
   it("첫 행 상자가 비어 있어도 중복 행 상자의 내용을 무시하지 않는다", () => {
     const html = gjsinboEnd().replace('<div class="rows">', '<div class="rows"><span>불러오는 중</span></div><div class="rows">');
@@ -357,5 +368,14 @@ describe("추가 출처 끝 판정의 잘못된 호출·중복 구조", () => {
       const prevHref = '/index?d=notification1&search_page=10&bbs_id=1' + suffix;
       expect(isProvenAdditionalSourceEnd(gjsinboEnd({ prevHref }), gjsinboConfig, 11)).toBe(false);
     }
+  });
+  it("암호 없는 로그인 폼과 본문 오류는 관측된 끝 모양도 완료로 쓰지 않는다", () => {
+    const html = pipaEnd();
+    expect(isProvenEmptyBoardPage('<form action="/login"><input name="email"></form>' + html, pipaConfig, 12)).toBe(false);
+    expect(isProvenEmptyBoardPage('<p>Access denied</p>' + html, pipaConfig, 12)).toBe(false);
+    expect(isProvenEmptyBoardPage('<title>500 Internal Server Error</title>' + html, pipaConfig, 12)).toBe(false);
+    expect(isProvenEmptyBoardPage(`<form action="/search"><input name="keyword"><button>검색</button></form>${html}`, pipaConfig, 12)).toBe(true);
+    expect(isProvenEmptyBoardPage(`<a href="/web/contents/webLogin.do"><span>로그인</span></a>${html}`, pipaConfig, 12)).toBe(true);
+    expect(isProvenEmptyBoardPage(`<script>Access denied</script>${html}`, pipaConfig, 12)).toBe(true);
   });
 });

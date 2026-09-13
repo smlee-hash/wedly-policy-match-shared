@@ -80,6 +80,14 @@ describe("isProvenEmptyBoardPage — 목록 상자", () => {
     expect(isProvenEmptyBoardPage(`<html><title>Access denied</title><h1>접근이 제한되었습니다.</h1>${KOTRA_EMPTY}</html>`, kotraConfig)).toBe(false);
     expect(isProvenEmptyBoardPage(`<form action="/search"><input name="keyword"><button>검색</button></form>${KOTRA_EMPTY}`, kotraConfig)).toBe(true);
   });
+
+  it("검색 폼·로그인 링크·script/style·일반 제목은 빈 목록 끝을 뒤집지 않는다", () => {
+    expect(isProvenEmptyBoardPage(`<a href="/web/contents/webLogin.do"><span>로그인</span></a>${KOTRA_EMPTY}`, kotraConfig)).toBe(true);
+    expect(isProvenEmptyBoardPage(`<p>로그인</p>${KOTRA_EMPTY}`, kotraConfig)).toBe(true);
+    expect(isProvenEmptyBoardPage(`<script>window.msg="Access denied";</script>${KOTRA_EMPTY}`, kotraConfig)).toBe(true);
+    expect(isProvenEmptyBoardPage(`<style>.x::before{content:"500 Internal Server Error"}</style>${KOTRA_EMPTY}`, kotraConfig)).toBe(true);
+    expect(isProvenEmptyBoardPage(`<title>새소식</title>${KOTRA_EMPTY}`, kotraConfig)).toBe(true);
+  });
   it("관측된 8곳 빈 표식을 선택자 상자 안에서만 인정한다", () => {
     expect(isProvenEmptyBoardPage(KOTRA_EMPTY, kotraConfig)).toBe(true);
     expect(isProvenEmptyBoardPage(IRIS_EMPTY, irisConfig)).toBe(true);

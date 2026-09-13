@@ -6,8 +6,8 @@ import type { BoardConfig } from "./types";
  * 일반 행·날짜 없는 정책 행·고정 공지 반복만으로는 끝이 아니다.
  * 최종 완료는 기존 연속 두 쪽 규칙이 맡는다.
  */
-const PIPA_PINNED_CALL = /fn_goView\(\s*'(\d+)\s*'\s*,\s*'notice'\s*\)/;
-const PIPA_PAGE_CALL = /fn_egov_link_page\(\s*([1-9]\d*)\s*\)/;
+const PIPA_PINNED_CALL = /^\s*fn_goView\(\s*'(\d+)\s*'\s*,\s*'notice'\s*\)\s*(?:;\s*return\s+false\s*)?;?\s*$/;
+const PIPA_PAGE_CALL = /^\s*fn_egov_link_page\(\s*([1-9]\d*)\s*\)\s*(?:;\s*return\s+false\s*)?;?\s*$/;
 const PIPA_EMPTY_NOTICE = /^등록된게시물이없습니다\.?$/;
 const GJSINBO_PAGE_SIZE = 20;
 const GJSINBO_BOARD = "notification1";
@@ -60,11 +60,10 @@ function hiddenInputValue(form: HTMLElement, name: string): string | null {
   return null;
 }
 
-function directChildByClass(parent: HTMLElement, tag: string, cls: string): HTMLElement | null {
-  for (const kid of elementChildren(parent)) {
-    if (tagNameOf(kid) === tag && classTokens(kid).includes(cls)) return kid;
-  }
-  return null;
+function directRows(parent: HTMLElement): HTMLElement[] {
+  return elementChildren(parent).filter(
+    (kid) => tagNameOf(kid) === "div" && classTokens(kid).includes("rows"),
+  );
 }
 
 function isPipaThead(li: HTMLElement): boolean {
@@ -111,6 +110,11 @@ function gjsinboPageFromHref(href: string, baseUrl: string): number | null {
     return null;
   }
   if (url.protocol !== "https:" || url.origin !== new URL(baseUrl).origin || url.pathname !== "/index") return null;
+  const keys = Array.from(url.searchParams.keys());
+  if (keys.length !== 3 || keys.some(key => !["d", "search_page", "bbs_id"].includes(key))) return null;
+  if (url.searchParams.getAll("d").length !== 1) return null;
+  if (url.searchParams.getAll("search_page").length !== 1) return null;
+  if (url.searchParams.getAll("bbs_id").length !== 1) return null;
   if (url.searchParams.get("d") !== GJSINBO_BOARD) return null;
   if (url.searchParams.get("bbs_id") !== GJSINBO_BBS_ID) return null;
   return parsePositiveSafeIntText(url.searchParams.get("search_page") ?? "");
@@ -139,9 +143,7 @@ function isPipaProvenEnd(html: string, requestedPage: number): boolean {
 
   let sawPageCall = false;
   for (const a of paginate.querySelectorAll("a")) {
-    const onclick = a.getAttribute("onclick") ?? "";
-    if (!onclick.includes("fn_egov_link_page")) return false;
-    const match = onclick.match(PIPA_PAGE_CALL);
+    const match = (a.getAttribute("onclick") ?? "").match(PIPA_PAGE_CALL);
     if (!match) return false;
     const n = parsePositiveSafeIntText(match[1] ?? "");
     if (n === null || n > lastPage) return false;
@@ -191,8 +193,9 @@ function isGjsinboProvenEnd(html: string, cfg: BoardConfig, requestedPage: numbe
 
   const basic = form.querySelector("div.bbs-basic-list") ?? form.querySelector(".bbs-basic-list");
   if (!basic) return false;
-  const rows = directChildByClass(basic, "div", "rows");
-  if (!rows || !isStrictlyEmpty(rows)) return false;
+  const rows = directRows(basic);
+  const rowBox = rows.length === 1 ? rows[0] : undefined;
+  if (!rowBox || !isStrictlyEmpty(rowBox)) return false;
 
   const pageBox = form.querySelector("div.page");
   if (!pageBox) return false;
