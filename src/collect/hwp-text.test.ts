@@ -282,6 +282,8 @@ describe("HWP 첨부 파이프라인 — 본문 우선, 미리보기 폴백", ()
     expect(result.text).not.toContain("비밀본문");
     expect(result.failedFiles).toEqual([]);
     expect(result.readFiles).toEqual(["모집공고.hwp"]);
+    expect(result.skippedFiles).toContain("모집공고.hwp");
+    expect(result.text).toContain("[미확인 첨부: 모집공고.hwp]");
   });
 });
 
@@ -304,4 +306,42 @@ describe("본문 추출의 헤더·제어문자·작업량 한계", () => {
     try {expect(extractHwpText(bytes)).toBe("");expect(reads).toBeLessThanOrEqual(150_000);}
     finally {Buffer.prototype.readUInt16LE=read;}
   });
+});
+
+describe("HWP 본문 — 잘린 줄기·남은 압축 바이트", () => {
+  it("CFB가 선언한 Section 길이보다 실제 바이트가 짧으면 본문을 거절한다", () => {
+    const bytes = makeHwp({ sections: [[0, encodePara("앞부분만")]] });
+    const entry = bytes.indexOf(Buffer.from("Section0\0", "utf16le"));
+    expect(entry).toBeGreaterThan(0);
+    bytes.writeUInt32LE(1000, entry + 120);
+    expect(extractHwpText(bytes)).toBe("");
+  });
+
+  it("마지막 필수 Section이 잘리면 앞 절 글자도 쓰지 않는다", () => {
+    const bytes = makeHwp({
+      sections: [
+        [0, encodePara("앞절")],
+        [1, encodePara("뒷절")],
+      ],
+    });
+    const entry = bytes.indexOf(Buffer.from("Section1\0", "utf16le"));
+    expect(entry).toBeGreaterThan(0);
+    bytes.writeUInt32LE(1000, entry + 120);
+    expect(extractHwpText(bytes)).toBe("");
+  });
+
+  it.each([Buffer.from([1, 2, 3, 4]), deflateRawSync(encodePara("둘째 압축"))])(
+    "첫 DEFLATE 뒤에 소비하지 않은 바이트가 있으면 본문을 거절한다",
+    (trailing) => {
+      const section = Buffer.concat([deflateRawSync(encodePara("압축 앞부분")), trailing]);
+      expect(
+        extractHwpText(
+          makeHwp({
+            flags: 1,
+            extra: [["BodyText/Section0", section]],
+          }),
+        ),
+      ).toBe("");
+    },
+  );
 });

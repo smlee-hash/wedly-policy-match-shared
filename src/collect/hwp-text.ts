@@ -2,7 +2,7 @@
 // 레코드·컨트롤 짜임은 한컴 공개 파일형식 문서(한글문서파일형식 5.0 revision 1.3)와
 // 한컴 기술 글(python-hwp-parsing)을 따른다. 글자만 뽑으며 신청 기한은 추론하지 않는다.
 import { parse as parseCfb } from "cfb";
-import { inflateRawSync } from "node:zlib";
+import { crc32, inflateRawSync } from "node:zlib";
 
 const MAX_INPUT_BYTES = 10 * 1024 * 1024;
 const MAX_SECTIONS = 128;
@@ -111,14 +111,22 @@ function rootStreams(cfb: CfbFile): Map<string, Buffer> | null {
   for (let i = 0; i < cfb.FileIndex.length; i++) {
     const entry = cfb.FileIndex[i];
     if (entry.type !== undefined && entry.type !== CFB_STREAM) continue;
-    const bytes = streamBytes(entry);
-    if (!bytes) continue;
     const path = normalizeCfbPath(cfb.FullPaths[i] ?? entry.name, rootName);
     if (!path) continue;
+    const bytes = streamBytes(entry);
+    // 필수 FileHeader·BodyText 줄기가 선언 길이보다 짧으면 앞 절만 남기지 않고 본문 전체를 버린다.
+    if (!bytes) {
+      if (isRequiredHwpStream(path)) return null;
+      continue;
+    }
     if (streams.has(path)) return null;
     streams.set(path, bytes);
   }
   return streams;
+}
+
+function isRequiredHwpStream(path: string): boolean {
+  return path === "FileHeader" || /^BodyText\/Section\d+$/.test(path);
 }
 
 function normalizeCfbPath(fullPath: string, rootName: string): string {
@@ -130,8 +138,9 @@ function normalizeCfbPath(fullPath: string, rootName: string): string {
 function streamBytes(entry: CfbEntry): Buffer | null {
   if (entry.content == null) return null;
   const buf = Buffer.isBuffer(entry.content) ? entry.content : Buffer.from(entry.content);
-  if (typeof entry.size === "number" && entry.size >= 0 && entry.size < buf.length) {
-    return buf.subarray(0, entry.size);
+  if (typeof entry.size === "number" && entry.size >= 0) {
+    if (entry.size > buf.length) return null;
+    if (entry.size < buf.length) return buf.subarray(0, entry.size);
   }
   return buf;
 }
@@ -165,9 +174,19 @@ function takeUncompressed(section: Buffer, remaining: number): Buffer | null {
 function inflateSection(compressed: Buffer, remaining: number): Buffer | null {
   if (remaining <= 0) return null;
   try {
-    const out = inflateRawSync(compressed, { maxOutputLength: remaining });
-    const raw = Buffer.isBuffer(out) ? out : Buffer.from(out);
-    if (raw.length > remaining) return null;
+    const out = inflateRawSync(compressed, { maxOutputLength: remaining, info: true }) as unknown as {
+      buffer: Buffer; engine: { bytesWritten: number };
+    };
+    const raw = out.buffer;
+    const consumed = out.engine?.bytesWritten;
+    if (!Buffer.isBuffer(raw) || raw.length > remaining
+      || !Number.isSafeInteger(consumed) || consumed <= 0 || consumed > compressed.length) return null;
+    if (consumed === compressed.length) return raw;
+    // 실제 RIIA-JN 공고는 DEFLATE 뒤에 GZIP 형식의 CRC32·원래 길이 8바이트를 둔다.
+    // 둘 다 풀린 본문과 일치하는 꼬리만 허용한다. 쓰레기·두 번째 스트림은 거절한다.
+    const trailer = compressed.subarray(consumed);
+    if (trailer.length !== 8 || trailer.readUInt32LE(0) !== crc32(raw)
+      || trailer.readUInt32LE(4) !== raw.length) return null;
     return raw;
   } catch {
     return null;

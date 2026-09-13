@@ -13,6 +13,11 @@ import type { PolicyAttachmentRequest } from "./board/types";
 import { allowedHostsOf } from "./board/engine";
 import { isProxyTransportError } from "./board/proxy";
 import { extractHwpText } from "./hwp-text";
+import {
+  renderAttachmentBlocks,
+  type RenderBlock,
+  type TextPiece,
+} from "./attachment-render";
 
 export const EXTRACTABLE_KINDS = ["pdf", "hwp", "hwpx"] as const;
 export type ExtractableKind = (typeof EXTRACTABLE_KINDS)[number];
@@ -91,6 +96,8 @@ export type AttachmentTextResult = {
   failedFiles: string[];
   /** 개수 상한에 걸려 아예 안 읽은 첨부 — 존재만 알린다. */
   skippedFiles: string[];
+  /** HWP 본문 대신 미리보기만 읽었다. 다른 완전한 본문이 없는 행은 자동 저장하지 않는다. */
+  previewOnlyFiles?: string[];
   /**
    * 요청까지 간 첨부 중 **하나라도 경유 통로 탓으로** 실패했다
    * (프록시 호스트에 못 닿음·CONNECT 거부·프록시가 만든 401·403·500).
@@ -98,6 +105,12 @@ export type AttachmentTextResult = {
    * 프록시가 살아난 뒤 곧 다시 보게 한다. 경유를 안 쓰는 길에서는 늘 거짓이다.
    */
   proxyFailed?: boolean;
+  /**
+   * 자동 저장(`includeHwpPreview: false`)에서만 채운다.
+   * 최종 문자열에 실제로 남은 정상 첨부 본문의 UTF-16 글자 수.
+   * 머리글·경고·잘림·미확인 표식·미리보기·상한으로 사라진 본문은 넣지 않는다.
+   */
+  bodyTextChars?: number;
 };
 
 /**
@@ -136,7 +149,7 @@ export type AttachmentFetch = (url: string, init?: RequestInit) => Promise<Respo
 /**
  * hwpx(한글 2014+)에서 글자를 뽑는 함수 — 앱이 넣어 준다(원문: 앱의 documents/extract-text
  * 의 `extractHwpx`, adm-zip 로 `Contents/section*.xml` 을 푼다). pdf 는 unpdf, hwp 는 본문(실패 시
- * 미리보기)을 이 보관함이 직접 뽑지만, hwpx 추출기는 adm-zip 을 끌고 와 여기 두지 않고 주입으로 받는다.
+ * 미리보기·미확인 표식)을 이 보관함이 직접 뽑지만, hwpx 추출기는 adm-zip 을 끌고 와 여기 두지 않고 주입으로 받는다.
  * ★**필수 주입**이다(P3 회귀 방어) — 안 넘기면 타입 오류다. 옛날엔 안 넘기면 조용히 빈 글로
  * 취급해서, hwpx 첨부에만 본문이 있는 공고가 빈 채로 저장되고 회차는 성공으로 끝나는 사고가 있었다.
  */
@@ -147,6 +160,8 @@ export type FetchAttachmentTextsOptions = {
   maxBytes?: number;
   timeoutMs?: number;
   totalCharCap?: number;
+  /** 자동 본문 저장은 false. HWP 미리보기 글자는 빼고 미확인 표식만 남긴다. 기본은 미리보기 보존. */
+  includeHwpPreview?: boolean;
   fetch?: AttachmentFetch;
   /** hwpx 글자 추출기(앱 주입 — **필수**). 위 `ExtractHwpx` 주석 참조. */
   extractHwpx: ExtractHwpx;
@@ -280,14 +295,17 @@ async function extractByKind(
   kind: ExtractableKind,
   buf: Buffer,
   extractHwpx: ExtractHwpx,
-): Promise<string> {
-  const raw =
-    kind === "pdf"
-      ? await extractPdfBytes(Uint8Array.from(buf))
-      : kind === "hwpx"
-        ? await extractHwpx(buf)
-        : extractHwpText(buf) || extractHwpPreview(buf);
-  return stripUnstorableChars(raw);
+): Promise<{ text: string; incomplete: boolean }> {
+  if (kind === "pdf") {
+    return { text: stripUnstorableChars(await extractPdfBytes(Uint8Array.from(buf))), incomplete: false };
+  }
+  if (kind === "hwpx") {
+    return { text: stripUnstorableChars(await extractHwpx(buf)), incomplete: false };
+  }
+  const body = extractHwpText(buf);
+  if (body) return { text: stripUnstorableChars(body), incomplete: false };
+  const preview = extractHwpPreview(buf);
+  return { text: stripUnstorableChars(preview), incomplete: preview.length > 0 };
 }
 
 function failBlock(name: string): string {
@@ -302,47 +320,16 @@ function skippedBlock(name: string): string {
   return `[미확인 첨부: ${name}]`;
 }
 
-function readBlock(name: string, body: string): string {
-  return `[첨부: ${name}]\n${body}`;
+function headingOf(name: string): string {
+  return `[첨부: ${name}]`;
 }
 
-/**
- * 글자 상한에 걸려 **뒷부분이 잘렸다**는 표식.
- *
- * 왜 필요한가(2026-08-25 적대적 리뷰 「치명 2」): 예전엔 상한을 넘으면 아무 말 없이 잘라 버렸다.
- * 그러면 12,000자 PDF 의 9,000자 지점에 있던 「지원 제외 대상」이 통째로 사라지는데도
- * 그 파일은 「읽은 파일」로 기록돼, AI 가 앞부분 조건 몇 개만 보고 **「가능」**을 내놓았다.
- * 표식을 남기면 기존 배선이 그대로 「첨부 원문 확인 필요」로 받아 「확인 필요」에 묶어 준다.
- */
-function truncatedBlock(name: string): string {
-  return `[첨부 잘림: ${name}]`;
+function noticeBlock(name: string, kind: "fail" | "blocked" | "skipped", text: string): RenderBlock {
+  return { name, pieces: [{ kind, text }] };
 }
 
-function joinBlocks(out: string, block: string): string {
-  return out ? `${out}\n\n${block}` : block;
-}
-
-function appendCapped(out: string, block: string, cap: number): string {
-  if (!block) return out;
-  const next = joinBlocks(out, block);
-  return next.length <= cap ? next : next.slice(0, cap);
-}
-
-/**
- * 읽어 온 본문을 붙이되, 상한에 걸려 잘리면 잘림 표식을 **자리를 비워 두고** 끝에 남긴다.
- * 표식까지 잘려 나가면 아무도 잘린 줄 모르게 되므로 표식 길이를 먼저 확보한다.
- */
-function appendReadBlock(
-  out: string,
-  name: string,
-  body: string,
-  cap: number,
-): { text: string; truncated: boolean } {
-  const next = joinBlocks(out, readBlock(name, body));
-  if (next.length <= cap) return { text: next, truncated: false };
-  const mark = truncatedBlock(name);
-  const room = Math.max(0, cap - mark.length - 2);
-  return { text: `${next.slice(0, room)}\n\n${mark}`, truncated: true };
+function contentBlock(name: string, extra: TextPiece[]): RenderBlock {
+  return { name, pieces: [{ kind: "heading", text: headingOf(name) }, ...extra] };
 }
 
 /**
@@ -461,7 +448,8 @@ export async function fetchAttachmentTexts(
   const readFiles: string[] = [];
   const failedFiles: string[] = [];
   const skippedFiles: string[] = [];
-  let text = "";
+  const previewOnlyFiles: string[] = [];
+  const blocks: RenderBlock[] = [];
   // 경유 통로 탓으로 죽은 첨부 수. 하나라도 있으면 이번 결과는 사이트가 아니라 우리 통로 탓이다.
   let proxyFailures = 0;
 
@@ -471,14 +459,14 @@ export async function fetchAttachmentTexts(
     if (!url) {
       // 허용하지 않은 주소는 부르지 않는다. 존재는 남겨 사람이 원문을 확인하게 한다.
       failedFiles.push(name);
-      text = appendCapped(text, blockedBlock(name), totalCharCap);
+      blocks.push(noticeBlock(name, "blocked", blockedBlock(name)));
       continue;
     }
     try {
       const buf = await downloadBytes(url, fetchImpl, timeoutMs, maxBytes, opts.signal, a);
       if (!buf) {
         failedFiles.push(name);
-        text = appendCapped(text, failBlock(name), totalCharCap);
+        blocks.push(noticeBlock(name, "fail", failBlock(name)));
         continue;
       }
       // 첫 바이트 냄새를 이름/주소 kind 보다 먼저. cover.pdf 인데 실제는 OLE(hwp)면
@@ -487,38 +475,52 @@ export async function fetchAttachmentTexts(
       const primary = sniffAttachmentKind(buf) ?? declaredKind;
       if (!primary) {
         failedFiles.push(name);
-        text = appendCapped(text, failBlock(name), totalCharCap);
+        blocks.push(noticeBlock(name, "fail", failBlock(name)));
         continue;
       }
-      let body = "";
+      let extracted = { text: "", incomplete: false };
       try {
-        body = (await extractByKind(primary, buf, extractHwpx)).trim();
+        extracted = await extractByKind(primary, buf, extractHwpx);
       } catch {
-        body = "";
+        extracted = { text: "", incomplete: false };
       }
       // 비거나 파서가 던지면 primary 와 다른 declaredKind 로 한 번 더 뽑는다.
-      if (!body && declaredKind && declaredKind !== primary) {
+      if (!extracted.text.trim() && declaredKind && declaredKind !== primary) {
         try {
-          body = (await extractByKind(declaredKind, buf, extractHwpx)).trim();
+          extracted = await extractByKind(declaredKind, buf, extractHwpx);
         } catch {
-          body = "";
+          extracted = { text: "", incomplete: false };
         }
       }
+      const body = extracted.text.trim();
       if (!body) {
         failedFiles.push(name);
-        text = appendCapped(text, failBlock(name), totalCharCap);
+        blocks.push(noticeBlock(name, "fail", failBlock(name)));
+        continue;
+      }
+      if (extracted.incomplete && opts.includeHwpPreview === false) {
+        previewOnlyFiles.push(name);
+        skippedFiles.push(name);
+        // 미리보기 글자는 빼고 미확인 표식만 남긴다. 정상 형제 첨부의 본문은 보존한다.
+        blocks.push(contentBlock(name, [{ kind: "unverified", text: skippedBlock(name) }]));
         continue;
       }
       readFiles.push(name);
-      const put = appendReadBlock(text, name, body, totalCharCap);
-      text = put.text;
-      // 뒷부분이 잘렸으면 「안 읽은 첨부」와 같은 무게로 남긴다 — 조건이 잘린 꼬리에 있을 수 있다.
-      if (put.truncated) skippedFiles.push(name);
+      if (extracted.incomplete) previewOnlyFiles.push(name);
+      // 미확인 표식은 본문 앞에 둔다. 출처를 조각으로 남겨 뒤 표식이 앞 본문을 밀면 앞 파일도 잘림으로 적는다.
+      const extra: TextPiece[] = extracted.incomplete
+        ? [
+            { kind: "unverified", text: skippedBlock(name) },
+            { kind: "preview", text: body },
+          ]
+        : [{ kind: "body", text: body }];
+      blocks.push(contentBlock(name, extra));
+      if (extracted.incomplete) skippedFiles.push(name);
     } catch (e) {
       // 경유 통로가 죽어서 못 물어본 것이면 따로 센다 — 사이트가 준 404 와 재시도 값어치가 다르다.
       if (isProxyTransportError(e)) proxyFailures += 1;
       failedFiles.push(name);
-      text = appendCapped(text, failBlock(name), totalCharCap);
+      blocks.push(noticeBlock(name, "fail", failBlock(name)));
     }
   }
 
@@ -526,20 +528,30 @@ export async function fetchAttachmentTexts(
   for (const a of skipped) {
     const name = a.name || a.url;
     skippedFiles.push(name);
-    text = appendCapped(text, skippedBlock(name), totalCharCap);
+    blocks.push(noticeBlock(name, "skipped", skippedBlock(name)));
   }
+
+  const rendered = renderAttachmentBlocks(blocks, totalCharCap);
+  for (const name of rendered.truncatedNames) {
+    if (!skippedFiles.includes(name)) skippedFiles.push(name);
+  }
+  // 본문 글자 수는 걸러낸 뒤의 실제 본문 조각 합. 완성 문자열을 정규식으로 추측하지 않는다.
+  let bodyTextChars = 0;
+  for (const part of rendered.retainedBodies) bodyTextChars += stripUnstorableChars(part).length;
 
   // ★마지막으로 한 번 더 손본다(2026-08-25 적대적 리뷰 「중요 1」 ②).
   // 위의 자르기(`slice`)는 걸러내기 **다음**에 일어난다 — 이모지 한가운데가 잘리면
   // 거기서 반쪽 글자가 생겨 저장이 거부된다. 나가는 글자는 반드시 이 길목을 지난다.
   return {
-    text: stripUnstorableChars(text),
+    text: stripUnstorableChars(rendered.text),
     readFiles,
     failedFiles,
     skippedFiles,
+    ...(previewOnlyFiles.length > 0 ? { previewOnlyFiles } : {}),
     // ★「전부」가 아니라 **하나라도**다(2026-09-06 적대 리뷰): a.pdf 가 사이트 404, b.pdf 가
     //  통로 죽음이면 b 는 물어보지도 못한 것인데 옛 규칙은 「사이트 탓」으로 뭉갰다.
     //  도장이 무기한 유예가 아니라 1시간짜리로 바뀌었으니 좁힐 이유가 없다.
     proxyFailed: proxyFailures > 0,
+    ...(opts.includeHwpPreview === false ? { bodyTextChars } : {}),
   };
 }

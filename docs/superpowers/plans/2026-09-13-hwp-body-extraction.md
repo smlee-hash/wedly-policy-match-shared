@@ -27,3 +27,15 @@ Root reproduced review-9593ada9858a4d0e8e739bd5c44ea00f in four failing tests.
 - Reject malformed required FileHeader/BodyText stream lengths when declared size exceeds available bytes; do not silently omit a malformed final section and accept preceding text.
 - Bounded inflate must consume the entire compressed section. Reject trailing garbage or a second deflate stream. Keep maxOutputLength and all existing budgets.
 Owned corrections: hwp-text.ts/test, attachment-text.ts/test, hwp-text-integration.test.ts. Existing regression expectations only change for intended fallback provenance. No network/DB/date/status/UI/dependency changes.
+
+### Root current-byte integration findings
+Actual official RIIA-JN Section0 is 41823 bytes: DEFLATE consumes41815, followed by 8 bytes71b50aef497a0200. Trailer CRC324010456433 equals Nodecrc32 of162377decodedbytes; trailer size162377 matches exactly. Support only this verified GZIP-style CRC32+ISIZE footer or exact bareDEFLATE; reject any other unused input, badCRC/size/extra bytes/second stream. Primary format reference: RFC1952; actual original file evidence in private task records. Nodecrc32 is available on all observedNode22 runtimes (official added20.15/22.2).
+Root five cap-boundary cases reproduced loss of the newly appended incomplete marker. Put existing [미확인 첨부] marker before preview content inside existing bounded appendReadBlock; truncation marker also remains recognized by cached-text consumers. Restore strict sample fixture expectation rather than conditional assertions.
+
+## 두 번째 독립 리뷰: 자동 저장에서 미리보기 재시도 보존
+
+review-d5c04aae3f4347999d1e317ff82fd6cb는 미리보기의 표시 자체는 남지만 ERP 자동 본문 채움이 이를 완성된 본문으로 저장해 재시도를 막는 경로를 확인했다. 실제 보호 HWP와 진짜 추출기를 연결한 ERP 시험에서 저장 수가 1이 되어 재현했다. 총괄의 통합 보정으로 `AttachmentTextResult.previewOnlyFiles`를 선택 속성으로 전달하고 ERP는 `includeHwpPreview: false`로 미리보기 글자를 제외한다. 다른 첨부에서 읽은 본문이 없을 때만 본문·조건을 쓰지 않고 기존 7일 시도 표식으로 재시도한다. 정상 PDF/HWPX/HWP 형제 첨부가 있으면 그 본문과 미확인 표식을 저장한다. 미리보기 글자는 직접 읽기 경로에 보존하고 정상 전체 본문·기존 글자 수 제한·일반 PDF/HWPX·소유권·재시도 간격은 유지한다. ERP에는 실제 CFB → 추출 → 자동 채움 → 다음 재시도 시험을 추가한다. 기존 비어 있지 않은 저장 본문을 덮어쓰는 보정은 하지 않는다.
+
+배포는 공용 변경을 검증된 기능 브랜치로 먼저 올리고, ERP의 소비자 보정과 그 공용 SHA 고정을 하나의 커밋으로 묶는다. 그 다음 공용 main을 진행시켜 나머지 앱의 자동 버전 반영을 수행한다. 새 공용 버전만 먼저 ERP에 들어가는 창을 만들지 않는다.
+
+혼합 첨부 회귀는 review-f4d9e4f2f9034b408fde09372a6dbea6에서 지적됐다. 실제 PDF와 보호 HWP를 함께 반환한 시험이 저장 수 0으로 실패했다. `includeHwpPreview: false`에서 미리보기만 제외하고 정상 형제 첨부는 그대로 읽는 방식으로 통합 보정했다. 글자 상한에 걸려도 미확인 표식은 기존 잘림 표식과 같은 경로로 남긴다. 전부 미리보기인 공고의 재시도 시험도 함께 유지한다.

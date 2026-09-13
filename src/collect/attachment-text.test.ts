@@ -188,11 +188,11 @@ describe("fetchAttachmentTexts", () => {
     );
     expect(r.readFiles).toEqual(["재공고.hwpx", "매뉴얼.hwp"]);
     expect(r.failedFiles).toEqual([]);
-    expect(r.skippedFiles).toEqual([]);
     expect(r.text).toContain("하청노동자");
     expect(r.text).toContain("안양시");
     expect(r.text).toContain("[첨부: 재공고.hwpx]");
     expect(r.text).toContain("[첨부: 매뉴얼.hwp]");
+    expect(r.skippedFiles).toEqual([]);
   });
 
   it("pdf 글자를 읽는다", async () => {
