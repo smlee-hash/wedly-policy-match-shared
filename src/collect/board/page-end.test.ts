@@ -67,11 +67,17 @@ const SMARTFACTORY_END = {
 };
 
 describe("isProvenEmptyBoardPage — 목록 상자", () => {
+  it("로그인·접근 제한 응답은 정상 목록처럼 생긴 빈 상자가 있어도 끝이 아니다", () => {
+    expect(isProvenEmptyBoardPage(`<form action="/login"><input type="password"><button>로그인</button></form>${KOTRA_EMPTY}`, kotraConfig)).toBe(false);
+    expect(isProvenEmptyBoardPage(`<html><title>Access denied</title><h1>접근이 제한되었습니다.</h1>${KOTRA_EMPTY}</html>`, kotraConfig)).toBe(false);
+    expect(isProvenEmptyBoardPage(`<form action="/search"><input name="keyword"><button>검색</button></form>${KOTRA_EMPTY}`, kotraConfig)).toBe(true);
+  });
   it("관측된 8곳 빈 표식을 선택자 상자 안에서만 인정한다", () => {
     expect(isProvenEmptyBoardPage(KOTRA_EMPTY, kotraConfig)).toBe(true);
     expect(isProvenEmptyBoardPage(IRIS_EMPTY, irisConfig)).toBe(true);
     expect(isProvenEmptyBoardPage(ANSAN_EMPTY, ansanConfig)).toBe(true);
     expect(isProvenEmptyBoardPage(GWSINBO_EMPTY, gwsinboConfig)).toBe(true);
+    expect(isProvenEmptyBoardPage(GWSINBO_EMPTY.replace("<tbody></tbody>", "<tbody>\r\n\t\t\t</tbody>"), gwsinboConfig)).toBe(true);
     expect(isProvenEmptyBoardPage(SEOULTP_EMPTY, seoultpConfig)).toBe(true);
     expect(isProvenEmptyBoardPage(GYEONGNAM_EMPTY, tpGyeongnamConfig)).toBe(true);
   });
@@ -112,6 +118,19 @@ describe("isProvenEmptyBoardPage — 목록 상자", () => {
 });
 
 describe("isProvenEmptyBoardPage — 출처 JSON 스키마", () => {
+  it("중진공 행 위치와 페이지 구간이 모순되면 빈 결과를 수집 끝으로 쓰지 않는다", () => {
+    for (const change of [{ scopeRow: 999 }, { endRowNum: 0 }, { startPage: 999 }]) {
+      expect(isProvenEmptyBoardPage(JSON.stringify({ ...KOSMES_END, pageInfo: { ...KOSMES_END.pageInfo, ...change } }), kosmesConfig, 6)).toBe(false);
+    }
+  });
+  it("스마트공장 필수 복사본과 구간 메타가 빠지거나 어긋나면 끝이 아니다", () => {
+    expect(isProvenEmptyBoardPage(JSON.stringify({ paginationInfo: SF_PAGE, pbancList: [], key: "list" }), smartfactoryConfig, 7)).toBe(false);
+    for (const change of [{ pageBasic: "999" }, { endNumber: "0" }, { blockPage: "0" }]) {
+      const page = { ...SF_PAGE, ...change };
+      const copy = { paginationInfo: page, pbancList: [], key: "list" };
+      expect(isProvenEmptyBoardPage(JSON.stringify({ ...copy, modelAndView: { model: copy, modelMap: copy } }), smartfactoryConfig, 7)).toBe(false);
+    }
+  });
   it("다른 출처나 요청하지 않은 쪽의 응답을 수집 끝으로 쓰지 않는다", () => {
     expect(isProvenEmptyBoardPage(JSON.stringify(KOSMES_END), smartfactoryConfig, 6)).toBe(false);
     expect(isProvenEmptyBoardPage(JSON.stringify(KOSMES_END), kosmesConfig, 1)).toBe(false);

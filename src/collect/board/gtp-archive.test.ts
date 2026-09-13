@@ -103,6 +103,18 @@ describe("경기TP 지난 공고 기간 — 일반 파서는 그대로", () => {
 });
 
 describe("경기TP 지난 공고 기간 — 상세 칸", () => {
+  it("셀 하나가 사라진 마감 정책 행을 정상 행 옆에서 조용히 버리지 않는다", async () => {
+    const malformed = gtpRow({ id: "172316", title: TEN_CLOSED[0].title, period: "마감" }).replace("<td></td>", "");
+    const valid = gtpRow({ id: "172315", title: TEN_CLOSED[1].title, period: "2026-08-21 ~ 2026-09-11" });
+    await expect(readArchive(async (url) => url.startsWith(LIST)
+      ? gtpListHtml(malformed + valid)
+      : officialDetail("2026-08-07", "2026-08-31"))).rejects.toThrow(/지난 공고/);
+  });
+  it("기간 칸에 들어 있어도 범위로 연결되지 않은 두 날짜를 기간으로 만들지 않는다", async () => {
+    await expect(readArchive(async (url) => url.startsWith(LIST) ? closedList([TEN_CLOSED[0]])
+      : "<dl><dt>접수 기간</dt><dd>기준일 2026-08-07 및 게시일 2026-08-31</dd></dl>"))
+      .rejects.toThrow(/지난 공고/);
+  });
   it("실측 형식 마감 10줄의 제목·주소·기관·기간을 그대로 살린다", async () => {
     const fetched: string[] = [];
     const html = await readArchive(async (url) => {

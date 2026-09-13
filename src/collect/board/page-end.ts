@@ -69,7 +69,7 @@ function isProvenEmptyListHtml(html: string, cfg: BoardConfig): boolean {
       const body = table?.querySelector("tbody");
       const notice = table?.nextElementSibling;
       // 실응답은 빈 tbody 뒤, 표 바로 바깥의 no_list_size에 안내를 둔다.
-      if (table && body && !body.text.trim() && !body.querySelector("*") &&
+      if (table && body && !body.text.trim() && !body.childNodes.some(node => node.nodeType === 1) &&
           !hasAnnouncementLink(table) && notice?.classList.contains("no_list_size") &&
           !hasAnnouncementLink(notice) && /^등록된게시글이없습니다\.?$/.test(notice.text.replace(/\s+/g, ""))) return true;
     }
