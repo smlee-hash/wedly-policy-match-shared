@@ -489,7 +489,8 @@ describe("서울신용보증재단 — 게시판별 끝 다음 쪽", () => {
         const mng = u.searchParams.get("mng_cd") ?? "";
         const p = Number(u.searchParams.get("pageIndex"));
         if (mng === "STRY9788") return asPastEnd(endHtml, p, "STRY9788", 6, 60);
-        return bizHtml;
+        // 쪽마다 다른 글번호 — 실제 사이트처럼. 같은 응답을 되풀이하면 「마지막 쪽 되풀이」로 끝난다(2026-09-15).
+        return bizHtml.replace(/goView\('1', '(\d+)'\)/g, (_m, bno: string) => `goView('1', '${bno}${p}')`);
       }),
       { startPage: 13, pageBudget: 12 },
     );

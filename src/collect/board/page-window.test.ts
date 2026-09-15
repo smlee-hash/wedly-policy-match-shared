@@ -9,7 +9,7 @@ import { gwtpConfig, parseGwtpList } from "./sources/gwtp";
 import { kosmesConfig } from "./sources/kosmes";
 import { kotraConfig } from "./sources/kotra";
 import { smartfactoryConfig } from "./sources/smartfactory";
-import type { BoardConfig } from "./types";
+import type { BoardConfig, BoardRow } from "./types";
 
 const RSS = `<?xml version="1.0"?><rss><channel>
 <item><title>2026 지원사업 공고 피드1</title><link>https://x.kr/v/f1</link><pubDate>2026-08-01</pubDate></item>
@@ -677,4 +677,77 @@ describe("경기TP 지난 공고 창", () => {
     expect(out.announcements).toHaveLength(0);
     expect(fetched.some((url) => url.includes("webBusinessView.do"))).toBe(true);
   }, 500);
+});
+
+describe("끝 쪽 판정 보강", () => {
+  const pagingHtml = (pages: number[]) =>
+    `<div class="paging">${pages.map((n) => `<a>${n}</a>`).join("")}</div><table><tbody></tbody></table>`;
+  const endBoard = cfg({ skipHeuristic: true });
+
+  it("쪽 이동 최댓값이 출처 쪽보다 작고 그 번호가 없으면 beyond-last-page 이다", async () => {
+    const out = await fetchBoardWindow(endBoard, deps({ fetchText: async () => pagingHtml([1, 2]) }), { startPage: 3, pageBudget: 1 });
+    expect(out).toMatchObject({ reason: "beyond-last-page", complete: true, nextPage: 3, lastPageRead: 2 });
+  });
+
+  it("쪽 이동 상자에 그 쪽 번호가 있으면 beyond-last-page 가 아니다", async () => {
+    const out = await fetchBoardWindow(endBoard, deps({ fetchText: async () => pagingHtml([1, 2, 3]) }), { startPage: 3, pageBudget: 1 });
+    expect(out.reason).not.toBe("beyond-last-page");
+  });
+
+  it("1쪽은 beyond-last-page 가 아니다", async () => {
+    const out = await fetchBoardWindow(endBoard, deps({ fetchText: async () => pagingHtml([1, 2]) }), { startPage: 1, pageBudget: 1 });
+    expect(out.reason).not.toBe("beyond-last-page");
+  });
+
+  it("직전 쪽과 행 지문이 같으면 repeated-page 이다", async () => {
+    const out = await fetchBoardWindow(cfg(), deps({
+      fetchText: async (url) => pageOf(url) === 1 ? rowsHtml([4, 5, 6]) : rowsHtml([1, 2, 3]),
+    }), { startPage: 2, pageBudget: 3 });
+    expect(out).toMatchObject({ reason: "repeated-page", complete: true });
+    expect(out.announcements.map((a) => a.sourceId).sort()).toEqual([
+      "https://x.kr/v?id=1",
+      "https://x.kr/v?id=2",
+      "https://x.kr/v?id=3",
+    ]);
+    expect(out.lastPageKey).toEqual(expect.any(String));
+  });
+
+  it("lastPageKey 로 이어 받으면 첫 쪽부터 연속을 센다", async () => {
+    const probe = await fetchBoardWindow(cfg(), deps({ fetchText: async () => rowsHtml([1, 2, 3]) }), { startPage: 2, pageBudget: 1 });
+    expect(probe.lastPageKey).toEqual(expect.any(String));
+    const out = await fetchBoardWindow(cfg(), deps({ fetchText: async () => rowsHtml([1, 2, 3]) }), {
+      startPage: 2,
+      pageBudget: 2,
+      lastPageKey: probe.lastPageKey,
+    });
+    expect(out).toMatchObject({ reason: "repeated-page", complete: true, nextPage: 4 });
+  });
+
+  it("목록 상자만 있고 행이 없으면 empty-list 이다", async () => {
+    const out = await fetchBoardWindow(endBoard, deps({ fetchText: async () => "<table><tbody></tbody></table>" }), { startPage: 2, pageBudget: 2 });
+    expect(out).toMatchObject({ reason: "empty-list", complete: true });
+  });
+
+  it("로그인 폼이 있으면 행 없는 목록으로 끝내지 않는다", async () => {
+    const html = `<form action="/login"><input type="password" name="pw"></form><table><tbody></tbody></table>`;
+    const out = await fetchBoardWindow(endBoard, deps({ fetchText: async () => html }), { startPage: 2, pageBudget: 2 });
+    expect(out).toMatchObject({ complete: false, reason: "incomplete" });
+  });
+
+  it("0000 날짜만 있으면 empty-list 로 끝낸다", async () => {
+    const out = await fetchBoardWindow(endBoard, deps({
+      fetchText: async (url) => rowsHtml(pageOf(url) === 2 ? [1, 2, 3] : [4, 5, 6], "0000-00-00"),
+    }), { startPage: 2, pageBudget: 2 });
+    expect(out).toMatchObject({ reason: "empty-list", complete: true });
+  });
+
+  it("범위 안 JSON 거른 쪽은 읽은 쪽으로 세고 다음으로 간다", async () => {
+    const json = '{"paginationInfo":{"currentPageNo":2,"totalPageCount":5},"list":[{"a":1}]}';
+    const out = await fetchBoardWindow(
+      cfg({ skipHeuristic: true, customParse: (): BoardRow[] => [] }),
+      deps({ fetchText: async () => json }),
+      { startPage: 2, pageBudget: 1 },
+    );
+    expect(out).toMatchObject({ nextPage: 3, lastPageRead: 2, complete: false, reason: "page-budget", endStreak: 0 });
+  });
 });
