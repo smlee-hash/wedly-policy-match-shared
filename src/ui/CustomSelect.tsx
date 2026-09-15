@@ -60,6 +60,27 @@ interface CustomSelectProps {
 }
 
 /**
+ * 목록 위 휠 굴림을 목록 자신이 직접 처리한다(2026-09-15, 독립 리뷰 잔여 위험 ②를 운영 실측으로 확인).
+ *
+ * Radix 모달의 스크롤 잠금(react-remove-scroll)은 body 로 포털된 이 목록을 「바깥」으로 보고,
+ * 한 번의 휠 굴림(delta)이 목록에 **남은 스크롤 여유보다 크면** 그 휠 이벤트를 통째로 취소한다
+ * (운영 실측: 사유 9개 = 여유 94px, 마우스 휠 한 칸 100px → 취소 → 8·9번째 항목에 못 내려간다).
+ * 그래서 굴릴 수 있는 만큼은 여기서 직접 옮기고 기본 동작을 막는다 — 잠금 장치가 뒤에서
+ * 취소해도 이미 옮긴 뒤라 결과가 같다. 끝에 닿아 더 못 옮기면 손대지 않아(기본 동작 유지)
+ * 모달 밖에서는 종전처럼 바깥 화면으로 굴림이 이어진다. 가로 휠·확대(ctrl)는 건드리지 않는다.
+ */
+export function scrollListboxByWheel(event: WheelEvent): void {
+  const ul = event.currentTarget as HTMLUListElement | null;
+  if (!ul || event.ctrlKey || event.deltaY === 0) return;
+  const step = event.deltaMode === 1 ? 20 : event.deltaMode === 2 ? ul.clientHeight : 1;
+  const max = Math.max(0, ul.scrollHeight - ul.clientHeight);
+  const next = Math.min(max, Math.max(0, ul.scrollTop + event.deltaY * step));
+  if (next === ul.scrollTop) return;
+  ul.scrollTop = next;
+  event.preventDefault();
+}
+
+/**
  * 열린 목록(`ul[role=listbox]`) 자체. `document.body` 로 포털되어 나가므로 **여는 단추가 어디에
  * 있든** 화면 맨 위층에 뜬다.
  *
@@ -84,9 +105,24 @@ export function CustomSelectListbox({
   pos: AnchoredPosition;
   children: React.ReactNode;
 }) {
+  const ulRef = useRef<HTMLUListElement | null>(null);
+  const setRefs = useCallback(
+    (node: HTMLUListElement | null) => {
+      ulRef.current = node;
+      if (typeof menuRef === "function") menuRef(node);
+      else if (menuRef) (menuRef as React.MutableRefObject<HTMLUListElement | null>).current = node;
+    },
+    [menuRef],
+  );
+  useEffect(() => {
+    const ul = ulRef.current;
+    if (!ul) return;
+    ul.addEventListener("wheel", scrollListboxByWheel, { passive: false });
+    return () => ul.removeEventListener("wheel", scrollListboxByWheel);
+  }, []);
   return (
     <ul
-      ref={menuRef}
+      ref={setRefs}
       id={id}
       role="listbox"
       style={{

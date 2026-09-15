@@ -1,6 +1,6 @@
 {
   "name": "@wedly/policy-match-shared",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "WEDLY 정책매칭·자금 조달 지도 공용 보관함 — 판정 엔진·자금 규칙·지도 조립·화면 부품을 ERP·일루아가 같은 커밋으로 함께 쓴다",
   "private": true,
   "type": "module",

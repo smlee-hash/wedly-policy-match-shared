@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { CustomSelectListbox } from "./CustomSelect";
+import { CustomSelectListbox, scrollListboxByWheel } from "./CustomSelect";
 
 /**
  * 열린 목록(`ul[role=listbox]`)을 그려서 재는 시험.
@@ -57,5 +57,42 @@ describe("CustomSelectListbox — 포털된 목록은 모달 아래에서도 눌
     const style = ul속성(up, "style");
     expect(style).toContain("bottom:30px");
     expect(style).not.toContain("top:");
+  });
+});
+
+/**
+ * 휠 처리기는 브라우저 없이 가짜 목록·가짜 이벤트로 잰다 — 옮길 수 있으면 옮기고 기본 동작을 막고,
+ * 끝에 닿아 못 옮기면 아무것도 안 한다(모달 밖 굴림 이어짐 유지).
+ */
+function 가짜휠(ul: { scrollTop: number; scrollHeight: number; clientHeight: number }, deltaY: number, extra: Partial<WheelEvent> = {}) {
+  let prevented = false;
+  const ev = { currentTarget: ul, deltaY, deltaMode: 0, ctrlKey: false, ...extra, preventDefault: () => { prevented = true; } } as unknown as WheelEvent;
+  scrollListboxByWheel(ev);
+  return { prevented, scrollTop: ul.scrollTop };
+}
+
+describe("scrollListboxByWheel — 잠금 장치가 취소하기 전에 목록이 스스로 굴린다", () => {
+  it("여유(94px)보다 큰 한 칸(100px)도 끝까지는 옮기고 기본 동작을 막는다 — 사유 9개 실측 값", () => {
+    const ul = { scrollTop: 0, scrollHeight: 332, clientHeight: 238 };
+    expect(가짜휠(ul, 100)).toEqual({ prevented: true, scrollTop: 94 });
+  });
+
+  it("끝에 닿은 뒤 같은 방향으로 더 굴리면 손대지 않는다(바깥 굴림 이어짐 유지)", () => {
+    const ul = { scrollTop: 94, scrollHeight: 332, clientHeight: 238 };
+    expect(가짜휠(ul, 100)).toEqual({ prevented: false, scrollTop: 94 });
+  });
+
+  it("위로 굴리면 0 아래로는 안 내려가고, 맨 위에서는 손대지 않는다", () => {
+    expect(가짜휠({ scrollTop: 30, scrollHeight: 332, clientHeight: 238 }, -100)).toEqual({ prevented: true, scrollTop: 0 });
+    expect(가짜휠({ scrollTop: 0, scrollHeight: 332, clientHeight: 238 }, -100)).toEqual({ prevented: false, scrollTop: 0 });
+  });
+
+  it("줄 단위(deltaMode 1)는 20px 로 환산하고, ctrl 휠(확대)은 건드리지 않는다", () => {
+    expect(가짜휠({ scrollTop: 0, scrollHeight: 332, clientHeight: 238 }, 3, { deltaMode: 1 })).toEqual({ prevented: true, scrollTop: 60 });
+    expect(가짜휠({ scrollTop: 0, scrollHeight: 332, clientHeight: 238 }, 100, { ctrlKey: true })).toEqual({ prevented: false, scrollTop: 0 });
+  });
+
+  it("다 보이는 짧은 목록(여유 0)은 아무것도 안 한다", () => {
+    expect(가짜휠({ scrollTop: 0, scrollHeight: 120, clientHeight: 238 }, 100)).toEqual({ prevented: false, scrollTop: 0 });
   });
 });
