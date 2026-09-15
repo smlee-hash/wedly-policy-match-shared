@@ -320,6 +320,10 @@ export async function fetchBoardWindow(
         if (hasValidFilteredOutRows(primaryHtml, cfg, page)) {
           lastPageRead = page;
           endStreak = 0;
+          if (key) {
+            lastPageKey = key;
+            prevKey = key;
+          }
           continue;
         }
         if (page > 1 && isBeyondLastPage(primaryHtml, cfg, page)) {

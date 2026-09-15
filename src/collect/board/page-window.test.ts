@@ -737,6 +737,14 @@ describe("끝 쪽 판정 보강", () => {
     expect(out).toMatchObject({ reason: "repeated-page", complete: true, nextPage: 4 });
   });
 
+  it("거른 쪽이 되풀이되면 repeated-page 로 끝낸다", async () => {
+    const board = cfg({ skipHeuristic: true, customParse: (): BoardRow[] => [] });
+    const out = await fetchBoardWindow(board, deps({ fetchText: async () => rowsHtml([1, 2, 3]) }), { startPage: 2, pageBudget: 3 });
+    expect(out).toMatchObject({ reason: "repeated-page", complete: true, nextPage: 5 });
+    const one = await fetchBoardWindow(board, deps({ fetchText: async () => rowsHtml([1, 2, 3]) }), { startPage: 2, pageBudget: 1 });
+    expect(typeof one.lastPageKey).toBe("string");
+  });
+
   it("incomplete 창은 소비하지 않은 쪽의 지문을 lastPageKey 에 남기지 않는다", async () => {
     const errorHtml = "<div>오류</div>";
     const page2Html = rowsHtml([1, 2, 3]);
