@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useId } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredPosition } from "@wedly/ui-shared/ui/useAnchoredPosition";
+import type { AnchoredPosition } from "@wedly/ui-shared/ui/anchoredPosition";
 import { cn } from "@wedly/ui-shared/ui/cn";
 import {
   nextIndex,
@@ -56,6 +57,51 @@ interface CustomSelectProps {
   id?: string;
   /** 눈에 보이는 라벨을 못 붙이는 자리용 이름. */
   "aria-label"?: string;
+}
+
+/**
+ * 열린 목록(`ul[role=listbox]`) 자체. `document.body` 로 포털되어 나가므로 **여는 단추가 어디에
+ * 있든** 화면 맨 위층에 뜬다.
+ *
+ * ★`pointerEvents: "auto"` 를 명시하는 이유(2026-09-15, 컨설팅 업무 현황 「사유」 칸 실측):
+ *  ERP 는 이 부품을 Radix `Dialog`(모달) 안에서도 쓴다. Radix 모달은 열려 있는 동안
+ *  `body { pointer-events: none }` 을 걸고 자기 내용 상자에만 `pointer-events: auto` 를 준다.
+ *  이 목록은 body 바로 아래로 포털되어 그 `none` 을 **상속**하므로, 눈에는 보이는데 누르면
+ *  클릭이 목록을 통과해 아래 모달 본문에 떨어지고(`elementFromPoint` 실측), 바깥 클릭 처리기가
+ *  목록을 닫아 버린다 — 「사유를 고를 수 없다」(NO. 기한 설정 후 사유 선택 불가, 2026-09-15).
+ *  모달 밖에서는 body 가 `auto` 라 이 값이 있으나 없으나 같다(기본 불변).
+ *  선택 자체는 React 트리 기준으로 모달 안이므로(포털이어도 React 이벤트는 트리를 따른다)
+ *  Radix 의 「바깥 누름」 판정에 걸리지 않는다 — 그래서 여기 한 줄로 끝난다.
+ */
+export function CustomSelectListbox({
+  menuRef,
+  id,
+  pos,
+  children,
+}: {
+  menuRef: React.Ref<HTMLUListElement>;
+  id: string;
+  pos: AnchoredPosition;
+  children: React.ReactNode;
+}) {
+  return (
+    <ul
+      ref={menuRef}
+      id={id}
+      role="listbox"
+      style={{
+        position: "fixed",
+        pointerEvents: "auto",
+        left: pos.left,
+        width: pos.width,
+        maxHeight: pos.maxHeight,
+        ...(pos.placement === "down" ? { top: pos.top } : { bottom: pos.bottom }),
+      }}
+      className="z-[100] bg-white border border-wedly-bd rounded-xl shadow-lg overflow-auto py-1"
+    >
+      {children}
+    </ul>
+  );
 }
 
 export default function CustomSelect({
@@ -328,24 +374,12 @@ export default function CustomSelect({
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
       </svg>
       {isOpen && pos && createPortal(
-        <ul
-          ref={menuRef}
-          id={menuId}
-          role="listbox"
-          style={{
-            position: "fixed",
-            left: pos.left,
-            width: pos.width,
-            maxHeight: pos.maxHeight,
-            ...(pos.placement === "down" ? { top: pos.top } : { bottom: pos.bottom }),
-          }}
-          className="z-[100] bg-white border border-wedly-bd rounded-xl shadow-lg overflow-auto py-1"
-        >
+        <CustomSelectListbox menuRef={menuRef} id={menuId} pos={pos}>
           {renderOptions()}
           {options.length === 0 && (
             <li role="presentation" className="px-3 py-2 text-sm text-wedly-muted text-center">옵션이 없습니다</li>
           )}
-        </ul>,
+        </CustomSelectListbox>,
         document.body,
       )}
     </div>
