@@ -135,20 +135,17 @@ function sitePageOf(cfg: BoardConfig, page: number): number | null {
 }
 
 const PAGINATION_BOX = /pag(e|ing|ination)?/i;
+const PAGE_MARKER_TAGS = ["a", "button", "strong", "span", "em", "b", "li"] as const;
 
 function addLinkPageNums(el: HTMLElement, pages: Set<number>): void {
+  const addIfPageNum = (node: HTMLElement): void => {
+    const text = node.text.trim();
+    if (/^\d{1,5}$/.test(text)) pages.add(Number(text));
+  };
   const tag = (el.tagName ?? "").toLowerCase();
-  if (tag === "a" || tag === "button") {
-    const text = el.text.trim();
-    if (/^\d{1,5}$/.test(text)) pages.add(Number(text));
-  }
-  for (const node of el.querySelectorAll("a")) {
-    const text = node.text.trim();
-    if (/^\d{1,5}$/.test(text)) pages.add(Number(text));
-  }
-  for (const node of el.querySelectorAll("button")) {
-    const text = node.text.trim();
-    if (/^\d{1,5}$/.test(text)) pages.add(Number(text));
+  if ((PAGE_MARKER_TAGS as readonly string[]).includes(tag)) addIfPageNum(el);
+  for (const name of PAGE_MARKER_TAGS) {
+    for (const node of el.querySelectorAll(name)) addIfPageNum(node);
   }
 }
 
@@ -184,16 +181,20 @@ function isBeyondLastPage(html: string, cfg: BoardConfig, page: number): boolean
 function pageKeyOf(html: string, cfg: BoardConfig): string | null {
   try {
     const rows = extractBySelector(html, cfg);
-    if (rows.length >= 1) {
-      return sha256Hex(rows.map((row) => `${row.detailUrl}\n${row.title}`).sort().join("\n"));
-    }
-    const containers = listBoundContainers(html, cfg);
-    if (!containers) return null;
-    const text = containers.map((node) => node.text.replace(/\s+/g, "")).join("");
-    if (!text) return null;
-    return sha256Hex(text);
+    if (rows.length < 1) return null;
+    return sha256Hex(rows.map((row) => `${row.detailUrl}\n${row.title}`).sort().join("\n"));
   } catch {
     return null;
+  }
+}
+
+/** JSON 범위 안이어도 customParse 가 0행일 때만 거른 쪽으로 본다. 1행 이상이면 검증 실패다. */
+function isJsonFilteredEmptyPage(html: string, cfg: BoardConfig, page: number): boolean {
+  if (!cfg.customParse || !isJsonListPageWithinRange(html, page)) return false;
+  try {
+    return cfg.customParse(html, page).length === 0;
+  } catch {
+    return false;
   }
 }
 
@@ -302,13 +303,10 @@ export async function fetchBoardWindow(
         continue;
       }
       if (primaryHtml !== undefined) {
-        if (isJsonListPageWithinRange(primaryHtml, page)) {
+        if (isJsonFilteredEmptyPage(primaryHtml, cfg, page)) {
           lastPageRead = page;
           endStreak = 0;
           continue;
-        }
-        if (page > 1 && isBeyondLastPage(primaryHtml, cfg, page)) {
-          return result(page, true, "beyond-last-page");
         }
         const key = pageKeyOf(primaryHtml, cfg);
         if (page > 1 && key && prevKey && key === prevKey) {
@@ -319,21 +317,23 @@ export async function fetchBoardWindow(
           if (endStreak >= endAfter) return result(page + 1, true, "repeated-page");
           continue;
         }
-        if (page > 1 && isRowlessListPage(primaryHtml, cfg)) {
+        if (hasValidFilteredOutRows(primaryHtml, cfg, page)) {
+          lastPageRead = page;
+          endStreak = 0;
+          continue;
+        }
+        if (page > 1 && isBeyondLastPage(primaryHtml, cfg, page)) {
           lastPageRead = page;
           endStreak += 1;
-          if (key) {
-            lastPageKey = key;
-            prevKey = key;
-          }
+          if (endStreak >= endAfter) return result(page + 1, true, "beyond-last-page");
+          continue;
+        }
+        if (page > 1 && isRowlessListPage(primaryHtml, cfg) && paginationLinkPages(primaryHtml).length >= 1) {
+          lastPageRead = page;
+          endStreak += 1;
           if (endStreak >= endAfter) return result(page + 1, true, "empty-list");
           continue;
         }
-      }
-      if (primaryHtml !== undefined && hasValidFilteredOutRows(primaryHtml, cfg, page)) {
-        lastPageRead = page;
-        endStreak = 0;
-        continue;
       }
       return result(page, false, "incomplete");
     }

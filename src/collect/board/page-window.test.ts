@@ -685,8 +685,9 @@ describe("끝 쪽 판정 보강", () => {
   const endBoard = cfg({ skipHeuristic: true });
 
   it("쪽 이동 최댓값이 출처 쪽보다 작고 그 번호가 없으면 beyond-last-page 이다", async () => {
+    // 즉시 완료하지 않고 빈 쪽처럼 endStreak 를 올린다. 한 쪽만이면 예산 소진이다.
     const out = await fetchBoardWindow(endBoard, deps({ fetchText: async () => pagingHtml([1, 2]) }), { startPage: 3, pageBudget: 1 });
-    expect(out).toMatchObject({ reason: "beyond-last-page", complete: true, nextPage: 3, lastPageRead: 2 });
+    expect(out).toMatchObject({ reason: "page-budget", complete: false, nextPage: 4, lastPageRead: 3, endStreak: 1 });
   });
 
   it("쪽 이동 상자에 그 쪽 번호가 있으면 beyond-last-page 가 아니다", async () => {
@@ -755,8 +756,9 @@ describe("끝 쪽 판정 보강", () => {
   });
 
   it("목록 상자만 있고 행이 없으면 empty-list 이다", async () => {
+    // 쪽 이동 상자 숫자가 없으면 행 없는 목록으로 끝내지 않는다(점검·차단 안내와 구분).
     const out = await fetchBoardWindow(endBoard, deps({ fetchText: async () => "<table><tbody></tbody></table>" }), { startPage: 2, pageBudget: 2 });
-    expect(out).toMatchObject({ reason: "empty-list", complete: true });
+    expect(out).toMatchObject({ reason: "incomplete", complete: false, nextPage: 2 });
   });
 
   it("로그인 폼이 있으면 행 없는 목록으로 끝내지 않는다", async () => {
@@ -766,10 +768,11 @@ describe("끝 쪽 판정 보강", () => {
   });
 
   it("0000 날짜만 있으면 empty-list 로 끝낸다", async () => {
+    // 쪽 이동 상자 숫자가 없으면 0000 날짜 행만으로 끝내지 않는다.
     const out = await fetchBoardWindow(endBoard, deps({
       fetchText: async (url) => rowsHtml(pageOf(url) === 2 ? [1, 2, 3] : [4, 5, 6], "0000-00-00"),
     }), { startPage: 2, pageBudget: 2 });
-    expect(out).toMatchObject({ reason: "empty-list", complete: true });
+    expect(out).toMatchObject({ reason: "incomplete", complete: false, nextPage: 2 });
   });
 
   it("범위 안 JSON 거른 쪽은 읽은 쪽으로 세고 다음으로 간다", async () => {
@@ -780,5 +783,48 @@ describe("끝 쪽 판정 보강", () => {
       { startPage: 2, pageBudget: 1 },
     );
     expect(out).toMatchObject({ nextPage: 3, lastPageRead: 2, complete: false, reason: "page-budget", endStreak: 0 });
+  });
+
+  it("블록 끝 쪽에서 customParse 0행이면 beyond-last-page 가 아니고 진행한다", async () => {
+    const board = cfg({
+      skipHeuristic: true,
+      customParse: (_html, page) => page === 5 ? [] : [{
+        title: "실제 지원사업 공고",
+        detailUrl: `https://x.kr/v?id=${page}`,
+        dateText: "2026-08-01",
+      }],
+    });
+    const paging = `<div class="board-page"><a>1</a><a>2</a><a>3</a><a>4</a><strong>5</strong><a>다음페이지</a></div>`;
+    const out = await fetchBoardWindow(board, deps({
+      fetchText: async (url) => rowsHtml([pageOf(url)]) + paging,
+    }), { startPage: 4, pageBudget: 3 });
+    expect(out).toMatchObject({ complete: false, nextPage: 7 });
+  });
+
+  it("표만 있는 점검 화면은 연속이어도 incomplete 이다", async () => {
+    const html = "<table><tbody><tr><td>서비스 점검 중입니다.</td></tr></tbody></table>";
+    const out = await fetchBoardWindow(endBoard, deps({ fetchText: async () => html }), { startPage: 41, pageBudget: 3 });
+    expect(out).toMatchObject({ reason: "incomplete", complete: false, nextPage: 41 });
+  });
+
+  it("JSON 범위 안이어도 customParse 검증 실패 쪽은 incomplete 이다", async () => {
+    const json = (p: number) => JSON.stringify({
+      pageInfo: { nowPage: p, maxPage: 5 },
+      ds_infoList: [{ SLNO: "1", TITL_NM: "실제 지원사업 공고" }],
+    });
+    const out = await fetchBoardWindow(
+      kosmesConfig,
+      deps({ fetchText: async () => json(2) }),
+      { startPage: 2, pageBudget: 2 },
+    );
+    expect(out).toMatchObject({ reason: "incomplete", complete: false, nextPage: 2 });
+  });
+
+  it("beyond-last-page 는 연속 빈 쪽에서만 완료한다", async () => {
+    const d = deps({ fetchText: async () => pagingHtml([1, 2]) });
+    const both = await fetchBoardWindow(endBoard, d, { startPage: 3, pageBudget: 3 });
+    expect(both).toMatchObject({ complete: true, reason: "beyond-last-page", nextPage: 5, endStreak: 2 });
+    const one = await fetchBoardWindow(endBoard, d, { startPage: 3, pageBudget: 1 });
+    expect(one).toMatchObject({ complete: false, reason: "page-budget", endStreak: 1 });
   });
 });
