@@ -9,7 +9,7 @@ import type { BoardConfig } from "./types";
  * 본문·바닥글·로그인 껍데기의 같은 글자는 상자가 없으면 인정하지 않는다.
  */
 const EMPTY_LIST_TEXT =
-  /(?:등록된|검색된|조회된)?(?:게시물|게시글|공고|자료|데이터)(?:이|가)?(?:없습니다|존재하지않습니다)|(?:검색|조회)결과가?(?:없습니다|존재하지않습니다)|해당되는결과가존재하지않습니다|등록된글이없습니다|데이터가존재하지않습니다/;
+  /(?:등록된|검색된|조회된)?(?:게시물|게시글|공고|자료|데이터)(?:이|가|이\(가\)|\(이\)|\(가\))?(?:없습니다|존재하지않습니다)|(?:검색|조회)결과가?(?:없습니다|존재하지않습니다)|해당되는결과가존재하지않습니다|등록된글이없습니다|데이터가존재하지않습니다/;
 
 const LIST_ITEM_TAIL = /(?:\s*>\s*|\s+)(?:tr|li|a)(?:[.#][\w-]+)*$/;
 
@@ -215,22 +215,116 @@ function isSmartfactoryListEndJson(root: Record<string, unknown>): boolean {
   return true;
 }
 
-function isProvenSourceJsonEnd(text: string, source: string, requestedPage?: number): boolean {
-  if (!Number.isSafeInteger(requestedPage) || requestedPage! < 1) return false;
+const GENERIC_PAGE_META_KEYS = ["paginationInfo", "pagingInfoVO", "pageInfo", "paging", "pagination"] as const;
+const GENERIC_CURRENT_PAGE_KEYS = ["currentPageNo", "currentPage", "nowPage", "pageNo", "pageIndex"] as const;
+const GENERIC_TOTAL_PAGE_KEYS = ["totalPageCount", "totalPage", "totalPages", "maxPage", "lastPageNo"] as const;
+const GENERIC_JSON_SUCCESS_CODES = new Set(["0", "00", "200", "OK", "SUCCESS"]);
+
+function firstRecord(obj: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> | null {
+  for (const key of keys) {
+    const rec = asRecord(obj[key]);
+    if (rec) return rec;
+  }
+  return null;
+}
+
+function firstSafeInteger(obj: Record<string, unknown>, keys: readonly string[]): number | null {
+  for (const key of keys) {
+    const n = finiteNumber(obj[key]);
+    if (n !== null && Number.isSafeInteger(n)) return n;
+  }
+  return null;
+}
+
+function isGenericJsonSuccessCode(value: unknown): boolean {
+  if (value === null || value === undefined || typeof value === "object") return false;
+  return GENERIC_JSON_SUCCESS_CODES.has(String(value).trim().toUpperCase());
+}
+
+function isPresentNonEmptyJsonValue(value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim() !== "";
+  if (Array.isArray(value)) return value.length > 0;
+  const rec = asRecord(value);
+  if (rec) return Object.keys(rec).length > 0;
+  return true;
+}
+
+function hasGenericJsonError(root: Record<string, unknown>): boolean {
+  if ("resultCode" in root && !isGenericJsonSuccessCode(root.resultCode)) return true;
+  if ("resultCd" in root && !isGenericJsonSuccessCode(root.resultCd)) return true;
+  return ["error", "errors", "errorCode"].some(
+    (key) => key in root && isPresentNonEmptyJsonValue(root[key]),
+  );
+}
+
+function collectJsonListArrays(root: Record<string, unknown>): unknown[][] {
+  const out: unknown[][] = [];
+  for (const value of Object.values(root)) {
+    if (Array.isArray(value)) out.push(value);
+    const rec = asRecord(value);
+    if (!rec) continue;
+    for (const inner of Object.values(rec)) {
+      if (Array.isArray(inner)) out.push(inner);
+    }
+  }
+  return out;
+}
+
+function genericJsonPageMeta(root: Record<string, unknown>): { current: number; total: number } | null {
+  const page = firstRecord(root, GENERIC_PAGE_META_KEYS);
+  if (!page) return null;
+  const current = firstSafeInteger(page, GENERIC_CURRENT_PAGE_KEYS);
+  const total = firstSafeInteger(page, GENERIC_TOTAL_PAGE_KEYS);
+  if (current === null || total === null || current < 1 || total < 1) return null;
+  return { current, total };
+}
+
+/** 일반 JSON 목록 — 요청 쪽이 전체 쪽을 넘고 최상위·1단계 배열이 모두 비어 있을 때만. */
+function isGenericJsonListEnd(root: Record<string, unknown>, requestedPage: number): boolean {
+  if (hasGenericJsonError(root)) return false;
+  const meta = genericJsonPageMeta(root);
+  if (!meta) return false;
+  if (meta.current !== requestedPage || meta.current <= meta.total) return false;
+  return collectJsonListArrays(root).every((arr) => arr.length === 0);
+}
+
+function parseJsonRecord(text: string): Record<string, unknown> | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text.replace(/^\uFEFF/, "").trim());
   } catch {
-    return false;
+    return null;
   }
-  const root = asRecord(parsed);
+  return asRecord(parsed);
+}
+
+/**
+ * JSON 목록이 요청 쪽 구간 안에 항목을 가진다.
+ * customParse 가 0행을 내도 수집을 끝내지 않을 때 쓴다.
+ */
+export function isJsonListPageWithinRange(text: string, requestedPage?: number): boolean {
+  if (!looksLikeJson(text) || !Number.isSafeInteger(requestedPage) || requestedPage! < 1) return false;
+  const root = parseJsonRecord(text);
+  if (!root || hasGenericJsonError(root)) return false;
+  const meta = genericJsonPageMeta(root);
+  if (!meta) return false;
+  if (meta.current !== requestedPage || meta.current > meta.total) return false;
+  return collectJsonListArrays(root).some((arr) => arr.length >= 1);
+}
+
+function isProvenSourceJsonEnd(text: string, source: string, requestedPage?: number): boolean {
+  if (!Number.isSafeInteger(requestedPage) || requestedPage! < 1) return false;
+  const root = parseJsonRecord(text);
   if (!root) return false;
-  if ([root, asRecord(root.modelAndView), asRecord(asRecord(root.modelAndView)?.model),
-    asRecord(asRecord(root.modelAndView)?.modelMap)].some(value => value &&
-      (["error", "errors", "errorCode", "resultCd", "resultMsg"].some(key => key in value) || value.success === false))) return false;
-  if (source === "kosmes") return finiteNumber(asRecord(root.pageInfo)?.nowPage) === requestedPage && isKosmesListEndJson(root);
-  if (source === "smartfactory") return finiteNumber(asRecord(root.paginationInfo)?.currentPage) === requestedPage && isSmartfactoryListEndJson(root);
-  return false;
+  if (source === "kosmes" || source === "smartfactory") {
+    if ([root, asRecord(root.modelAndView), asRecord(asRecord(root.modelAndView)?.model),
+      asRecord(asRecord(root.modelAndView)?.modelMap)].some(value => value &&
+        (["error", "errors", "errorCode", "resultCd", "resultMsg"].some(key => key in value) || value.success === false))) return false;
+    if (source === "kosmes") return finiteNumber(asRecord(root.pageInfo)?.nowPage) === requestedPage && isKosmesListEndJson(root);
+    return finiteNumber(asRecord(root.paginationInfo)?.currentPage) === requestedPage && isSmartfactoryListEndJson(root);
+  }
+  return isGenericJsonListEnd(root, requestedPage!);
 }
 
 /**

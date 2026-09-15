@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isProvenEmptyBoardPage } from "./page-end";
+import { isJsonListPageWithinRange, isProvenEmptyBoardPage } from "./page-end";
 import { ansanConfig } from "./sources/ansan";
 import { gtpConfig } from "./sources/gtp";
 import { gwsinboConfig } from "./sources/gwsinbo";
@@ -200,5 +200,59 @@ describe("isProvenEmptyBoardPage — 출처 JSON 스키마", () => {
     }), smartfactoryConfig, 7)).toBe(false);
     expect(isProvenEmptyBoardPage(JSON.stringify({ items: [] }), kosmesConfig, 6)).toBe(false);
     expect(isProvenEmptyBoardPage("[]", smartfactoryConfig, 7)).toBe(false);
+  });
+});
+
+describe("isProvenEmptyBoardPage — 조사 변형·일반 JSON 끝", () => {
+  const generic = board("tbody tr");
+  const mnd = board("table.board-table tbody tr");
+  const mndEmpty = (msg: string) =>
+    `<table class="board-table"><tbody><tr><td colspan="5">${msg}</td></tr></tbody></table>`;
+  const icsinboEnd = '{"brdList":[],"pagingInfoVO":{"currentPageNo":49,"totalPageCount":48},"siteVo":null,"menuInfo":{}}';
+  const seseEnd = '{"noticeList":[],"resultCode":"0","paginationInfo":{"currentPageNo":421,"totalPageCount":420},"resultList":[],"resultMsg":"리스트 출력"}';
+  const keitPage = '{"paginationInfo":{"currentPageNo":79,"totalPageCount":83},"list":[{"ancmId":"000065","ancmTl":"지정공모","ancmDe":"1998-05-25"}]}';
+
+  it("국방부형 게시물이(가) 없습니다 빈 표를 끝으로 본다", () => {
+    expect(isProvenEmptyBoardPage(mndEmpty("게시물이(가) 없습니다."), mnd, 9)).toBe(true);
+    expect(isProvenEmptyBoardPage(mndEmpty("게시물(이) 없습니다."), mnd, 9)).toBe(true);
+    expect(isProvenEmptyBoardPage(mndEmpty("게시물(가) 없습니다."), mnd, 9)).toBe(true);
+    expect(isProvenEmptyBoardPage(mndEmpty("게시물이 없습니다."), mnd, 9)).toBe(true);
+    expect(isProvenEmptyBoardPage(
+      `<table class="board-table"><tbody><tr><td colspan="5">게시물이(가) 없습니다.</td></tr><tr><td><a href="/v/1">공고</a></td></tr></tbody></table>`,
+      mnd,
+      9,
+    )).toBe(false);
+  });
+
+  it("인천신보형 pagingInfoVO 가 전체 쪽을 넘고 목록이 비면 끝이다", () => {
+    expect(isProvenEmptyBoardPage(icsinboEnd, generic, 49)).toBe(true);
+    expect(isProvenEmptyBoardPage(icsinboEnd, generic, 48)).toBe(false);
+    expect(isProvenEmptyBoardPage(
+      '{"brdList":[{"id":1}],"pagingInfoVO":{"currentPageNo":49,"totalPageCount":48},"siteVo":null,"menuInfo":{}}',
+      generic,
+      49,
+    )).toBe(false);
+  });
+
+  it("사회적기업진흥원형 resultCode 0 과 빈 목록을 끝으로 본다", () => {
+    expect(isProvenEmptyBoardPage(seseEnd, generic, 421)).toBe(true);
+    expect(isProvenEmptyBoardPage(seseEnd.replace('"0"', '"-1"'), generic, 421)).toBe(false);
+  });
+
+  it("산업기술평가원형 범위 안 JSON 은 끝이 아니고 진행 범위다", () => {
+    expect(isProvenEmptyBoardPage(keitPage, generic, 79)).toBe(false);
+    expect(isJsonListPageWithinRange(keitPage, 79)).toBe(true);
+    expect(isJsonListPageWithinRange(keitPage, 80)).toBe(false);
+    expect(isJsonListPageWithinRange(
+      '{"paginationInfo":{"currentPageNo":79,"totalPageCount":83},"list":[]}',
+      79,
+    )).toBe(false);
+  });
+
+  it("쪽 메타 없는 JSON 배열은 끝도 범위도 아니다", () => {
+    expect(isProvenEmptyBoardPage("[]", generic, 2)).toBe(false);
+    expect(isProvenEmptyBoardPage('{"list":[]}', generic, 2)).toBe(false);
+    expect(isJsonListPageWithinRange("[]", 2)).toBe(false);
+    expect(isJsonListPageWithinRange('{"list":[]}', 2)).toBe(false);
   });
 });
