@@ -119,6 +119,8 @@ function listBoundContainers(html: string, cfg: BoardConfig): HTMLElement[] | nu
   return items.length > 0 ? items : null;
 }
 
+export { isAuthChallengeHtml, listBoundContainers };
+
 function isProvenEmptyListHtml(html: string, cfg: BoardConfig, requestedPage?: number): boolean {
   try {
     if (isAuthChallengeHtml(html)) return false;
