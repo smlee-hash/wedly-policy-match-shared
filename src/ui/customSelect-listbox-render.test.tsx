@@ -64,7 +64,18 @@ describe("CustomSelectListbox — 포털된 목록은 모달 아래에서도 눌
  * 휠 처리기는 브라우저 없이 가짜 목록·가짜 이벤트로 잰다 — 옮길 수 있으면 옮기고 기본 동작을 막고,
  * 끝에 닿아 못 옮기면 아무것도 안 한다(모달 밖 굴림 이어짐 유지).
  */
-function 가짜휠(ul: { scrollTop: number; scrollHeight: number; clientHeight: number }, deltaY: number, extra: Partial<WheelEvent> = {}) {
+function 가짜목록(scrollTop: number, scrollHeight: number, clientHeight: number) {
+  // 브라우저처럼 scrollTop 대입을 0~(scrollHeight-clientHeight) 로 자른다.
+  let top = scrollTop;
+  return {
+    scrollHeight,
+    clientHeight,
+    get scrollTop() { return top; },
+    set scrollTop(v: number) { top = Math.min(Math.max(0, scrollHeight - clientHeight), Math.max(0, v)); },
+  };
+}
+
+function 가짜휠(ul: ReturnType<typeof 가짜목록>, deltaY: number, extra: Partial<WheelEvent> = {}) {
   let prevented = false;
   const ev = { currentTarget: ul, deltaY, deltaMode: 0, ctrlKey: false, ...extra, preventDefault: () => { prevented = true; } } as unknown as WheelEvent;
   scrollListboxByWheel(ev);
@@ -73,26 +84,35 @@ function 가짜휠(ul: { scrollTop: number; scrollHeight: number; clientHeight: 
 
 describe("scrollListboxByWheel — 잠금 장치가 취소하기 전에 목록이 스스로 굴린다", () => {
   it("여유(94px)보다 큰 한 칸(100px)도 끝까지는 옮기고 기본 동작을 막는다 — 사유 9개 실측 값", () => {
-    const ul = { scrollTop: 0, scrollHeight: 332, clientHeight: 238 };
+    const ul = 가짜목록(0, 332, 238);
     expect(가짜휠(ul, 100)).toEqual({ prevented: true, scrollTop: 94 });
   });
 
   it("끝에 닿은 뒤 같은 방향으로 더 굴리면 손대지 않는다(바깥 굴림 이어짐 유지)", () => {
-    const ul = { scrollTop: 94, scrollHeight: 332, clientHeight: 238 };
+    const ul = 가짜목록(94, 332, 238);
     expect(가짜휠(ul, 100)).toEqual({ prevented: false, scrollTop: 94 });
   });
 
   it("위로 굴리면 0 아래로는 안 내려가고, 맨 위에서는 손대지 않는다", () => {
-    expect(가짜휠({ scrollTop: 30, scrollHeight: 332, clientHeight: 238 }, -100)).toEqual({ prevented: true, scrollTop: 0 });
-    expect(가짜휠({ scrollTop: 0, scrollHeight: 332, clientHeight: 238 }, -100)).toEqual({ prevented: false, scrollTop: 0 });
+    expect(가짜휠(가짜목록(30, 332, 238), -100)).toEqual({ prevented: true, scrollTop: 0 });
+    expect(가짜휠(가짜목록(0, 332, 238), -100)).toEqual({ prevented: false, scrollTop: 0 });
   });
 
   it("줄 단위(deltaMode 1)는 20px 로 환산하고, ctrl 휠(확대)은 건드리지 않는다", () => {
-    expect(가짜휠({ scrollTop: 0, scrollHeight: 332, clientHeight: 238 }, 3, { deltaMode: 1 })).toEqual({ prevented: true, scrollTop: 60 });
-    expect(가짜휠({ scrollTop: 0, scrollHeight: 332, clientHeight: 238 }, 100, { ctrlKey: true })).toEqual({ prevented: false, scrollTop: 0 });
+    expect(가짜휠(가짜목록(0, 332, 238), 3, { deltaMode: 1 })).toEqual({ prevented: true, scrollTop: 60 });
+    expect(가짜휠(가짜목록(0, 332, 238), 100, { ctrlKey: true })).toEqual({ prevented: false, scrollTop: 0 });
   });
 
   it("다 보이는 짧은 목록(여유 0)은 아무것도 안 한다", () => {
-    expect(가짜휠({ scrollTop: 0, scrollHeight: 120, clientHeight: 238 }, 100)).toEqual({ prevented: false, scrollTop: 0 });
+    expect(가짜휠(가짜목록(0, 120, 238), 100)).toEqual({ prevented: false, scrollTop: 0 });
+  });
+});
+
+describe("scrollListboxByWheel — 소수 scrollTop(화면 배율)에서도 끝 판정이 흔들리지 않는다", () => {
+  it("실제 최대가 93.5 인 목록에서 끝에 닿은 뒤 굴리면 손대지 않는다(리뷰 D1)", () => {
+    const ul = 가짜목록(0, 332, 238);
+    // 브라우저가 최대를 93.5 로 두는 상황을 흉내 낸다.
+    Object.defineProperty(ul, "scrollTop", { get: () => 93.5, set: () => {} });
+    expect(가짜휠(ul, 100)).toEqual({ prevented: false, scrollTop: 93.5 });
   });
 });
