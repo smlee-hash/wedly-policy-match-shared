@@ -699,6 +699,19 @@ describe("끝 쪽 판정 보강", () => {
     expect(out.reason).not.toBe("beyond-last-page");
   });
 
+  it("offset 형 쪽 변수는 beyond-last-page 로 오인하지 않는다", async () => {
+    const board = cfg({
+      skipHeuristic: true,
+      list: { ...cfg().list, url: (p) => `https://x.kr/b/list?offset=${(p - 1) * 10}` },
+    });
+    const out = await fetchBoardWindow(
+      board,
+      deps({ fetchText: async () => pagingHtml([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) }),
+      { startPage: 3, pageBudget: 1 },
+    );
+    expect(out.reason).not.toBe("beyond-last-page");
+  });
+
   it("직전 쪽과 행 지문이 같으면 repeated-page 이다", async () => {
     const out = await fetchBoardWindow(cfg(), deps({
       fetchText: async (url) => pageOf(url) === 1 ? rowsHtml([4, 5, 6]) : rowsHtml([1, 2, 3]),
@@ -721,6 +734,24 @@ describe("끝 쪽 판정 보강", () => {
       lastPageKey: probe.lastPageKey,
     });
     expect(out).toMatchObject({ reason: "repeated-page", complete: true, nextPage: 4 });
+  });
+
+  it("incomplete 창은 소비하지 않은 쪽의 지문을 lastPageKey 에 남기지 않는다", async () => {
+    const errorHtml = "<div>오류</div>";
+    const page2Html = rowsHtml([1, 2, 3]);
+    const board = cfg({ skipHeuristic: true });
+    const htmlOf = async (url: string) => pageOf(url) === 2 ? page2Html : errorHtml;
+    const probe = await fetchBoardWindow(board, deps({ fetchText: htmlOf }), { startPage: 2, pageBudget: 1 });
+    const first = await fetchBoardWindow(board, deps({ fetchText: htmlOf }), { startPage: 2, pageBudget: 2 });
+    expect(first).toMatchObject({ reason: "incomplete", complete: false, nextPage: 3 });
+    expect(first.lastPageKey).toBe(probe.lastPageKey);
+    const second = await fetchBoardWindow(board, deps({ fetchText: async () => errorHtml }), {
+      startPage: 3,
+      pageBudget: 2,
+      lastPageKey: first.lastPageKey,
+    });
+    expect(second).toMatchObject({ reason: "incomplete", complete: false });
+    expect(second.reason).not.toBe("repeated-page");
   });
 
   it("목록 상자만 있고 행이 없으면 empty-list 이다", async () => {

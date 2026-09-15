@@ -167,8 +167,10 @@ function paginationLinkPages(html: string): number[] {
   return [...pages];
 }
 
+/** 쪽 번호형만 마지막 쪽을 넘었다고 본다. offset 형은 링크 숫자와 비교하지 않는다. */
 function isBeyondLastPage(html: string, cfg: BoardConfig, page: number): boolean {
   try {
+    if (sitePageOf(cfg, 1) !== 1 || sitePageOf(cfg, 2) !== 2) return false;
     const sitePage = sitePageOf(cfg, page);
     if (sitePage === null) return false;
     const nums = paginationLinkPages(html);
@@ -309,18 +311,21 @@ export async function fetchBoardWindow(
           return result(page, true, "beyond-last-page");
         }
         const key = pageKeyOf(primaryHtml, cfg);
-        if (key) lastPageKey = key;
         if (page > 1 && key && prevKey && key === prevKey) {
           lastPageRead = page;
           endStreak += 1;
+          lastPageKey = key;
           prevKey = key;
           if (endStreak >= endAfter) return result(page + 1, true, "repeated-page");
           continue;
         }
-        if (key) prevKey = key;
         if (page > 1 && isRowlessListPage(primaryHtml, cfg)) {
           lastPageRead = page;
           endStreak += 1;
+          if (key) {
+            lastPageKey = key;
+            prevKey = key;
+          }
           if (endStreak >= endAfter) return result(page + 1, true, "empty-list");
           continue;
         }
