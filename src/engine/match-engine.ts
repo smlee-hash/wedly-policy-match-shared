@@ -120,7 +120,9 @@ function profileRegionIsNationwide(region: string): boolean {
  * 어간+접미사와 정확히 같을 때만. 「구미동」·「남양주시」·「강남대로」 같은 다른 낱말의 일부는 안 된다.
  */
 function profileNamesSigungu(region: string, name: string): boolean {
-  const stem = /[시군구]$/.test(name) ? name.slice(0, -1) : "";
+  // 어간이 시도 별칭(「제주」)이면 어간으로는 안 본다 — 「제주 서귀포시」의 「제주」가 제주시로 읽힌다.
+  const rawStem = /[시군구]$/.test(name) ? name.slice(0, -1) : "";
+  const stem = rawStem && canonicalRegion(rawStem) === null ? rawStem : "";
   const tokens = region.split(/[\s,·ㆍ()（）[\]【】/]+/).filter(Boolean);
   return tokens.some((t) => t === name || (stem.length >= 2 && (t === stem || /^[시군구]$/.test(t.slice(stem.length)) && t.startsWith(stem) && t.length === stem.length + 1)));
 }
@@ -158,25 +160,25 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
       let sameSidoSigungu = false;
       let unreadSidoSigungu = false;
       for (const r of list) {
+        // 사전 시군구(「제주시」·「부산진구」처럼 시도 별칭을 품은 이름 포함)는 시도 갈래보다 먼저 본다 —
+        // 시도 갈래로 가면 같은 시도의 다른 시군구 회사가 pass 가 된다(2차 리뷰 지적 3).
+        const sg = sigunguSido(r);
+        if (sg) {
+          // ★소재지 낱말 단위로 대조한다(독립 리뷰 2026-09-16 지적 1) — 공백을 지운 부분 포함으로 보면
+          //  「성남시 분당구 구미동」⊃구미, 「남양주시」⊃양주시, 「강남대로」⊃강남 처럼 다른 곳이 pass 가 된다.
+          //  낱말이 정확히 같으면 시도 문구가 옛 표기(「경상북도 군위군」)여도 pass 다(2차 리뷰 지적 2).
+          if (profileNamesSigungu(p.region, sg.name)) return pass();
+          const mineSet = sidosInText(p.region);
+          if (mineSet.length > 0 && !mineSet.includes(sg.sido)) sawDictionary = true;
+          else if (mineSet.length > 0) sameSidoSigungu = true;
+          else unreadSidoSigungu = true;
+          continue;
+        }
         const theirs = sidosInText(r);
         if (theirs.length > 0 && mine) {
           sawDictionary = true;
           if (theirs.includes(mine)) return pass();
           continue;
-        }
-        if (theirs.length === 0) {
-          const sg = sigunguSido(r);
-          if (sg) {
-            const mineSet = sidosInText(p.region);
-            const sidoContradicts = mineSet.length > 0 && !mineSet.includes(sg.sido);
-            // ★소재지 낱말 단위로 대조한다(독립 리뷰 2026-09-16 지적 1) — 공백을 지운 부분 포함으로 보면
-            //  「성남시 분당구 구미동」⊃구미, 「남양주시」⊃양주시, 「강남대로」⊃강남 처럼 다른 곳이 pass 가 된다.
-            if (!sidoContradicts && profileNamesSigungu(p.region, sg.name)) return pass();
-            if (sidoContradicts) sawDictionary = true;
-            else if (mineSet.length > 0) sameSidoSigungu = true;
-            else unreadSidoSigungu = true;
-            continue;
-          }
         }
         if (p.region.includes(r) || r.includes(p.region)) return pass();
       }

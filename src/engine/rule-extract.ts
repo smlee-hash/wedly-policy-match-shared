@@ -323,19 +323,12 @@ export function titleRegionConditions(title: string, agency: string): Structured
   const only = [...sidos][0];
   const agSidos = sidosInText(agency);
   if (agSidos.length > 0 && !agSidos.includes(only)) return [];
-  // 기관에서 시도가 읽혀 교차검증이 된 경우만 판정용이다. 「수원도시재단」처럼 기관에 시도가 없으면
-  // 근거가 제목 한 줄뿐이라 확인용(machineReadable=false)으로만 남긴다 — 「수원시 기업지원센터 입주모집」이
-  // 전국 신청 가능일 수 있어 서울 회사를 지우지 않는다(독립 리뷰 지적 2).
-  const verified = agSidos.length > 0;
-  const names = found.map((f) => f.name);
+  // 기관에서 시도가 읽혀 교차검증이 된 경우만 조건을 만든다. 「수원도시재단」처럼 기관에 시도가 없으면
+  // 근거가 제목 한 줄뿐이라 **아무 조건도 만들지 않는다** — 「수원시 기업지원센터 입주모집」이 전국 신청
+  // 가능일 수 있어 서울 회사를 지우지 않고(1차 리뷰 지적 2), 확인용 조건을 저장하면 그것이 출처 지역 칸
+  // 폴백(②)을 막아 정작 수원 회사가 「맞음」을 잃는다(2차 리뷰 지적 1).
+  if (agSidos.length === 0) return [];
   return [
-    condition(
-      "region",
-      names,
-      verified
-        ? `${RULE_SOURCE_PREFIX} ${(title ?? "").slice(0, 40)}`
-        : `${RULE_SOURCE_PREFIX} ${names.join("ㆍ")} 대상으로 보임 — 원문 확인`,
-      verified,
-    ),
+    condition("region", found.map((f) => f.name), `${RULE_SOURCE_PREFIX} ${(title ?? "").slice(0, 40)}`),
   ];
 }

@@ -168,6 +168,23 @@ describe("checkCondition — 시군구 사전(다른 시도만 fail, 같은 시�
     expect(checkCondition(cond({ value: ["거제시"] }), { region: "부산 연제구 거제대로" }, NOW).verdict).toBe("fail");
   });
 
+  it("2차 리뷰: 긍정 경로 — 어간·낱말·괄호 안 소재지가 정확히 그 시군구면 pass", () => {
+    expect(checkCondition(cond({ value: ["구미"] }), { region: "경상북도 구미시" }, NOW).verdict).toBe("pass");
+    expect(checkCondition(cond({ value: ["영월군"] }), { region: "강원 영월" }, NOW).verdict).toBe("pass");
+    expect(checkCondition(cond({ value: ["강남구"] }), { region: "서울 강남구(역삼동)" }, NOW).verdict).toBe("pass");
+  });
+
+  it("2차 리뷰 지적 2: 옛 시도 표기 「경상북도 군위군」도 낱말이 같으면 pass(사전은 대구)", () => {
+    expect(checkCondition(cond({ value: ["군위군"] }), { region: "경상북도 군위군" }, NOW).verdict).toBe("pass");
+  });
+
+  it("2차 리뷰 지적 3: 「제주시」·「부산진구」는 시군구 갈래 — 같은 시도 다른 시군구는 unknown, 다른 시도는 fail", () => {
+    expect(checkCondition(cond({ value: ["제주시"] }), { region: "제주 서귀포시" }, NOW).verdict).toBe("unknown");
+    expect(checkCondition(cond({ value: ["제주시"] }), { region: "제주특별자치도 제주시" }, NOW).verdict).toBe("pass");
+    expect(checkCondition(cond({ value: ["부산진구"] }), { region: "부산 해운대구" }, NOW).verdict).toBe("unknown");
+    expect(checkCondition(cond({ value: ["부산진구"] }), { region: "서울 강남구" }, NOW).verdict).toBe("fail");
+  });
+
   it("리뷰 지적 3: 소재지의 시도를 못 읽으면 사유가 그렇게 적힌다", () => {
     const r = checkCondition(cond({ value: ["영월군"] }), { region: "수도권 전역" }, NOW);
     expect(r.verdict).toBe("unknown");

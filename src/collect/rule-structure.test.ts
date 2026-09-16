@@ -40,3 +40,19 @@ describe("buildRuleStructure — 제목 앞머리 지역(판본 3)", () => {
     expect(RULE_EXTRACT_VERSION).toBe(4);
   });
 });
+
+describe("buildRuleStructure — 태그 없는 제목의 시군구(판본 4)", () => {
+  const TITLE = "2026년 3차 영월군 청년 창업육성 지원사업 수정 공고";
+  it("기관에서 시도가 읽히면 판정용 region [영월군] 을 저장한다", () => {
+    const s = buildRuleStructure("", "", TITLE, "강원특별자치도");
+    const r = s.conditions.filter((c) => c.key === "region");
+    expect(r).toHaveLength(1);
+    expect(r[0].value).toEqual(["영월군"]);
+    expect(r[0].machineReadable).toBe(true);
+    expect((s as unknown as { ruleVersion: number }).ruleVersion).toBe(4);
+  });
+  it("기관에 시도가 없으면 지역 조건을 저장하지 않는다 — 출처 지역 칸 폴백(②)이 그대로 산다", () => {
+    const s = buildRuleStructure("", "", TITLE, "영월군");
+    expect(s.conditions.filter((c) => c.key === "region")).toEqual([]);
+  });
+});

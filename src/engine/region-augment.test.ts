@@ -142,6 +142,20 @@ describe("synthesizedRegionCondition — 17개 시도 나열은 전국", () => {
   });
 });
 
+describe("2차 리뷰 지적 1 — 태그 없는 제목·기관 시도 없음이면 ① 은 아무것도 안 붙이고 ② 가 산다", () => {
+  it("영월군 제목 + 기관 「영월군」 + 지역 칸 「강원」 → ② 로 [강원] 이 붙어 강원 회사가 pass", () => {
+    const out = withRegionConditions(
+      st([]),
+      { title: "2026년 3차 영월군 청년 창업육성 지원사업 수정 공고", agency: "영월군", region: "강원" },
+      { regionFieldFallback: true },
+    );
+    const r = out.conditions.filter((c) => c.key === "region");
+    expect(r).toHaveLength(1);
+    expect(r[0].value).toEqual(["강원"]);
+    expect(checkCondition(r[0], { region: "강원 원주시" }, new Date("2026-09-16T00:00:00Z")).verdict).toBe("pass");
+  });
+});
+
 describe("지역 칸 폴백은 기본으로 꺼져 있다 — 진단·AI판정 보호", () => {
   it("옵션을 안 주면 지역 칸을 쓰지 않는다", () => {
     const before = st([scale]);
