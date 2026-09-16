@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { NATIONWIDE_SIDO_COUNT } from "./match-engine";
 import { bucketOf, scoreOf, compareRecommend, fitVerdictOf } from "./recommend-score";
 import type { ConditionCheck } from "./structure-types";
 
@@ -91,5 +92,11 @@ describe("맞음 판정 — 17개 시도 나열은 전국 약한 통과", () => 
 
   it("「전국」이 든 배열 pass 는 종전대로 unverified", () => {
     expect(fitVerdictOf([regionPass(["전국"])])).toBe("unverified");
+  });
+
+  it("약한 통과 문턱 NATIONWIDE_SIDO_COUNT=10 의 경계 — 9곳은 fit, 10곳은 unverified(2차 리뷰 T2)", () => {
+    expect(NATIONWIDE_SIDO_COUNT).toBe(10);
+    expect(fitVerdictOf([regionPass(SIDOS_17.slice(0, 9))])).toBe("fit");
+    expect(fitVerdictOf([regionPass(SIDOS_17.slice(0, 10))])).toBe("unverified");
   });
 });

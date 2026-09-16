@@ -97,6 +97,12 @@ describe("synthesizedRegionCondition — 17개 시도 나열은 전국", () => {
     expect(synthesizedRegionCondition(JUNK_REGION)).toBeNull();
   });
 
+  it("기업마당 실제 표기(16토큰·「전남광주」 결합)도 17곳으로 읽어 조건을 만들지 않는다(2차 리뷰 T1)", () => {
+    // bizinfo-sample.json 의 해시태그 그대로 — 전남광주가 광주·전남 둘로 세어져야 전남 회사가 떨어지지 않는다.
+    const BIZINFO_16 = "경영,서울,부산,대구,인천,전남광주,대전,울산,세종,경기,강원,충북,충남,전북,경북,경남,제주,2026";
+    expect(synthesizedRegionCondition(BIZINFO_16)).toBeNull();
+  });
+
   it("폴백을 켜도 JUNK_REGION 은 지역 조건을 안 붙인다", () => {
     const before = st([]);
     const out = withRegionConditions(
