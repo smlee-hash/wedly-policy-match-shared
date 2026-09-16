@@ -535,7 +535,7 @@ function isProfileEmpty(p: BusinessProfile): boolean {
  * 한 글자도 다르면 안 된다(그 글자로 걸러 내기 때문이다).
  *
  * 짝은 지어내지 않고 `checkCondition`(`src/engine/match-engine.ts`)이 **실제로 읽는 칸**을 그대로 옮겼다:
- *  · region → `p.region`(소재지) · industry → `p.industry`(업종)
+ *  · region → `p.region`(소재지) · industry · targetSector → `p.industry`(업종)
  *  · businessAgeMaxYears·businessAgeMinYears → `p.foundedDate`(설립일)
  *  · revenueMaxKrw·revenueMinKrw → `p.lastYearRevenueKrw`(연매출)
  *  · employeeMax·employeeMin → `p.employeeCount`(직원 수)
@@ -552,6 +552,7 @@ function isProfileEmpty(p: BusinessProfile): boolean {
 const GAP_LABEL_BY_CONDITION_KEY: Record<string, string> = {
   region: "소재지",
   industry: "업종",
+  targetSector: "업종",
   businessAgeMaxYears: "설립일",
   businessAgeMinYears: "설립일",
   revenueMaxKrw: "연매출",

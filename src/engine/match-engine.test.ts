@@ -214,6 +214,43 @@ describe("canonicalRegion", () => {
   });
 });
 
+describe("checkCondition — 대상 분야(targetSector)", () => {
+  const c = cond({ key: "targetSector", value: ["제약바이오"], rawText: "혁신형 제약기업" });
+
+  it("기계제작은 분야가 안 겹쳐 fail", () => {
+    const r = checkCondition(c, { industry: "기계제작" }, NOW);
+    expect(r.verdict).toBe("fail");
+    expect(r.note).toBe("대상 분야: 제약바이오");
+  });
+
+  it("의약품 판매 대리는 제약바이오라 pass", () => {
+    expect(checkCondition(c, { industry: "의약품 판매 대리" }, NOW).verdict).toBe("pass");
+  });
+
+  it("안전보호구·소모품은 분야로 못 읽어 unknown", () => {
+    const r = checkCondition(c, { industry: "안전보호구, 소모품" }, NOW);
+    expect(r.verdict).toBe("unknown");
+    expect(r.note).toContain("업종을 분야로 못 읽음");
+  });
+
+  it("업종 없으면 unknown", () => {
+    const r = checkCondition(c, {}, NOW);
+    expect(r.verdict).toBe("unknown");
+    expect(r.note).toContain("업종 미입력");
+  });
+
+  it("readStoredStructure 가 targetSector 를 기계대조 대상으로 읽는다", () => {
+    const s = readStoredStructure({
+      conditions: [
+        { key: "targetSector", op: "in", value: ["제약바이오"], rawText: "혁신형 제약기업", machineReadable: true },
+      ],
+      humanCheck: [],
+      documents: [],
+    });
+    expect(s.conditions[0]?.machineReadable).toBe(true);
+  });
+});
+
 describe("checkCondition — 업종", () => {
   const c = cond({ key: "industry", value: ["제조", "정보통신"], rawText: "제조업 또는 정보통신업" });
 

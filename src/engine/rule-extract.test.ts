@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractConditions, ruleGradeOf, RULE_SOURCE_PREFIX } from "./rule-extract";
+import { extractConditions, ruleGradeOf, RULE_SOURCE_PREFIX, titleSectorCondition } from "./rule-extract";
 import type { ConditionCheck, StructuredCondition } from "./structure-types";
 
 function pick(cs: StructuredCondition[], key: string) {
@@ -201,6 +201,24 @@ describe("업종·지역 추출(2026-08-30 신설 — 표본 150건에서 가장
   it("여러 시도가 문맥 낱말 곁에 흩어져 있으면 모두 담는다", () => {
     const c = get("경기 소재 기업 또는 인천에 사업장을 둔 기업", "region");
     expect(c!.value).toEqual(expect.arrayContaining(["경기", "인천"]));
+  });
+});
+
+describe("titleSectorCondition — 제목의 대상 분야", () => {
+  it("혁신형 제약기업은 targetSector 제약바이오", () => {
+    const c = titleSectorCondition("2026년 혁신형 제약기업 신규인증 공고");
+    expect(c?.key).toBe("targetSector");
+    expect(c?.op).toBe("in");
+    expect(c?.value).toEqual(["제약바이오"]);
+    expect(c?.machineReadable).toBe(true);
+    expect(c?.rawText.startsWith(RULE_SOURCE_PREFIX)).toBe(true);
+    // 본문 추출(extractConditions)은 이 조건을 만들지 않는다 — 제목 전용이다(본문의 지나가는 말 방지).
+    expect(pick(extractConditions("2026년 혁신형 제약기업 신규인증 공고"), "targetSector")).toBeUndefined();
+  });
+
+  it("수출기업은 분야가 아니라서 없다", () => {
+    expect(titleSectorCondition("2026년 수출기업 역량강화")).toBeNull();
+    expect(pick(extractConditions("2026년 수출기업 역량강화"), "targetSector")).toBeUndefined();
   });
 });
 

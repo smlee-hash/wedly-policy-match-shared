@@ -1,5 +1,5 @@
 /**
- * 공고 구조에 **지역 조건을 보태는** 한 곳. 추천·진단·AI판정 세 통로가 이것만 쓴다.
+ * 공고 구조에 **지역 조건·대상 분야를 보태는** 한 곳. 추천·진단·AI판정 세 통로가 이것만 쓴다.
  *
  * 왜 함수로 뽑았나(2026-09-01): 추천 통로에만 넣었더니 진단·AI판정은 그대로여서
  * 같은 공고가 화면마다 다르게 판정됐다(fable 리뷰 중요2 — CLAUDE.md 규칙 8 「한 곳만 고치고
@@ -16,9 +16,12 @@
  *     공고 옆에 이걸 보태면 조건 하나만 pass 해도 「맞음」이 되어
  *     **구미시 전용 사업이 서울 회사에게, 「전국」 가드가 걸린 공고가 아무에게나** 떴다.
  *     그래서 ②는 **지역 조건이 하나도 없을 때만** 쓴다.
+ *
+ * 대상 분야(targetSector)도 여기서 보탠다. 제목이 「○○기업」처럼 분야를 못 박았고
+ * 구조에 그 키가 없을 때만. 세 통로가 이 함수만 쓰므로 갈래가 생기지 않는다.
  */
 import { ALL_SIDO_COUNT, sidosInText } from "./match-engine";
-import { titleRegionConditions } from "./rule-extract";
+import { titleRegionConditions, titleSectorCondition } from "./rule-extract";
 import { sigunguSido } from "./sigungu";
 import type { AnnouncementStructure, StructuredCondition } from "./structure-types";
 
@@ -55,7 +58,7 @@ export interface RegionAugmentOptions {
 }
 
 /**
- * 구조에 지역 조건을 보탠 새 구조를 준다(원본은 안 건드린다).
+ * 구조에 지역·대상 분야 조건을 보탠 새 구조를 준다(원본은 안 건드린다).
  * 보탤 게 없으면 받은 것을 그대로 돌려준다.
  */
 export function withRegionConditions(
@@ -71,16 +74,23 @@ export function withRegionConditions(
         (v) => sidosInText(String(v)).length > 0 || sigunguSido(String(v)) != null,
       ),
   );
-  if (hasSidoRegion) return s;
 
-  // ① 제목 앞머리는 어디서나 안전하다 — 기관 교차검증을 거친 「그 광역 전용」 신호다.
-  const fromTitle = titleRegionConditions(row.title ?? "", row.agency ?? "").filter((c) => c.machineReadable);
-  if (fromTitle.length > 0) return { ...s, conditions: [...s.conditions, ...fromTitle] };
-
-  // ② 지역 칸은 켠 곳에서만, 그것도 지역 조건이 하나도 없을 때만.
-  if (opts.regionFieldFallback && regionConds.length === 0) {
-    const synth = synthesizedRegionCondition((row.region ?? "").trim());
-    if (synth) return { ...s, conditions: [...s.conditions, synth] };
+  let out = s;
+  if (!hasSidoRegion) {
+    // ① 제목 앞머리는 어디서나 안전하다 — 기관 교차검증을 거친 「그 광역 전용」 신호다.
+    const fromTitle = titleRegionConditions(row.title ?? "", row.agency ?? "").filter((c) => c.machineReadable);
+    if (fromTitle.length > 0) {
+      out = { ...s, conditions: [...s.conditions, ...fromTitle] };
+    } else if (opts.regionFieldFallback && regionConds.length === 0) {
+      // ② 지역 칸은 켠 곳에서만, 그것도 지역 조건이 하나도 없을 때만.
+      const synth = synthesizedRegionCondition((row.region ?? "").trim());
+      if (synth) out = { ...s, conditions: [...s.conditions, synth] };
+    }
   }
-  return s;
+
+  if (!out.conditions.some((c) => c.key === "targetSector")) {
+    const sector = titleSectorCondition(row.title ?? "");
+    if (sector) out = { ...out, conditions: [...out.conditions, sector] };
+  }
+  return out;
 }

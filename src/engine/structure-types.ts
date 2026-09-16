@@ -2,6 +2,7 @@
 export const CONDITION_KEYS = [
   "region",          // 소재지 (value: 시도명 배열, op in)
   "industry",        // 업종 (value: 업종 키워드 배열, op in — 텍스트 포함 대조)
+  "targetSector",    // 제목이 「○○기업」으로 못 박은 대상 분야 (value: 가족 이름 배열, op in)
   "businessAgeMaxYears", "businessAgeMinYears",   // 업력 (설립일로 계산)
   "revenueMaxKrw", "revenueMinKrw",               // 작년 연매출
   "employeeMax", "employeeMin",                   // 상시 근로자 수
@@ -24,6 +25,7 @@ export type ConditionOp = "in" | "lte" | "gte" | "eq";
 export const EXPECTED_OP: Record<ConditionKey, ConditionOp> = {
   region: "in",
   industry: "in",
+  targetSector: "in",
   companyScale: "in",
   businessAgeMaxYears: "lte",
   businessAgeMinYears: "gte",
@@ -59,6 +61,7 @@ export function opFitsKey(key: string, op: string): boolean {
 export const CONDITION_LABEL: Record<ConditionKey, string> = {
   region: "지역",
   industry: "업종",
+  targetSector: "대상 분야",
   businessAgeMaxYears: "업력 상한",
   businessAgeMinYears: "업력 하한",
   revenueMaxKrw: "연매출 상한",

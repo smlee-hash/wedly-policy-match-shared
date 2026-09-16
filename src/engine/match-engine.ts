@@ -1,5 +1,6 @@
 // 프로필 vs 구조화 조건 순수 대조 — AI 없음, 저장소 접근 없음(설계서 §3, 계획 Task 4).
 // 「모름」은 절대 통과로 치지 않는다 — 값이 없으면 unknown → 등급은 최고 uncertain 까지만 간다.
+import { sectorFamiliesOfIndustry } from "./sector";
 import { sigunguSido } from "./sigungu";
 import {
   AnnouncementStructure,
@@ -197,6 +198,13 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
         ? pass()
         : unknown(`업종 표기가 달라 확인 필요 — 대상 업종: ${list.join("·")}`);
     }
+    case "targetSector": {
+      if (!p.industry) return unknown("업종 미입력");
+      const list = c.value as string[];
+      const fams = sectorFamiliesOfIndustry(p.industry);
+      if (fams.length === 0) return unknown("업종을 분야로 못 읽음 — 원문 확인");
+      return fams.some((f) => list.includes(f)) ? pass() : fail(`대상 분야: ${list.join("·")}`);
+    }
     case "businessAgeMaxYears": {
       const age = businessAgeYears(p.foundedDate, now);
       if (age == null) return unknown("설립일 미입력");
@@ -284,6 +292,7 @@ function valueFitsKey(key: string, value: unknown): boolean {
   switch (key) {
     case "region":
     case "industry":
+    case "targetSector":
     case "companyScale":
       return Array.isArray(value) && value.every((v) => typeof v === "string");
     case "businessAgeMaxYears":

@@ -15,6 +15,7 @@
  * 「확인 필요」로 뒤로 밀 뿐 목록에서 지우지 않는다. 판정은 `ruleGradeOf` 가 강제한다.
  */
 import { canonicalRegion, sidosInText } from "./match-engine";
+import { sectorFamiliesInTitle } from "./sector";
 import { sigunguInTitle } from "./sigungu";
 import {
   EXPECTED_OP,
@@ -229,6 +230,9 @@ export function extractConditions(text: string): StructuredCondition[] {
     out.push(condition("region", [...sidos], snippet(t, firstAt, 4), ok));
   }
 
+  // 대상 분야(targetSector)는 **제목에서만** 읽는다 — 본문은 「블록체인 기업과 협력」처럼 지나가는 말이
+  // 많아 여기서 뽑으면 무관한 회사를 fail 로 지운다. 저장은 buildRuleStructure, 서빙은 withRegionConditions 가
+  // 각각 제목으로 titleSectorCondition 을 부른다.
   return out;
 }
 
@@ -257,6 +261,16 @@ export function ruleGradeOf(_checks: ConditionCheck[]): MatchGrade {
  * (2026-08-31 실측). 대괄호 직후 첫 낱말로 좁히면 그 사고가 원천 차단된다.
  */
 const TITLE_TAG_RE = /^\s*\[([^\]]{1,12})\]\s*(\S+)/;
+
+/**
+ * 제목이 「○○기업」처럼 대상 분야를 직접 못 박은 경우만 targetSector 조건을 만든다.
+ * 기존 industry 조건(본문 어디서든 뽑은 넉넉한 낱말)은 그대로 둔다.
+ */
+export function titleSectorCondition(title: string): StructuredCondition | null {
+  const families = sectorFamiliesInTitle(title ?? "");
+  if (families.length === 0) return null;
+  return condition("targetSector", families, `${RULE_SOURCE_PREFIX} ${(title ?? "").slice(0, 40)}`);
+}
 
 /**
  * 제목에서 지역을 읽는다.

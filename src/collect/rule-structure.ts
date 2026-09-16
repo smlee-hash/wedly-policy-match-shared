@@ -1,4 +1,4 @@
-import { extractConditions, titleRegionConditions } from "../engine/rule-extract";
+import { extractConditions, titleRegionConditions, titleSectorCondition } from "../engine/rule-extract";
 import type { AnnouncementStructure } from "../engine/structure-types";
 
 /**
@@ -9,9 +9,11 @@ import type { AnnouncementStructure } from "../engine/structure-types";
  *  3: 제목 앞머리 「[광역] 시군구」 (2026-09-01 — 시군구 전용 공고 656건이 지역 무관하게
  *     「조건 충족」으로 뜨던 것. 그중 471건은 본문에 지역 문구가 없어 조건이 하나도 없었다)
  *  4: 태그 없는 제목의 시군구 사전(2026-09-16 — 시도 지역 조건 없는 열린 행 8,471건 중 제목에 시군구가
- *     있는데 조건이 없던 660건. 기관 시도와 교차검증된 것만 판정용, 아니면 확인용)
+ *     있는데 조건이 없던 660건. 기관 시도와 교차검증된 것만 만든다)
+ *  5: 제목이 못 박은 대상 분야 targetSector(2026-09-16 — 표본 화면의 「대상이 다름」 81건.
+ *     「제약기업」·「식품외식기업」·「블록체인 기업」이 도배·기계·의약품 도매 회사에 맞음으로 뜨던 것)
  */
-export const RULE_EXTRACT_VERSION = 4;
+export const RULE_EXTRACT_VERSION = 5;
 
 /**
  * 무료 규칙 추출 → 저장용 AnnouncementStructure. AI 0콜.
@@ -29,7 +31,13 @@ export function buildRuleStructure(
   const fromTitle = titleRegionConditions(title, agency);
   // 본문에서 이미 판정용 지역을 얻었으면 제목 광역은 버린다(같은 축 조건이 둘이면 화면이 헷갈린다).
   const hasMachineRegion = body.some((c) => c.key === "region" && c.machineReadable);
-  const conditions = [...body, ...fromTitle.filter((c) => !(hasMachineRegion && c.machineReadable))];
+  // 대상 분야는 제목이 「○○기업」으로 못 박았을 때만(본문에서 뽑으면 지나가는 말이 fail 이 된다).
+  const sector = titleSectorCondition(title);
+  const conditions = [
+    ...body,
+    ...fromTitle.filter((c) => !(hasMachineRegion && c.machineReadable)),
+    ...(sector ? [sector] : []),
+  ];
   return {
     // 요약은 이미 summary 컬럼에 있다 — JSONB 에 또 넣으면 행마다 저장·조회가 요약만큼 두 배(적대 리뷰 사소).
     benefitSummary: "",

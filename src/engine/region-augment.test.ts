@@ -174,6 +174,28 @@ describe("지역 칸 폴백은 기본으로 꺼져 있다 — 진단·AI판정 �
   });
 });
 
+describe("withRegionConditions — 제목 대상 분야(targetSector)", () => {
+  const TITLE = "2026년 혁신형 제약기업 신규인증 공고";
+
+  it("구조가 비어 있고 제목이 제약기업이면 targetSector 가 붙는다", () => {
+    const out = withRegionConditions(st([]), { title: TITLE, agency: "중기부", region: "" });
+    const c = out.conditions.find((x) => x.key === "targetSector");
+    expect(c?.value).toEqual(["제약바이오"]);
+    expect(c?.op).toBe("in");
+    expect(c?.machineReadable).toBe(true);
+  });
+
+  it("이미 있으면 안 붙인다", () => {
+    const before = st([{
+      key: "targetSector", op: "in", value: ["식품"], rawText: "기존", machineReadable: true,
+    }]);
+    const out = withRegionConditions(before, { title: TITLE, agency: "중기부", region: "" });
+    expect(out.conditions.filter((c) => c.key === "targetSector")).toHaveLength(1);
+    expect(out.conditions[0].value).toEqual(["식품"]);
+    expect(out).toBe(before);
+  });
+});
+
 describe("withRegionConditions — 시군구 사전 조건", () => {
   const YEONGWOL = "2026년 3차 영월군 청년 창업육성 지원사업 수정 공고";
 
