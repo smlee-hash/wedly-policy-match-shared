@@ -139,6 +139,27 @@ describe("checkCondition — 지역 별칭(줄임말 ↔ 정식명)", () => {
   });
 });
 
+describe("checkCondition — 시군구 사전(다른 시도만 fail, 같은 시도는 원문 확인)", () => {
+  it("영월군 × 전북 전주시는 fail, × 강원 원주시는 unknown, × 강원 영월군은 pass", () => {
+    const c = cond({ value: ["영월군"] });
+    const fail = checkCondition(c, { region: "전북 전주시" }, NOW);
+    expect(fail.verdict).toBe("fail");
+    expect(fail.note).toBe("대상 지역: 영월군");
+    expect(checkCondition(c, { region: "강원 원주시" }, NOW).verdict).toBe("unknown");
+    expect(checkCondition(c, { region: "강원특별자치도 영월군" }, NOW).verdict).toBe("pass");
+  });
+
+  it("전남광주통합특별시 여수시 × 여수시는 pass", () => {
+    expect(checkCondition(cond({ value: ["여수시"] }), { region: "전남광주통합특별시 여수시" }, NOW).verdict).toBe("pass");
+  });
+
+  it("어간 구미 × 서울특별시 강남구는 fail", () => {
+    const r = checkCondition(cond({ value: ["구미"] }), { region: "서울특별시 강남구" }, NOW);
+    expect(r.verdict).toBe("fail");
+    expect(r.note).toBe("대상 지역: 구미");
+  });
+});
+
 describe("canonicalRegion", () => {
   it("줄임말·정식명·시군 표기를 모두 같은 표준형으로 바꾼다", () => {
     expect(canonicalRegion("서울시")).toBe("서울");

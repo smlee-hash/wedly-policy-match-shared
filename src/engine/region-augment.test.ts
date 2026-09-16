@@ -17,20 +17,20 @@ const scale: StructuredCondition = { key: "companyScale", op: "in", value: ["중
 const JUNK = "기술,창업,서울,부산,대구,인천,광주,대전,울산,세종,경기,강원,충북,충남,전북,전남,경북,경남,제주,2026";
 
 describe("withRegionConditions — 제목 앞머리 보태기", () => {
-  it("지역 조건이 시군구뿐이면 제목의 광역을 보탠다(포천시 사고)", () => {
-    const out = withRegionConditions(st([region(["포천시"]), scale]), {
+  it("시군구 사전이 아는 조건은 제목 광역을 또 안 붙인다(포천시)", () => {
+    const before = st([region(["포천시"]), scale]);
+    const out = withRegionConditions(before, {
       title: "[경기] 포천시 2026년 소공인가구지원센터 운영 지원 사업 공고", agency: "경기도", region: JUNK,
     });
-    const added = out.conditions.filter((c) => c.key === "region" && c.machineReadable);
-    expect(added.some((c) => (c.value as string[]).includes("경기"))).toBe(true);
+    expect(out).toBe(before);
   });
 
-  it("보탠 광역으로 타지역 회사가 실제로 fail 이 난다", () => {
+  it("시군구 조건으로 타지역 회사가 실제로 fail 이 난다", () => {
     const out = withRegionConditions(st([region(["포천시"])]), {
       title: "[경기] 포천시 2026년 공고", agency: "경기도", region: "",
     });
-    const sido = out.conditions.find((c) => c.key === "region" && (c.value as string[]).includes("경기"))!;
-    expect(checkCondition(sido, { region: "인천광역시 남동구" } as never, new Date()).verdict).toBe("fail");
+    const c = out.conditions.find((x) => x.key === "region" && x.machineReadable)!;
+    expect(checkCondition(c, { region: "인천광역시 남동구" } as never, new Date()).verdict).toBe("fail");
   });
 
   it("이미 광역 조건이 있으면 아무것도 안 보탠다(중복 금지)", () => {
@@ -157,5 +157,28 @@ describe("지역 칸 폴백은 기본으로 꺼져 있다 — 진단·AI판정 �
   it("폴백을 켠 곳(추천)에서는 종전대로 만든다", () => {
     const out = withRegionConditions(st([]), { title: "공고 x", agency: "중기부", region: "서울" }, { regionFieldFallback: true });
     expect(out.conditions.find((c) => c.key === "region")?.value).toEqual(["서울"]);
+  });
+});
+
+describe("withRegionConditions — 시군구 사전 조건", () => {
+  const YEONGWOL = "2026년 3차 영월군 청년 창업육성 지원사업 수정 공고";
+
+  it("구조에 [영월군] 기계 조건이 있으면 그대로 돌려준다", () => {
+    const before = st([region(["영월군"])]);
+    const out = withRegionConditions(before, {
+      title: YEONGWOL, agency: "강원특별자치도", region: "",
+    });
+    expect(out).toBe(before);
+  });
+
+  it("구조가 비고 제목이 영월군이면 조건을 붙이고 전북은 fail·강원 영월군은 pass", () => {
+    const out = withRegionConditions(st([]), {
+      title: YEONGWOL, agency: "강원특별자치도", region: "",
+    });
+    const c = out.conditions.find((x) => x.key === "region")!;
+    expect(c.value).toEqual(["영월군"]);
+    expect(c.machineReadable).toBe(true);
+    expect(checkCondition(c, { region: "전북 전주시" }, new Date()).verdict).toBe("fail");
+    expect(checkCondition(c, { region: "강원특별자치도 영월군" }, new Date()).verdict).toBe("pass");
   });
 });

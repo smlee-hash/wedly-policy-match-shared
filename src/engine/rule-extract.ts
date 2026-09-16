@@ -15,6 +15,7 @@
  * 「확인 필요」로 뒤로 밀 뿐 목록에서 지우지 않는다. 판정은 `ruleGradeOf` 가 강제한다.
  */
 import { canonicalRegion, sidosInText } from "./match-engine";
+import { sigunguInTitle } from "./sigungu";
 import {
   EXPECTED_OP,
   type ConditionCheck,
@@ -258,59 +259,69 @@ export function ruleGradeOf(_checks: ConditionCheck[]): MatchGrade {
 const TITLE_TAG_RE = /^\s*\[([^\]]{1,12})\]\s*(\S+)/;
 
 /**
- * 제목 앞머리에서 지역을 읽는다.
+ * 제목에서 지역을 읽는다.
  *
  * 왜 필요한가(2026-08-31 실측): 저장된 지역 조건 833건이 전부 광역 단위였고 시군구는 0건이었다.
  * 시군구 전용 공고 656건 중 **471건은 본문에 「소재·관내」 문구가 없어 조건이 하나도 안 붙어**,
  * 기업규모·업종만 맞으면 전국 누구에게나 「조건 충족」으로 떴다
  * (예: 「[경남] 진주시 해외지사화」가 서울 중소기업에게 「충족」).
  *
- * 광역은 **판정용**, 시군구는 **확인용**(machineReadable=false)이다 — 시군구명이 지역 제한이
- * 아닌 공고(「[경기] 성남시 창업센터 입주기업 모집」은 전국 기업이 신청 가능)가 있어
- * 시군구로 fail 을 내면 자격 있는 회사에게서 공고를 지운다(2026-08-30 fable 리뷰 치명1과 같은 사고).
+ * 태그 경로(`[광역] 시군구`): 광역은 **판정용**, 시군구는 **확인용**(machineReadable=false)이다.
+ * 시군구명이 지역 제한이 아닌 공고(「[경기] 성남시 창업센터 입주기업 모집」은 전국 기업이 신청 가능)가
+ * 있어 태그 시군구로 fail 을 내면 자격 있는 회사에게서 공고를 지운다(2026-08-30 fable 리뷰 치명1).
  * 실제 거르기는 광역 조건이 하고, 시군구는 화면에 「○○시 대상으로 보임」으로 보여만 준다.
  *
- * 사전(226개 시군구 이름)을 두지 않는 이유: 광역 접두사가 문맥을 보장하므로
- * 동명이구(중구·서구가 6개 광역시에 중복, 고성군이 강원·경남에 중복) 함정이 생기지 않는다.
- * 사전은 행정구역이 개편될 때마다 낡는다.
+ * 태그가 없거나 태그에서 시도를 못 읽을 때(2026-09-16): 시군구 사전으로 제목의 자치 시·군·구를 찾는다.
+ * 동명이구(중구·동구·서구·남구·북구·강서구·고성군)와 시도 별칭과 겹치는 광주시(경기)는 넣지 않는다.
+ * 다른 시도만 확신 fail, 같은 시도는 원문 확인(unknown). 비자치구는 넣지 않는다.
  */
 export function titleRegionConditions(title: string, agency: string): StructuredCondition[] {
   const m = TITLE_TAG_RE.exec(title ?? "");
-  if (!m) return [];
-  // 대괄호가 광역일 때만 — 「[무료/선착순] 대구 …」 같은 민간 태그에서 「대구」가
-  // '구'로 끝난다는 이유로 시군구로 잡히던 것을 막는다(실측).
-  //
-  // ★태그도 **여러 광역**을 담을 수 있다. 실제 운영 태그에 「[전남광주]」가 있고(158건),
-  // canonicalRegion 은 맨 앞 하나만 줘서 「광주」만 남기고 「전남」을 버렸다 —
-  // 그러면 「[전남광주] 여수시」 공고가 region:["광주"] 로 저장돼
-  // **여수시(전남) 회사가 자기 지역 공고에서 fail 로 제외**된다(2026-09-01 fable 리뷰 치명, 실측 재현).
-  // 둘 다 담으면 checkCondition 이 list.some 으로 OR 대조해 전남·광주 회사 모두 통과한다.
-  const tagSidos = sidosInText(m[1]);
-  if (tagSidos.length === 0) return [];
+  const tagSidos = m ? sidosInText(m[1]) : [];
+  if (m && tagSidos.length > 0) {
+    // 대괄호가 광역일 때만 — 「[무료/선착순] 대구 …」 같은 민간 태그에서 「대구」가
+    // '구'로 끝난다는 이유로 시군구로 잡히던 것을 막는다(실측).
+    //
+    // ★태그도 **여러 광역**을 담을 수 있다. 실제 운영 태그에 「[전남광주]」가 있고(158건),
+    // canonicalRegion 은 맨 앞 하나만 줘서 「광주」만 남기고 「전남」을 버렸다 —
+    // 그러면 「[전남광주] 여수시」 공고가 region:["광주"] 로 저장돼
+    // **여수시(전남) 회사가 자기 지역 공고에서 fail 로 제외**된다(2026-09-01 fable 리뷰 치명, 실측 재현).
+    // 둘 다 담으면 checkCondition 이 list.some 으로 OR 대조해 전남·광주 회사 모두 통과한다.
+    const heads = m[2].split(/[ㆍ·,/]/).filter(Boolean);
+    // 광역명이 '구'로 끝나는 경우(대구)를 시군구로 착각하지 않게 canonicalRegion 으로 걸러낸다.
+    const gugun = heads.filter(
+      (x) => /(시|군|구)$/.test(x) && x.length >= 2 && x.length <= 6 && !canonicalRegion(x),
+    );
+    // 이어 쓴 것 중 하나라도 시군구가 아니면 정형이 아니다 — 통째로 포기한다(추측 금지).
+    if (gugun.length === 0 || gugun.length !== heads.length) return [];
 
-  const heads = m[2].split(/[ㆍ·,/]/).filter(Boolean);
-  // 광역명이 '구'로 끝나는 경우(대구)를 시군구로 착각하지 않게 canonicalRegion 으로 걸러낸다.
-  const gugun = heads.filter(
-    (x) => /(시|군|구)$/.test(x) && x.length >= 2 && x.length <= 6 && !canonicalRegion(x),
-  );
-  // 이어 쓴 것 중 하나라도 시군구가 아니면 정형이 아니다 — 통째로 포기한다(추측 금지).
-  if (gugun.length === 0 || gugun.length !== heads.length) return [];
-
-  const out: StructuredCondition[] = [];
-  // ★기관에서 광역이 읽히는데 제목과 어긋나면 **판정용 조건을 만들지 않는다.**
-  // 실측: 「[경남] 하남시 …」인데 기관은 경기도(하남시는 경기 소속)인 행이 있다.
-  // 어긋난 값으로 fail 을 내면 경기 하남시 회사가 자기 공고를 영영 못 본다.
-  //
-  // 기관에서 광역을 뽑을 땐 **여러 개**를 본다(canonicalRegion 은 맨 앞 하나만 준다).
-  // 「전남광주통합특별시」는 전남·광주 둘 다인데 앞 하나만 보면 「광주」가 나와,
-  // 제목 [전남] 인 여수·목포·강진 공고 7건이 어긋남으로 잘못 걸렸다(2026-09-01 실측).
-  // 태그·기관 둘 다 여러 값일 수 있으므로 **하나라도 겹치면** 같은 지역으로 본다.
-  const agSidos = sidosInText(agency);
-  if (agSidos.length === 0 || tagSidos.some((s) => agSidos.includes(s))) {
-    out.push(condition("region", tagSidos, `${RULE_SOURCE_PREFIX} ${title.slice(0, 40)}`));
+    const out: StructuredCondition[] = [];
+    // ★기관에서 광역이 읽히는데 제목과 어긋나면 **판정용 조건을 만들지 않는다.**
+    // 실측: 「[경남] 하남시 …」인데 기관은 경기도(하남시는 경기 소속)인 행이 있다.
+    // 어긋난 값으로 fail 을 내면 경기 하남시 회사가 자기 공고를 영영 못 본다.
+    //
+    // 기관에서 광역을 뽑을 땐 **여러 개**를 본다(canonicalRegion 은 맨 앞 하나만 준다).
+    // 「전남광주통합특별시」는 전남·광주 둘 다인데 앞 하나만 보면 「광주」가 나와,
+    // 제목 [전남] 인 여수·목포·강진 공고 7건이 어긋남으로 잘못 걸렸다(2026-09-01 실측).
+    // 태그·기관 둘 다 여러 값일 수 있으므로 **하나라도 겹치면** 같은 지역으로 본다.
+    const agSidos = sidosInText(agency);
+    if (agSidos.length === 0 || tagSidos.some((s) => agSidos.includes(s))) {
+      out.push(condition("region", tagSidos, `${RULE_SOURCE_PREFIX} ${title.slice(0, 40)}`));
+    }
+    out.push(
+      condition("region", gugun, `${RULE_SOURCE_PREFIX} ${gugun.join("ㆍ")} 대상으로 보임 — 원문 확인`, false),
+    );
+    return out;
   }
-  out.push(
-    condition("region", gugun, `${RULE_SOURCE_PREFIX} ${gugun.join("ㆍ")} 대상으로 보임 — 원문 확인`, false),
-  );
-  return out;
+
+  const found = sigunguInTitle(title ?? "");
+  if (found.length === 0) return [];
+  const sidos = new Set(found.map((f) => f.sido));
+  if (sidos.size !== 1) return [];
+  const only = [...sidos][0];
+  const agSidos = sidosInText(agency);
+  if (agSidos.length > 0 && !agSidos.includes(only)) return [];
+  return [
+    condition("region", found.map((f) => f.name), `${RULE_SOURCE_PREFIX} ${(title ?? "").slice(0, 40)}`),
+  ];
 }

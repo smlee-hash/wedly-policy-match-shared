@@ -7,9 +7,10 @@
  *
  * ★보태는 자리가 둘이고 **안전 기준이 서로 다르다** — 섞으면 사고가 난다(실측 재현).
  *  ① 제목 앞머리 `[광역] 시군구` — 기관 광역과 교차검증을 거치므로 믿을 만하다.
- *     **광역으로 읽히는 조건이 없을 때** 보탠다. AI 가 읽은 공고는 지역이 `["포천시"]` 처럼
- *     시군구만인 경우가 있는데, checkCondition 은 시군구를 광역으로 못 바꿔 fail 이 아니라
- *     unknown 을 내서, 나머지가 통과해 **포천시 전용 공고가 인천 회사에게 「조건 충족」**으로 떴다.
+ *     **광역(또는 시군구 사전에 있는 이름)으로 읽히는 조건이 없을 때** 보탠다.
+ *     이미 `["영월군"]` 처럼 사전이 아는 시군구가 있으면 그 조건이 다른 시도를 떨어뜨리므로
+ *     제목에서 같은 이름을 한 번 더 붙이지 않는다. 사전에 없는 표기(중구·수도권)만
+ *     예전처럼 제목 광역을 보탠다.
  *  ② 출처가 준 지역 칸 — **믿을 수 없다.** 실측하면 홍보 낱말 뭉치라
  *     「기술,창업,서울,부산,대구,…,제주」처럼 전 시도가 나열된다. 이미 정확한 지역 조건이 있는
  *     공고 옆에 이걸 보태면 조건 하나만 pass 해도 「맞음」이 되어
@@ -18,6 +19,7 @@
  */
 import { ALL_SIDO_COUNT, sidosInText } from "./match-engine";
 import { titleRegionConditions } from "./rule-extract";
+import { sigunguSido } from "./sigungu";
 import type { AnnouncementStructure, StructuredCondition } from "./structure-types";
 
 /** 출처가 준 지역 칸을 조건으로. 「전국」이 섞였거나 시도를 못 읽으면 만들지 않는다. */
@@ -65,7 +67,9 @@ export function withRegionConditions(
   const hasSidoRegion = regionConds.some(
     (c) =>
       c.machineReadable &&
-      (Array.isArray(c.value) ? c.value : []).some((v) => sidosInText(String(v)).length > 0),
+      (Array.isArray(c.value) ? c.value : []).some(
+        (v) => sidosInText(String(v)).length > 0 || sigunguSido(String(v)) != null,
+      ),
   );
   if (hasSidoRegion) return s;
 

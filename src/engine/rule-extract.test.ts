@@ -289,3 +289,30 @@ describe("titleRegionConditions — 실제 판정까지 태워 본다(껍데기 
     }
   });
 });
+
+describe("titleRegionConditions — 태그 없는 제목의 시군구 사전", () => {
+  const YEONGWOL = "2026년 3차 영월군 청년 창업육성 지원사업 수정 공고";
+
+  it("영월군 제목 + 기관 강원특별자치도는 region [영월군] 기계 조건", () => {
+    const cs = titleRegionConditions(YEONGWOL, "강원특별자치도");
+    expect(cs).toHaveLength(1);
+    expect(cs[0].key).toBe("region");
+    expect(cs[0].value).toEqual(["영월군"]);
+    expect(cs[0].machineReadable).toBe(true);
+    expect(cs[0].rawText.startsWith(RULE_SOURCE_PREFIX)).toBe(true);
+  });
+
+  it("기관이 경기도면 조건을 만들지 않는다", () => {
+    expect(titleRegionConditions(YEONGWOL, "경기도")).toEqual([]);
+  });
+
+  it("시도가 다른 시군구가 섞이면 조건을 만들지 않는다", () => {
+    expect(titleRegionConditions("창원시·전주시 공동 지원사업 공고", "중소벤처기업부")).toEqual([]);
+  });
+
+  it("태그 경로 결과는 종전과 같다", () => {
+    const cs = titleRegionConditions("[경남] 진주시 2026년 해외지사화 지원사업 참여업체 모집 공고", "경상남도");
+    expect(cs.find((c) => c.machineReadable)?.value).toEqual(["경남"]);
+    expect(cs.find((c) => !c.machineReadable)?.value).toEqual(["진주시"]);
+  });
+});

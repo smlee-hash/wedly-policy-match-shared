@@ -1,5 +1,6 @@
 // 프로필 vs 구조화 조건 순수 대조 — AI 없음, 저장소 접근 없음(설계서 §3, 계획 Task 4).
 // 「모름」은 절대 통과로 치지 않는다 — 값이 없으면 unknown → 등급은 최고 uncertain 까지만 간다.
+import { sigunguSido } from "./sigungu";
 import {
   AnnouncementStructure,
   ConditionCheck,
@@ -140,18 +141,33 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
       // ★fail 은 「확신 있을 때만」 낸다(적대 리뷰 2026-08-30 치명1 — 추천이 fail 을 목록
       // 제외로 격상한 뒤로, 확신 없는 fail 은 자격 있는 회사에게서 공고를 영영 지운다).
       //  · 항목에서 표준 시도가 하나라도 읽히면(「부산」·「대구경북」) 사전 대조 — 미일치는 확신 fail.
-      //  · 시도를 못 읽는 표기(「청주시」·「수도권」)는 글자 포함으로만 대조하고,
-      //    미일치여도 fail 이 아니라 「확인 필요」로 남긴다(도시·광역권이 내 시도를 품는지 모른다).
+      //  · 시군구 사전 이름(「영월군」·어간 「구미」)은 회사 소재지에 그 이름/어간이 있으면 pass,
+      //    회사 시도를 읽었는데 다르면 확신 fail, 같은 시도이거나 시도를 못 읽으면 원문 확인.
+      //  · 그 밖(「수도권」)은 글자 포함으로만 대조하고, 미일치는 fail 이 아니라 「확인 필요」.
       let sawDictionary = false;
+      let sameSidoSigungu = false;
       for (const r of list) {
         const theirs = sidosInText(r);
         if (theirs.length > 0 && mine) {
           sawDictionary = true;
           if (theirs.includes(mine)) return pass();
-        } else if (p.region.includes(r) || r.includes(p.region)) {
-          return pass();
+          continue;
         }
+        if (theirs.length === 0) {
+          const sg = sigunguSido(r);
+          if (sg) {
+            const compact = p.region.replace(/\s/g, "");
+            const stem = /[시군구]$/.test(sg.name) ? sg.name.slice(0, -1) : "";
+            if (compact.includes(sg.name) || (stem.length >= 2 && compact.includes(stem))) return pass();
+            const mineSet = sidosInText(p.region);
+            if (mineSet.length > 0 && !mineSet.includes(sg.sido)) sawDictionary = true;
+            else sameSidoSigungu = true;
+            continue;
+          }
+        }
+        if (p.region.includes(r) || r.includes(p.region)) return pass();
       }
+      if (sameSidoSigungu) return unknown("같은 시도 — 시군구는 원문 확인");
       return sawDictionary
         ? fail(`대상 지역: ${list.join("·")}`)
         : unknown(`지역 표기를 확정하지 못해 원문 확인 필요 — 대상 지역: ${list.join("·")}`);
