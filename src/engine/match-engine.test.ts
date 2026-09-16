@@ -158,6 +158,21 @@ describe("checkCondition — 시군구 사전(다른 시도만 fail, 같은 시�
     expect(r.verdict).toBe("fail");
     expect(r.note).toBe("대상 지역: 구미");
   });
+
+  it("리뷰 지적 1: 다른 낱말의 일부(구미동·남양주시·강남대로·해남군)는 pass 가 아니다", () => {
+    expect(checkCondition(cond({ value: ["구미"] }), { region: "경기도 성남시 분당구 구미동" }, NOW).verdict).toBe("fail");
+    expect(checkCondition(cond({ value: ["시흥시"] }), { region: "서울특별시 금천구 시흥동" }, NOW).verdict).toBe("fail");
+    expect(checkCondition(cond({ value: ["남해군"] }), { region: "전남 해남군" }, NOW).verdict).toBe("fail");
+    expect(checkCondition(cond({ value: ["양주시"] }), { region: "경기도 남양주시" }, NOW).verdict).toBe("unknown");
+    expect(checkCondition(cond({ value: ["강남구"] }), { region: "서울 서초구 강남대로" }, NOW).verdict).toBe("unknown");
+    expect(checkCondition(cond({ value: ["거제시"] }), { region: "부산 연제구 거제대로" }, NOW).verdict).toBe("fail");
+  });
+
+  it("리뷰 지적 3: 소재지의 시도를 못 읽으면 사유가 그렇게 적힌다", () => {
+    const r = checkCondition(cond({ value: ["영월군"] }), { region: "수도권 전역" }, NOW);
+    expect(r.verdict).toBe("unknown");
+    expect(r.note).toBe("소재지의 시도를 못 읽음 — 시군구는 원문 확인");
+  });
 });
 
 describe("canonicalRegion", () => {

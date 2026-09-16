@@ -115,6 +115,16 @@ function profileRegionIsNationwide(region: string): boolean {
   return region.replace(/\s/g, "").startsWith(NATIONWIDE);
 }
 
+/**
+ * 소재지 문구가 그 시군구를 **낱말로** 담고 있는가 — 공백·구두점으로 나눈 토막이 이름(「영월군」)·어간(「영월」)·
+ * 어간+접미사와 정확히 같을 때만. 「구미동」·「남양주시」·「강남대로」 같은 다른 낱말의 일부는 안 된다.
+ */
+function profileNamesSigungu(region: string, name: string): boolean {
+  const stem = /[시군구]$/.test(name) ? name.slice(0, -1) : "";
+  const tokens = region.split(/[\s,·ㆍ()（）[\]【】/]+/).filter(Boolean);
+  return tokens.some((t) => t === name || (stem.length >= 2 && (t === stem || /^[시군구]$/.test(t.slice(stem.length)) && t.startsWith(stem) && t.length === stem.length + 1)));
+}
+
 export function businessAgeYears(foundedDate: string | undefined, now: Date): number | null {
   if (!foundedDate) return null;
   const t = Date.parse(foundedDate);
@@ -146,6 +156,7 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
       //  · 그 밖(「수도권」)은 글자 포함으로만 대조하고, 미일치는 fail 이 아니라 「확인 필요」.
       let sawDictionary = false;
       let sameSidoSigungu = false;
+      let unreadSidoSigungu = false;
       for (const r of list) {
         const theirs = sidosInText(r);
         if (theirs.length > 0 && mine) {
@@ -156,18 +167,21 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
         if (theirs.length === 0) {
           const sg = sigunguSido(r);
           if (sg) {
-            const compact = p.region.replace(/\s/g, "");
-            const stem = /[시군구]$/.test(sg.name) ? sg.name.slice(0, -1) : "";
-            if (compact.includes(sg.name) || (stem.length >= 2 && compact.includes(stem))) return pass();
             const mineSet = sidosInText(p.region);
-            if (mineSet.length > 0 && !mineSet.includes(sg.sido)) sawDictionary = true;
-            else sameSidoSigungu = true;
+            const sidoContradicts = mineSet.length > 0 && !mineSet.includes(sg.sido);
+            // ★소재지 낱말 단위로 대조한다(독립 리뷰 2026-09-16 지적 1) — 공백을 지운 부분 포함으로 보면
+            //  「성남시 분당구 구미동」⊃구미, 「남양주시」⊃양주시, 「강남대로」⊃강남 처럼 다른 곳이 pass 가 된다.
+            if (!sidoContradicts && profileNamesSigungu(p.region, sg.name)) return pass();
+            if (sidoContradicts) sawDictionary = true;
+            else if (mineSet.length > 0) sameSidoSigungu = true;
+            else unreadSidoSigungu = true;
             continue;
           }
         }
         if (p.region.includes(r) || r.includes(p.region)) return pass();
       }
       if (sameSidoSigungu) return unknown("같은 시도 — 시군구는 원문 확인");
+      if (unreadSidoSigungu) return unknown("소재지의 시도를 못 읽음 — 시군구는 원문 확인");
       return sawDictionary
         ? fail(`대상 지역: ${list.join("·")}`)
         : unknown(`지역 표기를 확정하지 못해 원문 확인 필요 — 대상 지역: ${list.join("·")}`);

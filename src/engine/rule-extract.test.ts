@@ -306,6 +306,17 @@ describe("titleRegionConditions — 태그 없는 제목의 시군구 사전", (
     expect(titleRegionConditions(YEONGWOL, "경기도")).toEqual([]);
   });
 
+  it("리뷰 지적 2: 기관에 시도가 없으면(수원도시재단) 확인용으로만 남긴다 — 서울 회사를 지우지 않는다", () => {
+    const cs = titleRegionConditions("[시설·공간 ] 수원시 기업지원센터 1인창조기업 입주모집 공고", "수원도시재단");
+    expect(cs).toHaveLength(1);
+    expect(cs[0].value).toEqual(["수원시"]);
+    expect(cs[0].machineReadable).toBe(false);
+  });
+
+  it("리뷰 지적 2: 제목에 「전국」이 있으면 시군구는 장소일 뿐 — 조건 없음", () => {
+    expect(titleRegionConditions("전국 소상공인 창원시 박람회 참가기업 모집 공고", "창원시")).toEqual([]);
+  });
+
   it("시도가 다른 시군구가 섞이면 조건을 만들지 않는다", () => {
     expect(titleRegionConditions("창원시·전주시 공동 지원사업 공고", "중소벤처기업부")).toEqual([]);
   });

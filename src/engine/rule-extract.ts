@@ -316,12 +316,26 @@ export function titleRegionConditions(title: string, agency: string): Structured
 
   const found = sigunguInTitle(title ?? "");
   if (found.length === 0) return [];
+  // 「전국 … 창원시 박람회 참가기업」처럼 제목이 전국을 말하면 시군구는 장소일 뿐이다(독립 리뷰 지적 2).
+  if ((title ?? "").includes("전국")) return [];
   const sidos = new Set(found.map((f) => f.sido));
   if (sidos.size !== 1) return [];
   const only = [...sidos][0];
   const agSidos = sidosInText(agency);
   if (agSidos.length > 0 && !agSidos.includes(only)) return [];
+  // 기관에서 시도가 읽혀 교차검증이 된 경우만 판정용이다. 「수원도시재단」처럼 기관에 시도가 없으면
+  // 근거가 제목 한 줄뿐이라 확인용(machineReadable=false)으로만 남긴다 — 「수원시 기업지원센터 입주모집」이
+  // 전국 신청 가능일 수 있어 서울 회사를 지우지 않는다(독립 리뷰 지적 2).
+  const verified = agSidos.length > 0;
+  const names = found.map((f) => f.name);
   return [
-    condition("region", found.map((f) => f.name), `${RULE_SOURCE_PREFIX} ${(title ?? "").slice(0, 40)}`),
+    condition(
+      "region",
+      names,
+      verified
+        ? `${RULE_SOURCE_PREFIX} ${(title ?? "").slice(0, 40)}`
+        : `${RULE_SOURCE_PREFIX} ${names.join("ㆍ")} 대상으로 보임 — 원문 확인`,
+      verified,
+    ),
   ];
 }

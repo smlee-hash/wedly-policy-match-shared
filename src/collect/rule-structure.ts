@@ -8,8 +8,10 @@ import type { AnnouncementStructure } from "../engine/structure-types";
  *  2: 업종·지역 추가 (2026-08-30 — 표본 150건에서 조건 0건이던 것의 49%가 조건을 갖게 됨)
  *  3: 제목 앞머리 「[광역] 시군구」 (2026-09-01 — 시군구 전용 공고 656건이 지역 무관하게
  *     「조건 충족」으로 뜨던 것. 그중 471건은 본문에 지역 문구가 없어 조건이 하나도 없었다)
+ *  4: 태그 없는 제목의 시군구 사전(2026-09-16 — 시도 지역 조건 없는 열린 행 8,471건 중 제목에 시군구가
+ *     있는데 조건이 없던 660건. 기관 시도와 교차검증된 것만 판정용, 아니면 확인용)
  */
-export const RULE_EXTRACT_VERSION = 3;
+export const RULE_EXTRACT_VERSION = 4;
 
 /**
  * 무료 규칙 추출 → 저장용 AnnouncementStructure. AI 0콜.

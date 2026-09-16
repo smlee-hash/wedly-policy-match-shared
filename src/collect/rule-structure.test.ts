@@ -36,7 +36,7 @@ describe("buildRuleStructure — 제목 앞머리 지역(판본 3)", () => {
     expect(rs.conditions.some((c) => c.key === "region" && c.machineReadable)).toBe(true);
   });
 
-  it("판본이 3 이다 — 소급 재추출 대상을 이 숫자로 고른다", () => {
-    expect(RULE_EXTRACT_VERSION).toBe(3);
+  it("판본이 4 이다 — 소급 재추출 대상을 이 숫자로 고른다(4: 태그 없는 제목의 시군구 사전)", () => {
+    expect(RULE_EXTRACT_VERSION).toBe(4);
   });
 });
