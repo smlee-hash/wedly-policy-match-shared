@@ -90,6 +90,19 @@ export function sidosInText(value: string | undefined | null): string[] {
   return [...found];
 }
 
+/** 시도가 이만큼 나열되면 지역을 정한 게 아니라 전국이다(17개 시도 중). 수도권 3·영남권 5 같은 실제 권역은 넘지 않는다. */
+export const NATIONWIDE_SIDO_COUNT = 10;
+/** 조건 값 목록이 사실상 전국인지 — 「전국」이 들어 있거나 서로 다른 시도가 NATIONWIDE_SIDO_COUNT 이상. */
+export function isNationwideRegionList(values: readonly unknown[]): boolean {
+  const sidos = new Set<string>();
+  for (const v of values) {
+    const text = String(v);
+    if (text.includes(NATIONWIDE)) return true;
+    for (const s of sidosInText(text)) sidos.add(s);
+  }
+  return sidos.size >= NATIONWIDE_SIDO_COUNT;
+}
+
 /** 소재지를 「전국」으로 둔 프로필 — 어디인지 안 정한 것이라 지역 조건은 판정하지 않는다. */
 function profileRegionIsNationwide(region: string): boolean {
   return region.replace(/\s/g, "").startsWith(NATIONWIDE);

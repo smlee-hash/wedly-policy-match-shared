@@ -16,7 +16,7 @@
  *     **구미시 전용 사업이 서울 회사에게, 「전국」 가드가 걸린 공고가 아무에게나** 떴다.
  *     그래서 ②는 **지역 조건이 하나도 없을 때만** 쓴다.
  */
-import { sidosInText } from "./match-engine";
+import { NATIONWIDE_SIDO_COUNT, sidosInText } from "./match-engine";
 import { titleRegionConditions } from "./rule-extract";
 import type { AnnouncementStructure, StructuredCondition } from "./structure-types";
 
@@ -25,7 +25,9 @@ export function synthesizedRegionCondition(regionText: string): StructuredCondit
   if (regionText.includes("전국")) return null;
   // sidosInText — 「대구경북」처럼 붙여 쓴 표기에서 뒤 시도가 삼켜지지 않게(적대 리뷰 치명1).
   const sidos = sidosInText(regionText);
-  if (sidos.length === 0) return null;
+  // 열린 공고 455건이 지역 칸에 17개 시도를 전부 나열한다(ERP JUNK_REGION 실측).
+  // 수도권 3·영남권 5 같은 실제 권역은 남기고, 이만큼이면 「전국」과 같이 조건을 만들지 않는다.
+  if (sidos.length === 0 || sidos.length >= NATIONWIDE_SIDO_COUNT) return null;
   return { key: "region", op: "in", value: sidos, rawText: `[공고 지역 칸] ${regionText}`, machineReadable: true };
 }
 

@@ -1,3 +1,4 @@
+import { isNationwideRegionList } from "./match-engine";
 import type { ConditionCheck } from "./structure-types";
 
 /** 정렬 구획(설계서 §4 — 겹침 없음). status='open' 행만 들어온다는 전제. */
@@ -38,14 +39,15 @@ export function compareRecommend(a: RecommendSortKey, b: RecommendSortKey): numb
  *  필요뿐)는 「미확인」 — 기본 화면엔 맞음만, 미확인은 접기 뒤로. */
 export type FitVerdict = "fit" | "unverified" | "excluded";
 
-/** 「전국」 지역 pass — 사실상 아무 회사나 통과라 그것만으로 「맞음」을 주면
- *  실질 검증 0인 전국 공고가 fit 목록을 도로 채운다(적대 리뷰 중요4). */
+/** 「전국」이거나 시도를 열 곳 이상 나열한 지역 pass — 사실상 아무 회사나 통과라
+ *  그것만으로 「맞음」을 주면 실질 검증 0인 공고가 fit 목록을 도로 채운다
+ *  (적대 리뷰 중요4 · 2026-09-16 실측 455건). */
 function isNationwidePass(c: ConditionCheck): boolean {
   return (
     c.verdict === "pass" &&
     c.condition.key === "region" &&
     Array.isArray(c.condition.value) &&
-    c.condition.value.some((v) => String(v).includes("전국"))
+    isNationwideRegionList(c.condition.value)
   );
 }
 

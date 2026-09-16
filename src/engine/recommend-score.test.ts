@@ -75,3 +75,21 @@ describe("맞음 판정(fitVerdictOf)", () => {
     expect(fitVerdictOf([scale("pass"), seoul("pass")])).toBe("fit");
   });
 });
+
+describe("맞음 판정 — 17개 시도 나열은 전국 약한 통과", () => {
+  const SIDOS_17 = ["서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"];
+  const regionPass = (value: string[]) =>
+    ({ condition: { key: "region", op: "in", value, rawText: "", machineReadable: true }, verdict: "pass", note: "" }) as never;
+
+  it("17개 시도 배열 pass 하나만으로는 fit 을 주지 않는다", () => {
+    expect(fitVerdictOf([regionPass(SIDOS_17)])).toBe("unverified");
+  });
+
+  it("구체 시도(전북) pass 하나는 종전대로 fit", () => {
+    expect(fitVerdictOf([regionPass(["전북"])])).toBe("fit");
+  });
+
+  it("「전국」이 든 배열 pass 는 종전대로 unverified", () => {
+    expect(fitVerdictOf([regionPass(["전국"])])).toBe("unverified");
+  });
+});

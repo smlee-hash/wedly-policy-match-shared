@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { withRegionConditions, synthesizedRegionCondition } from "./region-augment";
-import { checkCondition } from "./match-engine";
+import { checkCondition, NATIONWIDE_SIDO_COUNT } from "./match-engine";
 import type { AnnouncementStructure, StructuredCondition } from "./structure-types";
 
 const EMPTY: AnnouncementStructure = {
@@ -85,6 +85,40 @@ describe("synthesizedRegionCondition", () => {
   });
   it("붙여 쓴 복수 시도를 전부 읽는다", () => {
     expect(synthesizedRegionCondition("대구경북 소재")?.value).toEqual(expect.arrayContaining(["대구", "경북"]));
+  });
+});
+
+describe("synthesizedRegionCondition — 17개 시도 나열은 전국", () => {
+  // ERP route.test.ts JUNK_REGION 과 같은 실측 문자열(열린 공고 455건).
+  const JUNK_REGION = "기술,창업,서울,부산,대구,인천,광주,대전,울산,세종,경기,강원,충북,충남,전북,전남,경북,경남,제주,5축가공기,2026";
+  const SIDOS_17 = ["서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"];
+
+  it("JUNK_REGION 문자열은 조건을 만들지 않는다", () => {
+    expect(synthesizedRegionCondition(JUNK_REGION)).toBeNull();
+  });
+
+  it("폴백을 켜도 JUNK_REGION 은 지역 조건을 안 붙인다", () => {
+    const before = st([]);
+    const out = withRegionConditions(
+      before,
+      { title: "지역 표기 없는 공고", agency: "중기부", region: JUNK_REGION },
+      { regionFieldFallback: true },
+    );
+    expect(out.conditions.filter((c) => c.key === "region")).toHaveLength(0);
+    expect(out).toBe(before);
+  });
+
+  it("서울,경기,인천 세 시도는 조건을 만든다", () => {
+    const value = synthesizedRegionCondition("서울,경기,인천")?.value;
+    expect(value).toEqual(expect.arrayContaining(["서울", "경기", "인천"]));
+    expect(value).toHaveLength(3);
+  });
+
+  it("시도 9개 나열은 조건을 만들고 10개는 만들지 않는다", () => {
+    const nine = SIDOS_17.slice(0, NATIONWIDE_SIDO_COUNT - 1).join(",");
+    const ten = SIDOS_17.slice(0, NATIONWIDE_SIDO_COUNT).join(",");
+    expect(synthesizedRegionCondition(nine)?.value).toHaveLength(NATIONWIDE_SIDO_COUNT - 1);
+    expect(synthesizedRegionCondition(ten)).toBeNull();
   });
 });
 
