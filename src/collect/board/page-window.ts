@@ -212,6 +212,19 @@ function isRowlessListPage(html: string, cfg: BoardConfig): boolean {
   }
 }
 
+/** 행·제목·링크는 유효하고 날짜 칸만 옛 서식이라 검증이 실패한 쪽. */
+function isUndatedOnlyPage(html: string, cfg: BoardConfig, page: number): boolean {
+  try {
+    if (looksLikeJson(html) || isAuthChallengeHtml(html)) return false;
+    const rows = cfg.customParse ? cfg.customParse(html, page) : extractBySelector(html, cfg);
+    if (rows.length < 1) return false;
+    if (validateRows(rows, { expectMinRows: 1, prevCount: 0, allowUndated: false }).ok) return false;
+    return validateRows(rows, { expectMinRows: 1, prevCount: 0, allowUndated: true }).ok;
+  } catch {
+    return false;
+  }
+}
+
 function guardFetch(fetchText: BoardDeps["fetchText"], signal?: AbortSignal): BoardDeps["fetchText"] {
   if (!signal) return fetchText;
   return async (url, charset, init) => {
@@ -315,6 +328,15 @@ export async function fetchBoardWindow(
           lastPageKey = key;
           prevKey = key;
           if (endStreak >= endAfter) return result(page + 1, true, "repeated-page");
+          continue;
+        }
+        if (page > 1 && isUndatedOnlyPage(primaryHtml, cfg, page)) {
+          lastPageRead = page;
+          endStreak = 0;
+          if (key) {
+            lastPageKey = key;
+            prevKey = key;
+          }
           continue;
         }
         if (hasValidFilteredOutRows(primaryHtml, cfg, page)) {

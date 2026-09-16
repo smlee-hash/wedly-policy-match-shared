@@ -777,10 +777,12 @@ describe("끝 쪽 판정 보강", () => {
 
   it("0000 날짜만 있으면 empty-list 로 끝낸다", async () => {
     // 쪽 이동 상자 숫자가 없으면 0000 날짜 행만으로 끝내지 않는다.
+    // 날짜만 못 읽는 쪽은 건너뛰고, 지문이 다르면 완료로 보지 않는다.
     const out = await fetchBoardWindow(endBoard, deps({
       fetchText: async (url) => rowsHtml(pageOf(url) === 2 ? [1, 2, 3] : [4, 5, 6], "0000-00-00"),
     }), { startPage: 2, pageBudget: 2 });
-    expect(out).toMatchObject({ reason: "incomplete", complete: false, nextPage: 2 });
+    expect(out).toMatchObject({ reason: "page-budget", complete: false, nextPage: 4, lastPageRead: 3 });
+    expect(out.reason).not.toBe("empty-list");
   });
 
   it("범위 안 JSON 거른 쪽은 읽은 쪽으로 세고 다음으로 간다", async () => {
@@ -834,5 +836,59 @@ describe("끝 쪽 판정 보강", () => {
     expect(both).toMatchObject({ complete: true, reason: "beyond-last-page", nextPage: 5, endStreak: 2 });
     const one = await fetchBoardWindow(endBoard, d, { startPage: 3, pageBudget: 1 });
     expect(one).toMatchObject({ complete: false, reason: "page-budget", endStreak: 1 });
+  });
+});
+
+describe("날짜만 못 읽는 옛 쪽", () => {
+  const board = cfg({ skipHeuristic: true });
+
+  it("날짜만 못 읽는 쪽은 건너뛰고 계속 읽는다", async () => {
+    const out = await fetchBoardWindow(board, deps({
+      fetchText: async (url) => {
+        const page = pageOf(url);
+        if (page === 2) return rowsHtml([4, 5, 6], "0000-00-00");
+        if (page === 3) return rowsHtml([7, 8, 9]);
+        return rowsHtml([1, 2, 3]);
+      },
+    }), { startPage: 2, pageBudget: 2 });
+    expect(out).toMatchObject({ complete: false, reason: "page-budget", lastPageRead: 3 });
+    expect(out.announcements.map((a) => a.sourceId).sort()).toEqual([
+      "https://x.kr/v?id=7",
+      "https://x.kr/v?id=8",
+      "https://x.kr/v?id=9",
+    ]);
+  });
+
+  it("행이 0개면 이 규칙을 안 쓴다", async () => {
+    const out = await fetchBoardWindow(board, deps({
+      fetchText: async () => "<table><tbody></tbody></table>",
+    }), { startPage: 2, pageBudget: 2 });
+    expect(out).toMatchObject({ complete: false, reason: "incomplete", nextPage: 2 });
+  });
+
+  it("제목까지 비면 건너뛰지 않는다", async () => {
+    const emptyTitles = `<table><tbody>${[4, 5, 6].map((id) =>
+      `<tr><td class="subject"><a href="/v?id=${id}"></a></td><td class="date"></td></tr>`,
+    ).join("")}</tbody></table>`;
+    const out = await fetchBoardWindow(board, deps({
+      fetchText: async () => emptyTitles,
+    }), { startPage: 2, pageBudget: 2 });
+    expect(out).toMatchObject({ complete: false, reason: "incomplete", nextPage: 2 });
+  });
+
+  it("1쪽에는 안 쓴다", async () => {
+    const out = await fetchBoardWindow(board, deps({
+      fetchText: async () => rowsHtml([1, 2, 3], ""),
+    }), { startPage: 1, pageBudget: 2 });
+    expect(out).toMatchObject({ complete: false, reason: "incomplete", nextPage: 1 });
+  });
+
+  it("날짜 없는 쪽이 연속 2쪽이어도 되풀이 지문이 다르면 완료가 아니다", async () => {
+    const out = await fetchBoardWindow(board, deps({
+      fetchText: async (url) => pageOf(url) === 2 ? rowsHtml([1, 2, 3], "") : rowsHtml([4, 5, 6], ""),
+    }), { startPage: 2, pageBudget: 2 });
+    expect(out).toMatchObject({ complete: false, reason: "page-budget", lastPageRead: 3, nextPage: 4 });
+    expect(out.reason).not.toBe("repeated-page");
+    expect(out.announcements).toHaveLength(0);
   });
 });
