@@ -1,6 +1,6 @@
 // 프로필 vs 구조화 조건 순수 대조 — AI 없음, 저장소 접근 없음(설계서 §3, 계획 Task 4).
 // 「모름」은 절대 통과로 치지 않는다 — 값이 없으면 unknown → 등급은 최고 uncertain 까지만 간다.
-import { sectorFamiliesOfIndustry } from "./sector";
+import { relatedFamiliesOf, sectorFamiliesOfIndustry, SECTOR_FAMILY_NAMES } from "./sector";
 import { sigunguSido } from "./sigungu";
 import {
   AnnouncementStructure,
@@ -201,9 +201,15 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
     case "targetSector": {
       if (!p.industry) return unknown("업종 미입력");
       const list = c.value as string[];
+      // 사전 밖 이름(AI 가 「제약」처럼 적은 값)으로는 아무도 떨어뜨리지 않는다(독립 리뷰 미검증 위험).
+      if (!list.every((f) => SECTOR_FAMILY_NAMES.has(f))) return unknown("분야 이름을 사전에서 못 찾음 — 원문 확인");
       const fams = sectorFamiliesOfIndustry(p.industry);
       if (fams.length === 0) return unknown("업종을 분야로 못 읽음 — 원문 확인");
-      return fams.some((f) => list.includes(f)) ? pass() : fail(`대상 분야: ${list.join("·")}`);
+      if (fams.some((f) => list.includes(f))) return pass();
+      // 이웃 분야(콘텐츠↔정보통신·식품↔농림어업 …)면 fail 이 아니라 원문 확인이다 — fail 은 확신 있을 때만.
+      const related = relatedFamiliesOf(list);
+      if (fams.some((f) => related.has(f))) return unknown(`이웃 분야라 원문 확인 — 대상 분야: ${list.join("·")}`);
+      return fail(`대상 분야: ${list.join("·")}`);
     }
     case "businessAgeMaxYears": {
       const age = businessAgeYears(p.foundedDate, now);
