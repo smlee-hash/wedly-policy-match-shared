@@ -90,7 +90,13 @@ export function sidosInText(value: string | undefined | null): string[] {
   return [...found];
 }
 
-/** 시도가 이만큼 나열되면 지역을 정한 게 아니라 전국이다(17개 시도 중). 수도권 3·영남권 5 같은 실제 권역은 넘지 않는다. */
+/** 사전이 아는 시도 수(17). 이만큼 전부 나열한 지역 칸은 어느 회사도 떨어뜨릴 수 없으므로 조건으로 만들 값이 없다. */
+export const ALL_SIDO_COUNT = Object.keys(REGION_ALIASES).length;
+/**
+ * 시도가 이만큼 나열된 **조건**은 지역을 정한 게 아니라 전국에 가깝다 — 약한 통과로만 본다(isNationwidePass).
+ * 수도권 3·영남권 5 같은 실제 권역은 넘지 않는다. 출처 지역 칸에서 조건을 **만들지 말지**는 이 값이 아니라
+ * ALL_SIDO_COUNT 로 판정한다(독립 리뷰 2026-09-16: 비수도권 14곳 나열은 수도권 회사를 떨어뜨리는 실제 조건이다).
+ */
 export const NATIONWIDE_SIDO_COUNT = 10;
 /** 조건 값 목록이 사실상 전국인지 — 「전국」이 들어 있거나 서로 다른 시도가 NATIONWIDE_SIDO_COUNT 이상. */
 export function isNationwideRegionList(values: readonly unknown[]): boolean {

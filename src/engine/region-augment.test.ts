@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { withRegionConditions, synthesizedRegionCondition } from "./region-augment";
-import { checkCondition, NATIONWIDE_SIDO_COUNT } from "./match-engine";
+import { ALL_SIDO_COUNT, checkCondition } from "./match-engine";
 import type { AnnouncementStructure, StructuredCondition } from "./structure-types";
 
 const EMPTY: AnnouncementStructure = {
@@ -114,11 +114,25 @@ describe("synthesizedRegionCondition — 17개 시도 나열은 전국", () => {
     expect(value).toHaveLength(3);
   });
 
-  it("시도 9개 나열은 조건을 만들고 10개는 만들지 않는다", () => {
-    const nine = SIDOS_17.slice(0, NATIONWIDE_SIDO_COUNT - 1).join(",");
-    const ten = SIDOS_17.slice(0, NATIONWIDE_SIDO_COUNT).join(",");
-    expect(synthesizedRegionCondition(nine)?.value).toHaveLength(NATIONWIDE_SIDO_COUNT - 1);
-    expect(synthesizedRegionCondition(ten)).toBeNull();
+  it("시도 16개 나열은 조건을 만들고(빠진 시도의 회사는 떨어진다) 17개 전부는 만들지 않는다", () => {
+    expect(ALL_SIDO_COUNT).toBe(17);
+    const sixteen = SIDOS_17.slice(0, 16).join(","); // 제주 빠짐
+    const value = synthesizedRegionCondition(sixteen)?.value;
+    expect(value).toHaveLength(16);
+    expect(synthesizedRegionCondition(SIDOS_17.join(","))).toBeNull();
+  });
+
+  it("비수도권 14곳 나열은 서울 회사를 떨어뜨리는 실제 조건이다(독립 리뷰 2026-09-16 지적 1)", () => {
+    const nonCapital = SIDOS_17.filter((s) => !["서울", "경기", "인천"].includes(s)).join(",");
+    const out = withRegionConditions(
+      st([]),
+      { title: "비수도권 기업 지원", agency: "산업부", region: nonCapital },
+      { regionFieldFallback: true },
+    );
+    const region = out.conditions.find((c) => c.key === "region");
+    expect(region?.value).toHaveLength(14);
+    expect(checkCondition(region!, { region: "서울" }, new Date("2026-09-16T00:00:00Z")).verdict).toBe("fail");
+    expect(checkCondition(region!, { region: "부산" }, new Date("2026-09-16T00:00:00Z")).verdict).toBe("pass");
   });
 });
 
