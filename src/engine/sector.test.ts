@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sectorFamiliesInTitle, sectorFamiliesOfIndustry } from "./sector";
+import { relatedFamiliesOf, SECTOR_FAMILIES, SECTOR_FAMILY_NAMES, sectorFamiliesInTitle, sectorFamiliesOfIndustry } from "./sector";
 import { checkCondition } from "./match-engine";
 import { titleSectorCondition } from "./rule-extract";
 
@@ -85,5 +85,50 @@ describe("독립 리뷰 2026-09-16 반영 — 확신 없는 fail 을 없앤다",
   it("사전 밖 분야 이름은 아무도 떨어뜨리지 않는다", () => {
     const bogus = { key: "targetSector" as const, op: "in" as const, value: ["제약"], rawText: "AI", machineReadable: true };
     expect(checkCondition(bogus, { industry: "도배, 실내 장식 및 내장 목공사업" }, NOW).verdict).toBe("unknown");
+  });
+});
+
+describe("2차 독립 리뷰 반영 — 이웃 관계 대칭·부분 문자열 오판", () => {
+  const NOW = new Date("2026-09-16T00:00:00Z");
+  const c = (title: string) => {
+    const cond = titleSectorCondition(title);
+    expect(cond, `제목이 분야로 안 읽힘: ${title}`).not.toBeNull();
+    return cond!;
+  };
+
+  it("지적 1: 이웃 관계는 양방향이다 — 사전이 한쪽만 적어도 판정이 같다", () => {
+    for (const f of SECTOR_FAMILIES) {
+      for (const r of f.relatedFamilies) {
+        expect(SECTOR_FAMILY_NAMES.has(r), `${f.family} 의 이웃 ${r} 이 사전에 없다`).toBe(true);
+        expect(relatedFamiliesOf([r]).has(f.family), `${r} → ${f.family} 역방향이 없다`).toBe(true);
+      }
+    }
+  });
+
+  it("지적 1: 호텔 × 외식기업, 음식점 × 관광기업이 같은 판정(unknown)", () => {
+    expect(checkCondition(c("외식기업 해외진출 지원 공고"), { industry: "호텔업" }, NOW).verdict).toBe("unknown");
+    expect(checkCondition(c("관광기업 육성 공고"), { industry: "음식점업" }, NOW).verdict).toBe("unknown");
+  });
+
+  it("지적 2: 플랫폼 공고 × 전자상거래, 그린바이오 공고 × 농업, 교육 공고 × 출판은 fail 이 아니다", () => {
+    expect(checkCondition(c("온라인 플랫폼 기업 상생협력 지원 공고"), { industry: "전자상거래 소매업" }, NOW).verdict).toBe("unknown");
+    expect(checkCondition(c("그린바이오 기업 육성사업 참여기업 모집"), { industry: "작물 재배업" }, NOW).verdict).toBe("unknown");
+    expect(checkCondition(c("교육기업 해외진출 지원 공고"), { industry: "서적 출판업" }, NOW).verdict).toBe("unknown");
+  });
+
+  it("지적 4: 「광고 제작물 제작업」은 농림어업이 아니고 「인쇄회로」 제조사는 광고인쇄가 아니다", () => {
+    expect(sectorFamiliesOfIndustry("광고 제작물 제작업")).not.toContain("농림어업");
+    expect(sectorFamiliesOfIndustry("작물 재배업")).toContain("농림어업");
+    expect(sectorFamiliesOfIndustry("인쇄회로기판 제조업")).not.toContain("반도체전자");
+  });
+
+  it("지적 6: 빈 분야 목록으로는 아무도 떨어뜨리지 않는다", () => {
+    const empty = { key: "targetSector" as const, op: "in" as const, value: [] as string[], rawText: "AI", machineReadable: true };
+    expect(checkCondition(empty, { industry: "도배, 실내 장식 및 내장 목공사업" }, NOW).verdict).toBe("unknown");
+  });
+
+  it("먼 분야는 여전히 fail — 제약기업 × 도배, 식품기업 × 철판 가공", () => {
+    expect(checkCondition(c("2026년 혁신형 제약기업 신규인증 공고"), { industry: "도배, 실내 장식 및 내장 목공사업" }, NOW).verdict).toBe("fail");
+    expect(checkCondition(c("2026년 식품기업 수출 지원 공고"), { industry: "철판 및 철판 가공" }, NOW).verdict).toBe("fail");
   });
 });

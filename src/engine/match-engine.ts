@@ -202,7 +202,7 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
       if (!p.industry) return unknown("업종 미입력");
       const list = c.value as string[];
       // 사전 밖 이름(AI 가 「제약」처럼 적은 값)으로는 아무도 떨어뜨리지 않는다(독립 리뷰 미검증 위험).
-      if (!list.every((f) => SECTOR_FAMILY_NAMES.has(f))) return unknown("분야 이름을 사전에서 못 찾음 — 원문 확인");
+      if (list.length === 0 || !list.every((f) => SECTOR_FAMILY_NAMES.has(f))) return unknown("분야 이름을 사전에서 못 찾음 — 원문 확인");
       const fams = sectorFamiliesOfIndustry(p.industry);
       if (fams.length === 0) return unknown("업종을 분야로 못 읽음 — 원문 확인");
       if (fams.some((f) => list.includes(f))) return pass();
