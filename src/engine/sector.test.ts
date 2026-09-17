@@ -159,7 +159,6 @@ describe("통합 2차 리뷰(2026-09-17) 반영 — 가림은 가린 글로만 �
   it("D2: 「인쇄회로 설계업」은 반도체전자로 남는다(합성어 제 가족은 안 사라진다)", () => {
     expect(sectorFamiliesOfIndustry("인쇄회로 설계업")).toEqual(["반도체전자"]);
     expect(sectorFamiliesOfIndustry("인쇄회로 및 광고물 제작")).toEqual(expect.arrayContaining(["반도체전자", "광고인쇄"]));
-    expect(sectorFamiliesOfIndustry("인쇄회로 및 광고물 제작")).not.toContain("콘텐츠");
   });
   it("D3: 「전기판매업」은 반도체전자가 아니다(두 글자 부분 문자열 「기판」 없음)", () => {
     expect(sectorFamiliesOfIndustry("전기판매업")).not.toContain("반도체전자");

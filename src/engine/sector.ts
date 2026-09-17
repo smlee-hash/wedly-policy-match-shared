@@ -147,10 +147,3 @@ export function sectorFamiliesOfIndustry(industry: string): string[] {
   }
   return found;
 }
-  // 합성어를 지운 글로 다시 재서, 합성어 안의 짧은 낱말로만 붙은 가족을 뺀다.
-  const masked = COMPOUND_MASK.reduce((t, c) => t.split(c).join(" "), raw);
-  return found.filter((family) => {
-    const fam = SECTOR_FAMILIES.find((f) => f.family === family)!;
-    return fam.companyWords.some((w) => masked.includes(w) || (raw.includes(w) && COMPOUND_MASK.every((c) => !c.includes(w))));
-  });
-}
