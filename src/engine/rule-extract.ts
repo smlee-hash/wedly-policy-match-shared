@@ -290,15 +290,13 @@ export function titleSectorCondition(title: string): StructuredCondition | null 
  */
 export function titleTargetOrgCondition(title: string): StructuredCondition | null {
   const t = title ?? "";
-  const types = targetOrgsInTitle(t);
-  if (types.length === 0) return null;
-  // 왼쪽에 다른 공동 대상이 나열돼 **목록이 불완전**하면(「사회적기업 지원사업 및 예비창업자 모집」) 사람 확인으로
-  // 낮춘다 — 빠진 대상의 회사가 fail 로 지워지지 않게(10차 리뷰 M-1). 확신 목록이 없을 때는 조건을 만들지 않는다:
-  // 실측 코퍼스에서 그 갈래는 0건인데 사람 확인 조건은 「영영 맞음 금지」라 비용만 남는다(10차 M-2·M-3).
-  const extra = uncertainTargetOrgsInTitle(t);
-  if (extra.length === 0) return condition("targetOrg", types, `${RULE_SOURCE_PREFIX} ${t.slice(0, 40)}`);
-  const all = [...types, ...extra];
-  return condition("targetOrg", all, `${RULE_SOURCE_PREFIX} ${all.join("ㆍ")} 대상으로 보임 — 원문 확인`, false);
+  // 확신 자리(targetOrgsInTitle)와 나열 속 상태형(uncertainTargetOrgsInTitle)을 **합쳐** 조건 하나로 만든다.
+  //  · 합치므로 나열의 어느 대상도 빠지지 않는다 — 빠진 대상의 회사가 fail 로 지워지던 갈래를 막는다(10차 M-1).
+  //  · 기계 대조를 유지하므로 목록에 있는 자격을 가진 회사는 pass 를 받고(11차 ①), 형태를 모르는 회사는
+  //    unknown → 「맞음 금지」로 남는다(11차 ② — 지역 pass 하나로 맞음이 되던 자격형 공고를 계속 막는다).
+  const all = [...targetOrgsInTitle(t), ...uncertainTargetOrgsInTitle(t)];
+  if (all.length === 0) return null;
+  return condition("targetOrg", all, `${RULE_SOURCE_PREFIX} ${t.slice(0, 40)}`);
 }
 
 /**

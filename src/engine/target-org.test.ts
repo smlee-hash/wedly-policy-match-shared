@@ -194,19 +194,24 @@ describe("8차 독립 리뷰(2026-09-17) 반영", () => {
     expect(targetOrgsInTitle("2026년 소상공인·예비창업자 창업교육")).toEqual([]);
   });
 
-  it("10차 M-2·M-3: 확신 유형이 하나도 없으면 조건을 만들지 않는다 — 사람 확인 조건은 「영영 맞음 금지」라 비용만 남는다", () => {
-    expect(uncertainTargetOrgsInTitle("2026년 소상공인·예비창업자 창업교육")).toEqual(["예비창업자"]);
-    expect(titleTargetOrgCondition("2026년 소상공인·예비창업자 창업교육")).toBeNull();
+  it("11차 ②: 확신 자리가 없어도 나열 속 상태형은 조건으로 남아 「맞음 금지」를 지킨다", () => {
+    const c = titleTargetOrgCondition("2026년 소상공인·예비창업자 창업교육")!;
+    expect(c.value).toEqual(["예비창업자"]);
+    expect(c.machineReadable).toBe(true);
+    const NOW = new Date("2026-09-17T00:00:00Z");
+    const region = { condition: { key: "region" as const, op: "in" as const, value: ["경기"], rawText: "r", machineReadable: true }, verdict: "pass" as const, note: "" };
+    // 형태를 모르는 회사(대다수)는 unknown → 지역 pass 가 있어도 「맞음」이 아니다.
+    expect(fitVerdictOf([region, checkCondition(c, { companyScale: "중소기업", foundedDate: "2010-01-01" }, NOW)])).toBe("unverified");
   });
 
-  it("10차 M-1: 확신 목록이 불완전하면(왼쪽에 다른 대상) 합쳐서 사람 확인으로 낮춘다 — 빠진 대상이 fail 로 지워지지 않는다", () => {
+  it("11차 ①·10차 M-1: 나열을 합쳐 담아 두 참 대상 모두 pass, 빠진 대상의 fail 은 없다", () => {
     const c = titleTargetOrgCondition("2026년 사회적기업 지원사업 및 예비창업자 모집 공고")!;
     expect(c.value).toEqual(["사회적기업", "예비창업자"]);
-    expect(c.machineReadable).toBe(false);
+    expect(c.machineReadable).toBe(true);
     const NOW = new Date("2026-09-17T00:00:00Z");
-    expect(checkCondition(c, { orgTypes: ["예비창업자"] }, NOW).verdict).toBe("unknown");
-    const region = { condition: { key: "region" as const, op: "in" as const, value: ["경기"], rawText: "r", machineReadable: true }, verdict: "pass" as const, note: "" };
-    expect(fitVerdictOf([region, checkCondition(c, { orgTypes: ["예비창업자"] }, NOW)])).toBe("unverified");
+    expect(checkCondition(c, { orgTypes: ["사회적기업(인증)"] }, NOW).verdict).toBe("pass");
+    expect(checkCondition(c, { orgTypes: ["예비창업자"] }, NOW).verdict).toBe("pass");
+    expect(checkCondition(c, {}, NOW).verdict).toBe("unknown");
   });
 
   it("①: 앞에 나열이 없으면 종전대로 상태형 예외를 준다", () => {
