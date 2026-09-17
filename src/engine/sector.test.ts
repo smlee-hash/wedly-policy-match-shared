@@ -119,7 +119,8 @@ describe("2차 독립 리뷰 반영 — 이웃 관계 대칭·부분 문자열 �
   it("지적 4: 「광고 제작물 제작업」은 농림어업이 아니고 「인쇄회로」 제조사는 광고인쇄가 아니다", () => {
     expect(sectorFamiliesOfIndustry("광고 제작물 제작업")).not.toContain("농림어업");
     expect(sectorFamiliesOfIndustry("작물 재배업")).toContain("농림어업");
-    expect(sectorFamiliesOfIndustry("인쇄회로기판 제조업")).not.toContain("반도체전자");
+    expect(sectorFamiliesOfIndustry("인쇄회로기판 제조업")).not.toContain("광고인쇄");
+    expect(sectorFamiliesOfIndustry("경성 인쇄회로기판 제조업")).toEqual(["반도체전자"]);
   });
 
   it("지적 6: 빈 분야 목록으로는 아무도 떨어뜨리지 않는다", () => {
@@ -130,5 +131,20 @@ describe("2차 독립 리뷰 반영 — 이웃 관계 대칭·부분 문자열 �
   it("먼 분야는 여전히 fail — 제약기업 × 도배, 식품기업 × 철판 가공", () => {
     expect(checkCondition(c("2026년 혁신형 제약기업 신규인증 공고"), { industry: "도배, 실내 장식 및 내장 목공사업" }, NOW).verdict).toBe("fail");
     expect(checkCondition(c("2026년 식품기업 수출 지원 공고"), { industry: "철판 및 철판 가공" }, NOW).verdict).toBe("fail");
+  });
+});
+
+describe("통합 리뷰(2026-09-17) 반영 — 합성어 안의 짧은 낱말", () => {
+  const NOW = new Date("2026-09-17T00:00:00Z");
+  it("F1: PCB 제조사는 반도체 공고에서 안 떨어진다", () => {
+    const cond = titleSectorCondition("2026년 시스템반도체 기업 육성사업 공고")!;
+    expect(cond).not.toBeNull();
+    expect(checkCondition(cond, { industry: "경성 인쇄회로기판 제조업" }, NOW).verdict).toBe("pass");
+  });
+  it("F2: 「서양식 음식점업」은 농림어업이 아니라 식품 — 수산기업 공고에 맞음이 안 된다", () => {
+    expect(sectorFamiliesOfIndustry("서양식 음식점업")).toEqual(["식품"]);
+    const cond = titleSectorCondition("2026년 수산기업 수출 지원 공고")!;
+    expect(checkCondition(cond, { industry: "서양식 음식점업" }, NOW).verdict).toBe("unknown");
+    expect(checkCondition(cond, { industry: "넙치 양식업" }, NOW).verdict).toBe("pass");
   });
 });

@@ -124,8 +124,15 @@ function profileNamesSigungu(region: string, name: string): boolean {
   // 어간이 시도 별칭(「제주」)이면 어간으로는 안 본다 — 「제주 서귀포시」의 「제주」가 제주시로 읽힌다.
   const rawStem = /[시군구]$/.test(name) ? name.slice(0, -1) : "";
   const stem = rawStem && canonicalRegion(rawStem) === null ? rawStem : "";
+  const same = (t: string) =>
+    t === name || (stem.length >= 2 && (t === stem || (t.startsWith(stem) && t.length === stem.length + 1 && /[시군구]$/.test(t))));
   const tokens = region.split(/[\s,·ㆍ()（）[\]【】/]+/).filter(Boolean);
-  return tokens.some((t) => t === name || (stem.length >= 2 && (t === stem || /^[시군구]$/.test(t.slice(stem.length)) && t.startsWith(stem) && t.length === stem.length + 1)));
+  if (tokens.some(same)) return true;
+  // 붙여 쓴 소재지(「강원영월군」·「서울특별시강남구」)는 다른 지역 함수들처럼 공백을 지운 형태도 본다 —
+  // 단 앞의 시도 별칭 하나만 떼고 **나머지가 정확히** 이름·어간이어야 한다(「남양주시」·「구미동」은 안 된다)(통합 리뷰 F4).
+  const compact = region.replace(/\s/g, "");
+  const alias = ALIAS_ENTRIES.find(([a]) => compact.startsWith(a))?.[0] ?? "";
+  return same(compact.slice(alias.length));
 }
 
 export function businessAgeYears(foundedDate: string | undefined, now: Date): number | null {

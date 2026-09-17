@@ -13,7 +13,7 @@ export interface SectorFamily {
 
 export const SECTOR_FAMILIES: SectorFamily[] = [
   { family: "식품", announcementWords: ["식품", "농식품", "푸드테크", "외식", "밀키트", "음료"], companyWords: ["식품", "음식", "외식", "음료", "제과", "제빵", "주류", "식료품"], relatedFamilies: ["농림어업", "유통", "제약바이오"] },
-  { family: "농림어업", announcementWords: ["수산", "어업", "농업", "농식품", "산림", "임업", "축산"], companyWords: ["농업", "어업", "수산", "임업", "축산", "양식", "작물 재배", "작물재배"], relatedFamilies: ["식품", "유통"] },
+  { family: "농림어업", announcementWords: ["수산", "어업", "농업", "농식품", "산림", "임업", "축산"], companyWords: ["농업", "어업", "수산", "임업", "축산", "양식업", "양식장", "작물 재배", "작물재배"], relatedFamilies: ["식품", "유통"] },
   { family: "제약바이오", announcementWords: ["제약", "바이오", "의료기기", "의약품", "헬스케어"], companyWords: ["제약", "바이오", "의약품", "의료기기", "헬스케어", "의료", "건강기능식품"], relatedFamilies: ["식품", "뷰티", "정보통신", "유통", "농림어업"] },
   { family: "정보통신", announcementWords: ["소프트웨어", "SW", "ICT", "정보통신", "블록체인", "인공지능", "AI", "게임", "메타버스", "플랫폼"], companyWords: ["소프트웨어", "정보통신", "정보처리", "컴퓨터", "게임", "플랫폼", "앱", "IT"], relatedFamilies: ["콘텐츠", "제약바이오", "반도체전자", "교육", "유통", "자동차"] },
   { family: "콘텐츠", announcementWords: ["콘텐츠", "영상", "영화", "드라마", "방송", "웹툰", "애니메이션", "음악", "출판", "만화", "게임"], companyWords: ["콘텐츠", "영상", "영화", "방송", "출판", "만화", "음악", "광고", "게임", "애니메이션", "캐릭터", "공연"], relatedFamilies: ["정보통신", "광고인쇄"] },
@@ -21,7 +21,7 @@ export const SECTOR_FAMILIES: SectorFamily[] = [
   { family: "섬유패션", announcementWords: ["섬유", "패션", "의류"], companyWords: ["섬유", "의류", "패션", "봉제"], relatedFamilies: ["유통"] },
   { family: "자동차", announcementWords: ["자동차", "모빌리티"], companyWords: ["자동차"], relatedFamilies: ["기계금속", "반도체전자", "정보통신"] },
   { family: "조선해양", announcementWords: ["조선", "해양", "선박"], companyWords: ["조선", "선박"], relatedFamilies: ["기계금속"] },
-  { family: "반도체전자", announcementWords: ["반도체", "디스플레이", "전자부품"], companyWords: ["반도체", "디스플레이", "전자부품", "전자제품", "전자기기"], relatedFamilies: ["정보통신", "기계금속", "자동차"] },
+  { family: "반도체전자", announcementWords: ["반도체", "디스플레이", "전자부품"], companyWords: ["반도체", "디스플레이", "전자부품", "전자제품", "전자기기", "인쇄회로", "기판"], relatedFamilies: ["정보통신", "기계금속", "자동차"] },
   { family: "기계금속", announcementWords: ["기계", "로봇", "금속", "뿌리"], companyWords: ["기계", "금속", "로봇", "절삭", "철판", "주조", "용접", "금형", "판금"], relatedFamilies: ["자동차", "조선해양", "반도체전자", "에너지환경", "건설"] },
   { family: "건설", announcementWords: ["건설", "건축", "인테리어"], companyWords: ["건설", "건축", "인테리어", "도배", "목공", "실내장식", "설비"], relatedFamilies: ["기계금속", "에너지환경"] },
   { family: "관광", announcementWords: ["관광", "여행"], companyWords: ["관광", "여행", "숙박", "호텔"], relatedFamilies: ["식품", "콘텐츠"] },
@@ -123,12 +123,24 @@ export function sectorFamiliesInTitle(title: string): string[] {
  * 회사 업종 문구에 회사 낱말이 들어 있는 가족들. 「제조업」·「서비스업」만 있으면 빈 배열
  * (너무 넓어서 분야로 못 읽는다).
  */
+/**
+ * 회사 낱말보다 긴 합성어 — 이 안의 짧은 낱말은 다른 가족의 근거가 아니다(통합 리뷰 F1·F2).
+ * 「인쇄회로기판」의 「인쇄」는 광고인쇄가 아니고, 「서양식 음식점」의 「양식」은 농림어업이 아니다.
+ * 합성어는 제 가족(반도체전자·식품)의 회사 낱말로 따로 잡히므로 여기서 지워도 잃는 것이 없다.
+ */
+const COMPOUND_MASK = ["인쇄회로", "서양식", "한식양식", "일양식"];
+
 export function sectorFamiliesOfIndustry(industry: string): string[] {
-  const t = industry ?? "";
-  if (!t.trim()) return [];
+  const raw = industry ?? "";
+  if (!raw.trim()) return [];
   const found: string[] = [];
   for (const fam of SECTOR_FAMILIES) {
-    if (fam.companyWords.some((w) => t.includes(w))) found.push(fam.family);
+    if (fam.companyWords.some((w) => raw.includes(w))) found.push(fam.family);
   }
-  return found;
+  // 합성어를 지운 글로 다시 재서, 합성어 안의 짧은 낱말로만 붙은 가족을 뺀다.
+  const masked = COMPOUND_MASK.reduce((t, c) => t.split(c).join(" "), raw);
+  return found.filter((family) => {
+    const fam = SECTOR_FAMILIES.find((f) => f.family === family)!;
+    return fam.companyWords.some((w) => masked.includes(w) || (raw.includes(w) && COMPOUND_MASK.every((c) => !c.includes(w))));
+  });
 }

@@ -174,6 +174,13 @@ describe("checkCondition — 시군구 사전(다른 시도만 fail, 같은 시�
     expect(checkCondition(cond({ value: ["강남구"] }), { region: "서울 강남구(역삼동)" }, NOW).verdict).toBe("pass");
   });
 
+  it("통합 리뷰 F4: 붙여 쓴 소재지(「강원영월군」·「서울특별시강남구」)도 pass, 「경기도남양주시」×양주시는 아니다", () => {
+    expect(checkCondition(cond({ value: ["영월군"] }), { region: "강원영월군" }, NOW).verdict).toBe("pass");
+    expect(checkCondition(cond({ value: ["강남구"] }), { region: "서울특별시강남구" }, NOW).verdict).toBe("pass");
+    expect(checkCondition(cond({ value: ["양주시"] }), { region: "경기도남양주시" }, NOW).verdict).toBe("unknown");
+    expect(checkCondition(cond({ value: ["구미"] }), { region: "경기도성남시분당구구미동" }, NOW).verdict).toBe("fail");
+  });
+
   it("2차 리뷰 지적 2: 옛 시도 표기 「경상북도 군위군」도 낱말이 같으면 pass(사전은 대구)", () => {
     expect(checkCondition(cond({ value: ["군위군"] }), { region: "경상북도 군위군" }, NOW).verdict).toBe("pass");
   });
