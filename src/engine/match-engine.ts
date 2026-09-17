@@ -17,6 +17,9 @@ export interface BusinessProfile {
   companyName?: string; bizno?: string;
   industry?: string;          // 주업종(텍스트)
   region?: string;            // 소재지 시도
+  // 자치 시군구 한 곳(예: "안양시"). 사전에 있는 이름만 담는다. 중구·서구처럼 여러 시도에
+  // 같은 이름이 있는 곳은 채우지 않는다(sigungu.ts 사전이 이미 뺀다).
+  regionSigungu?: string;
   foundedDate?: string;       // YYYY-MM-DD
   lastYearRevenueKrw?: number;
   employeeCount?: number;
@@ -160,15 +163,21 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
       if (list.some((r) => r.includes(NATIONWIDE))) return pass();
       if (profileRegionIsNationwide(p.region)) return unknown("소재지가 「전국」 — 지역 조건은 원문 확인");
       const mine = canonicalRegion(p.region);
+      const mineSg = p.regionSigungu ? sigunguSido(p.regionSigungu) : null;
       // ★fail 은 「확신 있을 때만」 낸다(적대 리뷰 2026-08-30 치명1 — 추천이 fail 을 목록
       // 제외로 격상한 뒤로, 확신 없는 fail 은 자격 있는 회사에게서 공고를 영영 지운다).
       //  · 항목에서 표준 시도가 하나라도 읽히면(「부산」·「대구경북」) 사전 대조 — 미일치는 확신 fail.
       //  · 시군구 사전 이름(「영월군」·어간 「구미」)은 회사 소재지에 그 이름/어간이 있으면 pass,
+      //    회사 시군구(regionSigungu)가 그 이름이면 pass,
       //    회사 시도를 읽었는데 다르면 확신 fail, 같은 시도이거나 시도를 못 읽으면 원문 확인.
+      //    같은 시도인데 회사 시군구를 알고 조건과 다르면 확신 fail — 2026-09-18 실측 675건
+      //    (화면 「맞음」의 15%, 공고 111건)이 다른 시군구 전용이며 전부 원문 구조 출처(제목 추측 0)
+      //    라 개최지 오탐이 없다. 조건에 「모름」으로 남는 값이 하나라도 섞이면 이 fail 은 내지 않는다.
       //  · 그 밖(「수도권」)은 글자 포함으로만 대조하고, 미일치는 fail 이 아니라 「확인 필요」.
       let sawDictionary = false;
       let sameSidoSigungu = false;
       let unreadSidoSigungu = false;
+      let knownOtherSigungu = false;
       for (const r of list) {
         // 사전 시군구(「제주시」·「부산진구」처럼 시도 별칭을 품은 이름 포함)는 시도 갈래보다 먼저 본다 —
         // 시도 갈래로 가면 같은 시도의 다른 시군구 회사가 pass 가 된다(2차 리뷰 지적 3).
@@ -178,11 +187,15 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
           //  「성남시 분당구 구미동」⊃구미, 「남양주시」⊃양주시, 「강남대로」⊃강남 처럼 다른 곳이 pass 가 된다.
           //  낱말이 정확히 같으면 시도 문구가 옛 표기(「경상북도 군위군」)여도 pass 다(2차 리뷰 지적 2).
           if (profileNamesSigungu(p.region, sg.name)) return pass();
+          if (mineSg && mineSg.name === sg.name) return pass();
           const mineSet = sidosInText(p.region);
           const sidoMatches = mineSet.includes(sg.sido) || (sg.formerSido != null && mineSet.includes(sg.formerSido));
           if (mineSet.length > 0 && !sidoMatches) sawDictionary = true;
-          else if (mineSet.length > 0) sameSidoSigungu = true;
-          else unreadSidoSigungu = true;
+          else if (mineSet.length > 0) {
+            // 같은 시도: 내 시군구를 알면 다른 시군구 전용으로 센다. sameSidoSigungu 는 모를 때만.
+            if (mineSg) knownOtherSigungu = true;
+            else sameSidoSigungu = true;
+          } else unreadSidoSigungu = true;
           continue;
         }
         const theirs = sidosInText(r);
@@ -193,11 +206,14 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
         }
         if (p.region.includes(r) || r.includes(p.region)) return pass();
       }
+      // 값 목록을 다 돌아 pass 가 없을 때. 모름이 하나라도 섞이면 새 fail 로 올리지 않는다.
+      if (sawDictionary) return fail(`대상 지역: ${list.join("·")}`);
       if (sameSidoSigungu) return unknown("같은 시도 — 시군구는 원문 확인");
       if (unreadSidoSigungu) return unknown("소재지의 시도를 못 읽음 — 시군구는 원문 확인");
-      return sawDictionary
-        ? fail(`대상 지역: ${list.join("·")}`)
-        : unknown(`지역 표기를 확정하지 못해 원문 확인 필요 — 대상 지역: ${list.join("·")}`);
+      if (knownOtherSigungu && list.every((r) => sigunguSido(r) != null)) {
+        return fail(`대상 지역: ${list.join("·")}`);
+      }
+      return unknown(`지역 표기를 확정하지 못해 원문 확인 필요 — 대상 지역: ${list.join("·")}`);
     }
     case "industry": {
       if (!p.industry) return unknown("업종 미입력");
@@ -461,7 +477,9 @@ export function parseBusinessProfile(raw: unknown): BusinessProfile {
   if (!raw || typeof raw !== "object") return {};
   const o = raw as Record<string, unknown>;
   const p: BusinessProfile = {};
-  const setText = (k: "companyName" | "bizno" | "industry" | "region" | "foundedDate" | "companyScale") => {
+  const setText = (
+    k: "companyName" | "bizno" | "industry" | "region" | "regionSigungu" | "foundedDate" | "companyScale",
+  ) => {
     const v = textOf(o[k]);
     if (v !== undefined) p[k] = v;
   };
@@ -469,6 +487,7 @@ export function parseBusinessProfile(raw: unknown): BusinessProfile {
   setText("bizno");
   setText("industry");
   setText("region");
+  setText("regionSigungu");
   setText("foundedDate");
   setText("companyScale");
   const orgTypes = stringListOf(o.orgTypes);

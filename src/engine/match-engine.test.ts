@@ -205,6 +205,58 @@ describe("checkCondition — 시군구 사전(다른 시도만 fail, 같은 시�
   });
 });
 
+describe("checkCondition — 회사 시군구를 알 때의 지역 판정", () => {
+  it("같은 시도의 다른 시군구 전용은 fail(화성시 × 안양시)", () => {
+    const r = checkCondition(cond({ value: ["화성시"] }), { region: "경기", regionSigungu: "안양시" }, NOW);
+    expect(r.verdict).toBe("fail");
+    expect(r.note).toBe("대상 지역: 화성시");
+  });
+
+  it("회사 시군구가 조건과 같으면 pass(화성시 × 화성시)", () => {
+    expect(
+      checkCondition(cond({ value: ["화성시"] }), { region: "경기", regionSigungu: "화성시" }, NOW).verdict,
+    ).toBe("pass");
+  });
+
+  it("시군구를 모르면 같은 시도는 기존처럼 unknown", () => {
+    expect(checkCondition(cond({ value: ["화성시"] }), { region: "경기" }, NOW).verdict).toBe("unknown");
+  });
+
+  it("조건 목록에 회사 시군구가 있으면 pass(화성시·안양시 × 안양시)", () => {
+    expect(
+      checkCondition(
+        cond({ value: ["화성시", "안양시"] }),
+        { region: "경기", regionSigungu: "안양시" },
+        NOW,
+      ).verdict,
+    ).toBe("pass");
+  });
+
+  it("사전 밖 값(수도권)이 섞이면 확신 fail 금지", () => {
+    expect(
+      checkCondition(
+        cond({ value: ["화성시", "수도권"] }),
+        { region: "경기", regionSigungu: "안양시" },
+        NOW,
+      ).verdict,
+    ).toBe("unknown");
+  });
+
+  it("다른 시도 시군구는 기존처럼 fail(구미시 × 서울)", () => {
+    const r = checkCondition(cond({ value: ["구미시"] }), { region: "서울" }, NOW);
+    expect(r.verdict).toBe("fail");
+    expect(r.note).toBe("대상 지역: 구미시");
+  });
+
+  it("parseBusinessProfile 이 regionSigungu 문자열을 읽고 숫자·빈 문자열은 undefined", () => {
+    expect(parseBusinessProfile({ regionSigungu: "안양시" }).regionSigungu).toBe("안양시");
+    expect(parseBusinessProfile({ regionSigungu: "  화성시  " }).regionSigungu).toBe("화성시");
+    expect(parseBusinessProfile({ regionSigungu: 1 }).regionSigungu).toBeUndefined();
+    expect(parseBusinessProfile({ regionSigungu: "" }).regionSigungu).toBeUndefined();
+    expect(parseBusinessProfile({ regionSigungu: "  " }).regionSigungu).toBeUndefined();
+  });
+});
+
 describe("canonicalRegion", () => {
   it("줄임말·정식명·시군 표기를 모두 같은 표준형으로 바꾼다", () => {
     expect(canonicalRegion("서울시")).toBe("서울");
