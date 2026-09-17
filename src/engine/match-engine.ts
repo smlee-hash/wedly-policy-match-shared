@@ -230,14 +230,14 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
       const raw = p.orgTypes;
       if (raw && raw.length > 0) {
         const mine = profileOrgTypes(raw);
+        // 「주식회사」처럼 사전이 모르는 형태 문구는 자격을 부정하는 근거가 아니다 — 인증 사회적기업도 법인격은
+        // 주식회사다(독립 리뷰 2026-09-17 H2). targetSector 와 같은 모양으로 원문 확인에 맡긴다.
+        if (mine.length === 0) return unknown("기업 형태를 유형으로 못 읽음 — 원문 확인");
         return mine.some((t) => list.includes(t)) ? pass() : fail(`대상 유형: ${list.join("·")}`);
       }
-      // 프로필에 형태가 없을 때: 예비창업자 전용 × 이미 창업한 회사만 확신 fail.
-      // 그 밖은 모르면 fail 이 아니라 「맞음 금지」(unknown → 확인 필요).
-      if (list.length === 1 && list[0] === "예비창업자") {
-        const age = businessAgeYears(p.foundedDate, now);
-        if (age != null && age >= 0) return fail("이미 창업한 사업자");
-      }
+      // 프로필에 형태가 없으면 **언제나** unknown 이다 — fail 이 아니라 「맞음 금지」다.
+      // 예비창업자 전용이라도 fail 을 내지 않는다: 「예비창업자 및 재창업자 … 모집」(kiria 실측)처럼 사전 밖
+      // 대상이 함께 적힌 제목을 「전용」으로 오인해 재창업자를 지웠다(독립 리뷰 2026-09-17 C1 치명).
       return unknown("기업 형태 미입력 — 자격 확인 필요");
     }
     case "businessAgeMaxYears": {

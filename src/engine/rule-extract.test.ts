@@ -235,9 +235,9 @@ describe("titleTargetOrgCondition — 제목의 대상 유형", () => {
     expect(pick(extractConditions("사회적기업과 협업하는 중소기업 모집"), "targetOrg")).toBeUndefined();
   });
 
-  it("SCALE_WORDS 에서 빠진 사회적기업은 companyScale 을 만들지 않는다", () => {
-    expect(pick(extractConditions("사회적기업 전용 지원사업"), "companyScale")).toBeUndefined();
-    expect(pick(extractConditions("예비창업자 전용 지원사업"), "companyScale")).toBeUndefined();
+  it("리뷰 M3: 본문의 사회적기업·예비창업자는 companyScale 조건을 그대로 만든다 — 자격을 읽는 통로를 대체 없이 없애지 않는다", () => {
+    expect(pick(extractConditions("지원대상: 사회적기업"), "companyScale")?.value).toEqual(["사회적기업"]);
+    expect(pick(extractConditions("지원대상: 예비창업자"), "companyScale")?.value).toEqual(["예비창업자"]);
   });
 });
 

@@ -120,7 +120,7 @@ const REGION_NEAR = 25;
 
 /** 기업 규모로 인정하는 낱말 — 글자 그대로 나오는 것만.
  * 사회적기업·예비창업자는 규모가 아니라 자격(targetOrg)이라 여기 두지 않는다. */
-const SCALE_WORDS = ["중소기업", "소상공인", "중견기업", "스타트업", "1인기업"] as const;
+const SCALE_WORDS = ["중소기업", "소상공인", "중견기업", "스타트업", "예비창업자", "1인기업", "사회적기업"] as const;
 
 interface Pattern {
   key: StructuredCondition["key"];

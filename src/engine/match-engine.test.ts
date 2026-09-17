@@ -278,16 +278,21 @@ describe("checkCondition — 대상 유형(targetOrg)", () => {
     expect(checkCondition(social, { orgTypes: ["사회적기업"] }, NOW).verdict).toBe("pass");
   });
 
-  it("orgTypes 가 주식회사이면 fail", () => {
+  it("리뷰 H2: orgTypes 가 「주식회사」처럼 사전 밖 형태면 fail 이 아니라 원문 확인 — 인증 사회적기업도 법인격은 주식회사다", () => {
     const r = checkCondition(social, { orgTypes: ["주식회사"] }, NOW);
+    expect(r.verdict).toBe("unknown");
+    expect(r.note).toBe("기업 형태를 유형으로 못 읽음 — 원문 확인");
+  });
+
+  it("orgTypes 가 다른 자격(마을기업)이면 fail", () => {
+    const r = checkCondition(social, { orgTypes: ["마을기업"] }, NOW);
     expect(r.verdict).toBe("fail");
     expect(r.note).toBe("대상 유형: 사회적기업");
   });
 
-  it("예비창업자 전용 × 설립일 2019 는 이미 창업한 사업자라 fail", () => {
+  it("리뷰 C1: 예비창업자 조건 × 설립일 있어도 fail 이 아니다 — 「예비창업자 및 재창업자」 제목을 전용으로 오인했다", () => {
     const r = checkCondition(preFounder, { foundedDate: "2019-01-01" }, NOW);
-    expect(r.verdict).toBe("fail");
-    expect(r.note).toBe("이미 창업한 사업자");
+    expect(r.verdict).toBe("unknown");
   });
 
   it("예비창업자 전용 × 설립일 없음은 unknown", () => {
