@@ -1,5 +1,5 @@
 /**
- * 공고 구조에 **지역 조건·대상 분야를 보태는** 한 곳. 추천·진단·AI판정 세 통로가 이것만 쓴다.
+ * 공고 구조에 **지역 조건·대상 분야·대상 유형을 보태는** 한 곳. 추천·진단·AI판정 세 통로가 이것만 쓴다.
  *
  * 왜 함수로 뽑았나(2026-09-01): 추천 통로에만 넣었더니 진단·AI판정은 그대로여서
  * 같은 공고가 화면마다 다르게 판정됐다(fable 리뷰 중요2 — CLAUDE.md 규칙 8 「한 곳만 고치고
@@ -19,9 +19,12 @@
  *
  * 대상 분야(targetSector)도 여기서 보탠다. 제목이 「○○기업」처럼 분야를 못 박았고
  * 구조에 그 키가 없을 때만. 세 통로가 이 함수만 쓰므로 갈래가 생기지 않는다.
+ *
+ * 대상 유형(targetOrg)도 같다. 제목이 자격 유형을 대상 선언 자리에 못 박았고
+ * 구조에 그 키가 없을 때만. 본문의 「사회적기업과 협업」처럼 지나가는 말로 회사를 지우지 않는다.
  */
 import { ALL_SIDO_COUNT, sidosInText } from "./match-engine";
-import { titleRegionConditions, titleSectorCondition } from "./rule-extract";
+import { titleRegionConditions, titleSectorCondition, titleTargetOrgCondition } from "./rule-extract";
 import { sigunguSido } from "./sigungu";
 import type { AnnouncementStructure, StructuredCondition } from "./structure-types";
 
@@ -58,7 +61,7 @@ export interface RegionAugmentOptions {
 }
 
 /**
- * 구조에 지역·대상 분야 조건을 보탠 새 구조를 준다(원본은 안 건드린다).
+ * 구조에 지역·대상 분야·대상 유형 조건을 보탠 새 구조를 준다(원본은 안 건드린다).
  * 보탤 게 없으면 받은 것을 그대로 돌려준다.
  */
 export function withRegionConditions(
@@ -100,6 +103,10 @@ export function withRegionConditions(
   if (!out.conditions.some((c) => c.key === "targetSector")) {
     const sector = titleSectorCondition(row.title ?? "");
     if (sector) out = { ...out, conditions: [...out.conditions, sector] };
+  }
+  if (!out.conditions.some((c) => c.key === "targetOrg")) {
+    const org = titleTargetOrgCondition(row.title ?? "");
+    if (org) out = { ...out, conditions: [...out.conditions, org] };
   }
   return out;
 }

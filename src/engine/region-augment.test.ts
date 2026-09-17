@@ -222,6 +222,28 @@ describe("withRegionConditions — 제목 대상 분야(targetSector)", () => {
   });
 });
 
+describe("withRegionConditions — 제목 대상 유형(targetOrg)", () => {
+  const TITLE = "2026년 착한가격업소 신규모집 공고";
+
+  it("구조에 없고 제목이 착한가격업소면 붙는다", () => {
+    const out = withRegionConditions(st([]), { title: TITLE, agency: "목포시", region: "" });
+    const c = out.conditions.find((x) => x.key === "targetOrg");
+    expect(c?.value).toEqual(["착한가격업소"]);
+    expect(c?.op).toBe("in");
+    expect(c?.machineReadable).toBe(true);
+  });
+
+  it("이미 있으면 안 붙인다", () => {
+    const before = st([{
+      key: "targetOrg", op: "in", value: ["사회적기업"], rawText: "기존", machineReadable: true,
+    }]);
+    const out = withRegionConditions(before, { title: TITLE, agency: "목포시", region: "" });
+    expect(out.conditions.filter((c) => c.key === "targetOrg")).toHaveLength(1);
+    expect(out.conditions[0].value).toEqual(["사회적기업"]);
+    expect(out).toBe(before);
+  });
+});
+
 describe("withRegionConditions — 시군구 사전 조건", () => {
   const YEONGWOL = "2026년 3차 영월군 청년 창업육성 지원사업 수정 공고";
 

@@ -36,8 +36,8 @@ describe("buildRuleStructure — 제목 앞머리 지역(판본 3)", () => {
     expect(rs.conditions.some((c) => c.key === "region" && c.machineReadable)).toBe(true);
   });
 
-  it("판본이 5 이다 — 소급 재추출 대상을 이 숫자로 고른다(4: 시군구 사전, 5: 대상 분야)", () => {
-    expect(RULE_EXTRACT_VERSION).toBe(5);
+  it("판본이 6 이다 — 소급 재추출 대상을 이 숫자로 고른다(5: 대상 분야, 6: 대상 유형)", () => {
+    expect(RULE_EXTRACT_VERSION).toBe(6);
   });
 });
 
@@ -49,7 +49,7 @@ describe("buildRuleStructure — 태그 없는 제목의 시군구(판본 4)", (
     expect(r).toHaveLength(1);
     expect(r[0].value).toEqual(["영월군"]);
     expect(r[0].machineReadable).toBe(true);
-    expect((s as unknown as { ruleVersion: number }).ruleVersion).toBe(5);
+    expect((s as unknown as { ruleVersion: number }).ruleVersion).toBe(6);
   });
   it("기관에 시도가 없으면 지역 조건을 저장하지 않는다 — 출처 지역 칸 폴백(②)이 그대로 산다", () => {
     const s = buildRuleStructure("", "", TITLE, "영월군");
@@ -67,5 +67,19 @@ describe("buildRuleStructure — 대상 분야(targetSector)는 제목에서만"
   it("본문에만 「블록체인 기업」이 나오면 조건을 만들지 않는다 — 지나가는 말로 회사를 지우지 않는다", () => {
     const s = buildRuleStructure("블록체인 기업과 협력해 수행합니다", "", "2026년 중소기업 판로개척 지원사업", "중기부");
     expect(s.conditions.filter((c) => c.key === "targetSector")).toEqual([]);
+  });
+});
+
+describe("buildRuleStructure — 대상 유형(targetOrg)는 제목에서만", () => {
+  it("제목이 「착한가격업소 신규모집」이면 조건을 저장한다", () => {
+    const s = buildRuleStructure("", "", "[전남광주] 목포시 2026년 착한가격업소 신규모집 공고", "목포시");
+    const t = s.conditions.filter((c) => c.key === "targetOrg");
+    expect(t).toHaveLength(1);
+    expect(t[0].value).toEqual(["착한가격업소"]);
+    expect(t[0].machineReadable).toBe(true);
+  });
+  it("본문에만 「사회적기업과 협업」이 나오면 조건을 만들지 않는다 — 지나가는 말로 회사를 지우지 않는다", () => {
+    const s = buildRuleStructure("사회적기업과 협업하는 중소기업을 찾습니다", "", "2026년 중소기업 판로개척 지원사업", "중기부");
+    expect(s.conditions.filter((c) => c.key === "targetOrg")).toEqual([]);
   });
 });

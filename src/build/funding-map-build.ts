@@ -496,6 +496,7 @@ function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): Buil
  *  (`checkCondition` 이 비면 곧바로 「…미입력」 unknown 을 낸다). 이름은 그 함수가 쓰는 오류 문구에서
  *  그대로 가져왔다 — 「기업 규모 미입력」·「체납 여부 미입력」·「인증 보유 미입력」·「특허 보유 미입력」·
  *  「사업자번호로 법인 여부를 알 수 없음」.
+ *  기업 형태(`orgTypes`)는 대상 유형(targetOrg)이 읽는 칸이다 — 비면 「기업 형태 미입력」 unknown.
  */
 function profileGapsOf(p: BusinessProfile): string[] {
   const gaps: string[] = [];
@@ -507,6 +508,7 @@ function profileGapsOf(p: BusinessProfile): string[] {
   if (p.lastYearRevenueKrw == null) gaps.push("연매출");
   if (p.employeeCount == null) gaps.push("직원 수");
   if (!p.companyScale) gaps.push("기업 규모");
+  if (!p.orgTypes || p.orgTypes.length === 0) gaps.push("기업 형태");
   if (p.taxDelinquent == null) gaps.push("체납 여부");
   if (p.hasCert == null) gaps.push("인증 보유");
   if (p.hasPatent == null) gaps.push("특허 보유");
@@ -536,6 +538,7 @@ function isProfileEmpty(p: BusinessProfile): boolean {
  *
  * 짝은 지어내지 않고 `checkCondition`(`src/engine/match-engine.ts`)이 **실제로 읽는 칸**을 그대로 옮겼다:
  *  · region → `p.region`(소재지) · industry · targetSector → `p.industry`(업종)
+ *  · targetOrg → `p.orgTypes`(기업 형태)
  *  · businessAgeMaxYears·businessAgeMinYears → `p.foundedDate`(설립일)
  *  · revenueMaxKrw·revenueMinKrw → `p.lastYearRevenueKrw`(연매출)
  *  · employeeMax·employeeMin → `p.employeeCount`(직원 수)
@@ -553,6 +556,7 @@ const GAP_LABEL_BY_CONDITION_KEY: Record<string, string> = {
   region: "소재지",
   industry: "업종",
   targetSector: "업종",
+  targetOrg: "기업 형태",
   businessAgeMaxYears: "설립일",
   businessAgeMinYears: "설립일",
   revenueMaxKrw: "연매출",

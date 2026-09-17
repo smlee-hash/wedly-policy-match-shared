@@ -77,6 +77,23 @@ describe("맞음 판정(fitVerdictOf)", () => {
   });
 });
 
+describe("맞음 판정 — targetOrg unknown 은 fit 금지", () => {
+  const busan = (verdict: "pass" | "fail" | "unknown") =>
+    ({ condition: { key: "region", op: "in", value: ["부산"], rawText: "", machineReadable: true }, verdict, note: "" }) as never;
+  const org = (verdict: "pass" | "fail" | "unknown") =>
+    ({ condition: { key: "targetOrg", op: "in", value: ["사회적기업"], rawText: "", machineReadable: true }, verdict, note: "" }) as never;
+
+  it("지역(부산) pass + targetOrg unknown → unverified (종전 fit)", () => {
+    expect(fitVerdictOf([busan("pass"), org("unknown")])).toBe("unverified");
+  });
+  it("지역 pass + targetOrg pass → fit", () => {
+    expect(fitVerdictOf([busan("pass"), org("pass")])).toBe("fit");
+  });
+  it("targetOrg fail 하나 → excluded", () => {
+    expect(fitVerdictOf([org("fail")])).toBe("excluded");
+  });
+});
+
 describe("맞음 판정 — 17개 시도 나열은 전국 약한 통과", () => {
   const SIDOS_17 = ["서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"];
   const regionPass = (value: string[]) =>

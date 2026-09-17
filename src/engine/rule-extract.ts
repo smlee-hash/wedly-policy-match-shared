@@ -17,6 +17,7 @@
 import { canonicalRegion, sidosInText } from "./match-engine";
 import { sectorFamiliesInTitle } from "./sector";
 import { sigunguInTitle } from "./sigungu";
+import { targetOrgsInTitle } from "./target-org";
 import {
   EXPECTED_OP,
   type ConditionCheck,
@@ -117,8 +118,9 @@ const REGION_CONTEXT_RE = /(소재|관내|도내|시내|거주|위치|본사|사
 /** 문맥 낱말에서 이 글자 수 안에 있는 시도만 인정한다. */
 const REGION_NEAR = 25;
 
-/** 기업 규모로 인정하는 낱말 — 글자 그대로 나오는 것만. */
-const SCALE_WORDS = ["중소기업", "소상공인", "중견기업", "스타트업", "예비창업자", "1인기업", "사회적기업"] as const;
+/** 기업 규모로 인정하는 낱말 — 글자 그대로 나오는 것만.
+ * 사회적기업·예비창업자는 규모가 아니라 자격(targetOrg)이라 여기 두지 않는다. */
+const SCALE_WORDS = ["중소기업", "소상공인", "중견기업", "스타트업", "1인기업"] as const;
 
 interface Pattern {
   key: StructuredCondition["key"];
@@ -230,9 +232,10 @@ export function extractConditions(text: string): StructuredCondition[] {
     out.push(condition("region", [...sidos], snippet(t, firstAt, 4), ok));
   }
 
-  // 대상 분야(targetSector)는 **제목에서만** 읽는다 — 본문은 「블록체인 기업과 협력」처럼 지나가는 말이
-  // 많아 여기서 뽑으면 무관한 회사를 fail 로 지운다. 저장은 buildRuleStructure, 서빙은 withRegionConditions 가
-  // 각각 제목으로 titleSectorCondition 을 부른다.
+  // 대상 분야(targetSector)·대상 유형(targetOrg)은 **제목에서만** 읽는다 — 본문은
+  // 「블록체인 기업과 협력」·「사회적기업과 협업」처럼 지나가는 말이 많아 여기서 뽑으면
+  // 무관한 회사를 fail 로 지운다. 저장은 buildRuleStructure, 서빙은 withRegionConditions 가
+  // 각각 제목으로 titleSectorCondition·titleTargetOrgCondition 을 부른다.
   return out;
 }
 
@@ -270,6 +273,16 @@ export function titleSectorCondition(title: string): StructuredCondition | null 
   const families = sectorFamiliesInTitle(title ?? "");
   if (families.length === 0) return null;
   return condition("targetSector", families, `${RULE_SOURCE_PREFIX} ${(title ?? "").slice(0, 40)}`);
+}
+
+/**
+ * 제목이 자격 유형을 대상 선언 자리에 못 박은 경우만 targetOrg 조건을 만든다.
+ * extractConditions(본문)는 이 조건을 만들지 않는다 — 지나가는 말로 회사를 지우지 않기 위함.
+ */
+export function titleTargetOrgCondition(title: string): StructuredCondition | null {
+  const types = targetOrgsInTitle(title ?? "");
+  if (types.length === 0) return null;
+  return condition("targetOrg", types, `${RULE_SOURCE_PREFIX} ${(title ?? "").slice(0, 40)}`);
 }
 
 /**

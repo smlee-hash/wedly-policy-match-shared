@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractConditions, ruleGradeOf, RULE_SOURCE_PREFIX, titleSectorCondition } from "./rule-extract";
+import { extractConditions, ruleGradeOf, RULE_SOURCE_PREFIX, titleSectorCondition, titleTargetOrgCondition } from "./rule-extract";
 import type { ConditionCheck, StructuredCondition } from "./structure-types";
 
 function pick(cs: StructuredCondition[], key: string) {
@@ -219,6 +219,25 @@ describe("titleSectorCondition — 제목의 대상 분야", () => {
   it("수출기업은 분야가 아니라서 없다", () => {
     expect(titleSectorCondition("2026년 수출기업 역량강화")).toBeNull();
     expect(pick(extractConditions("2026년 수출기업 역량강화"), "targetSector")).toBeUndefined();
+  });
+});
+
+describe("titleTargetOrgCondition — 제목의 대상 유형", () => {
+  it("착한가격업소 신규모집은 targetOrg 를 만들고 본문 추출은 만들지 않는다", () => {
+    const title = "[전남광주] 목포시 2026년 착한가격업소 신규모집 공고";
+    const c = titleTargetOrgCondition(title);
+    expect(c?.key).toBe("targetOrg");
+    expect(c?.op).toBe("in");
+    expect(c?.value).toEqual(["착한가격업소"]);
+    expect(c?.machineReadable).toBe(true);
+    expect(c?.rawText.startsWith(RULE_SOURCE_PREFIX)).toBe(true);
+    expect(pick(extractConditions(title), "targetOrg")).toBeUndefined();
+    expect(pick(extractConditions("사회적기업과 협업하는 중소기업 모집"), "targetOrg")).toBeUndefined();
+  });
+
+  it("SCALE_WORDS 에서 빠진 사회적기업은 companyScale 을 만들지 않는다", () => {
+    expect(pick(extractConditions("사회적기업 전용 지원사업"), "companyScale")).toBeUndefined();
+    expect(pick(extractConditions("예비창업자 전용 지원사업"), "companyScale")).toBeUndefined();
   });
 });
 

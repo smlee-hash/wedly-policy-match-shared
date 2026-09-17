@@ -264,6 +264,55 @@ describe("checkCondition — 대상 분야(targetSector)", () => {
   });
 });
 
+describe("checkCondition — 대상 유형(targetOrg)", () => {
+  const social = cond({ key: "targetOrg", value: ["사회적기업"], rawText: "(예비)사회적기업" });
+  const preFounder = cond({ key: "targetOrg", value: ["예비창업자"], rawText: "예비창업자 모집" });
+
+  it("프로필 orgTypes 없으면 unknown — 모르면 fail 이 아니다", () => {
+    const r = checkCondition(social, {}, NOW);
+    expect(r.verdict).toBe("unknown");
+    expect(r.note).toContain("기업 형태 미입력");
+  });
+
+  it("orgTypes 가 사회적기업이면 pass", () => {
+    expect(checkCondition(social, { orgTypes: ["사회적기업"] }, NOW).verdict).toBe("pass");
+  });
+
+  it("orgTypes 가 주식회사이면 fail", () => {
+    const r = checkCondition(social, { orgTypes: ["주식회사"] }, NOW);
+    expect(r.verdict).toBe("fail");
+    expect(r.note).toBe("대상 유형: 사회적기업");
+  });
+
+  it("예비창업자 전용 × 설립일 2019 는 이미 창업한 사업자라 fail", () => {
+    const r = checkCondition(preFounder, { foundedDate: "2019-01-01" }, NOW);
+    expect(r.verdict).toBe("fail");
+    expect(r.note).toBe("이미 창업한 사업자");
+  });
+
+  it("예비창업자 전용 × 설립일 없음은 unknown", () => {
+    const r = checkCondition(preFounder, {}, NOW);
+    expect(r.verdict).toBe("unknown");
+    expect(r.note).toContain("기업 형태 미입력");
+  });
+
+  it("parseBusinessProfile 이 문자열 배열·문자열을 orgTypes 로 읽는다", () => {
+    expect(parseBusinessProfile({ orgTypes: ["사회적기업"] }).orgTypes).toEqual(["사회적기업"]);
+    expect(parseBusinessProfile({ orgTypes: "사회적기업" }).orgTypes).toEqual(["사회적기업"]);
+  });
+
+  it("readStoredStructure 가 targetOrg 를 기계대조 대상으로 읽는다", () => {
+    const s = readStoredStructure({
+      conditions: [
+        { key: "targetOrg", op: "in", value: ["사회적기업"], rawText: "(예비)사회적기업", machineReadable: true },
+      ],
+      humanCheck: [],
+      documents: [],
+    });
+    expect(s.conditions[0]?.machineReadable).toBe(true);
+  });
+});
+
 describe("checkCondition — 업종", () => {
   const c = cond({ key: "industry", value: ["제조", "정보통신"], rawText: "제조업 또는 정보통신업" });
 

@@ -2,6 +2,7 @@
 // 「모름」은 절대 통과로 치지 않는다 — 값이 없으면 unknown → 등급은 최고 uncertain 까지만 간다.
 import { relatedFamiliesOf, sectorFamiliesOfIndustry, SECTOR_FAMILY_NAMES } from "./sector";
 import { sigunguSido } from "./sigungu";
+import { ORG_TYPE_NAMES, profileOrgTypes } from "./target-org";
 import {
   AnnouncementStructure,
   ConditionCheck,
@@ -20,6 +21,7 @@ export interface BusinessProfile {
   lastYearRevenueKrw?: number;
   employeeCount?: number;
   companyScale?: string;      // 중소기업|소상공인|중견|예비창업자 …
+  orgTypes?: string[];        // 기업 형태·자격(사회적기업·착한가격업소 …). ERP 는 아직 안 채운다
   taxDelinquent?: boolean;
   hasCert?: boolean; hasPatent?: boolean;
   // ── 자금 조달 지도(2026-09-03) — 상시 상품 판정에만 쓰는 두 칸.
@@ -219,6 +221,25 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
       if (fams.some((f) => related.has(f))) return unknown(`이웃 분야라 원문 확인 — 대상 분야: ${list.join("·")}`);
       return fail(`대상 분야: ${list.join("·")}`);
     }
+    case "targetOrg": {
+      const list = c.value as string[];
+      // 사전 밖 이름(AI 가 지어낸 값)으로는 아무도 떨어뜨리지 않는다 — 자격은 모르면 fail 이 아니다.
+      if (list.length === 0 || !list.every((t) => ORG_TYPE_NAMES.has(t))) {
+        return unknown("대상 유형을 사전에서 못 찾음 — 원문 확인");
+      }
+      const raw = p.orgTypes;
+      if (raw && raw.length > 0) {
+        const mine = profileOrgTypes(raw);
+        return mine.some((t) => list.includes(t)) ? pass() : fail(`대상 유형: ${list.join("·")}`);
+      }
+      // 프로필에 형태가 없을 때: 예비창업자 전용 × 이미 창업한 회사만 확신 fail.
+      // 그 밖은 모르면 fail 이 아니라 「맞음 금지」(unknown → 확인 필요).
+      if (list.length === 1 && list[0] === "예비창업자") {
+        const age = businessAgeYears(p.foundedDate, now);
+        if (age != null && age >= 0) return fail("이미 창업한 사업자");
+      }
+      return unknown("기업 형태 미입력 — 자격 확인 필요");
+    }
     case "businessAgeMaxYears": {
       const age = businessAgeYears(p.foundedDate, now);
       if (age == null) return unknown("설립일 미입력");
@@ -307,6 +328,7 @@ function valueFitsKey(key: string, value: unknown): boolean {
     case "region":
     case "industry":
     case "targetSector":
+    case "targetOrg":
     case "companyScale":
       return Array.isArray(value) && value.every((v) => typeof v === "string");
     case "businessAgeMaxYears":
@@ -425,6 +447,16 @@ function boolOf(v: unknown): boolean | undefined {
   return typeof v === "boolean" ? v : undefined;
 }
 
+/** 문자열 배열이면 그대로, 문자열이면 한 칸 배열. 빈 값·공백은 모름. */
+function stringListOf(v: unknown): string[] | undefined {
+  if (Array.isArray(v)) {
+    const list = v.filter((x): x is string => typeof x === "string").map((s) => s.trim()).filter(Boolean);
+    return list.length > 0 ? list : undefined;
+  }
+  const t = textOf(v);
+  return t !== undefined ? [t] : undefined;
+}
+
 export function parseBusinessProfile(raw: unknown): BusinessProfile {
   if (!raw || typeof raw !== "object") return {};
   const o = raw as Record<string, unknown>;
@@ -439,6 +471,8 @@ export function parseBusinessProfile(raw: unknown): BusinessProfile {
   setText("region");
   setText("foundedDate");
   setText("companyScale");
+  const orgTypes = stringListOf(o.orgTypes);
+  if (orgTypes !== undefined) p.orgTypes = orgTypes;
   const revenue = numberOf(o.lastYearRevenueKrw);
   if (revenue !== undefined) p.lastYearRevenueKrw = revenue;
   const employees = numberOf(o.employeeCount);
