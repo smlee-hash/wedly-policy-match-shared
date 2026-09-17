@@ -160,10 +160,10 @@ describe("통합 2차 리뷰(2026-09-17) 반영 — 가림은 가린 글로만 �
     expect(sectorFamiliesOfIndustry("인쇄회로 설계업")).toEqual(["반도체전자"]);
     expect(sectorFamiliesOfIndustry("인쇄회로 및 광고물 제작")).toEqual(expect.arrayContaining(["반도체전자", "광고인쇄"]));
   });
-  it("D3: 「전기판매업」은 유통이지 반도체전자가 아니다", () => {
-    expect(sectorFamiliesOfIndustry("전기판매업")).toEqual(["유통"]);
+  it("D3: 「전기판매업」은 유통·에너지환경이지 반도체전자가 아니다", () => {
+    expect(sectorFamiliesOfIndustry("전기판매업").sort()).toEqual(["에너지환경", "유통"]);
   });
-  it("D4 되돌림(3차 §4): industry 조건은 fail 을 못 내므로 가림을 안 거친다 — PCB 공고 × PCB 회사의 진짜 pass 를 지킨다", () => {
+  it("D4 되돌림(3차 §4): industry 조건은 fail 을 못 내므로 가림을 안 거친다 — 인쇄업 공고 × PCB 회사도 pass 로 둔다(규칙 추출은 두 공고를 구분 못 하므로 진짜 pass 를 지키는 쪽을 택함)", () => {
     const c = { key: "industry" as const, op: "in" as const, value: ["인쇄"], rawText: "인쇄업", machineReadable: true };
     expect(checkCondition(c, { industry: "경성 인쇄회로기판 제조업" }, NOW).verdict).toBe("pass");
   });
@@ -184,5 +184,27 @@ describe("통합 3차 리뷰(2026-09-17) 반영", () => {
   });
   it("§6: 「채소, 화훼작물 및 종묘 재배업」은 농림어업이다", () => {
     expect(sectorFamiliesOfIndustry("채소, 화훼작물 및 종묘 재배업")).toEqual(["농림어업"]);
+  });
+});
+
+describe("통합 4차 리뷰(2026-09-17) 반영", () => {
+  const NOW = new Date("2026-09-17T00:00:00Z");
+  it("F-2: 에너지·환경 공고 × 전기판매업·재생용 재료 판매업은 fail 이 아니다", () => {
+    const c = titleSectorCondition("2026년 에너지기업 해외진출 지원사업")!;
+    expect(checkCondition(c, { industry: "전기판매업" }, NOW).verdict).toBe("pass");
+    expect(checkCondition(c, { industry: "재생용 재료 수집 및 판매업" }, NOW).verdict).toBe("pass");
+    expect(sectorFamiliesOfIndustry("전자상거래 소매업")).toEqual(["유통"]);
+  });
+  it("F-3: 패션기업 공고 × 귀금속 제조업은 pass", () => {
+    expect(checkCondition(titleSectorCondition("2026년 패션기업 해외진출 지원사업")!, { industry: "귀금속 및 관련 제품 제조업" }, NOW).verdict).toBe("pass");
+  });
+  it("F-6a: 「회로기판」 홀로도 반도체전자를 결정한다", () => {
+    expect(sectorFamiliesOfIndustry("회로기판 제조업")).toEqual(["반도체전자"]);
+  });
+  it("F-6b: 「금속 및 비금속 원료 재생업」은 가림 뒤에도 기계금속(금속)·에너지환경(재생)이 남는다", () => {
+    expect(sectorFamiliesOfIndustry("금속 및 비금속 원료 재생업")).toContain("기계금속");
+  });
+  it("F-6d: 새 이웃의 반대 방향 — 물류기업 공고 × 호텔업은 unknown", () => {
+    expect(checkCondition(titleSectorCondition("2026년 물류기업 디지털 전환 지원사업")!, { industry: "호텔업" }, NOW).verdict).toBe("unknown");
   });
 });

@@ -148,9 +148,17 @@ describe("통합 3차 리뷰 §1 — 저장된 「전국」 조건은 제목 시
     const out = withRegionConditions(before, { title: "2026년 3차 영월군 청년 창업육성 지원사업 수정 공고", agency: "강원특별자치도", region: "" }, { regionFieldFallback: true });
     expect(out).toBe(before);
   });
-  it("전국 조건 + [경남] 진주시 태그 제목도 그대로", () => {
+  it("F-1: 전국 조건이 있어도 기관과 교차검증된 [경남] 태그의 광역 조건은 보탠다(시군구만 거른다)", () => {
     const before = st([region(["전국"])]);
-    expect(withRegionConditions(before, { title: "[경남] 진주시 해외지사화 사업", agency: "경상남도", region: "" })).toBe(before);
+    const out = withRegionConditions(before, { title: "[경남] 진주시 해외지사화 사업", agency: "경상남도", region: "" });
+    const added = out.conditions.filter((c) => c.key === "region" && c.machineReadable && (c.value as string[]).includes("경남"));
+    expect(added).toHaveLength(1);
+    expect(checkCondition(added[0], { region: "서울" }, new Date("2026-09-17T00:00:00Z")).verdict).toBe("fail");
+  });
+  it("F-6c: 전국 조건이 있어도 제목의 대상 분야(targetSector)는 보탠다", () => {
+    const before = st([region(["전국"])]);
+    const out = withRegionConditions(before, { title: "2026년 혁신형 제약기업 신규인증 공고", agency: "보건복지부", region: "" });
+    expect(out.conditions.some((c) => c.key === "targetSector")).toBe(true);
   });
 });
 

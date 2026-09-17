@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SIGUNGU_TO_SIDO, sigunguInTitle, sigunguSido } from "./sigungu";
+import { SIGUNGU_FORMER_SIDO, SIGUNGU_TO_SIDO, sigunguInTitle, sigunguSido } from "./sigungu";
 
 describe("SIGUNGU_TO_SIDO — 동명이구·별칭 충돌은 빼고 2026 구역을 담는다", () => {
   it("중구·동구·서구·남구·북구·강서구·고성군·광주시는 사전에 없다", () => {
@@ -52,5 +52,16 @@ describe("sigunguInTitle — 접미사 이름만, 한글이 이어지면 안 잡
       { name: "부안군", sido: "전북" },
       { name: "김제시", sido: "전북" },
     ]);
+  });
+});
+
+describe("F-5: 옛 소속 표는 사전 이름·표준 시도만 담는다", () => {
+  it("열쇠가 사전에 있고 값이 표준 시도다", () => {
+    for (const [name, sido] of Object.entries(SIGUNGU_FORMER_SIDO)) {
+      expect(SIGUNGU_TO_SIDO[name]).toBeDefined();
+      expect(["서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주"]).toContain(sido);
+    }
+    expect(sigunguSido("군위군")?.formerSido).toBe("경북");
+    expect(sigunguSido("영월군")?.formerSido).toBeUndefined();
   });
 });

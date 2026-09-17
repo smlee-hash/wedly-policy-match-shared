@@ -183,6 +183,7 @@ describe("checkCondition — 시군구 사전(다른 시도만 fail, 같은 시�
 
   it("3차 §7: 군위군 조건 × 「경북」 프로필은 옛 소속이라 fail 이 아니다(unknown)", () => {
     expect(checkCondition(cond({ value: ["군위군"] }), { region: "경북" }, NOW).verdict).toBe("unknown");
+    expect(checkCondition(cond({ value: ["군위군"] }), { region: "대구" }, NOW).verdict).toBe("unknown");
     expect(checkCondition(cond({ value: ["군위군"] }), { region: "서울" }, NOW).verdict).toBe("fail");
   });
 

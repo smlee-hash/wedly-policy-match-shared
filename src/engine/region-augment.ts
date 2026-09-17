@@ -76,14 +76,17 @@ export function withRegionConditions(
   );
 
   let out = s;
-  // 저장 구조가 이미 「전국」이라 하면 제목의 시도·시군구는 장소일 뿐이다 — 덧붙이면 전국 공고가 한 시군구 전용으로
-  // 좁혀져 다른 회사가 전부 떨어진다(통합 3차 독립 리뷰 §1 높음).
+  // 저장 구조가 이미 「전국」이라 하면 제목의 **사전 시군구**는 장소일 뿐이다 — 덧붙이면 전국 공고가 한 시군구
+  // 전용으로 좁혀져 다른 회사가 전부 떨어진다(통합 3차 독립 리뷰 §1 높음). 다만 기관과 교차검증된 「[광역]」 태그는
+  // AI 의 「전국」 한 낱말보다 믿을 만하므로 그대로 보탠다(통합 4차 F-1) — 시군구 이름만 든 조건을 거른다.
   const hasNationwide = regionConds.some(
     (c) => c.machineReadable && (Array.isArray(c.value) ? c.value : []).some((v) => String(v).includes("전국")),
   );
-  if (!hasSidoRegion && !hasNationwide) {
+  if (!hasSidoRegion) {
     // ① 제목 앞머리는 어디서나 안전하다 — 기관 교차검증을 거친 「그 광역 전용」 신호다.
-    const fromTitle = titleRegionConditions(row.title ?? "", row.agency ?? "").filter((c) => c.machineReadable);
+    const fromTitle = titleRegionConditions(row.title ?? "", row.agency ?? "")
+      .filter((c) => c.machineReadable)
+      .filter((c) => !hasNationwide || (Array.isArray(c.value) ? c.value : []).some((v) => sidosInText(String(v)).length > 0));
     if (fromTitle.length > 0) {
       out = { ...s, conditions: [...s.conditions, ...fromTitle] };
     } else if (opts.regionFieldFallback && regionConds.length === 0) {
