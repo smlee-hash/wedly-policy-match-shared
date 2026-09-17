@@ -9,7 +9,9 @@ import { isCorporationByBizno, type BusinessProfile } from "./match-engine";
 
 export function usedProfileSummary(p: BusinessProfile): string[] {
   const out: string[] = [];
-  if (p.region) out.push(`지역 ${p.region}`);
+  if (p.region && p.regionSigungu) out.push(`지역 ${p.region} ${p.regionSigungu}`);
+  else if (p.region) out.push(`지역 ${p.region}`);
+  else if (p.regionSigungu) out.push(`시군구 ${p.regionSigungu}`);
   if (p.industry) out.push(`업종 ${p.industry}`);
   if (typeof p.employeeCount === "number") out.push(`직원수 ${p.employeeCount}명`);
   if (typeof p.lastYearRevenueKrw === "number") {

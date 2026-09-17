@@ -108,7 +108,14 @@ export interface AnnouncementStructure {
 }
 
 export type ConditionVerdict = "pass" | "fail" | "unknown";
-export interface ConditionCheck { condition: StructuredCondition; verdict: ConditionVerdict; note: string }
+export interface ConditionCheck {
+  condition: StructuredCondition;
+  verdict: ConditionVerdict;
+  note: string;
+  /** 목록에서 지우지는 않지만 「맞음」은 줄 수 없는 조건.
+   *  fail 과 달리 excluded 가 아니라 unverified 로만 내린다. */
+  blocksFit?: true;
+}
 export type MatchGrade = "possible" | "uncertain" | "impossible";
 
 /** 규칙으로 뽑은 조건임을 화면·보고에서 알아볼 수 있게 원문 앞에 붙인다. */

@@ -77,6 +77,10 @@ export function fitVerdictOf(checks: ConditionCheck[]): FitVerdict {
   // 모르면 fail 이 아니라 「맞음 금지」다 — 목록에서 지우지 않고 「확인 필요」로 내린다.
   // 2026-09-17 실측: 표본 화면 419건 중 자격형 22건이 지역 pass 하나만으로 맞음이 됐다.
   if (checks.some((c) => c.condition.key === "targetOrg" && c.verdict === "unknown")) return "unverified";
+  // 시군구 맞음 금지(blocksFit)도 targetOrg 와 같은 규율이다 — 회사 시군구가 조건과 다르면
+  // fail 이 아니라 「맞음」만 막는다. 목록에서 지우지 않고 「확인 필요」로 내린다.
+  // 2026-09-18 실측: 화면 4,566건 중 637건(14%)이 「맞음」에서 「확인 필요」로 내려간다.
+  if (checks.some((c) => c.blocksFit)) return "unverified";
   if (checks.some((c) => c.verdict === "pass" && !isWeakPass(c))) return "fit";
   return "unverified";
 }
