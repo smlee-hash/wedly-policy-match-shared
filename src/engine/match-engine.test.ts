@@ -181,6 +181,11 @@ describe("checkCondition — 시군구 사전(다른 시도만 fail, 같은 시�
     expect(checkCondition(cond({ value: ["구미"] }), { region: "경기도성남시분당구구미동" }, NOW).verdict).toBe("fail");
   });
 
+  it("3차 §7: 군위군 조건 × 「경북」 프로필은 옛 소속이라 fail 이 아니다(unknown)", () => {
+    expect(checkCondition(cond({ value: ["군위군"] }), { region: "경북" }, NOW).verdict).toBe("unknown");
+    expect(checkCondition(cond({ value: ["군위군"] }), { region: "서울" }, NOW).verdict).toBe("fail");
+  });
+
   it("2차 리뷰 지적 2: 옛 시도 표기 「경상북도 군위군」도 낱말이 같으면 pass(사전은 대구)", () => {
     expect(checkCondition(cond({ value: ["군위군"] }), { region: "경상북도 군위군" }, NOW).verdict).toBe("pass");
   });

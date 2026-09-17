@@ -160,12 +160,29 @@ describe("통합 2차 리뷰(2026-09-17) 반영 — 가림은 가린 글로만 �
     expect(sectorFamiliesOfIndustry("인쇄회로 설계업")).toEqual(["반도체전자"]);
     expect(sectorFamiliesOfIndustry("인쇄회로 및 광고물 제작")).toEqual(expect.arrayContaining(["반도체전자", "광고인쇄"]));
   });
-  it("D3: 「전기판매업」은 반도체전자가 아니다(두 글자 부분 문자열 「기판」 없음)", () => {
-    expect(sectorFamiliesOfIndustry("전기판매업")).not.toContain("반도체전자");
+  it("D3: 「전기판매업」은 유통이지 반도체전자가 아니다", () => {
+    expect(sectorFamiliesOfIndustry("전기판매업")).toEqual(["유통"]);
   });
-  it("D4: industry 조건 「인쇄」도 「인쇄회로기판 제조업」에 pass 를 주지 않는다", () => {
+  it("D4 되돌림(3차 §4): industry 조건은 fail 을 못 내므로 가림을 안 거친다 — PCB 공고 × PCB 회사의 진짜 pass 를 지킨다", () => {
     const c = { key: "industry" as const, op: "in" as const, value: ["인쇄"], rawText: "인쇄업", machineReadable: true };
-    expect(checkCondition(c, { industry: "경성 인쇄회로기판 제조업" }, NOW).verdict).toBe("unknown");
-    expect(checkCondition(c, { industry: "옵셋 인쇄업" }, NOW).verdict).toBe("pass");
+    expect(checkCondition(c, { industry: "경성 인쇄회로기판 제조업" }, NOW).verdict).toBe("pass");
+  });
+});
+
+describe("통합 3차 리뷰(2026-09-17) 반영", () => {
+  const NOW = new Date("2026-09-17T00:00:00Z");
+  it("§2: 띄어 쓴 「인쇄 회로 기판 제조업」도 반도체전자이고 광고인쇄가 아니다", () => {
+    expect(sectorFamiliesOfIndustry("인쇄 회로 기판 제조업")).toEqual(["반도체전자"]);
+    expect(checkCondition(titleSectorCondition("2026년 시스템반도체 기업 육성사업 공고")!, { industry: "인쇄 회로 기판 제조업" }, NOW).verdict).toBe("pass");
+  });
+  it("§3: 관광기업 공고 × 전세버스 운송업, 패션기업 공고 × 전문 디자인업은 fail 이 아니다", () => {
+    expect(checkCondition(titleSectorCondition("2026년 관광기업 혁신바우처 지원사업 참여기업 모집 공고")!, { industry: "전세버스 운송업" }, NOW).verdict).toBe("unknown");
+    expect(checkCondition(titleSectorCondition("2026년 패션기업 해외진출 지원사업")!, { industry: "기타 전문 디자인업" }, NOW).verdict).toBe("unknown");
+  });
+  it("§5: 「비금속 광물 제품 제조업」은 기계금속이 아니다", () => {
+    expect(sectorFamiliesOfIndustry("비금속 광물 제품 제조업")).toEqual([]);
+  });
+  it("§6: 「채소, 화훼작물 및 종묘 재배업」은 농림어업이다", () => {
+    expect(sectorFamiliesOfIndustry("채소, 화훼작물 및 종묘 재배업")).toEqual(["농림어업"]);
   });
 });

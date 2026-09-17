@@ -109,14 +109,19 @@ const STEM_TO_NAME: Record<string, string> = (() => {
   return out;
 })();
 
-export function sigunguSido(value: string): { name: string; sido: string } | null {
+/** 2023-07 이전 소속 시도 — 회사가 옛 시도(「경북」)를 골라도 자기 지역 공고에서 떨어지지 않게 모순으로 보지 않는다(통합 3차 리뷰 §7). */
+export const SIGUNGU_FORMER_SIDO: Record<string, string> = { 군위군: "경북" };
+
+export interface SigunguHit { name: string; sido: string; formerSido?: string }
+
+export function sigunguSido(value: string): SigunguHit | null {
   const t = (value ?? "").replace(/\s/g, "");
   if (!t) return null;
-  const exact = SIGUNGU_TO_SIDO[t];
-  if (exact) return { name: t, sido: exact };
-  const fromStem = STEM_TO_NAME[t];
-  if (!fromStem) return null;
-  return { name: fromStem, sido: SIGUNGU_TO_SIDO[fromStem] };
+  const name = SIGUNGU_TO_SIDO[t] ? t : STEM_TO_NAME[t];
+  if (!name) return null;
+  const hit: SigunguHit = { name, sido: SIGUNGU_TO_SIDO[name] };
+  if (SIGUNGU_FORMER_SIDO[name]) hit.formerSido = SIGUNGU_FORMER_SIDO[name];
+  return hit;
 }
 
 /** 한글 음절·영문·숫자는 이름 경계가 아니다. 공백·괄호·구두점은 경계다. */

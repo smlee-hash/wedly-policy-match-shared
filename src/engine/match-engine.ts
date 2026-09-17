@@ -1,6 +1,6 @@
 // 프로필 vs 구조화 조건 순수 대조 — AI 없음, 저장소 접근 없음(설계서 §3, 계획 Task 4).
 // 「모름」은 절대 통과로 치지 않는다 — 값이 없으면 unknown → 등급은 최고 uncertain 까지만 간다.
-import { maskCompounds, relatedFamiliesOf, sectorFamiliesOfIndustry, SECTOR_FAMILY_NAMES } from "./sector";
+import { relatedFamiliesOf, sectorFamiliesOfIndustry, SECTOR_FAMILY_NAMES } from "./sector";
 import { sigunguSido } from "./sigungu";
 import {
   AnnouncementStructure,
@@ -177,7 +177,8 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
           //  낱말이 정확히 같으면 시도 문구가 옛 표기(「경상북도 군위군」)여도 pass 다(2차 리뷰 지적 2).
           if (profileNamesSigungu(p.region, sg.name)) return pass();
           const mineSet = sidosInText(p.region);
-          if (mineSet.length > 0 && !mineSet.includes(sg.sido)) sawDictionary = true;
+          const sidoMatches = mineSet.includes(sg.sido) || (sg.formerSido != null && mineSet.includes(sg.formerSido));
+          if (mineSet.length > 0 && !sidoMatches) sawDictionary = true;
           else if (mineSet.length > 0) sameSidoSigungu = true;
           else unreadSidoSigungu = true;
           continue;
@@ -201,9 +202,7 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
       const list = c.value as string[];
       // 업종은 같은 일을 다른 이름으로 적는다(「소프트웨어 개발업」 vs 「정보통신업」).
       // 글자가 안 겹친다고 「안 됨」을 내면 자격 있는 회사를 떨어뜨린다 — 확인 필요로 둔다.
-      // 「인쇄회로기판」의 「인쇄」가 인쇄업 조건에 걸리지 않게 합성어를 지운 글로 대조한다(통합 2차 리뷰 D4).
-      const industryText = maskCompounds(p.industry);
-      return list.some((k) => industryText.includes(k))
+      return list.some((k) => p.industry!.includes(k))
         ? pass()
         : unknown(`업종 표기가 달라 확인 필요 — 대상 업종: ${list.join("·")}`);
     }

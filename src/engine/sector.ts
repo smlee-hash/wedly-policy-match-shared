@@ -13,18 +13,18 @@ export interface SectorFamily {
 
 export const SECTOR_FAMILIES: SectorFamily[] = [
   { family: "식품", announcementWords: ["식품", "농식품", "푸드테크", "외식", "밀키트", "음료"], companyWords: ["식품", "음식", "외식", "음료", "제과", "제빵", "주류", "식료품"], relatedFamilies: ["농림어업", "유통", "제약바이오"] },
-  { family: "농림어업", announcementWords: ["수산", "어업", "농업", "농식품", "산림", "임업", "축산"], companyWords: ["농업", "어업", "수산", "임업", "축산", "양식업", "양식장", "작물 재배", "작물재배"], relatedFamilies: ["식품", "유통"] },
+  { family: "농림어업", announcementWords: ["수산", "어업", "농업", "농식품", "산림", "임업", "축산"], companyWords: ["농업", "어업", "수산", "임업", "축산", "양식업", "양식장", "작물 재배", "작물재배", "재배업"], relatedFamilies: ["식품", "유통"] },
   { family: "제약바이오", announcementWords: ["제약", "바이오", "의료기기", "의약품", "헬스케어"], companyWords: ["제약", "바이오", "의약품", "의료기기", "헬스케어", "의료", "건강기능식품"], relatedFamilies: ["식품", "뷰티", "정보통신", "유통", "농림어업"] },
   { family: "정보통신", announcementWords: ["소프트웨어", "SW", "ICT", "정보통신", "블록체인", "인공지능", "AI", "게임", "메타버스", "플랫폼"], companyWords: ["소프트웨어", "정보통신", "정보처리", "컴퓨터", "게임", "플랫폼", "앱", "IT"], relatedFamilies: ["콘텐츠", "제약바이오", "반도체전자", "교육", "유통", "자동차"] },
   { family: "콘텐츠", announcementWords: ["콘텐츠", "영상", "영화", "드라마", "방송", "웹툰", "애니메이션", "음악", "출판", "만화", "게임"], companyWords: ["콘텐츠", "영상", "영화", "방송", "출판", "만화", "음악", "광고", "게임", "애니메이션", "캐릭터", "공연"], relatedFamilies: ["정보통신", "광고인쇄"] },
   { family: "뷰티", announcementWords: ["뷰티", "화장품", "미용"], companyWords: ["화장품", "미용", "뷰티"], relatedFamilies: ["제약바이오", "유통"] },
-  { family: "섬유패션", announcementWords: ["섬유", "패션", "의류"], companyWords: ["섬유", "의류", "패션", "봉제"], relatedFamilies: ["유통"] },
+  { family: "섬유패션", announcementWords: ["섬유", "패션", "의류"], companyWords: ["섬유", "의류", "패션", "봉제"], relatedFamilies: ["유통", "광고인쇄"] },
   { family: "자동차", announcementWords: ["자동차", "모빌리티"], companyWords: ["자동차"], relatedFamilies: ["기계금속", "반도체전자", "정보통신"] },
   { family: "조선해양", announcementWords: ["조선", "해양", "선박"], companyWords: ["조선", "선박"], relatedFamilies: ["기계금속"] },
-  { family: "반도체전자", announcementWords: ["반도체", "디스플레이", "전자부품"], companyWords: ["반도체", "디스플레이", "전자부품", "전자제품", "전자기기", "인쇄회로"], relatedFamilies: ["정보통신", "기계금속", "자동차"] },
+  { family: "반도체전자", announcementWords: ["반도체", "디스플레이", "전자부품"], companyWords: ["반도체", "디스플레이", "전자부품", "전자제품", "전자기기", "인쇄회로", "인쇄 회로", "회로기판"], relatedFamilies: ["정보통신", "기계금속", "자동차"] },
   { family: "기계금속", announcementWords: ["기계", "로봇", "금속", "뿌리"], companyWords: ["기계", "금속", "로봇", "절삭", "철판", "주조", "용접", "금형", "판금"], relatedFamilies: ["자동차", "조선해양", "반도체전자", "에너지환경", "건설"] },
   { family: "건설", announcementWords: ["건설", "건축", "인테리어"], companyWords: ["건설", "건축", "인테리어", "도배", "목공", "실내장식", "설비"], relatedFamilies: ["기계금속", "에너지환경"] },
-  { family: "관광", announcementWords: ["관광", "여행"], companyWords: ["관광", "여행", "숙박", "호텔"], relatedFamilies: ["식품", "콘텐츠"] },
+  { family: "관광", announcementWords: ["관광", "여행"], companyWords: ["관광", "여행", "숙박", "호텔"], relatedFamilies: ["식품", "콘텐츠", "물류운수"] },
   { family: "유통", announcementWords: ["도소매", "유통", "소매"], companyWords: ["도매", "소매", "유통", "판매", "전자상거래"], relatedFamilies: ["식품", "섬유패션", "뷰티", "물류운수", "농림어업"] },
   { family: "광고인쇄", announcementWords: ["광고", "인쇄"], companyWords: ["광고", "인쇄", "디자인", "홍보물", "판촉물", "간판"], relatedFamilies: ["콘텐츠"] },
   { family: "에너지환경", announcementWords: ["에너지", "환경", "신재생"], companyWords: ["에너지", "환경", "태양광", "폐기물", "재활용"], relatedFamilies: ["기계금속", "건설"] },
@@ -129,9 +129,9 @@ export function sectorFamiliesInTitle(title: string): string[] {
  * 대조는 **합성어를 지운 글**로만 한다. 합성어 자체가 어느 가족의 회사 낱말이면(「인쇄회로」→반도체전자)
  * 그 낱말만 원문으로 본다 — 그래야 합성어의 제 가족이 사라지지 않는다.
  */
-const COMPOUND_MASK = ["인쇄회로", "서양식", "한식양식", "일양식", "중식양식"];
+const COMPOUND_MASK = ["인쇄회로", "인쇄 회로", "비금속", "서양식", "한식양식", "일식양식", "일양식", "중식양식"];
 
-/** 합성어를 공백으로 바꾼 글. industry 조건 대조도 같은 글을 쓴다(통합 2차 리뷰 D4). */
+/** 합성어를 공백으로 바꾼 글. 분야 가족 대조에만 쓴다 — industry 조건은 fail 을 못 내므로 가림이 진짜 pass 만 잃는다(통합 3차 리뷰 §4). */
 export function maskCompounds(text: string): string {
   return COMPOUND_MASK.reduce((t, c) => t.split(c).join(" "), text ?? "");
 }

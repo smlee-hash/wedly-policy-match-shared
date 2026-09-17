@@ -76,7 +76,12 @@ export function withRegionConditions(
   );
 
   let out = s;
-  if (!hasSidoRegion) {
+  // 저장 구조가 이미 「전국」이라 하면 제목의 시도·시군구는 장소일 뿐이다 — 덧붙이면 전국 공고가 한 시군구 전용으로
+  // 좁혀져 다른 회사가 전부 떨어진다(통합 3차 독립 리뷰 §1 높음).
+  const hasNationwide = regionConds.some(
+    (c) => c.machineReadable && (Array.isArray(c.value) ? c.value : []).some((v) => String(v).includes("전국")),
+  );
+  if (!hasSidoRegion && !hasNationwide) {
     // ① 제목 앞머리는 어디서나 안전하다 — 기관 교차검증을 거친 「그 광역 전용」 신호다.
     const fromTitle = titleRegionConditions(row.title ?? "", row.agency ?? "").filter((c) => c.machineReadable);
     if (fromTitle.length > 0) {

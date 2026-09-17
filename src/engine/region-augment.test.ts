@@ -142,6 +142,18 @@ describe("synthesizedRegionCondition — 17개 시도 나열은 전국", () => {
   });
 });
 
+describe("통합 3차 리뷰 §1 — 저장된 「전국」 조건은 제목 시군구 추가를 막는다", () => {
+  it("전국 조건 + 영월군 제목 + 기관 강원 → 조건이 그대로 1개(전국)", () => {
+    const before = st([region(["전국"])]);
+    const out = withRegionConditions(before, { title: "2026년 3차 영월군 청년 창업육성 지원사업 수정 공고", agency: "강원특별자치도", region: "" }, { regionFieldFallback: true });
+    expect(out).toBe(before);
+  });
+  it("전국 조건 + [경남] 진주시 태그 제목도 그대로", () => {
+    const before = st([region(["전국"])]);
+    expect(withRegionConditions(before, { title: "[경남] 진주시 해외지사화 사업", agency: "경상남도", region: "" })).toBe(before);
+  });
+});
+
 describe("2차 리뷰 지적 1 — 태그 없는 제목·기관 시도 없음이면 ① 은 아무것도 안 붙이고 ② 가 산다", () => {
   it("영월군 제목 + 기관 「영월군」 + 지역 칸 「강원」 → ② 로 [강원] 이 붙어 강원 회사가 pass", () => {
     const out = withRegionConditions(
