@@ -33,7 +33,11 @@ const NOT_TARGET_AFTER =
   /^(?:모집|지정|공모|신규|설립|창업|양성|입문|전환|희망|되기\s*위|준비\s*단계|실증|납품|제안|협업|공동|연계|협력)/;
 
 /** 나열 구분자만 건너뛴다 — 조사(을·를·이·가)는 건너뛰지 않는다(독립 리뷰 H-A: 「사회적기업을 지원하는 …」). */
-const LIST_BRIDGE_RE = /^(?:[\s·ㆍ,、\/]|및|등|과\s|와\s)+/;
+// 「등」은 나열 끝맺음이거나 「등과/등와」일 때만 다리로 센다(4차 리뷰 F-2).
+const LIST_BRIDGE_RE = /^(?:[\s·ㆍ,、\/]|및|등(?=[\s·ㆍ,、\/]|$|[과와]\s)|과\s|와\s)+/;
+
+/** 「… 등을 지원하는」처럼 나열 뒤에 조사가 붙으면 진짜 대상은 뒤에 있다 — 자격형이 아니다(4차 리뷰 F-2). */
+const ENUM_PARTICLE_AFTER = /^\s*등[을를의에도은는이가]/;
 
 /** 나열 건너뛰기에 쓰는 전체 공고 낱말(긴 것 먼저 — 「예비사회적기업」이 「사회적기업」보다 앞). */
 const ALL_ANNOUNCE_WORDS: string[] = [...new Set(ORG_TYPES.flatMap((o) => o.announcementWords))].sort(
@@ -52,7 +56,7 @@ function endsWithOrgSuffix(word: string): boolean {
 }
 
 /** 낱말 바로 뒤가 문서 종류뿐이면(「예비사회적기업 공고」) 사업 이름이 없어 대상 선언으로 보기 어렵다(3차 리뷰 M-2). */
-const BARE_DOCUMENT_AFTER = /^(?:공고|안내|계획|알림|공지|공모전)(?:\s|$|[)\]）」])/;
+const BARE_DOCUMENT_AFTER = /^(?:공고|안내|계획|알림|공지|공모전)(?:\s|$|[()\[\]（）「」])/;
 
 /**
  * 대상 선언 자리: 낱말(또는 그 낱말이 낀 나열)이 「…기업/업소/자/기관」으로 끝나고, 나열을 지난 뒤
@@ -66,11 +70,15 @@ function isTargetDeclarationPlace(title: string, index: number, word: string): b
   for (let i = 0; i < 8; i++) {
     const bridge = LIST_BRIDGE_RE.exec(rest)?.[0] ?? "";
     const body = rest.slice(bridge.length);
+    if (ENUM_PARTICLE_AFTER.test(rest)) return false;
     if (NOT_TARGET_AFTER.test(body) || BARE_DOCUMENT_AFTER.test(body)) return false;
     const next = ALL_ANNOUNCE_WORDS.find((w) => body.startsWith(w));
     if (!next) {
       // 나열이 끝났다 — 이어지는 글자가 한글이면 조사·용언이 붙은 것이라 대상 선언이 아니다.
       if (bridge.length === 0 && /^[가-힣]/.test(rest)) return false;
+      // 「및·과·와」는 **다음 자격 낱말이 올 때만** 나열이다. 안 오면 조사였다 — 「사회적기업과 함께하는 …」·
+      // 「예비창업자 및 재창업자를 위한 …」(4차 리뷰 F-2·C1). 「등」은 나열 끝맺음이라 그대로 둔다.
+      if (/[및과와]/.test(bridge)) return false;
       return suffixSeen;
     }
     if (endsWithOrgSuffix(next)) suffixSeen = true;

@@ -239,6 +239,12 @@ describe("titleTargetOrgCondition — 제목의 대상 유형", () => {
     expect(pick(extractConditions("지원대상: 사회적기업"), "companyScale")).toBeUndefined();
   });
 
+  it("리뷰 F-1: 「예비창업자」만 뽑히면 기계 대조를 끈다 — 기창업자가 목록에서 지워지던 자리", () => {
+    const only = pick(extractConditions("지원대상: 예비창업자 또는 업력 7년 이내 기창업자"), "companyScale");
+    expect(only?.value).toEqual(["예비창업자"]);
+    expect(only?.machineReadable).toBe(false);
+  });
+
   it("리뷰 H-1: 「예비창업자」는 프로필이 고를 수 있는 값이라 규모 조건에 남는다 — 나열에서 빠지면 그 사람이 fail 이 된다", () => {
     expect(pick(extractConditions("지원대상: 예비창업자"), "companyScale")?.value).toEqual(["예비창업자"]);
     expect(pick(extractConditions("예비창업자 또는 3년 미만 스타트업"), "companyScale")?.value).toEqual(

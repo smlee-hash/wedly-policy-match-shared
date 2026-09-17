@@ -206,7 +206,11 @@ export function extractConditions(text: string): StructuredCondition[] {
   const scales = SCALE_WORDS.filter((w) => t.includes(w));
   if (scales.length > 0) {
     const at = t.indexOf(scales[0]);
-    const ok = !scales.some((w) => isNegated(t, t.indexOf(w), w.length));
+    // ★뽑힌 규모가 「예비창업자」 하나뿐이면 **기계 대조를 끈다**(독립 리뷰 2026-09-17 F-1).
+    //  「예비창업자 또는 업력 7년 이내 기창업자」처럼 실제 대상이 더 넓은데 사전에 그 말이 없어
+    //  한 낱말만 뽑히면, 자격 있는 기창업자가 fail → 목록 삭제가 된다. 사람 확인으로 민다.
+    const preFounderOnly = scales.length === 1 && scales[0] === "예비창업자";
+    const ok = !preFounderOnly && !scales.some((w) => isNegated(t, t.indexOf(w), w.length));
     out.push(condition("companyScale", [...scales], snippet(t, at, scales[0].length), ok));
   }
 
