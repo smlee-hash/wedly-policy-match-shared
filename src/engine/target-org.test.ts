@@ -194,15 +194,19 @@ describe("8차 독립 리뷰(2026-09-17) 반영", () => {
     expect(targetOrgsInTitle("2026년 소상공인·예비창업자 창업교육")).toEqual([]);
   });
 
-  it("9차 M-1: 확신이 아니어도 조건은 남는다 — 사람 확인으로 「맞음 금지」를 지킨다", () => {
+  it("10차 M-2·M-3: 확신 유형이 하나도 없으면 조건을 만들지 않는다 — 사람 확인 조건은 「영영 맞음 금지」라 비용만 남는다", () => {
     expect(uncertainTargetOrgsInTitle("2026년 소상공인·예비창업자 창업교육")).toEqual(["예비창업자"]);
-    const c = titleTargetOrgCondition("2026년 소상공인·예비창업자 창업교육")!;
-    expect(c.key).toBe("targetOrg");
-    expect(c.value).toEqual(["예비창업자"]);
+    expect(titleTargetOrgCondition("2026년 소상공인·예비창업자 창업교육")).toBeNull();
+  });
+
+  it("10차 M-1: 확신 목록이 불완전하면(왼쪽에 다른 대상) 합쳐서 사람 확인으로 낮춘다 — 빠진 대상이 fail 로 지워지지 않는다", () => {
+    const c = titleTargetOrgCondition("2026년 사회적기업 지원사업 및 예비창업자 모집 공고")!;
+    expect(c.value).toEqual(["사회적기업", "예비창업자"]);
     expect(c.machineReadable).toBe(false);
-    const r = checkCondition(c, { companyScale: "중견기업", foundedDate: "2005-01-01" }, new Date("2026-09-17T00:00:00Z"));
-    expect(r.verdict).toBe("unknown"); // fail 은 절대 안 난다
-    expect(fitVerdictOf([{ condition: { key: "region", op: "in", value: ["경기"], rawText: "r", machineReadable: true }, verdict: "pass", note: "" }, r])).toBe("unverified");
+    const NOW = new Date("2026-09-17T00:00:00Z");
+    expect(checkCondition(c, { orgTypes: ["예비창업자"] }, NOW).verdict).toBe("unknown");
+    const region = { condition: { key: "region" as const, op: "in" as const, value: ["경기"], rawText: "r", machineReadable: true }, verdict: "pass" as const, note: "" };
+    expect(fitVerdictOf([region, checkCondition(c, { orgTypes: ["예비창업자"] }, NOW)])).toBe("unverified");
   });
 
   it("①: 앞에 나열이 없으면 종전대로 상태형 예외를 준다", () => {

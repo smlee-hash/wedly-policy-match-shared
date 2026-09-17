@@ -291,11 +291,14 @@ export function titleSectorCondition(title: string): StructuredCondition | null 
 export function titleTargetOrgCondition(title: string): StructuredCondition | null {
   const t = title ?? "";
   const types = targetOrgsInTitle(t);
-  if (types.length > 0) return condition("targetOrg", types, `${RULE_SOURCE_PREFIX} ${t.slice(0, 40)}`);
-  // 확신은 아니지만 자격형으로 보이면 사람 확인 조건으로 남긴다 — 「맞음 금지」는 지키고 fail 은 못 낸다(9차 M-1).
-  const maybe = uncertainTargetOrgsInTitle(t);
-  if (maybe.length === 0) return null;
-  return condition("targetOrg", maybe, `${RULE_SOURCE_PREFIX} ${maybe.join("ㆍ")} 대상으로 보임 — 원문 확인`, false);
+  if (types.length === 0) return null;
+  // 왼쪽에 다른 공동 대상이 나열돼 **목록이 불완전**하면(「사회적기업 지원사업 및 예비창업자 모집」) 사람 확인으로
+  // 낮춘다 — 빠진 대상의 회사가 fail 로 지워지지 않게(10차 리뷰 M-1). 확신 목록이 없을 때는 조건을 만들지 않는다:
+  // 실측 코퍼스에서 그 갈래는 0건인데 사람 확인 조건은 「영영 맞음 금지」라 비용만 남는다(10차 M-2·M-3).
+  const extra = uncertainTargetOrgsInTitle(t);
+  if (extra.length === 0) return condition("targetOrg", types, `${RULE_SOURCE_PREFIX} ${t.slice(0, 40)}`);
+  const all = [...types, ...extra];
+  return condition("targetOrg", all, `${RULE_SOURCE_PREFIX} ${all.join("ㆍ")} 대상으로 보임 — 원문 확인`, false);
 }
 
 /**
