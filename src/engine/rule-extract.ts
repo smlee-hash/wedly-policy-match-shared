@@ -17,7 +17,7 @@
 import { canonicalRegion, sidosInText } from "./match-engine";
 import { sectorFamiliesInTitle } from "./sector";
 import { sigunguInTitle } from "./sigungu";
-import { targetOrgsInTitle } from "./target-org";
+import { targetOrgsInTitle, uncertainTargetOrgsInTitle } from "./target-org";
 import {
   EXPECTED_OP,
   type ConditionCheck,
@@ -289,9 +289,13 @@ export function titleSectorCondition(title: string): StructuredCondition | null 
  * extractConditions(본문)는 이 조건을 만들지 않는다 — 지나가는 말로 회사를 지우지 않기 위함.
  */
 export function titleTargetOrgCondition(title: string): StructuredCondition | null {
-  const types = targetOrgsInTitle(title ?? "");
-  if (types.length === 0) return null;
-  return condition("targetOrg", types, `${RULE_SOURCE_PREFIX} ${(title ?? "").slice(0, 40)}`);
+  const t = title ?? "";
+  const types = targetOrgsInTitle(t);
+  if (types.length > 0) return condition("targetOrg", types, `${RULE_SOURCE_PREFIX} ${t.slice(0, 40)}`);
+  // 확신은 아니지만 자격형으로 보이면 사람 확인 조건으로 남긴다 — 「맞음 금지」는 지키고 fail 은 못 낸다(9차 M-1).
+  const maybe = uncertainTargetOrgsInTitle(t);
+  if (maybe.length === 0) return null;
+  return condition("targetOrg", maybe, `${RULE_SOURCE_PREFIX} ${maybe.join("ㆍ")} 대상으로 보임 — 원문 확인`, false);
 }
 
 /**

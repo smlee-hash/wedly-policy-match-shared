@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { profileOrgTypes, targetOrgsInTitle } from "./target-org";
+import { profileOrgTypes, targetOrgsInTitle, uncertainTargetOrgsInTitle } from "./target-org";
+import { titleTargetOrgCondition } from "./rule-extract";
+import { checkCondition } from "./match-engine";
+import { fitVerdictOf } from "./recommend-score";
 
 describe("targetOrgsInTitle — 제목의 대상 선언 자리만", () => {
   it("착한가격업소 신규모집은 「되려는 기업」 공고라 조건을 만들지 않는다(2차 리뷰 M-B)", () => {
@@ -184,10 +187,22 @@ describe("7차 독립 리뷰(2026-09-17) 반영", () => {
 });
 
 describe("8차 독립 리뷰(2026-09-17) 반영", () => {
-  it("①: 앞에 다른 공동 대상이 나열된 「… 및 예비창업자 모집」은 자격형이 아니다", () => {
+  // 아래 세 제목은 실측 제목이 아니라 **구성한 변형**이다(khidi 의 「유치사업자 및 예비창업자」는 본문 문단,
+  // kiria 실측 제목은 어순이 반대다 — 9차 M-2). 코퍼스에 없는 꼴이라 회귀 그물로만 쓴다.
+  it("①: 앞에 다른 공동 대상이 나열되면 확신 대상이 아니다(구성 변형)", () => {
     expect(targetOrgsInTitle("외국인환자 유치사업자 및 예비창업자 모집 공고")).toEqual([]);
-    expect(targetOrgsInTitle("로봇분야 재창업자 및 예비창업자 창업 성장 프로그램 참가자 모집")).toEqual([]);
     expect(targetOrgsInTitle("2026년 소상공인·예비창업자 창업교육")).toEqual([]);
+  });
+
+  it("9차 M-1: 확신이 아니어도 조건은 남는다 — 사람 확인으로 「맞음 금지」를 지킨다", () => {
+    expect(uncertainTargetOrgsInTitle("2026년 소상공인·예비창업자 창업교육")).toEqual(["예비창업자"]);
+    const c = titleTargetOrgCondition("2026년 소상공인·예비창업자 창업교육")!;
+    expect(c.key).toBe("targetOrg");
+    expect(c.value).toEqual(["예비창업자"]);
+    expect(c.machineReadable).toBe(false);
+    const r = checkCondition(c, { companyScale: "중견기업", foundedDate: "2005-01-01" }, new Date("2026-09-17T00:00:00Z"));
+    expect(r.verdict).toBe("unknown"); // fail 은 절대 안 난다
+    expect(fitVerdictOf([{ condition: { key: "region", op: "in", value: ["경기"], rawText: "r", machineReadable: true }, verdict: "pass", note: "" }, r])).toBe("unverified");
   });
 
   it("①: 앞에 나열이 없으면 종전대로 상태형 예외를 준다", () => {

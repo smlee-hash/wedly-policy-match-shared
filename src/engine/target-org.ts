@@ -82,11 +82,13 @@ const BARE_DOCUMENT_AFTER = /^(?:공고|안내|계획|알림|공지|공모전)(?
 const COUNTERPARTY_AFTER = /^(?:실증|납품|제안|협업|공동|연계|협력)/;
 const STATE_TYPE_WORDS = new Set(["예비창업자", "예비 창업자", "예비창업팀"]);
 
-function isTargetDeclarationPlace(title: string, index: number, word: string): boolean {
-  // ★상태형 예외는 **앞에 나열 다리가 없을 때만** 준다 — 「유치사업자 및 예비창업자 모집」처럼 왼쪽에 공동 대상이
-  //  있으면 그 대상이 진짜 주인공이라 종전 부정 문맥을 그대로 쓴다(독립 리뷰 2026-09-17 8차 ①, khidi 실측).
+function isTargetDeclarationPlace(title: string, index: number, word: string, relaxState = false): boolean {
+  // ★상태형 예외(「예비창업자 모집」도 대상)는 **앞에 나열 다리가 없을 때만** 확신으로 준다 — 「유치사업자 및
+  //  예비창업자 모집」처럼 왼쪽에 공동 대상이 있으면 그쪽이 주인공일 수 있다. 그때는 조건을 **지우지 않고**
+  //  사람 확인(machineReadable=false)으로 낮춘다(독립 리뷰 2026-09-17 9차 M-1) — relaxState 로 한 번 더 찾는다.
   const listedAfterOther = /(?:및|과|와|[·ㆍ,、/])\s*$/.test(title.slice(0, index));
-  const negative = STATE_TYPE_WORDS.has(word) && !listedAfterOther ? COUNTERPARTY_AFTER : NOT_TARGET_AFTER;
+  const stateExempt = STATE_TYPE_WORDS.has(word) && (relaxState || !listedAfterOther);
+  const negative = stateExempt ? COUNTERPARTY_AFTER : NOT_TARGET_AFTER;
   let rest = title.slice(index + word.length);
   let suffixSeen = endsWithOrgSuffix(word);
   for (let i = 0; i < 8; i++) {
@@ -110,25 +112,38 @@ function isTargetDeclarationPlace(title: string, index: number, word: string): b
   return false;
 }
 
-function wordAnchoredInTitle(title: string, word: string): boolean {
+function wordAnchoredInTitle(title: string, word: string, relaxState = false): boolean {
   let from = 0;
   while (from <= title.length - word.length) {
     const i = title.indexOf(word, from);
     if (i < 0) return false;
-    if (asciiWordStart(title, i, word) && isTargetDeclarationPlace(title, i, word)) return true;
+    if (asciiWordStart(title, i, word) && isTargetDeclarationPlace(title, i, word, relaxState)) return true;
     from = i + 1;
   }
   return false;
 }
 
-export function targetOrgsInTitle(title: string): string[] {
+function orgsInTitle(title: string, relaxState: boolean): string[] {
   const t = title ?? "";
   if (!t) return [];
   const found: string[] = [];
   for (const org of ORG_TYPES) {
-    if (org.announcementWords.some((w) => wordAnchoredInTitle(t, w))) found.push(org.type);
+    if (org.announcementWords.some((w) => wordAnchoredInTitle(t, w, relaxState))) found.push(org.type);
   }
   return found;
+}
+
+export function targetOrgsInTitle(title: string): string[] {
+  return orgsInTitle(title, false);
+}
+
+/**
+ * 확신까지는 아니지만 자격형으로 볼 만한 유형 — 상태형 낱말 왼쪽에 다른 공동 대상이 나열된 경우다.
+ * 이 값으로 만든 조건은 **사람 확인**(machineReadable=false)이라 fail 을 못 내고, 「모르면 맞음이 아니다」만 남긴다.
+ */
+export function uncertainTargetOrgsInTitle(title: string): string[] {
+  const sure = new Set(targetOrgsInTitle(title));
+  return orgsInTitle(title, true).filter((t) => !sure.has(t));
 }
 
 /** 프로필이 준 기업 형태 문구들에서 유형 이름을 읽는다. 비었으면 빈 배열. */
