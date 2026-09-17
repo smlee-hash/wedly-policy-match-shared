@@ -223,21 +223,21 @@ describe("titleSectorCondition — 제목의 대상 분야", () => {
 });
 
 describe("titleTargetOrgCondition — 제목의 대상 유형", () => {
-  it("착한가격업소 신규모집은 targetOrg 를 만들고 본문 추출은 만들지 않는다", () => {
-    const title = "[전남광주] 목포시 2026년 착한가격업소 신규모집 공고";
+  it("자격형 제목은 targetOrg 를 만들고 본문 추출은 만들지 않는다", () => {
+    const title = "[충남] 2026년 (예비)사회적기업 사업개발비 지원사업 참여기업 모집 공고";
     const c = titleTargetOrgCondition(title);
     expect(c?.key).toBe("targetOrg");
     expect(c?.op).toBe("in");
-    expect(c?.value).toEqual(["착한가격업소"]);
+    expect(c?.value).toEqual(["사회적기업"]);
     expect(c?.machineReadable).toBe(true);
     expect(c?.rawText.startsWith(RULE_SOURCE_PREFIX)).toBe(true);
     expect(pick(extractConditions(title), "targetOrg")).toBeUndefined();
     expect(pick(extractConditions("사회적기업과 협업하는 중소기업 모집"), "targetOrg")).toBeUndefined();
   });
 
-  it("리뷰 M3: 본문의 사회적기업·예비창업자는 companyScale 조건을 그대로 만든다 — 자격을 읽는 통로를 대체 없이 없애지 않는다", () => {
-    expect(pick(extractConditions("지원대상: 사회적기업"), "companyScale")?.value).toEqual(["사회적기업"]);
-    expect(pick(extractConditions("지원대상: 예비창업자"), "companyScale")?.value).toEqual(["예비창업자"]);
+  it("리뷰 H-B: 자격(사회적기업·예비창업자)은 규모 조건을 만들지 않는다 — 인증 사회적기업이 자기 공고에서 지워지던 자리", () => {
+    expect(pick(extractConditions("지원대상: 사회적기업"), "companyScale")).toBeUndefined();
+    expect(pick(extractConditions("지원대상: 예비창업자"), "companyScale")).toBeUndefined();
   });
 });
 

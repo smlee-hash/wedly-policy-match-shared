@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { profileOrgTypes, targetOrgsInTitle } from "./target-org";
 
 describe("targetOrgsInTitle — 제목의 대상 선언 자리만", () => {
-  it("착한가격업소 신규모집", () => {
-    expect(targetOrgsInTitle("[전남광주] 목포시 2026년 착한가격업소 신규모집 공고")).toEqual(["착한가격업소"]);
+  it("착한가격업소 신규모집은 「되려는 기업」 공고라 조건을 만들지 않는다(2차 리뷰 M-B)", () => {
+    expect(targetOrgsInTitle("[전남광주] 목포시 2026년 착한가격업소 신규모집 공고")).toEqual([]);
   });
 
   it("(예비)사회적기업 사업개발비", () => {
@@ -55,9 +55,39 @@ describe("독립 리뷰 2026-09-17 반영 — 대상 선언 자리", () => {
     );
   });
 
-  it("참 대상은 그대로 잡는다 — 신규모집·사업 이름이 먼저 오는 제목", () => {
-    expect(targetOrgsInTitle("[전남광주] 목포시 2026년 착한가격업소 신규모집 공고")).toEqual(["착한가격업소"]);
+  it("참 대상은 그대로 잡는다 — 사업 이름이 먼저 오는 제목", () => {
     expect(targetOrgsInTitle("[충남] 2026년 (예비)사회적기업 사업개발비 지원사업 참여기업 모집 공고")).toEqual(["사회적기업"]);
     expect(targetOrgsInTitle("[경북] 김천시 2026년 4차 사회적경제기업 행사참여지원사업 참여기업 모집 공고")).toEqual(["사회적경제"]);
+  });
+});
+
+describe("2차 독립 리뷰(2026-09-17) 반영 — 조사·나열·되려는 기업", () => {
+  it("H-A: 조사가 붙은 지나가는 말은 대상이 아니다", () => {
+    expect(targetOrgsInTitle("2026년 사회적기업을 지원하는 중간지원조직 모집 공고")).toEqual([]);
+    expect(targetOrgsInTitle("2026년 익산형 사회적기업가 육성사업 추가모집 공고")).toEqual([]);
+  });
+
+  it("M-A: 구분자가 껴도 부정 문맥을 본다", () => {
+    expect(targetOrgsInTitle("2026년 사회적기업, 협동조합 등과 협력하는 중소기업 모집")).toEqual([]);
+    expect(targetOrgsInTitle("마을기업 및 협동조합 등과 연계한 지원")).toEqual([]);
+  });
+
+  it("M-B: 그 자격을 새로 받으려는 공고(지정·신규모집·공모)는 자격 조건을 만들지 않는다", () => {
+    expect(targetOrgsInTitle("[전남광주] 목포시 2026년 착한가격업소 신규모집 공고")).toEqual([]);
+    expect(targetOrgsInTitle("2026년 상반기 착한가격업소 모집 공고")).toEqual([]);
+    expect(targetOrgsInTitle("[전라남도] 2026년도 1차 예비사회적기업 지정 공모")).toEqual([]);
+  });
+
+  it("M-C: 창업·설립·양성 대상 공고도 만들지 않는다", () => {
+    expect(targetOrgsInTitle("2026년도 사회적기업 창업지원사업 창업팀 모집 공고")).toEqual([]);
+    expect(targetOrgsInTitle("마을기업 설립교육 수강생 모집")).toEqual([]);
+  });
+
+  it("이미 그 자격인 기업이 대상인 공고만 남는다", () => {
+    expect(targetOrgsInTitle("[충남] 2026년 (예비)사회적기업 사업개발비 지원사업 참여기업 모집 공고")).toEqual(["사회적기업"]);
+    expect(targetOrgsInTitle("[충남] 논산시 2026년 사회적경제기업 시설장비 지원사업 공고")).toEqual(["사회적경제"]);
+    expect(targetOrgsInTitle("2026년 사회적기업·협동조합·마을기업 판로개척 지원사업")).toEqual(
+      ["사회적기업", "협동조합", "마을기업"],
+    );
   });
 });

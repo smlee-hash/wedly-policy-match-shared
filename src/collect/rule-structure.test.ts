@@ -71,12 +71,16 @@ describe("buildRuleStructure — 대상 분야(targetSector)는 제목에서만"
 });
 
 describe("buildRuleStructure — 대상 유형(targetOrg)는 제목에서만", () => {
-  it("제목이 「착한가격업소 신규모집」이면 조건을 저장한다", () => {
-    const s = buildRuleStructure("", "", "[전남광주] 목포시 2026년 착한가격업소 신규모집 공고", "목포시");
+  it("제목이 자격형(사회적기업 사업개발비)이면 조건을 저장한다", () => {
+    const s = buildRuleStructure("", "", "[충남] 2026년 (예비)사회적기업 사업개발비 지원사업 참여기업 모집 공고", "충청남도");
     const t = s.conditions.filter((c) => c.key === "targetOrg");
     expect(t).toHaveLength(1);
-    expect(t[0].value).toEqual(["착한가격업소"]);
+    expect(t[0].value).toEqual(["사회적기업"]);
     expect(t[0].machineReadable).toBe(true);
+  });
+  it("「착한가격업소 신규모집」처럼 그 자격을 받으려는 공고는 저장하지 않는다(2차 리뷰 M-B)", () => {
+    const s = buildRuleStructure("", "", "[전남광주] 목포시 2026년 착한가격업소 신규모집 공고", "목포시");
+    expect(s.conditions.filter((c) => c.key === "targetOrg")).toEqual([]);
   });
   it("본문에만 「사회적기업과 협업」이 나오면 조건을 만들지 않는다 — 지나가는 말로 회사를 지우지 않는다", () => {
     const s = buildRuleStructure("사회적기업과 협업하는 중소기업을 찾습니다", "", "2026년 중소기업 판로개척 지원사업", "중기부");
