@@ -18,7 +18,7 @@ export const SECTOR_FAMILIES: SectorFamily[] = [
   { family: "정보통신", announcementWords: ["소프트웨어", "SW", "ICT", "정보통신", "블록체인", "인공지능", "AI", "게임", "메타버스", "플랫폼"], companyWords: ["소프트웨어", "정보통신", "정보처리", "컴퓨터", "게임", "플랫폼", "앱", "IT"], relatedFamilies: ["콘텐츠", "제약바이오", "반도체전자", "교육", "유통", "자동차"] },
   { family: "콘텐츠", announcementWords: ["콘텐츠", "영상", "영화", "드라마", "방송", "웹툰", "애니메이션", "음악", "출판", "만화", "게임"], companyWords: ["콘텐츠", "영상", "영화", "방송", "출판", "만화", "음악", "광고", "게임", "애니메이션", "캐릭터", "공연"], relatedFamilies: ["정보통신", "광고인쇄"] },
   { family: "뷰티", announcementWords: ["뷰티", "화장품", "미용"], companyWords: ["화장품", "미용", "뷰티"], relatedFamilies: ["제약바이오", "유통"] },
-  { family: "섬유패션", announcementWords: ["섬유", "패션", "의류"], companyWords: ["섬유", "의류", "패션", "봉제", "귀금속", "장신구"], relatedFamilies: ["유통", "광고인쇄"] },
+  { family: "섬유패션", announcementWords: ["섬유", "패션", "의류"], companyWords: ["섬유", "의류", "패션", "봉제", "귀금속", "장신구"], relatedFamilies: ["유통", "광고인쇄", "기계금속"] },
   { family: "자동차", announcementWords: ["자동차", "모빌리티"], companyWords: ["자동차"], relatedFamilies: ["기계금속", "반도체전자", "정보통신"] },
   { family: "조선해양", announcementWords: ["조선", "해양", "선박"], companyWords: ["조선", "선박"], relatedFamilies: ["기계금속"] },
   { family: "반도체전자", announcementWords: ["반도체", "디스플레이", "전자부품"], companyWords: ["반도체", "디스플레이", "전자부품", "전자제품", "전자기기", "인쇄회로", "인쇄 회로", "회로기판"], relatedFamilies: ["정보통신", "기계금속", "자동차"] },
@@ -27,7 +27,7 @@ export const SECTOR_FAMILIES: SectorFamily[] = [
   { family: "관광", announcementWords: ["관광", "여행"], companyWords: ["관광", "여행", "숙박", "호텔"], relatedFamilies: ["식품", "콘텐츠", "물류운수"] },
   { family: "유통", announcementWords: ["도소매", "유통", "소매"], companyWords: ["도매", "소매", "유통", "판매", "전자상거래"], relatedFamilies: ["식품", "섬유패션", "뷰티", "물류운수", "농림어업"] },
   { family: "광고인쇄", announcementWords: ["광고", "인쇄"], companyWords: ["광고", "인쇄", "디자인", "홍보물", "판촉물", "간판"], relatedFamilies: ["콘텐츠"] },
-  { family: "에너지환경", announcementWords: ["에너지", "환경", "신재생"], companyWords: ["에너지", "환경", "태양광", "폐기물", "재활용", "발전업", "가스", "재생용", "전기판매"], relatedFamilies: ["기계금속", "건설", "유통"] },
+  { family: "에너지환경", announcementWords: ["에너지", "환경", "신재생"], companyWords: ["에너지", "환경", "태양광", "폐기물", "재활용", "발전업", "도시가스", "가스공급", "액화석유가스", "재생용", "전기판매"], relatedFamilies: ["기계금속", "건설", "유통"] },
   { family: "물류운수", announcementWords: ["물류", "운수", "운송"], companyWords: ["물류", "운수", "운송", "택배", "화물"], relatedFamilies: ["유통"] },
   { family: "교육", announcementWords: ["교육"], companyWords: ["교육", "학원"], relatedFamilies: ["정보통신", "콘텐츠"] },
   { family: "부동산임대", announcementWords: ["부동산", "임대"], companyWords: ["부동산", "임대"], relatedFamilies: ["건설"] },
@@ -129,7 +129,7 @@ export function sectorFamiliesInTitle(title: string): string[] {
  * 대조는 **합성어를 지운 글**로만 한다. 합성어 자체가 어느 가족의 회사 낱말이면(「인쇄회로」→반도체전자)
  * 그 낱말만 원문으로 본다 — 그래야 합성어의 제 가족이 사라지지 않는다.
  */
-const COMPOUND_MASK = ["인쇄회로", "인쇄 회로", "비금속", "서양식", "한식양식", "일식양식", "일양식", "중식양식"];
+const COMPOUND_MASK = ["인쇄회로", "인쇄 회로", "비금속", "귀금속", "서양식", "한식양식", "일식양식", "일양식", "중식양식"];
 
 /** 합성어를 공백으로 바꾼 글. 분야 가족 대조에만 쓴다 — industry 조건은 fail 을 못 내므로 가림이 진짜 pass 만 잃는다(통합 3차 리뷰 §4). */
 export function maskCompounds(text: string): string {

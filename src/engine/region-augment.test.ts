@@ -155,6 +155,12 @@ describe("통합 3차 리뷰 §1 — 저장된 「전국」 조건은 제목 시
     expect(added).toHaveLength(1);
     expect(checkCondition(added[0], { region: "서울" }, new Date("2026-09-17T00:00:00Z")).verdict).toBe("fail");
   });
+  it("5차 지적 1: 전국 조건 + 「제주시」·「부산진구」 제목(시도 별칭을 품은 시군구)도 조건을 안 붙인다", () => {
+    const before = st([region(["전국"])]);
+    expect(withRegionConditions(before, { title: "2026년 제주시 소상공인 경영안정 지원사업 공고", agency: "제주특별자치도", region: "" })).toBe(before);
+    expect(withRegionConditions(before, { title: "2026년 부산진구 소상공인 지원 공고", agency: "부산광역시", region: "" })).toBe(before);
+  });
+
   it("F-6c: 전국 조건이 있어도 제목의 대상 분야(targetSector)는 보탠다", () => {
     const before = st([region(["전국"])]);
     const out = withRegionConditions(before, { title: "2026년 혁신형 제약기업 신규인증 공고", agency: "보건복지부", region: "" });

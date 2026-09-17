@@ -201,10 +201,23 @@ describe("통합 4차 리뷰(2026-09-17) 반영", () => {
   it("F-6a: 「회로기판」 홀로도 반도체전자를 결정한다", () => {
     expect(sectorFamiliesOfIndustry("회로기판 제조업")).toEqual(["반도체전자"]);
   });
-  it("F-6b: 「금속 및 비금속 원료 재생업」은 가림 뒤에도 기계금속(금속)·에너지환경(재생)이 남는다", () => {
+  it("F-6b: 「금속 및 비금속 원료 재생업」은 가림 뒤에도 기계금속(금속)이 남는다", () => {
     expect(sectorFamiliesOfIndustry("금속 및 비금속 원료 재생업")).toContain("기계금속");
   });
   it("F-6d: 새 이웃의 반대 방향 — 물류기업 공고 × 호텔업은 unknown", () => {
     expect(checkCondition(titleSectorCondition("2026년 물류기업 디지털 전환 지원사업")!, { industry: "호텔업" }, NOW).verdict).toBe("unknown");
+  });
+});
+
+describe("통합 5차 리뷰(2026-09-17) 반영", () => {
+  const NOW = new Date("2026-09-17T00:00:00Z");
+  it("지적 2: 「산업용 가스 제조업」은 분야로 못 읽어 unknown(반도체 공고에서 fail 이 아니다), 「도시가스업」은 에너지환경", () => {
+    expect(sectorFamiliesOfIndustry("산업용 가스 제조업")).toEqual([]);
+    expect(checkCondition(titleSectorCondition("2026년 시스템반도체 기업 육성사업 공고")!, { industry: "산업용 가스 제조업" }, NOW).verdict).toBe("unknown");
+    expect(sectorFamiliesOfIndustry("도시가스업")).toEqual(["에너지환경"]);
+  });
+  it("L2: 「귀금속 및 관련 제품 제조업」은 섬유패션이고, 뿌리기업 공고에서는 이웃(기계금속)이라 unknown", () => {
+    expect(sectorFamiliesOfIndustry("귀금속 및 관련 제품 제조업")).toEqual(["섬유패션"]);
+    expect(checkCondition(titleSectorCondition("2026년 뿌리기업 공정혁신 지원사업")!, { industry: "귀금속 및 관련 제품 제조업" }, NOW).verdict).toBe("unknown");
   });
 });

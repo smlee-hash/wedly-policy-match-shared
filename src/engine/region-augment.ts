@@ -86,7 +86,8 @@ export function withRegionConditions(
     // ① 제목 앞머리는 어디서나 안전하다 — 기관 교차검증을 거친 「그 광역 전용」 신호다.
     const fromTitle = titleRegionConditions(row.title ?? "", row.agency ?? "")
       .filter((c) => c.machineReadable)
-      .filter((c) => !hasNationwide || (Array.isArray(c.value) ? c.value : []).some((v) => sidosInText(String(v)).length > 0));
+      // 사전 시군구만 든 조건을 거른다 — 「제주시」·「부산진구」는 시도 별칭을 품어 sidosInText 로는 시도로 오인된다(5차 지적 1).
+      .filter((c) => !hasNationwide || !(Array.isArray(c.value) ? c.value : []).every((v) => sigunguSido(String(v)) != null));
     if (fromTitle.length > 0) {
       out = { ...s, conditions: [...s.conditions, ...fromTitle] };
     } else if (opts.regionFieldFallback && regionConds.length === 0) {
