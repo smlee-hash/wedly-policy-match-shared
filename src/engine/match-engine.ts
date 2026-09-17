@@ -206,13 +206,13 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
         }
         if (p.region.includes(r) || r.includes(p.region)) return pass();
       }
-      // 값 목록을 다 돌아 pass 가 없을 때. 모름이 하나라도 섞이면 새 fail 로 올리지 않는다.
-      if (sawDictionary) return fail(`대상 지역: ${list.join("·")}`);
+      // 값 목록은 OR 이라 모름이 하나라도 남으면 확신 fail 을 내지 않는다.
+      // F1 은 sawDictionary fail 을 두 unknown 보다 위에 두어, ["화성시","구미시"] × 경기(시군구 모름)가
+      // 구미시(다른 시도) 때문에 fail 로 바뀌었다 — 화성시는 아직 모른다. 그래서 이 순서로 되돌린다.
       if (sameSidoSigungu) return unknown("같은 시도 — 시군구는 원문 확인");
       if (unreadSidoSigungu) return unknown("소재지의 시도를 못 읽음 — 시군구는 원문 확인");
-      if (knownOtherSigungu && list.every((r) => sigunguSido(r) != null)) {
-        return fail(`대상 지역: ${list.join("·")}`);
-      }
+      if (sawDictionary) return fail(`대상 지역: ${list.join("·")}`);
+      if (knownOtherSigungu && list.every((r) => sigunguSido(r) != null)) return fail(`대상 지역: ${list.join("·")}`);
       return unknown(`지역 표기를 확정하지 못해 원문 확인 필요 — 대상 지역: ${list.join("·")}`);
     }
     case "industry": {

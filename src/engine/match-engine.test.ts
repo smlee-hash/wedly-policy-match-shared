@@ -255,6 +255,20 @@ describe("checkCondition — 회사 시군구를 알 때의 지역 판정", () =
     expect(parseBusinessProfile({ regionSigungu: "" }).regionSigungu).toBeUndefined();
     expect(parseBusinessProfile({ regionSigungu: "  " }).regionSigungu).toBeUndefined();
   });
+
+  it("화성시·구미시 × 경기(시군구 모름)는 unknown", () => {
+    expect(checkCondition(cond({ value: ["화성시", "구미시"] }), { region: "경기" }, NOW).verdict).toBe("unknown");
+  });
+
+  it("화성시·구미시 × 경기 안양시는 fail", () => {
+    expect(
+      checkCondition(cond({ value: ["화성시", "구미시"] }), { region: "경기", regionSigungu: "안양시" }, NOW).verdict,
+    ).toBe("fail");
+  });
+
+  it("구미시·수도권 × 경기는 기존처럼 fail", () => {
+    expect(checkCondition(cond({ value: ["구미시", "수도권"] }), { region: "경기" }, NOW).verdict).toBe("fail");
+  });
 });
 
 describe("canonicalRegion", () => {

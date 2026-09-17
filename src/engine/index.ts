@@ -26,6 +26,7 @@
  */
 
 export * from "./structure-types";
+export * from "./sigungu";
 export * from "./match-engine";
 export * from "./rule-extract";
 export * from "./region-augment";
