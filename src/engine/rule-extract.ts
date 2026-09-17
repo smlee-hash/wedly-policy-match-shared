@@ -294,9 +294,20 @@ export function titleTargetOrgCondition(title: string): StructuredCondition | nu
   //  · 합치므로 나열의 어느 대상도 빠지지 않는다 — 빠진 대상의 회사가 fail 로 지워지던 갈래를 막는다(10차 M-1).
   //  · 기계 대조를 유지하므로 목록에 있는 자격을 가진 회사는 pass 를 받고(11차 ①), 형태를 모르는 회사는
   //    unknown → 「맞음 금지」로 남는다(11차 ② — 지역 pass 하나로 맞음이 되던 자격형 공고를 계속 막는다).
-  const all = [...targetOrgsInTitle(t), ...uncertainTargetOrgsInTitle(t)];
+  const sure = targetOrgsInTitle(t);
+  const extra = uncertainTargetOrgsInTitle(t);
+  const all = [...sure, ...extra];
   if (all.length === 0) return null;
-  return condition("targetOrg", all, `${RULE_SOURCE_PREFIX} ${t.slice(0, 40)}`);
+  // extra 가 있으면 왼쪽에 사전 밖 공동 대상(소상공인·재창업자 …)이 나열된 제목이라 **목록이 정의상 불완전**하다 —
+  // 기계 대조를 끄면 fail 이 구조적으로 불가능해져 빠진 대상의 회사가 지워지지 않는다(12차 리뷰 M-1).
+  // 그래도 targetOrg 의 unknown 은 fitVerdictOf 가 「맞음 금지」로 읽어 방벽은 남는다(11차 ②).
+  const complete = extra.length === 0;
+  return condition(
+    "targetOrg",
+    all,
+    complete ? `${RULE_SOURCE_PREFIX} ${t.slice(0, 40)}` : `${RULE_SOURCE_PREFIX} ${all.join("ㆍ")} 대상으로 보임 — 원문 확인`,
+    complete,
+  );
 }
 
 /**

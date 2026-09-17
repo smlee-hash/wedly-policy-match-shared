@@ -194,23 +194,37 @@ describe("8차 독립 리뷰(2026-09-17) 반영", () => {
     expect(targetOrgsInTitle("2026년 소상공인·예비창업자 창업교육")).toEqual([]);
   });
 
-  it("11차 ②: 확신 자리가 없어도 나열 속 상태형은 조건으로 남아 「맞음 금지」를 지킨다", () => {
+  it("11차 ②·12차 M-1: 나열 속 상태형은 조건으로 남기되 목록이 불완전하므로 사람 확인이다", () => {
     const c = titleTargetOrgCondition("2026년 소상공인·예비창업자 창업교육")!;
     expect(c.value).toEqual(["예비창업자"]);
-    expect(c.machineReadable).toBe(true);
+    expect(c.machineReadable).toBe(false);
     const NOW = new Date("2026-09-17T00:00:00Z");
     const region = { condition: { key: "region" as const, op: "in" as const, value: ["경기"], rawText: "r", machineReadable: true }, verdict: "pass" as const, note: "" };
     // 형태를 모르는 회사(대다수)는 unknown → 지역 pass 가 있어도 「맞음」이 아니다.
     expect(fitVerdictOf([region, checkCondition(c, { companyScale: "중소기업", foundedDate: "2010-01-01" }, NOW)])).toBe("unverified");
   });
 
-  it("11차 ①·10차 M-1: 나열을 합쳐 담아 두 참 대상 모두 pass, 빠진 대상의 fail 은 없다", () => {
-    const c = titleTargetOrgCondition("2026년 사회적기업 지원사업 및 예비창업자 모집 공고")!;
-    expect(c.value).toEqual(["사회적기업", "예비창업자"]);
-    expect(c.machineReadable).toBe(true);
+  it("12차 M-1·M-2: 목록이 불완전한 제목에서는 어떤 자격을 선언해도 fail 이 나지 않는다", () => {
     const NOW = new Date("2026-09-17T00:00:00Z");
+    for (const [title, value] of [
+      ["2026년 소상공인·예비창업자 창업교육", ["예비창업자"]],
+      ["2026년 사회적기업 지원사업 및 예비창업자 모집 공고", ["사회적기업", "예비창업자"]],
+    ] as const) {
+      const c = titleTargetOrgCondition(title)!;
+      expect(c.value, title).toEqual(value);
+      expect(c.machineReadable, title).toBe(false);
+      for (const orgTypes of [["협동조합"], ["사회적경제"], ["사회적기업(인증)"], ["예비창업자"]]) {
+        expect(checkCondition(c, { orgTypes }, NOW).verdict, `${title} / ${orgTypes[0]}`).toBe("unknown");
+      }
+    }
+  });
+
+  it("확신 목록(왼쪽 나열 없음)은 기계 대조를 유지해 자격자에게 pass 를 준다", () => {
+    const NOW = new Date("2026-09-17T00:00:00Z");
+    const c = titleTargetOrgCondition("[충남] 2026년 (예비)사회적기업 사업개발비 지원사업 참여기업 모집 공고")!;
+    expect(c.machineReadable).toBe(true);
     expect(checkCondition(c, { orgTypes: ["사회적기업(인증)"] }, NOW).verdict).toBe("pass");
-    expect(checkCondition(c, { orgTypes: ["예비창업자"] }, NOW).verdict).toBe("pass");
+    expect(checkCondition(c, { orgTypes: ["협동조합"] }, NOW).verdict).toBe("fail");
     expect(checkCondition(c, {}, NOW).verdict).toBe("unknown");
   });
 
