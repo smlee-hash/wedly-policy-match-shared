@@ -94,6 +94,12 @@ describe("cacheKeyOf — 캐시 열쇠", () => {
     expect(cacheKeyOf(1, "a1", P, at, null)).not.toBe(cacheKeyOf(1, "a1", { ...P, region: "부산" }, at, null));
   });
 
+  it("region 이 같고 regionSigungu 만 다르면 열쇠가 달라진다", () => {
+    expect(cacheKeyOf(1, "a1", { ...P, regionSigungu: "강남구" }, at, null)).not.toBe(
+      cacheKeyOf(1, "a1", { ...P, regionSigungu: "송파구" }, at, null),
+    );
+  });
+
   it("지시문 판본·재독 시각·첨부가 바뀌면 열쇠가 달라진다", () => {
     const base = cacheKeyOf(1, "a1", P, at, null);
     expect(cacheKeyOf(2, "a1", P, at, null)).not.toBe(base);

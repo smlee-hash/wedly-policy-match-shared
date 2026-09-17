@@ -7,6 +7,7 @@ import {
   AnnouncementStructure,
   ConditionCheck,
   MatchGrade,
+  RULE_SOURCE_PREFIX,
   StructuredCondition,
   gradeOf,
   opFitsKey,
@@ -171,8 +172,9 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
       //    회사 시군구(regionSigungu)가 그 이름이면 pass,
       //    회사 시도를 읽었는데 다르면 확신 fail, 같은 시도이거나 시도를 못 읽으면 원문 확인.
       //    같은 시도인데 회사 시군구를 알고 조건과 다르면 확신 fail — 2026-09-18 실측 675건
-      //    (화면 「맞음」의 15%, 공고 111건)이 다른 시군구 전용이며 전부 원문 구조 출처(제목 추측 0)
-      //    라 개최지 오탐이 없다. 조건에 「모름」으로 남는 값이 하나라도 섞이면 이 fail 은 내지 않는다.
+      //    (화면 「맞음」의 15%, 공고 111건)이 다른 시군구 전용이며 전부 원문 구조 출처였다.
+      //    제목 추측 조건은 개최지일 수 있어 이 fail 에서 빼고, 회사 시군구·시도 두 칸이
+      //    모순이면 확신 fail 금지. 조건에 사전 밖 값이 섞이면 이 시군구 fail 은 내지 않는다.
       //  · 그 밖(「수도권」)은 글자 포함으로만 대조하고, 미일치는 fail 이 아니라 「확인 필요」.
       let sawDictionary = false;
       let sameSidoSigungu = false;
@@ -192,8 +194,9 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
           const sidoMatches = mineSet.includes(sg.sido) || (sg.formerSido != null && mineSet.includes(sg.formerSido));
           if (mineSet.length > 0 && !sidoMatches) sawDictionary = true;
           else if (mineSet.length > 0) {
-            // 같은 시도: 내 시군구를 알면 다른 시군구 전용으로 센다. sameSidoSigungu 는 모를 때만.
-            if (mineSg) knownOtherSigungu = true;
+            // 같은 시도: 회사 시군구의 시도(또는 옛 시도)가 조건 시군구의 시도와 같을 때만
+            // 다른 시군구 전용으로 센다. 두 칸이 모순이면 확신 fail 금지.
+            if (mineSg && (mineSg.sido === sg.sido || mineSg.formerSido === sg.sido)) knownOtherSigungu = true;
             else sameSidoSigungu = true;
           } else unreadSidoSigungu = true;
           continue;
@@ -206,13 +209,22 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
         }
         if (p.region.includes(r) || r.includes(p.region)) return pass();
       }
-      // 값 목록은 OR 이라 모름이 하나라도 남으면 확신 fail 을 내지 않는다.
-      // F1 은 sawDictionary fail 을 두 unknown 보다 위에 두어, ["화성시","구미시"] × 경기(시군구 모름)가
+      // 같은 시도·시도를 못 읽은 시군구가 하나라도 있으면 그쪽 unknown 으로 떨어진다.
+      // 「다른 시도」 fail(sawDictionary)은 예전부터 그 위에 있다 — 시도를 읽은 미일치는
+      // 목록에 사전 밖 값이 섞여 있어도 확신 fail 이다.
+      // F1 은 sawDictionary 를 두 unknown 보다 위에 두어, ["화성시","구미시"] × 경기(시군구 모름)가
       // 구미시(다른 시도) 때문에 fail 로 바뀌었다 — 화성시는 아직 모른다. 그래서 이 순서로 되돌린다.
       if (sameSidoSigungu) return unknown("같은 시도 — 시군구는 원문 확인");
       if (unreadSidoSigungu) return unknown("소재지의 시도를 못 읽음 — 시군구는 원문 확인");
       if (sawDictionary) return fail(`대상 지역: ${list.join("·")}`);
-      if (knownOtherSigungu && list.every((r) => sigunguSido(r) != null)) return fail(`대상 지역: ${list.join("·")}`);
+      // 제목 추측으로 만든 시군구 조건은 새 fail 에서 뺀다. 675건 실측은 전부 공고 원문
+      // 구조 출처였고, 제목 추측 조건은 개최지일 수 있어 자격 있는 회사에게서 공고를 지운다
+      // (rule-extract 「[경기] 성남시 창업센터 입주기업 모집은 전국 신청 가능」 선례).
+      if (
+        knownOtherSigungu &&
+        list.every((r) => sigunguSido(r) != null) &&
+        !c.rawText.startsWith(RULE_SOURCE_PREFIX)
+      ) return fail(`대상 지역: ${list.join("·")}`);
       return unknown(`지역 표기를 확정하지 못해 원문 확인 필요 — 대상 지역: ${list.join("·")}`);
     }
     case "industry": {

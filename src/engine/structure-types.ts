@@ -111,6 +111,9 @@ export type ConditionVerdict = "pass" | "fail" | "unknown";
 export interface ConditionCheck { condition: StructuredCondition; verdict: ConditionVerdict; note: string }
 export type MatchGrade = "possible" | "uncertain" | "impossible";
 
+/** 규칙으로 뽑은 조건임을 화면·보고에서 알아볼 수 있게 원문 앞에 붙인다. */
+export const RULE_SOURCE_PREFIX = "[자동 인식]";
+
 /**
  * 대조 결과 묶음 → 등급.
  * fail 1개라도 있으면 불가, 모르는 조건(unknown)이 있으면 애매, 기계 조건이 전부 통과면 가능.

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { AnnouncementStructure, ConditionKey, ConditionOp, StructuredCondition } from "./structure-types";
+import { fitVerdictOf } from "./recommend-score";
+import {
+  RULE_SOURCE_PREFIX,
+  type AnnouncementStructure,
+  type ConditionKey,
+  type ConditionOp,
+  type StructuredCondition,
+} from "./structure-types";
 import {
   UNREADABLE_STRUCTURE_NOTE,
   businessAgeYears,
@@ -268,6 +275,43 @@ describe("checkCondition — 회사 시군구를 알 때의 지역 판정", () =
 
   it("구미시·수도권 × 경기는 기존처럼 fail", () => {
     expect(checkCondition(cond({ value: ["구미시", "수도권"] }), { region: "경기" }, NOW).verdict).toBe("fail");
+  });
+});
+
+describe("checkCondition — 시군구 fail 안전판(독립 리뷰 M-1·M-3·M-5)", () => {
+  it("화면에서 사라지는 통로: 화성시 전용 × 경기 안양시는 excluded, 시군구 없으면 excluded 가 아니다", () => {
+    const s = structure({ conditions: [cond({ value: ["화성시"] })] });
+    expect(fitVerdictOf(matchAnnouncement(s, { region: "경기", regionSigungu: "안양시" }, NOW).checks)).toBe("excluded");
+    expect(fitVerdictOf(matchAnnouncement(s, { region: "경기" }, NOW).checks)).not.toBe("excluded");
+  });
+
+  it("제목 추측 rawText 는 같은 시도·시군구를 알아도 unknown", () => {
+    const c = cond({
+      value: ["화성시"],
+      rawText: `${RULE_SOURCE_PREFIX} [경기] 성남시 창업센터 입주기업 모집`,
+    });
+    expect(checkCondition(c, { region: "경기", regionSigungu: "안양시" }, NOW).verdict).toBe("unknown");
+  });
+
+  it("회사 시군구가 회사 시도와 어긋나면 unknown", () => {
+    expect(
+      checkCondition(cond({ value: ["강남구"] }), { region: "서울", regionSigungu: "화성시" }, NOW).verdict,
+    ).toBe("unknown");
+  });
+
+  it("사전 밖 값(중구·경기도 안양시)은 unknown", () => {
+    const c = cond({ value: ["화성시"] });
+    expect(checkCondition(c, { region: "경기", regionSigungu: "중구" }, NOW).verdict).toBe("unknown");
+    expect(checkCondition(c, { region: "경기", regionSigungu: "경기도 안양시" }, NOW).verdict).toBe("unknown");
+  });
+
+  it("광역시 자치구는 fail, 군위군은 옛 시도에서도 pass", () => {
+    expect(
+      checkCondition(cond({ value: ["부산진구"] }), { region: "부산", regionSigungu: "해운대구" }, NOW).verdict,
+    ).toBe("fail");
+    expect(
+      checkCondition(cond({ value: ["군위군"] }), { region: "경북", regionSigungu: "군위군" }, NOW).verdict,
+    ).toBe("pass");
   });
 });
 

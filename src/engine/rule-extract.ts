@@ -20,13 +20,13 @@ import { sigunguInTitle } from "./sigungu";
 import { targetOrgsInTitle, uncertainTargetOrgsInTitle } from "./target-org";
 import {
   EXPECTED_OP,
+  RULE_SOURCE_PREFIX,
   type ConditionCheck,
   type MatchGrade,
   type StructuredCondition,
 } from "./structure-types";
 
-/** 규칙으로 뽑은 조건임을 화면·보고에서 알아볼 수 있게 원문 앞에 붙인다. */
-export const RULE_SOURCE_PREFIX = "[자동 인식]";
+export { RULE_SOURCE_PREFIX };
 
 const NUM = String.raw`([0-9][0-9,]*)`;
 /** 한 조건 문구가 걸쳐 있을 만한 길이 — 이보다 멀면 다른 문장으로 본다. */

@@ -111,6 +111,7 @@ export function profileLines(p: BusinessProfile): string[] {
     ["사업자번호", p.bizno ?? ""],
     ["주업종", p.industry ?? ""],
     ["소재지", p.region ?? ""],
+    ["시군구", p.regionSigungu ?? ""],
     ["설립일", p.foundedDate ?? ""],
     ["작년 연매출", p.lastYearRevenueKrw == null ? "" : `${p.lastYearRevenueKrw.toLocaleString("ko-KR")}원`],
     ["상시 근로자 수", p.employeeCount == null ? "" : `${p.employeeCount}명`],

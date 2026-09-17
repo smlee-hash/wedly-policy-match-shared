@@ -79,6 +79,7 @@ function attachmentExcerpt(text: string | null | undefined): string | undefined 
 const MATCH_FIELDS = [
   "industry",
   "region",
+  "regionSigungu",
   "foundedDate",
   "lastYearRevenueKrw",
   "employeeCount",

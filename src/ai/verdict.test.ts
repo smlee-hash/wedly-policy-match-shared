@@ -104,4 +104,11 @@ describe("buildVerdictUserPrompt — 사업자 정보 9칸", () => {
       expect(prompt).toContain(`- ${label}: 모름`);
     }
   });
+
+  it("시군구가 있으면 지시문에 그 이름이 나온다", () => {
+    const prompt = buildVerdictUserPrompt(baseInput({
+      profile: { region: "경기", regionSigungu: "안양시" },
+    }));
+    expect(prompt).toContain("시군구: 안양시");
+  });
 });
