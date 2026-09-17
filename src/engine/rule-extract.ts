@@ -119,12 +119,11 @@ const REGION_CONTEXT_RE = /(소재|관내|도내|시내|거주|위치|본사|사
 const REGION_NEAR = 25;
 
 /** 기업 규모로 인정하는 낱말 — 글자 그대로 나오는 것만.
- * ★「사회적기업」만 뺀다(독립 리뷰 2026-09-17 H-B). 프로필 규모 칸은 중소기업·소상공인·중견기업·예비창업자
- *  넷뿐이라 「사회적기업」 값을 담을 수 없고, 그 상태로 대조하면 **인증 사회적기업이 자기 공고에서 fail 로
- *  지워진다**. 자격은 targetOrg 가 맡는다.
- *  「예비창업자」는 프로필이 실제로 고를 수 있는 값이라 그대로 둔다 — 빼면 「예비창업자 또는 3년 미만 스타트업」
- *  공고에서 그 항목만 사라져 예비창업자가 남은 항목(스타트업)에 걸려 fail 이 난다(3차 리뷰 H-1). */
-const SCALE_WORDS = ["중소기업", "소상공인", "중견기업", "스타트업", "예비창업자", "1인기업"] as const;
+ * ★프로필 「기업 규모」는 닫힌 선택지 네 값(중소기업·소상공인·중견기업·예비창업자)이다 — ProfileForm 과 **같은 집합**만
+ *  둔다(독립 리뷰 2026-09-17 H-B·5차 2). 프로필이 담을 수 없는 값(사회적기업·스타트업·1인기업)을 넣으면
+ *  대조가 언제나 어긋나 **자격 있는 회사가 목록에서 지워진다**(「7년 이내 스타트업」 공고가 모든 규모 입력자를 제외).
+ *  그런 자격·형태는 targetOrg 가 맡고, 사전에 없는 말은 조건을 만들지 않아 사람 확인으로 남는다. */
+const SCALE_WORDS = ["중소기업", "소상공인", "중견기업", "예비창업자"] as const;
 
 interface Pattern {
   key: StructuredCondition["key"];
@@ -206,11 +205,14 @@ export function extractConditions(text: string): StructuredCondition[] {
   const scales = SCALE_WORDS.filter((w) => t.includes(w));
   if (scales.length > 0) {
     const at = t.indexOf(scales[0]);
-    // ★뽑힌 규모가 「예비창업자」 하나뿐이면 **기계 대조를 끈다**(독립 리뷰 2026-09-17 F-1).
-    //  「예비창업자 또는 업력 7년 이내 기창업자」처럼 실제 대상이 더 넓은데 사전에 그 말이 없어
-    //  한 낱말만 뽑히면, 자격 있는 기창업자가 fail → 목록 삭제가 된다. 사람 확인으로 민다.
-    const preFounderOnly = scales.length === 1 && scales[0] === "예비창업자";
-    const ok = !preFounderOnly && !scales.some((w) => isNegated(t, t.indexOf(w), w.length));
+    // ★「예비창업자」만 뽑혔는데 글에 **이미 창업한 대상**(기창업자·재창업자·창업기업·업력 N년)이 함께 적혀 있으면
+    //  기계 대조를 끈다(독립 리뷰 2026-09-17 F-1·5차 1). 사전에 그 말이 없어 한 낱말만 뽑히는 것이지
+    //  예비창업자 전용이 아니다 — 전용 공고(그런 말이 없는 글)에서는 종전대로 대조해 방벽을 남긴다.
+    // 「예비창업자」 자신이 「창업자」에 걸리지 않게 그 낱말을 지운 글에서 찾는다.
+    const withoutPreFounder = t.replace(/예비\s*창업(?:자|팀)/g, " ");
+    const alsoFounded = /기창업|재창업|창업\s*(?:기업|자)|업력/.test(withoutPreFounder);
+    const preFounderLoss = scales.length === 1 && scales[0] === "예비창업자" && alsoFounded;
+    const ok = !preFounderLoss && !scales.some((w) => isNegated(t, t.indexOf(w), w.length));
     out.push(condition("companyScale", [...scales], snippet(t, at, scales[0].length), ok));
   }
 

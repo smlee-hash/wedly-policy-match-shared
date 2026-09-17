@@ -124,3 +124,23 @@ describe("4차 독립 리뷰(2026-09-17) 반영", () => {
     expect(targetOrgsInTitle("2026년 제1차 고용노동부 예비사회적기업 공고(재공고)")).toEqual([]);
   });
 });
+
+describe("5차 독립 리뷰(2026-09-17) 반영", () => {
+  it("5차 3: 「및」 뒤에 단체 이름이 오면 나열로 본다 — 사전 밖 이름이어도 방벽을 잃지 않는다", () => {
+    expect(targetOrgsInTitle("2026년 마을기업 및 농어촌공동체회사 판로개척 지원사업")).toEqual(["마을기업"]);
+    expect(targetOrgsInTitle("2026년 사회적기업 및 사회적협동조합 성장지원 사업")).toEqual(
+      expect.arrayContaining(["사회적기업"]),
+    );
+  });
+
+  it("5차 3: 「및·과」 뒤가 용언이면 조사다 — 종전대로 자격형이 아니다", () => {
+    expect(targetOrgsInTitle("2026년 사회적기업과 함께하는 나눔장터 참여업체 모집")).toEqual([]);
+    expect(targetOrgsInTitle("로봇분야 예비창업자 및 재창업자를 위한 창업 성장 프로그램 참가자 모집")).toEqual([]);
+  });
+
+  it("5차 4: 「등과의·등으로」처럼 어떤 조사가 붙어도 나열 끝이 아니다", () => {
+    expect(targetOrgsInTitle("2026년 사회적기업 등과의 협업 과제 공모")).toEqual([]);
+    expect(targetOrgsInTitle("2026년 마을기업 등으로 구성된 컨소시엄 모집")).toEqual([]);
+    expect(targetOrgsInTitle("2026년 사회적기업·협동조합 등 판로개척 지원사업")).toEqual(["사회적기업", "협동조합"]);
+  });
+});
