@@ -148,3 +148,25 @@ describe("통합 리뷰(2026-09-17) 반영 — 합성어 안의 짧은 낱말", 
     expect(checkCondition(cond, { industry: "넙치 양식업" }, NOW).verdict).toBe("pass");
   });
 });
+
+describe("통합 2차 리뷰(2026-09-17) 반영 — 가림은 가린 글로만 대조", () => {
+  const NOW = new Date("2026-09-17T00:00:00Z");
+  it("D1: 「한식양식업」은 농림어업이 아니다(가림이 실제로 듣는다)", () => {
+    expect(sectorFamiliesOfIndustry("한식양식업")).toEqual([]);
+    const cond = titleSectorCondition("2026년 수산기업 수출 지원 공고")!;
+    expect(checkCondition(cond, { industry: "한식양식업" }, NOW).verdict).toBe("unknown");
+  });
+  it("D2: 「인쇄회로 설계업」은 반도체전자로 남는다(합성어 제 가족은 안 사라진다)", () => {
+    expect(sectorFamiliesOfIndustry("인쇄회로 설계업")).toEqual(["반도체전자"]);
+    expect(sectorFamiliesOfIndustry("인쇄회로 및 광고물 제작")).toEqual(expect.arrayContaining(["반도체전자", "광고인쇄"]));
+    expect(sectorFamiliesOfIndustry("인쇄회로 및 광고물 제작")).not.toContain("콘텐츠");
+  });
+  it("D3: 「전기판매업」은 반도체전자가 아니다(두 글자 부분 문자열 「기판」 없음)", () => {
+    expect(sectorFamiliesOfIndustry("전기판매업")).not.toContain("반도체전자");
+  });
+  it("D4: industry 조건 「인쇄」도 「인쇄회로기판 제조업」에 pass 를 주지 않는다", () => {
+    const c = { key: "industry" as const, op: "in" as const, value: ["인쇄"], rawText: "인쇄업", machineReadable: true };
+    expect(checkCondition(c, { industry: "경성 인쇄회로기판 제조업" }, NOW).verdict).toBe("unknown");
+    expect(checkCondition(c, { industry: "옵셋 인쇄업" }, NOW).verdict).toBe("pass");
+  });
+});

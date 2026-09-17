@@ -21,7 +21,7 @@ export const SECTOR_FAMILIES: SectorFamily[] = [
   { family: "섬유패션", announcementWords: ["섬유", "패션", "의류"], companyWords: ["섬유", "의류", "패션", "봉제"], relatedFamilies: ["유통"] },
   { family: "자동차", announcementWords: ["자동차", "모빌리티"], companyWords: ["자동차"], relatedFamilies: ["기계금속", "반도체전자", "정보통신"] },
   { family: "조선해양", announcementWords: ["조선", "해양", "선박"], companyWords: ["조선", "선박"], relatedFamilies: ["기계금속"] },
-  { family: "반도체전자", announcementWords: ["반도체", "디스플레이", "전자부품"], companyWords: ["반도체", "디스플레이", "전자부품", "전자제품", "전자기기", "인쇄회로", "기판"], relatedFamilies: ["정보통신", "기계금속", "자동차"] },
+  { family: "반도체전자", announcementWords: ["반도체", "디스플레이", "전자부품"], companyWords: ["반도체", "디스플레이", "전자부품", "전자제품", "전자기기", "인쇄회로"], relatedFamilies: ["정보통신", "기계금속", "자동차"] },
   { family: "기계금속", announcementWords: ["기계", "로봇", "금속", "뿌리"], companyWords: ["기계", "금속", "로봇", "절삭", "철판", "주조", "용접", "금형", "판금"], relatedFamilies: ["자동차", "조선해양", "반도체전자", "에너지환경", "건설"] },
   { family: "건설", announcementWords: ["건설", "건축", "인테리어"], companyWords: ["건설", "건축", "인테리어", "도배", "목공", "실내장식", "설비"], relatedFamilies: ["기계금속", "에너지환경"] },
   { family: "관광", announcementWords: ["관광", "여행"], companyWords: ["관광", "여행", "숙박", "호텔"], relatedFamilies: ["식품", "콘텐츠"] },
@@ -124,19 +124,29 @@ export function sectorFamiliesInTitle(title: string): string[] {
  * (너무 넓어서 분야로 못 읽는다).
  */
 /**
- * 회사 낱말보다 긴 합성어 — 이 안의 짧은 낱말은 다른 가족의 근거가 아니다(통합 리뷰 F1·F2).
- * 「인쇄회로기판」의 「인쇄」는 광고인쇄가 아니고, 「서양식 음식점」의 「양식」은 농림어업이 아니다.
- * 합성어는 제 가족(반도체전자·식품)의 회사 낱말로 따로 잡히므로 여기서 지워도 잃는 것이 없다.
+ * 회사 낱말보다 긴 합성어 — 이 안의 짧은 낱말은 다른 가족의 근거가 아니다(통합 리뷰 F1·F2·D1·D2).
+ * 「인쇄회로기판」의 「인쇄」는 광고인쇄가 아니고, 「서양식 음식점」의 「양식(업)」은 농림어업이 아니다.
+ * 대조는 **합성어를 지운 글**로만 한다. 합성어 자체가 어느 가족의 회사 낱말이면(「인쇄회로」→반도체전자)
+ * 그 낱말만 원문으로 본다 — 그래야 합성어의 제 가족이 사라지지 않는다.
  */
-const COMPOUND_MASK = ["인쇄회로", "서양식", "한식양식", "일양식"];
+const COMPOUND_MASK = ["인쇄회로", "서양식", "한식양식", "일양식", "중식양식"];
+
+/** 합성어를 공백으로 바꾼 글. industry 조건 대조도 같은 글을 쓴다(통합 2차 리뷰 D4). */
+export function maskCompounds(text: string): string {
+  return COMPOUND_MASK.reduce((t, c) => t.split(c).join(" "), text ?? "");
+}
 
 export function sectorFamiliesOfIndustry(industry: string): string[] {
   const raw = industry ?? "";
   if (!raw.trim()) return [];
+  const masked = maskCompounds(raw);
   const found: string[] = [];
   for (const fam of SECTOR_FAMILIES) {
-    if (fam.companyWords.some((w) => raw.includes(w))) found.push(fam.family);
+    const hit = fam.companyWords.some((w) => (COMPOUND_MASK.includes(w) ? raw.includes(w) : masked.includes(w)));
+    if (hit) found.push(fam.family);
   }
+  return found;
+}
   // 합성어를 지운 글로 다시 재서, 합성어 안의 짧은 낱말로만 붙은 가족을 뺀다.
   const masked = COMPOUND_MASK.reduce((t, c) => t.split(c).join(" "), raw);
   return found.filter((family) => {
