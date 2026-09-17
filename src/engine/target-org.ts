@@ -74,14 +74,23 @@ const BARE_DOCUMENT_AFTER = /^(?:공고|안내|계획|알림|공지|공모전)(?
  * 선언 낱말(모집·지원 …)을 근거로 삼던 갈래는 없앴다 — 조사 하나로 「사회적기업을 지원하는 중간지원조직 모집」이
  * 대상으로 뒤바뀌었다(독립 리뷰 2026-09-17 H-A 회귀).
  */
+/**
+ * 「예비창업자」는 공고가 **주는** 자격이 아니라 지금 상태다 — 「예비창업자 모집·양성과정·창업교육」의 대상은
+ * 그대로 예비창업자다. 그래서 「되려는 기업」 부정 문맥(모집·지정·공모·신규·설립·창업·양성 …)을 적용하지 않고,
+ * 발주처·협업처 낱말만 본다(독립 리뷰 2026-09-17 7차 M-2).
+ */
+const COUNTERPARTY_AFTER = /^(?:실증|납품|제안|협업|공동|연계|협력)/;
+const STATE_TYPE_WORDS = new Set(["예비창업자", "예비 창업자", "예비창업팀"]);
+
 function isTargetDeclarationPlace(title: string, index: number, word: string): boolean {
+  const negative = STATE_TYPE_WORDS.has(word) ? COUNTERPARTY_AFTER : NOT_TARGET_AFTER;
   let rest = title.slice(index + word.length);
   let suffixSeen = endsWithOrgSuffix(word);
   for (let i = 0; i < 8; i++) {
     const bridge = LIST_BRIDGE_RE.exec(rest)?.[0] ?? "";
     const body = rest.slice(bridge.length);
     if (ENUM_PARTICLE_AFTER.test(rest)) return false;
-    if (NOT_TARGET_AFTER.test(body) || BARE_DOCUMENT_AFTER.test(body)) return false;
+    if (negative.test(body) || BARE_DOCUMENT_AFTER.test(body)) return false;
     const next = ALL_ANNOUNCE_WORDS.find((w) => body.startsWith(w));
     if (!next) {
       // 나열이 끝났다 — 이어지는 글자가 한글이면 조사·용언이 붙은 것이라 대상 선언이 아니다.
@@ -89,7 +98,7 @@ function isTargetDeclarationPlace(title: string, index: number, word: string): b
       // 「및·과·와」 뒤에는 **단체 이름**이 와야 나열이다. 사전에 없어도 「…회사·조합·조직·단체·법인·기업」이면
       // 나열로 보고(「마을기업 및 농어촌공동체회사 …」·「사회적기업 및 사회적협동조합 …」 실측), 그 밖이면
       // 조사였다고 본다(「사회적기업과 함께하는 …」·「예비창업자 및 재창업자를 위한 …」). 5차 리뷰 3.
-      if (/[및과와]/.test(bridge) && !ORG_LIKE_NEXT.test(body)) return false;
+      if (/[및과와·ㆍ,、/]/.test(bridge) && !ORG_LIKE_NEXT.test(body)) return false;
       return suffixSeen;
     }
     if (endsWithOrgSuffix(next)) suffixSeen = true;

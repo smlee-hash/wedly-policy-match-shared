@@ -149,10 +149,30 @@ describe("6차 독립 리뷰(2026-09-17) 반영", () => {
   it("F2: 「및」 뒤가 일반 기업 낱말이면 나열이 아니다 — 일반 공고가 자격형으로 뒤바뀌지 않는다", () => {
     expect(targetOrgsInTitle("2026년 사회적기업 및 중소기업 상생협력 지원사업")).toEqual([]);
     expect(targetOrgsInTitle("2026년 마을기업 및 유망기업 판로지원")).toEqual([]);
-    expect(targetOrgsInTitle("2026년 협동조합 및 창업지원센터 연계 사업")).toEqual([]);
+    expect(targetOrgsInTitle("2026년 협동조합 및 소상공인지원센터 운영 지원사업")).toEqual([]);
   });
 
   it("F2: 자격·조직 이름이 오면 종전대로 나열로 본다", () => {
     expect(targetOrgsInTitle("2026년 마을기업 및 농어촌공동체회사 판로개척 지원사업")).toEqual(["마을기업"]);
+  });
+});
+
+describe("7차 독립 리뷰(2026-09-17) 반영", () => {
+  it("M-1: 구분자 다리도 같은 잣대로 본다 — 「사회적기업·중소기업 상생협력」은 자격형이 아니다", () => {
+    expect(targetOrgsInTitle("2026년 사회적기업·중소기업 상생협력 지원사업")).toEqual([]);
+    expect(targetOrgsInTitle("2026년 마을기업, 소상공인 판로지원")).toEqual([]);
+    expect(targetOrgsInTitle("2026년 사회적기업·협동조합 등 판로개척 지원사업")).toEqual(["사회적기업", "협동조합"]);
+  });
+
+  it("M-2: 「예비창업자」는 공고가 주는 자격이 아니라 상태라 모집·양성 제목에서도 조건을 만든다", () => {
+    expect(targetOrgsInTitle("2026년 예비창업자 모집 공고")).toEqual(["예비창업자"]);
+    expect(targetOrgsInTitle("2026년 예비창업자 양성과정 참가자 모집")).toEqual(["예비창업자"]);
+    expect(targetOrgsInTitle("중장년 예비창업자 맞춤형 창업교육")).toEqual(["예비창업자"]);
+    expect(targetOrgsInTitle("2026년 예비창업자 등과의 협업 과제 공모")).toEqual([]);
+  });
+
+  it("M-2 대조: 착한가격업소·사회적기업처럼 공고가 주는 자격은 종전대로 제외", () => {
+    expect(targetOrgsInTitle("2026년 상반기 착한가격업소 모집 공고")).toEqual([]);
+    expect(targetOrgsInTitle("[전라남도] 2026년도 1차 예비사회적기업 지정 공모")).toEqual([]);
   });
 });
