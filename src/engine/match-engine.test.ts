@@ -265,6 +265,14 @@ describe("checkCondition — 회사 시군구를 알 때의 지역 판정", () =
     const r = checkCondition(cond({ value: ["구미시"] }), { region: "서울" }, NOW);
     expect(r.verdict).toBe("fail");
     expect(r.note).toBe("대상 지역: 구미시");
+    const filled = checkCondition(
+      cond({ value: ["구미시"] }),
+      { region: "서울", regionSigungu: "강남구" },
+      NOW,
+    );
+    expect(filled.verdict).toBe("fail");
+    expect(filled.note).toBe("대상 지역: 구미시");
+    expect(filled.blocksFit).toBeUndefined();
   });
 
   it("parseBusinessProfile 이 regionSigungu 문자열을 읽고 숫자·빈 문자열은 undefined", () => {
@@ -344,6 +352,62 @@ describe("checkCondition — 시군구 맞음 금지 안전판(독립 리뷰 M-1
     expect(
       checkCondition(cond({ value: ["군위군"] }), { region: "대구", regionSigungu: "군위군" }, NOW).verdict,
     ).toBe("pass");
+  });
+});
+
+describe("checkCondition — 시군구 맞음 금지는 확인 필요일 때만(3차 리뷰 H-1·M-1)", () => {
+  it("H-1: 다른 시도 시군구는 시군구를 알아도 확신 fail(영월군 × 서울 강남구)", () => {
+    const c = cond({ value: ["영월군"] });
+    const p = { region: "서울", regionSigungu: "강남구" };
+    const r = checkCondition(c, p, NOW);
+    expect(r.verdict).toBe("fail");
+    expect(r.blocksFit).toBeUndefined();
+    expect(fitVerdictOf(matchAnnouncement(structure({ conditions: [c] }), p, NOW).checks)).toBe("excluded");
+  });
+
+  it("M-1: 소재지 글자가 그 시군구를 담으면 회사 시군구가 달라도 pass(본점·지점)", () => {
+    const r = checkCondition(
+      cond({ value: ["강남구"] }),
+      { region: "경기 화성시, 서울 강남구", regionSigungu: "화성시" },
+      NOW,
+    );
+    expect(r.verdict).toBe("pass");
+    expect(r.blocksFit).toBeUndefined();
+  });
+
+  it("전국이 섞인 목록은 사전 시군구가 아니므로 pass", () => {
+    const r = checkCondition(
+      cond({ value: ["전국", "화성시"] }),
+      { region: "경기", regionSigungu: "안양시" },
+      NOW,
+    );
+    expect(r.verdict).toBe("pass");
+    expect(r.blocksFit).toBeUndefined();
+  });
+
+  it("비교 방식이 어긋난 region 조건은 시군구를 알아도 비교 방식 unknown", () => {
+    const r = checkCondition(
+      cond({ value: ["화성시"], op: "eq" }),
+      { region: "경기", regionSigungu: "안양시" },
+      NOW,
+    );
+    expect(r.verdict).toBe("unknown");
+    expect(r.note).toContain("비교 방식");
+    expect(r.blocksFit).toBeUndefined();
+  });
+
+  it("태그 경로 실제 모양(성남시 확인용) × 경기 안양시는 unknown·blocksFit", () => {
+    const r = checkCondition(
+      cond({
+        value: ["성남시"],
+        machineReadable: false,
+        rawText: `${RULE_SOURCE_PREFIX} 성남시 대상으로 보임 — 원문 확인`,
+      }),
+      { region: "경기", regionSigungu: "안양시" },
+      NOW,
+    );
+    expect(r.verdict).toBe("unknown");
+    expect(r.blocksFit).toBe(true);
   });
 });
 

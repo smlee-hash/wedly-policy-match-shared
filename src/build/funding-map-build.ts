@@ -503,6 +503,7 @@ function profileGapsOf(p: BusinessProfile): string[] {
   if (p.creditScore == null) gaps.push("신용점수");
   if (p.hasExistingLoan == null) gaps.push("기존 대출 유무");
   if (!p.region) gaps.push("소재지");
+  // 시군구(regionSigungu)는 넣지 않는다 — 공용 화면에 시군구 칸이 없어 채우라고 할 수 없다(3차 리뷰).
   if (!p.industry) gaps.push("업종");
   if (!p.foundedDate) gaps.push("설립일");
   if (p.lastYearRevenueKrw == null) gaps.push("연매출");
@@ -577,8 +578,9 @@ const GAP_LABEL_BY_CONDITION_KEY: Record<string, string> = {
 /**
  * 한 항목이 **기계 대조에 실제로 쓰는** 프로필 항목 이름들 — 빈칸 힌트를 좁히는 데만 쓰고 응답에는 안 싣는다.
  *
- * `machineReadable` 이 false 인 조건은 뺀다: `checkCondition` 이 그 조건에서는 프로필을 **아예 읽지 않고**
- * 바로 「확인 필요」를 내므로, 그 칸을 채워도 달라질 것이 없다.
+ * `machineReadable` 이 false 인 조건은 뺀다. 확인용 region 조건도 이제 회사 시군구를 읽어 맞음
+ * 금지를 얹을 수 있지만(3차 리뷰 L-1), 기계 통과·불가가 열리지는 않고 시군구 칸은 공용 화면에
+ * 없어 빈칸 힌트로 재촉하지 않는다. 동작은 종전 그대로다.
  */
 function gapLabelsOfConditions(conditions: StructuredCondition[]): string[] {
   const out: string[] = [];

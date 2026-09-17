@@ -158,6 +158,32 @@ function trustedCompanySigungu(p: BusinessProfile) {
   return null;
 }
 
+/**
+ * 시군구 「맞음 금지」가 성립하는가. 3차 리뷰 H-1·M-1: 이 판정은 fail·pass 를 선점하지 않는다.
+ * 확인 필요로 끝날 때만 얹는다.
+ *
+ * 참이 되려면 전부:
+ *  · 믿을 수 있는 회사 시군구가 있고
+ *  · region 조건의 값이 하나 이상이며 전부 사전 시군구이고
+ *  · 그중 어느 것도 회사 시군구와 같지 않고
+ *  · 그중 어느 것도 소재지 글자에 들어 있지 않다(본점·지점 두 곳 pass, M-1).
+ */
+function sigunguBlocksFit(c: StructuredCondition, p: BusinessProfile): boolean {
+  const mine = trustedCompanySigungu(p);
+  if (!mine || c.key !== "region" || !Array.isArray(c.value) || c.value.length === 0) return false;
+  const names: string[] = [];
+  for (const v of c.value) {
+    if (typeof v !== "string") return false;
+    const hit = sigunguSido(v);
+    if (!hit) return false;
+    names.push(hit.name);
+  }
+  if (names.some((n) => n === mine.name)) return false;
+  const regionText = p.region ?? "";
+  if (names.some((n) => profileNamesSigungu(regionText, n))) return false;
+  return true;
+}
+
 export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: Date): ConditionCheck {
   // 시군구 「맞음 금지」(2026-09-18 실측, 총괄 확인).
   // F1 의 같은 시도 확신 fail 은 화면 4,566건 중 5건만 바꿨다 — 태그 경로(`[경북] 영천시 …`)의
@@ -165,15 +191,20 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
   // fail 갈래에 도달하지 않기 때문이다(626개). 자격 있는 회사를 지울 위험이 크고 효과는 5건뿐이라
   // 확신 fail 은 접는다. 회사 시군구를 알고 조건과 다르면 「맞음」만 막으면 637건(14%)이 「맞음」에서
   // 「확인 필요」로 내려간다. 목록에서 지우지는 않는다. C(대상 유형)의 「모르면 맞음 금지」와 같다.
-  // 기계 판정 불가 단축보다 앞에 둔다 — fail 을 만들지 않으므로 확인용 조건의 뜻을 어기지 않는다.
-  const mineTrusted = trustedCompanySigungu(p);
-  if (mineTrusted && c.key === "region" && Array.isArray(c.value)) {
-    const hits = c.value.map((r) => (typeof r === "string" ? sigunguSido(r) : null));
-    if (hits.length > 0 && hits.every((h) => h != null && h.name !== mineTrusted.name)) {
-      return { condition: c, verdict: "unknown", note: "다른 시군구 전용으로 보임 — 원문 확인", blocksFit: true };
-    }
+  // 3차 리뷰 H-1·M-1: 맞음 금지를 checkCondition 맨 앞에 두면 다른 시도의 확신 fail(영월군 × 서울
+  // 강남구)과 소재지 글자가 이미 그 시군구를 담은 pass(본점·지점)를 선점한다. 그래서 「확인 필요」로
+  // 끝날 때만 얹는다 — pass·fail 은 건드리지 않는다.
+  const blockedFit = (): ConditionCheck => ({
+    condition: c,
+    verdict: "unknown",
+    note: "다른 시군구 전용으로 보임 — 원문 확인",
+    blocksFit: true,
+  });
+  if (!c.machineReadable) {
+    return sigunguBlocksFit(c, p)
+      ? blockedFit()
+      : { condition: c, verdict: "unknown", note: "기계로 판정할 수 없는 조건 — 원문 확인" };
   }
-  if (!c.machineReadable) return { condition: c, verdict: "unknown", note: "기계로 판정할 수 없는 조건 — 원문 확인" };
   // 「3년 이하」인데 op 가 gte 로 오면 대조가 거꾸로 돈다 — 읽기 단계에서 이미 걸러지지만 여기서도 막는다.
   if (!opFitsKey(c.key, c.op)) {
     return { condition: c, verdict: "unknown", note: "비교 방식이 조건과 맞지 않음 — 원문 확인" };
@@ -188,14 +219,15 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
       if (list.some((r) => r.includes(NATIONWIDE))) return pass();
       if (profileRegionIsNationwide(p.region)) return unknown("소재지가 「전국」 — 지역 조건은 원문 확인");
       const mine = canonicalRegion(p.region);
+      const mineTrusted = trustedCompanySigungu(p);
       // ★fail 은 「확신 있을 때만」 낸다(적대 리뷰 2026-08-30 치명1 — 추천이 fail 을 목록
       // 제외로 격상한 뒤로, 확신 없는 fail 은 자격 있는 회사에게서 공고를 영영 지운다).
       //  · 항목에서 표준 시도가 하나라도 읽히면(「부산」·「대구경북」) 사전 대조 — 미일치는 확신 fail.
       //  · 시군구 사전 이름(「영월군」·어간 「구미」)은 회사 소재지에 그 이름/어간이 있으면 pass,
       //    회사 시군구를 믿을 수 있고 그 이름이면 pass(시도 칸과 모순이면 pass 금지 — 2차 리뷰 M-1),
       //    회사 시도를 읽었는데 다르면 확신 fail, 같은 시도이거나 시도를 못 읽으면 원문 확인.
-      //    같은 시도인데 회사 시군구가 조건과 다른 「맞음 금지」는 이 갈래보다 앞(checkCondition 맨 앞)에서
-      //    처리한다 — 확신 fail 로 목록에서 지우지 않는다(2026-09-18 실측: fail 5건 대 맞음 금지 637건).
+      //    같은 시도인데 회사 시군구가 조건과 다른 「맞음 금지」는 아래 세 unknown 출구에만 얹는다
+      //    (3차 리뷰 H-1·M-1 — fail·pass 를 선점하지 않는다).
       //  · 그 밖(「수도권」)은 글자 포함으로만 대조하고, 미일치는 fail 이 아니라 「확인 필요」.
       let sawDictionary = false;
       let sameSidoSigungu = false;
@@ -230,10 +262,17 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
       // 목록에 사전 밖 값이 섞여 있어도 확신 fail 이다.
       // F1 은 sawDictionary 를 두 unknown 보다 위에 두어, ["화성시","구미시"] × 경기(시군구 모름)가
       // 구미시(다른 시도) 때문에 fail 로 바뀌었다 — 화성시는 아직 모른다. 그래서 이 순서로 되돌린다.
-      if (sameSidoSigungu) return unknown("같은 시도 — 시군구는 원문 확인");
-      if (unreadSidoSigungu) return unknown("소재지의 시도를 못 읽음 — 시군구는 원문 확인");
+      // 맞음 금지는 이 세 unknown 에만 얹는다 — pass·fail·「소재지가 전국」·비교 방식 불일치는 그대로다.
+      if (sameSidoSigungu) {
+        return sigunguBlocksFit(c, p) ? blockedFit() : unknown("같은 시도 — 시군구는 원문 확인");
+      }
+      if (unreadSidoSigungu) {
+        return sigunguBlocksFit(c, p) ? blockedFit() : unknown("소재지의 시도를 못 읽음 — 시군구는 원문 확인");
+      }
       if (sawDictionary) return fail(`대상 지역: ${list.join("·")}`);
-      return unknown(`지역 표기를 확정하지 못해 원문 확인 필요 — 대상 지역: ${list.join("·")}`);
+      return sigunguBlocksFit(c, p)
+        ? blockedFit()
+        : unknown(`지역 표기를 확정하지 못해 원문 확인 필요 — 대상 지역: ${list.join("·")}`);
     }
     case "industry": {
       if (!p.industry) return unknown("업종 미입력");
