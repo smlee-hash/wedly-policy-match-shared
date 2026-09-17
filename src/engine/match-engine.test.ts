@@ -213,20 +213,32 @@ describe("checkCondition — 시군구 사전(다른 시도만 fail, 같은 시�
 });
 
 describe("checkCondition — 회사 시군구를 알 때의 지역 판정", () => {
-  it("같은 시도의 다른 시군구 전용은 fail(화성시 × 안양시)", () => {
+  it("확인용 조건(machineReadable false) × 다른 시군구는 unknown·blocksFit", () => {
+    const r = checkCondition(
+      cond({ value: ["포항시"], machineReadable: false }),
+      { region: "경북", regionSigungu: "경산시" },
+      NOW,
+    );
+    expect(r.verdict).toBe("unknown");
+    expect(r.blocksFit).toBe(true);
+  });
+
+  it("같은 시도의 다른 시군구 전용은 맞음 금지(화성시 × 안양시)", () => {
     const r = checkCondition(cond({ value: ["화성시"] }), { region: "경기", regionSigungu: "안양시" }, NOW);
-    expect(r.verdict).toBe("fail");
-    expect(r.note).toBe("대상 지역: 화성시");
+    expect(r.verdict).toBe("unknown");
+    expect(r.blocksFit).toBe(true);
   });
 
   it("회사 시군구가 조건과 같으면 pass(화성시 × 화성시)", () => {
-    expect(
-      checkCondition(cond({ value: ["화성시"] }), { region: "경기", regionSigungu: "화성시" }, NOW).verdict,
-    ).toBe("pass");
+    const r = checkCondition(cond({ value: ["화성시"] }), { region: "경기", regionSigungu: "화성시" }, NOW);
+    expect(r.verdict).toBe("pass");
+    expect(r.blocksFit).toBeUndefined();
   });
 
   it("시군구를 모르면 같은 시도는 기존처럼 unknown", () => {
-    expect(checkCondition(cond({ value: ["화성시"] }), { region: "경기" }, NOW).verdict).toBe("unknown");
+    const r = checkCondition(cond({ value: ["화성시"] }), { region: "경기" }, NOW);
+    expect(r.verdict).toBe("unknown");
+    expect(r.blocksFit).toBeUndefined();
   });
 
   it("조건 목록에 회사 시군구가 있으면 pass(화성시·안양시 × 안양시)", () => {
@@ -240,13 +252,13 @@ describe("checkCondition — 회사 시군구를 알 때의 지역 판정", () =
   });
 
   it("사전 밖 값(수도권)이 섞이면 확신 fail 금지", () => {
-    expect(
-      checkCondition(
-        cond({ value: ["화성시", "수도권"] }),
-        { region: "경기", regionSigungu: "안양시" },
-        NOW,
-      ).verdict,
-    ).toBe("unknown");
+    const r = checkCondition(
+      cond({ value: ["화성시", "수도권"] }),
+      { region: "경기", regionSigungu: "안양시" },
+      NOW,
+    );
+    expect(r.verdict).toBe("unknown");
+    expect(r.blocksFit).toBeUndefined();
   });
 
   it("다른 시도 시군구는 기존처럼 fail(구미시 × 서울)", () => {
@@ -264,24 +276,36 @@ describe("checkCondition — 회사 시군구를 알 때의 지역 판정", () =
   });
 
   it("화성시·구미시 × 경기(시군구 모름)는 unknown", () => {
-    expect(checkCondition(cond({ value: ["화성시", "구미시"] }), { region: "경기" }, NOW).verdict).toBe("unknown");
+    const r = checkCondition(cond({ value: ["화성시", "구미시"] }), { region: "경기" }, NOW);
+    expect(r.verdict).toBe("unknown");
+    expect(r.blocksFit).toBeUndefined();
   });
 
-  it("화성시·구미시 × 경기 안양시는 fail", () => {
-    expect(
-      checkCondition(cond({ value: ["화성시", "구미시"] }), { region: "경기", regionSigungu: "안양시" }, NOW).verdict,
-    ).toBe("fail");
+  it("화성시·구미시 × 경기 안양시는 맞음 금지", () => {
+    const r = checkCondition(
+      cond({ value: ["화성시", "구미시"] }),
+      { region: "경기", regionSigungu: "안양시" },
+      NOW,
+    );
+    expect(r.verdict).toBe("unknown");
+    expect(r.blocksFit).toBe(true);
   });
 
   it("구미시·수도권 × 경기는 기존처럼 fail", () => {
     expect(checkCondition(cond({ value: ["구미시", "수도권"] }), { region: "경기" }, NOW).verdict).toBe("fail");
   });
+
+  it("시도 모순(서울·화성시) × 화성시는 맞음 금지도 pass 도 아니다", () => {
+    const r = checkCondition(cond({ value: ["화성시"] }), { region: "서울", regionSigungu: "화성시" }, NOW);
+    expect(r.verdict).not.toBe("pass");
+    expect(r.blocksFit).toBeUndefined();
+  });
 });
 
-describe("checkCondition — 시군구 fail 안전판(독립 리뷰 M-1·M-3·M-5)", () => {
-  it("화면에서 사라지는 통로: 화성시 전용 × 경기 안양시는 excluded, 시군구 없으면 excluded 가 아니다", () => {
+describe("checkCondition — 시군구 맞음 금지 안전판(독립 리뷰 M-1·M-3·M-5)", () => {
+  it("화면에서 사라지지 않음: 화성시 전용 × 경기 안양시는 unverified, 시군구 없으면 excluded 가 아니다", () => {
     const s = structure({ conditions: [cond({ value: ["화성시"] })] });
-    expect(fitVerdictOf(matchAnnouncement(s, { region: "경기", regionSigungu: "안양시" }, NOW).checks)).toBe("excluded");
+    expect(fitVerdictOf(matchAnnouncement(s, { region: "경기", regionSigungu: "안양시" }, NOW).checks)).toBe("unverified");
     expect(fitVerdictOf(matchAnnouncement(s, { region: "경기" }, NOW).checks)).not.toBe("excluded");
   });
 
@@ -290,7 +314,12 @@ describe("checkCondition — 시군구 fail 안전판(독립 리뷰 M-1·M-3·M-
       value: ["화성시"],
       rawText: `${RULE_SOURCE_PREFIX} [경기] 성남시 창업센터 입주기업 모집`,
     });
-    expect(checkCondition(c, { region: "경기", regionSigungu: "안양시" }, NOW).verdict).toBe("unknown");
+    const r = checkCondition(c, { region: "경기", regionSigungu: "안양시" }, NOW);
+    expect(r.verdict).toBe("unknown");
+    expect(r.blocksFit).toBe(true);
+    expect(
+      fitVerdictOf(matchAnnouncement(structure({ conditions: [c] }), { region: "경기", regionSigungu: "안양시" }, NOW).checks),
+    ).toBe("unverified");
   });
 
   it("회사 시군구가 회사 시도와 어긋나면 unknown", () => {
@@ -305,12 +334,15 @@ describe("checkCondition — 시군구 fail 안전판(독립 리뷰 M-1·M-3·M-
     expect(checkCondition(c, { region: "경기", regionSigungu: "경기도 안양시" }, NOW).verdict).toBe("unknown");
   });
 
-  it("광역시 자치구는 fail, 군위군은 옛 시도에서도 pass", () => {
-    expect(
-      checkCondition(cond({ value: ["부산진구"] }), { region: "부산", regionSigungu: "해운대구" }, NOW).verdict,
-    ).toBe("fail");
+  it("광역시 자치구는 맞음 금지, 군위군은 옛 시도에서도 pass", () => {
+    const r = checkCondition(cond({ value: ["부산진구"] }), { region: "부산", regionSigungu: "해운대구" }, NOW);
+    expect(r.verdict).toBe("unknown");
+    expect(r.blocksFit).toBe(true);
     expect(
       checkCondition(cond({ value: ["군위군"] }), { region: "경북", regionSigungu: "군위군" }, NOW).verdict,
+    ).toBe("pass");
+    expect(
+      checkCondition(cond({ value: ["군위군"] }), { region: "대구", regionSigungu: "군위군" }, NOW).verdict,
     ).toBe("pass");
   });
 });

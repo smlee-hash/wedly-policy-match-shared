@@ -40,3 +40,13 @@ describe("usedProfileSummary — 자금 조달 지도 판정 근거 3종(코덱�
     expect(usedProfileSummary({})).toEqual([]);
   });
 });
+
+describe("usedProfileSummary — 시군구", () => {
+  it("시군구가 있으면 지역 시도 시군구를 담는다", () => {
+    expect(usedProfileSummary({ region: "경기", regionSigungu: "안양시" })).toEqual(["지역 경기 안양시"]);
+  });
+
+  it("시군구가 없으면 종전처럼 지역 시도만", () => {
+    expect(usedProfileSummary({ region: "경기" })).toEqual(["지역 경기"]);
+  });
+});

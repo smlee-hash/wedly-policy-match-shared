@@ -117,3 +117,22 @@ describe("맞음 판정 — 17개 시도 나열은 전국 약한 통과", () => 
     expect(fitVerdictOf([regionPass(SIDOS_17.slice(0, 10))])).toBe("unverified");
   });
 });
+
+describe("맞음 판정 — 시군구 blocksFit", () => {
+  const regionPass = () =>
+    ({ condition: { key: "region", op: "in", value: ["경기"], rawText: "", machineReadable: true }, verdict: "pass", note: "" }) as never;
+  const blocked = () =>
+    ({ condition: { key: "region", op: "in", value: ["화성시"], rawText: "", machineReadable: true }, verdict: "unknown", note: "", blocksFit: true }) as never;
+  const regionFail = () =>
+    ({ condition: { key: "region", op: "in", value: ["서울"], rawText: "", machineReadable: true }, verdict: "fail", note: "" }) as never;
+
+  it("blocksFit 이 하나라도 있으면 실질 pass(지역 등)가 있어도 unverified", () => {
+    expect(fitVerdictOf([regionPass(), blocked()])).toBe("unverified");
+  });
+  it("blocksFit 과 fail 이 함께 있으면 excluded(fail 이 먼저다)", () => {
+    expect(fitVerdictOf([blocked(), regionFail()])).toBe("excluded");
+  });
+  it("blocksFit 이 없으면 종전 그대로 fit", () => {
+    expect(fitVerdictOf([regionPass()])).toBe("fit");
+  });
+});
