@@ -239,16 +239,21 @@ describe("titleTargetOrgCondition — 제목의 대상 유형", () => {
     expect(pick(extractConditions("지원대상: 사회적기업"), "companyScale")).toBeUndefined();
   });
 
-  it("리뷰 F-1: 이미 창업한 대상이 함께 적힌 글은 기계 대조를 끈다 — 기창업자가 목록에서 지워지던 자리", () => {
-    const only = pick(extractConditions("지원대상: 예비창업자 또는 업력 7년 이내 기창업자"), "companyScale");
-    expect(only?.value).toEqual(["예비창업자"]);
-    expect(only?.machineReadable).toBe(false);
-  });
-
-  it("리뷰 H-1·5차 1: 예비창업자 전용 글은 기계 대조를 유지해 방벽을 남긴다", () => {
-    const only = pick(extractConditions("지원대상: 예비창업자"), "companyScale");
-    expect(only?.value).toEqual(["예비창업자"]);
-    expect(only?.machineReadable).toBe(true);
+  it("6차 F1: 「예비창업자」만 뽑히면 표현과 무관하게 기계 대조를 끈다 — 실측 corpus 표현이 제각각이다", () => {
+    for (const text of [
+      "지원대상: 예비창업자",
+      "예비창업자 또는 설립 7년 미만 스타트업",
+      "예비창업자, 7년이내 기업",
+      "예비창업자 및 창업 3년 이내",
+      "지원대상: 예비창업자 또는 업력 7년 이내 기창업자",
+    ]) {
+      const c = pick(extractConditions(text), "companyScale");
+      expect(c?.value, text).toEqual(["예비창업자"]);
+      expect(c?.machineReadable, text).toBe(false);
+    }
+    // 기계 대조가 꺼졌으므로 어떤 규모의 회사도 떨어지지 않는다.
+    const c = pick(extractConditions("예비창업자 또는 설립 7년 미만 스타트업"), "companyScale")!;
+    expect(checkCondition(c, { companyScale: "중소기업" }, new Date("2026-09-17T00:00:00Z")).verdict).toBe("unknown");
   });
 
   it("리뷰 5차 2: 프로필이 담을 수 없는 규모 낱말(스타트업·1인기업·사회적기업)은 조건을 만들지 않는다", () => {

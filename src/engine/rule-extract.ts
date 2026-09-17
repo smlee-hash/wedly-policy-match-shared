@@ -205,14 +205,13 @@ export function extractConditions(text: string): StructuredCondition[] {
   const scales = SCALE_WORDS.filter((w) => t.includes(w));
   if (scales.length > 0) {
     const at = t.indexOf(scales[0]);
-    // ★「예비창업자」만 뽑혔는데 글에 **이미 창업한 대상**(기창업자·재창업자·창업기업·업력 N년)이 함께 적혀 있으면
-    //  기계 대조를 끈다(독립 리뷰 2026-09-17 F-1·5차 1). 사전에 그 말이 없어 한 낱말만 뽑히는 것이지
-    //  예비창업자 전용이 아니다 — 전용 공고(그런 말이 없는 글)에서는 종전대로 대조해 방벽을 남긴다.
-    // 「예비창업자」 자신이 「창업자」에 걸리지 않게 그 낱말을 지운 글에서 찾는다.
-    const withoutPreFounder = t.replace(/예비\s*창업(?:자|팀)/g, " ");
-    const alsoFounded = /기창업|재창업|창업\s*(?:기업|자)|업력/.test(withoutPreFounder);
-    const preFounderLoss = scales.length === 1 && scales[0] === "예비창업자" && alsoFounded;
-    const ok = !preFounderLoss && !scales.some((w) => isNegated(t, t.indexOf(w), w.length));
+    // ★「예비창업자」만 뽑히면 **언제나** 기계 대조를 끈다(독립 리뷰 2026-09-17 F-1·6차 F1).
+    //  실제 대상은 거의 언제나 더 넓은데(「예비창업자 또는 설립 7년 미만 스타트업」·「예비창업자, 7년이내 기업」)
+    //  사전에 그 말이 없어 한 낱말만 뽑힌다. 함께 적힌 대상을 글자로 알아내려던 규칙은 표현이 제각각이라
+    //  실측 corpus 를 못 따라갔다 — 여기서 fail 을 내면 자격 있는 기창업 기업이 목록에서 사라진다.
+    //  틀린 「맞음」은 접히지만 틀린 「불가」는 영영 안 보인다는 이 파일의 기준을 따른다.
+    const preFounderOnly = scales.length === 1 && scales[0] === "예비창업자";
+    const ok = !preFounderOnly && !scales.some((w) => isNegated(t, t.indexOf(w), w.length));
     out.push(condition("companyScale", [...scales], snippet(t, at, scales[0].length), ok));
   }
 
