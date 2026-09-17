@@ -91,3 +91,19 @@ describe("2차 독립 리뷰(2026-09-17) 반영 — 조사·나열·되려는 �
     );
   });
 });
+
+describe("3차 독립 리뷰(2026-09-17) 반영", () => {
+  it("M-1: 「올해의 사회적기업 선정 계획 공고」는 이미 인증받은 기업이 대상이라 조건을 만든다", () => {
+    expect(targetOrgsInTitle("2026년 올해의 사회적기업 선정 계획 공고")).toEqual(["사회적기업"]);
+  });
+
+  it("M-2: 사업 이름 없이 문서 종류만 오는 제목은 대상 선언으로 보지 않는다", () => {
+    expect(targetOrgsInTitle("고용노동부 예비사회적기업 공고")).toEqual([]);
+    expect(targetOrgsInTitle("2026년 마을기업 안내")).toEqual([]);
+  });
+
+  it("M-3: 접미사 없는 자격(협동조합·소셜벤처)도 단독으로 잡는다", () => {
+    expect(targetOrgsInTitle("2026년 협동조합 판로개척 지원사업 참여기업 모집")).toEqual(["협동조합"]);
+    expect(targetOrgsInTitle("2026년 소셜벤처 성장지원 프로그램 참여기업 모집")).toEqual(["소셜벤처"]);
+  });
+});

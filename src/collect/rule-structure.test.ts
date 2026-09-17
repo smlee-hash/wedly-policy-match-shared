@@ -36,8 +36,8 @@ describe("buildRuleStructure — 제목 앞머리 지역(판본 3)", () => {
     expect(rs.conditions.some((c) => c.key === "region" && c.machineReadable)).toBe(true);
   });
 
-  it("판본이 6 이다 — 소급 재추출 대상을 이 숫자로 고른다(5: 대상 분야, 6: 대상 유형)", () => {
-    expect(RULE_EXTRACT_VERSION).toBe(6);
+  it("판본이 7 이다 — 소급 재추출 대상을 이 숫자로 고른다(5: 대상 분야, 7: 대상 유형)", () => {
+    expect(RULE_EXTRACT_VERSION).toBe(7);
   });
 });
 
@@ -49,7 +49,7 @@ describe("buildRuleStructure — 태그 없는 제목의 시군구(판본 4)", (
     expect(r).toHaveLength(1);
     expect(r[0].value).toEqual(["영월군"]);
     expect(r[0].machineReadable).toBe(true);
-    expect((s as unknown as { ruleVersion: number }).ruleVersion).toBe(6);
+    expect((s as unknown as { ruleVersion: number }).ruleVersion).toBe(7);
   });
   it("기관에 시도가 없으면 지역 조건을 저장하지 않는다 — 출처 지역 칸 폴백(②)이 그대로 산다", () => {
     const s = buildRuleStructure("", "", TITLE, "영월군");

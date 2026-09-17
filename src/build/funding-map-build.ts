@@ -508,7 +508,8 @@ function profileGapsOf(p: BusinessProfile): string[] {
   if (p.lastYearRevenueKrw == null) gaps.push("연매출");
   if (p.employeeCount == null) gaps.push("직원 수");
   if (!p.companyScale) gaps.push("기업 규모");
-  if (!p.orgTypes || p.orgTypes.length === 0) gaps.push("기업 형태");
+  // 기업 형태(orgTypes)는 아직 화면에 입력 칸이 없다 — 못 채우는 칸을 빈칸 힌트로 재촉하지 않는다(3차 리뷰 M-4).
+  // 칸이 생기면 이 줄을 살린다.
   if (p.taxDelinquent == null) gaps.push("체납 여부");
   if (p.hasCert == null) gaps.push("인증 보유");
   if (p.hasPatent == null) gaps.push("특허 보유");

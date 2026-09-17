@@ -235,9 +235,15 @@ describe("titleTargetOrgCondition — 제목의 대상 유형", () => {
     expect(pick(extractConditions("사회적기업과 협업하는 중소기업 모집"), "targetOrg")).toBeUndefined();
   });
 
-  it("리뷰 H-B: 자격(사회적기업·예비창업자)은 규모 조건을 만들지 않는다 — 인증 사회적기업이 자기 공고에서 지워지던 자리", () => {
+  it("리뷰 H-B: 「사회적기업」만 규모 조건에서 뺀다 — 프로필 규모 칸이 담을 수 없는 값이라 fail 이 언제나 틀린다", () => {
     expect(pick(extractConditions("지원대상: 사회적기업"), "companyScale")).toBeUndefined();
-    expect(pick(extractConditions("지원대상: 예비창업자"), "companyScale")).toBeUndefined();
+  });
+
+  it("리뷰 H-1: 「예비창업자」는 프로필이 고를 수 있는 값이라 규모 조건에 남는다 — 나열에서 빠지면 그 사람이 fail 이 된다", () => {
+    expect(pick(extractConditions("지원대상: 예비창업자"), "companyScale")?.value).toEqual(["예비창업자"]);
+    expect(pick(extractConditions("예비창업자 또는 3년 미만 스타트업"), "companyScale")?.value).toEqual(
+      expect.arrayContaining(["스타트업", "예비창업자"]),
+    );
   });
 });
 

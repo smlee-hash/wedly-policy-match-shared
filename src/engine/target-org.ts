@@ -30,7 +30,7 @@ export const ORG_TYPE_NAMES: ReadonlySet<string> = new Set(ORG_TYPES.map((o) => 
  *  · 실증·납품·제안·협업·공동·연계·협력 — 그 기관이 발주처·협업처인 제목(H1).
  */
 const NOT_TARGET_AFTER =
-  /^(?:모집|지정|공모|선정|신규|설립|창업|양성|입문|전환|희망|되기\s*위|준비\s*단계|실증|납품|제안|협업|공동|연계|협력)/;
+  /^(?:모집|지정|공모|신규|설립|창업|양성|입문|전환|희망|되기\s*위|준비\s*단계|실증|납품|제안|협업|공동|연계|협력)/;
 
 /** 나열 구분자만 건너뛴다 — 조사(을·를·이·가)는 건너뛰지 않는다(독립 리뷰 H-A: 「사회적기업을 지원하는 …」). */
 const LIST_BRIDGE_RE = /^(?:[\s·ㆍ,、\/]|및|등|과\s|와\s)+/;
@@ -46,9 +46,13 @@ function asciiWordStart(title: string, index: number, word: string): boolean {
   return !/[A-Za-z0-9]/.test(title.charAt(index - 1));
 }
 
+/** 자격 이름의 끝맺음 — 조합·벤처·조직·팀도 자격 이름이다(3차 리뷰 M-3: 협동조합·소셜벤처가 단독으로 못 잡히던 자리). */
 function endsWithOrgSuffix(word: string): boolean {
-  return /(?:기업|업소|자|기관)$/.test(word);
+  return /(?:기업|업소|자|기관|조합|벤처|조직|팀)$/.test(word);
 }
+
+/** 낱말 바로 뒤가 문서 종류뿐이면(「예비사회적기업 공고」) 사업 이름이 없어 대상 선언으로 보기 어렵다(3차 리뷰 M-2). */
+const BARE_DOCUMENT_AFTER = /^(?:공고|안내|계획|알림|공지|공모전)(?:\s|$|[)\]）」])/;
 
 /**
  * 대상 선언 자리: 낱말(또는 그 낱말이 낀 나열)이 「…기업/업소/자/기관」으로 끝나고, 나열을 지난 뒤
@@ -62,7 +66,7 @@ function isTargetDeclarationPlace(title: string, index: number, word: string): b
   for (let i = 0; i < 8; i++) {
     const bridge = LIST_BRIDGE_RE.exec(rest)?.[0] ?? "";
     const body = rest.slice(bridge.length);
-    if (NOT_TARGET_AFTER.test(body)) return false;
+    if (NOT_TARGET_AFTER.test(body) || BARE_DOCUMENT_AFTER.test(body)) return false;
     const next = ALL_ANNOUNCE_WORDS.find((w) => body.startsWith(w));
     if (!next) {
       // 나열이 끝났다 — 이어지는 글자가 한글이면 조사·용언이 붙은 것이라 대상 선언이 아니다.
