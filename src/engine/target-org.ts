@@ -83,7 +83,10 @@ const COUNTERPARTY_AFTER = /^(?:실증|납품|제안|협업|공동|연계|협력
 const STATE_TYPE_WORDS = new Set(["예비창업자", "예비 창업자", "예비창업팀"]);
 
 function isTargetDeclarationPlace(title: string, index: number, word: string): boolean {
-  const negative = STATE_TYPE_WORDS.has(word) ? COUNTERPARTY_AFTER : NOT_TARGET_AFTER;
+  // ★상태형 예외는 **앞에 나열 다리가 없을 때만** 준다 — 「유치사업자 및 예비창업자 모집」처럼 왼쪽에 공동 대상이
+  //  있으면 그 대상이 진짜 주인공이라 종전 부정 문맥을 그대로 쓴다(독립 리뷰 2026-09-17 8차 ①, khidi 실측).
+  const listedAfterOther = /(?:및|과|와|[·ㆍ,、/])\s*$/.test(title.slice(0, index));
+  const negative = STATE_TYPE_WORDS.has(word) && !listedAfterOther ? COUNTERPARTY_AFTER : NOT_TARGET_AFTER;
   let rest = title.slice(index + word.length);
   let suffixSeen = endsWithOrgSuffix(word);
   for (let i = 0; i < 8; i++) {
