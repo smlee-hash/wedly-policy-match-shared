@@ -257,7 +257,7 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
             // sawDictionary(확신 fail)를 세우지 않고 확인 필요(sameSidoSigungu)로 보낸다.
             // 두 칸이 모순이면 중립으로 떨어뜨린다 — 모순을 이유로 지우지 않는다.
             // 이름이 다른 경우(영월군 × 서울 강남구)는 지금 그대로 확신 fail.
-            if (sg.name === sigunguSido(p.regionSigungu)?.name) sameSidoSigungu = true;
+            if (p.regionSigungu ? sigunguSido(p.regionSigungu)?.name === sg.name : false) sameSidoSigungu = true;
             else sawDictionary = true;
           } else if (mineSet.length > 0) sameSidoSigungu = true;
           else unreadSidoSigungu = true;
