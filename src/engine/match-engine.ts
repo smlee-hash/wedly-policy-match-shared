@@ -201,9 +201,15 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
     blocksFit: true,
   });
   if (!c.machineReadable) {
-    return sigunguBlocksFit(c, p)
-      ? blockedFit()
-      : { condition: c, verdict: "unknown", note: "기계로 판정할 수 없는 조건 — 원문 확인" };
+    // 4차 M-2: 비교 방식(op)이 어긋나 저장 단계에서 기계대조가 꺼진 조건은
+    // 엔진이 스스로 「뜻을 확정할 수 없다」고 끈 것이라 맞음 금지를 주지 않는다.
+    // 이 갈래가 opFitsKey 관문보다 앞서 판정 성격을 붙이던 자리 — 비교 방식이
+    // 맞을 때만 맞음 금지를 건다. 어긋나면 아래 관문으로 보낸다.
+    if (opFitsKey(c.key, c.op)) {
+      return sigunguBlocksFit(c, p)
+        ? blockedFit()
+        : { condition: c, verdict: "unknown", note: "기계로 판정할 수 없는 조건 — 원문 확인" };
+    }
   }
   // 「3년 이하」인데 op 가 gte 로 오면 대조가 거꾸로 돈다 — 읽기 단계에서 이미 걸러지지만 여기서도 막는다.
   if (!opFitsKey(c.key, c.op)) {
@@ -225,7 +231,9 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
       //  · 항목에서 표준 시도가 하나라도 읽히면(「부산」·「대구경북」) 사전 대조 — 미일치는 확신 fail.
       //  · 시군구 사전 이름(「영월군」·어간 「구미」)은 회사 소재지에 그 이름/어간이 있으면 pass,
       //    회사 시군구를 믿을 수 있고 그 이름이면 pass(시도 칸과 모순이면 pass 금지 — 2차 리뷰 M-1),
-      //    회사 시도를 읽었는데 다르면 확신 fail, 같은 시도이거나 시도를 못 읽으면 원문 확인.
+      //    회사 시도를 읽었는데 다르면 확신 fail(이름이 다를 때). 조건 시군구 이름이 회사
+      //    시군구와 같으면 시도가 어긋나도 fail 이 아니라 확인 필요(4차 M-1 — 모순으로 지우지 않는다).
+      //    같은 시도이거나 시도를 못 읽으면 원문 확인.
       //    같은 시도인데 회사 시군구가 조건과 다른 「맞음 금지」는 아래 세 unknown 출구에만 얹는다
       //    (3차 리뷰 H-1·M-1 — fail·pass 를 선점하지 않는다).
       //  · 그 밖(「수도권」)은 글자 포함으로만 대조하고, 미일치는 fail 이 아니라 「확인 필요」.
@@ -244,8 +252,14 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
           if (mineTrusted && mineTrusted.name === sg.name) return pass();
           const mineSet = sidosInText(p.region);
           const sidoMatches = mineSet.includes(sg.sido) || (sg.formerSido != null && mineSet.includes(sg.formerSido));
-          if (mineSet.length > 0 && !sidoMatches) sawDictionary = true;
-          else if (mineSet.length > 0) sameSidoSigungu = true;
+          if (mineSet.length > 0 && !sidoMatches) {
+            // 4차 M-1: 조건 시군구 이름이 회사 시군구와 같으면 시도 칸이 어긋나도
+            // sawDictionary(확신 fail)를 세우지 않고 확인 필요(sameSidoSigungu)로 보낸다.
+            // 두 칸이 모순이면 중립으로 떨어뜨린다 — 모순을 이유로 지우지 않는다.
+            // 이름이 다른 경우(영월군 × 서울 강남구)는 지금 그대로 확신 fail.
+            if (sg.name === sigunguSido(p.regionSigungu)?.name) sameSidoSigungu = true;
+            else sawDictionary = true;
+          } else if (mineSet.length > 0) sameSidoSigungu = true;
           else unreadSidoSigungu = true;
           continue;
         }

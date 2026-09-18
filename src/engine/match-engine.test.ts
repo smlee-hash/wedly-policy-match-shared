@@ -303,18 +303,21 @@ describe("checkCondition — 회사 시군구를 알 때의 지역 판정", () =
     expect(checkCondition(cond({ value: ["구미시", "수도권"] }), { region: "경기" }, NOW).verdict).toBe("fail");
   });
 
-  it("시도 모순(서울·화성시) × 화성시는 맞음 금지도 pass 도 아니다", () => {
-    const r = checkCondition(cond({ value: ["화성시"] }), { region: "서울", regionSigungu: "화성시" }, NOW);
-    expect(r.verdict).not.toBe("pass");
+  it("시도 모순(서울·화성시) × 화성시는 unknown — 이름이 같으면 모순으로 지우지 않는다", () => {
+    const c = cond({ value: ["화성시"] });
+    const p = { region: "서울", regionSigungu: "화성시" };
+    const r = checkCondition(c, p, NOW);
+    expect(r.verdict).toBe("unknown");
     expect(r.blocksFit).toBeUndefined();
+    expect(fitVerdictOf(matchAnnouncement(structure({ conditions: [c] }), p, NOW).checks)).not.toBe("excluded");
   });
 });
 
 describe("checkCondition — 시군구 맞음 금지 안전판(독립 리뷰 M-1·M-3·M-5)", () => {
-  it("화면에서 사라지지 않음: 화성시 전용 × 경기 안양시는 unverified, 시군구 없으면 excluded 가 아니다", () => {
+  it("화면에서 사라지지 않음: 화성시 전용 × 경기 안양시는 unverified, 시군구 없으면 unverified", () => {
     const s = structure({ conditions: [cond({ value: ["화성시"] })] });
     expect(fitVerdictOf(matchAnnouncement(s, { region: "경기", regionSigungu: "안양시" }, NOW).checks)).toBe("unverified");
-    expect(fitVerdictOf(matchAnnouncement(s, { region: "경기" }, NOW).checks)).not.toBe("excluded");
+    expect(fitVerdictOf(matchAnnouncement(s, { region: "경기" }, NOW).checks)).toBe("unverified");
   });
 
   it("제목 추측 rawText 는 같은 시도·시군구를 알아도 unknown", () => {
@@ -391,6 +394,17 @@ describe("checkCondition — 시군구 맞음 금지는 확인 필요일 때만(
       { region: "경기", regionSigungu: "안양시" },
       NOW,
     );
+    expect(r.verdict).toBe("unknown");
+    expect(r.note).toContain("비교 방식");
+    expect(r.blocksFit).toBeUndefined();
+  });
+
+  it("4차 M-2: 저장 단계에서 비교 방식이 꺼진 region 조건은 맞음 금지가 아니다", () => {
+    const s = readStoredStructure({
+      conditions: [{ key: "region", op: "eq", value: ["화성시"], rawText: "화성시 소재", machineReadable: true }],
+    });
+    expect(s.conditions[0].machineReadable).toBe(false);
+    const r = checkCondition(s.conditions[0], { region: "경기", regionSigungu: "안양시" }, NOW);
     expect(r.verdict).toBe("unknown");
     expect(r.note).toContain("비교 방식");
     expect(r.blocksFit).toBeUndefined();
