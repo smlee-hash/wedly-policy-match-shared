@@ -179,6 +179,9 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint }:
   const [bizno, setBizno] = useState("");
   const [industry, setIndustry] = useState("");
   const [region, setRegion] = useState("");
+  // 리뷰 F1: 고객 불러오기 응답의 regionSigungu 를 버리면 진단·AI 정밀 판정·지도 POST 가
+  // GET 추천과 다른 등급을 낸다. 시군구는 주소에서 읽는 값이라 칸은 만들지 않고 값만 통과시킨다.
+  const [regionSigungu, setRegionSigungu] = useState<string>("");
   const [foundedDate, setFoundedDate] = useState("");
   const [revenueManwon, setRevenueManwon] = useState("");
   const [employeeCount, setEmployeeCount] = useState("");
@@ -198,6 +201,7 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint }:
     if (bizno.trim()) p.bizno = bizno.trim();
     if (industry.trim()) p.industry = industry.trim();
     if (region) p.region = region;
+    if (regionSigungu.trim()) p.regionSigungu = regionSigungu.trim();
     if (foundedDate) p.foundedDate = foundedDate;
     const manwon = numberOf(revenueManwon);
     if (manwon !== undefined) p.lastYearRevenueKrw = Math.round(manwon * 10_000); // 만원 → 원
@@ -228,6 +232,7 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint }:
     setBizno("");
     setIndustry("");
     setRegion("");
+    setRegionSigungu("");
     setFoundedDate("");
     setRevenueManwon("");
     setEmployeeCount("");
@@ -248,6 +253,8 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint }:
     if (d.industry) setIndustry(d.industry);
     // 사전에 없는 표기가 오면 선택칸이 빈 채로 남는다 — 있는 표기일 때만 넣는다.
     if (d.region && (SIDO as readonly string[]).includes(d.region)) setRegion(d.region);
+    // 칸은 만들지 않고 값만 통과시킨다(리뷰 F1). 없으면 비운다 — 앞 고객 값이 남으면 안 된다.
+    setRegionSigungu(typeof d.regionSigungu === "string" ? d.regionSigungu : "");
     if (d.foundedDate) setFoundedDate(d.foundedDate);
     if (typeof d.lastYearRevenueKrw === "number") {
       setRevenueManwon(String(Math.round(d.lastYearRevenueKrw / 10_000)));
@@ -339,7 +346,11 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint }:
               <span className={LABEL}>소재지</span>
               <select
                 value={region}
-                onChange={(e) => setRegion(e.target.value)}
+                onChange={(e) => {
+                  setRegion(e.target.value);
+                  // 사람이 소재지 시도를 직접 바꾸면 주소에서 읽은 시군구와 어긋난다 — 비운다(리뷰 F1).
+                  setRegionSigungu("");
+                }}
                 className={`mt-1 ${INPUT}`}
               >
                 <option value="">모름</option>
