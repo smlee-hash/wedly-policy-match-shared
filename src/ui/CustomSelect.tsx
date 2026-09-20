@@ -22,6 +22,7 @@ export interface CustomSelectOption {
   value: string;
   label: string;
   group?: string;
+  disabled?: boolean;
 }
 
 interface CustomSelectProps {
@@ -57,6 +58,12 @@ interface CustomSelectProps {
   id?: string;
   /** 눈에 보이는 라벨을 못 붙이는 자리용 이름. */
   "aria-label"?: string;
+  autoFocus?: boolean;
+  /** 주면 여는 단추 title을 이 값으로 덮는다. 안 주면 선택된 라벨(없으면 없음). */
+  title?: string;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onKeyDown?: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
+  onBlur?: (event: React.FocusEvent<HTMLButtonElement>) => void;
 }
 
 /**
@@ -100,11 +107,13 @@ export function CustomSelectListbox({
   id,
   pos,
   children,
+  onPressInside,
 }: {
   menuRef: React.Ref<HTMLUListElement>;
   id: string;
   pos: AnchoredPosition;
   children: React.ReactNode;
+  onPressInside?: () => void;
 }) {
   const ulRef = useRef<HTMLUListElement | null>(null);
   const setRefs = useCallback(
@@ -135,6 +144,15 @@ export function CustomSelectListbox({
         ...(pos.placement === "down" ? { top: pos.top } : { bottom: pos.bottom }),
       }}
       className="z-[100] bg-white border border-wedly-bd rounded-xl shadow-lg overflow-auto py-1"
+      onMouseDown={(event) => {
+        // 목록이 포커스를 빼앗으면 부모 onBlur가 편집기를 먼저 내려 클릭 선택이 죽는다.
+        event.preventDefault();
+        onPressInside?.();
+      }}
+      onPointerDown={(event) => {
+        event.preventDefault();
+        onPressInside?.();
+      }}
     >
       {children}
     </ul>
@@ -151,6 +169,11 @@ export default function CustomSelect({
   disabled = false,
   id,
   "aria-label": ariaLabel,
+  autoFocus,
+  title,
+  onClick,
+  onKeyDown,
+  onBlur,
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   // 키보드가 가리키는 항목(-1 = 없음). 마우스로 열 때는 -1이라 겉모습이 종전과 같다.
@@ -165,6 +188,9 @@ export default function CustomSelect({
   // 직전 조작이 키보드였는지. 마우스 hover로 하이라이트가 바뀔 때는 목록을 따라 스크롤하지 않는다
   // (커서 밑에서 항목이 움직이는 종전에 없던 현상을 막는다).
   const kbNavRef = useRef(false);
+  // 목록 안을 누르는 동안 blur가 새면 부모 편집기가 먼저 내려간다. 그 구간만 콜백을 막는다.
+  const listboxPointerRef = useRef(false);
+  const isOptionDisabled = (index: number) => !!options[index]?.disabled;
 
   const selectedOption = options.find((o) => o.value === value);
   const displayLabel = selectedOption ? selectedOption.label : placeholder;
@@ -181,16 +207,19 @@ export default function CustomSelect({
   }, []);
 
   const handleSelect = useCallback(
-    (val: string) => {
-      onChange(val);
+    (index: number) => {
+      if (disabled) return;
+      const option = options[index];
+      if (!option || option.disabled) return;
+      onChange(option.value);
       closeMenu();
     },
-    [onChange, closeMenu]
+    [disabled, options, onChange, closeMenu]
   );
 
   const openMenu = (intent: OpenIntent) => {
     const selectedIndex = options.findIndex((o) => o.value === value);
-    setHighlight(initialHighlight(intent, options.length, selectedIndex));
+    setHighlight(initialHighlight(intent, options.length, selectedIndex, isOptionDisabled));
     setIsOpen(true);
     typeBufRef.current = "";
     typeAtRef.current = 0;
@@ -208,10 +237,13 @@ export default function CustomSelect({
   // 목록이 열린 동안 키보드 조작은 전부 trigger 버튼에서 받는다.
   // 포커스는 버튼에 그대로 두고 aria-activedescendant로 "지금 가리키는 항목"을 알린다.
   const handleTriggerKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    onKeyDown?.(e);
+    if (e.defaultPrevented) return;
     if (disabled) return;
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     kbNavRef.current = true;
     const { key } = e;
+    const selectedIndex = options.findIndex((o) => o.value === value);
 
     if (!isOpen) {
       if (key === "Enter" || key === " " || key === "ArrowDown" || key === "ArrowUp") {
@@ -233,23 +265,23 @@ export default function CustomSelect({
         return;
       case "ArrowDown":
         e.preventDefault();
-        setHighlight((h) => nextIndex(h, options.length, 1));
+        setHighlight((h) => nextIndex(h, options.length, 1, isOptionDisabled));
         return;
       case "ArrowUp":
         e.preventDefault();
-        setHighlight((h) => nextIndex(h, options.length, -1));
+        setHighlight((h) => nextIndex(h, options.length, -1, isOptionDisabled));
         return;
       case "Home":
         e.preventDefault();
-        if (options.length > 0) setHighlight(0);
+        setHighlight(initialHighlight("first", options.length, selectedIndex, isOptionDisabled));
         return;
       case "End":
         e.preventDefault();
-        if (options.length > 0) setHighlight(options.length - 1);
+        setHighlight(initialHighlight("last", options.length, selectedIndex, isOptionDisabled));
         return;
       case "Enter":
         e.preventDefault();
-        if (highlight >= 0 && options[highlight]) handleSelect(options[highlight].value);
+        if (highlight >= 0 && options[highlight]) handleSelect(highlight);
         else closeMenu();
         triggerRef.current?.focus();
         return;
@@ -259,7 +291,7 @@ export default function CustomSelect({
         if (isTypeAheadActive(typeBufRef.current, Date.now() - typeAtRef.current)) {
           runTypeAhead(" ");
         } else {
-          if (highlight >= 0 && options[highlight]) handleSelect(options[highlight].value);
+          if (highlight >= 0 && options[highlight]) handleSelect(highlight);
           else closeMenu();
           triggerRef.current?.focus();
         }
@@ -279,11 +311,23 @@ export default function CustomSelect({
     function handleClickOutside(e: MouseEvent) {
       const t = e.target as Node;
       if (triggerRef.current?.contains(t)) return;
-      if (menuRef.current?.contains(t)) return;
+      if (menuRef.current?.contains(t)) {
+        listboxPointerRef.current = true;
+        return;
+      }
       closeMenu();
     }
+    function handlePointerRelease() {
+      listboxPointerRef.current = false;
+    }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mouseup", handlePointerRelease);
+    document.addEventListener("pointerup", handlePointerRelease);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("mouseup", handlePointerRelease);
+      document.removeEventListener("pointerup", handlePointerRelease);
+    };
   }, [isOpen, closeMenu]);
 
   useEffect(() => {
@@ -305,6 +349,7 @@ export default function CustomSelect({
   const renderOption = (option: CustomSelectOption, index: number) => {
     const isSelected = option.value === value;
     const isHighlighted = index === highlight;
+    const optionDisabled = !!option.disabled;
     // 2단 소제목(분야 | 섹션) 아래 항목만: 들여쓰고 앞에 표식(•)을 둬 "그 탭 안의 선택 항목"으로 보이게 한다.
     // 다른 드롭다운(2단 소제목 아님)은 종전 그대로.
     const nested = !!(option.group && splitGroupHeader(option.group));
@@ -314,19 +359,25 @@ export default function CustomSelect({
         id={optionId(index)}
         role="option"
         aria-selected={isSelected}
+        aria-disabled={optionDisabled ? true : undefined}
         tabIndex={-1}
-        onClick={() => handleSelect(option.value)}
+        onClick={() => handleSelect(index)}
         onMouseEnter={() => {
+          if (optionDisabled) return;
           kbNavRef.current = false;
           setHighlight(index);
         }}
-        className={`${nested ? "pl-7 pr-3" : "px-3"} py-2 text-sm cursor-pointer transition-colors ${
-          isSelected
-            ? "font-bold text-wedly-accent-ink bg-wedly-bg-blue"
-            : isHighlighted
-              ? "bg-wedly-bg-blue text-wedly-accent-ink"
-              : "text-wedly-t1 hover:bg-wedly-bg-blue hover:text-wedly-accent-ink"
-        }`}
+        className={
+          optionDisabled
+            ? `${nested ? "pl-7 pr-3" : "px-3"} py-2 text-sm text-wedly-muted cursor-not-allowed transition-colors`
+            : `${nested ? "pl-7 pr-3" : "px-3"} py-2 text-sm cursor-pointer transition-colors ${
+                isSelected
+                  ? "font-bold text-wedly-accent-ink bg-wedly-bg-blue"
+                  : isHighlighted
+                    ? "bg-wedly-bg-blue text-wedly-accent-ink"
+                    : "text-wedly-t1 hover:bg-wedly-bg-blue hover:text-wedly-accent-ink"
+              }`
+        }
       >
         <span className="flex items-center justify-between">
           <span className="flex items-center gap-1.5 truncate min-w-0">
@@ -387,14 +438,31 @@ export default function CustomSelect({
         id={id}
         aria-label={ariaLabel}
         type="button"
-        title={selectedOption ? displayLabel : undefined}
-        onClick={() => {
+        autoFocus={autoFocus}
+        title={title !== undefined ? title : selectedOption ? displayLabel : undefined}
+        onClick={(event) => {
+          onClick?.(event);
+          if (event.defaultPrevented) return;
           if (disabled) return;
           if (isOpen) closeMenu();
           // 마우스로 열 때는 하이라이트를 두지 않는다(-1) — 겉모습이 종전과 완전히 같게.
           else setIsOpen(true);
         }}
         onKeyDown={handleTriggerKeyDown}
+        onBlur={(event) => {
+          if (listboxPointerRef.current) {
+            listboxPointerRef.current = false;
+            triggerRef.current?.focus();
+            return;
+          }
+          const next = event.relatedTarget as Node | null;
+          if (next && (menuRef.current?.contains(next) || triggerRef.current?.contains(next))) {
+            triggerRef.current?.focus();
+            return;
+          }
+          closeMenu();
+          onBlur?.(event);
+        }}
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -411,7 +479,14 @@ export default function CustomSelect({
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
       </svg>
       {isOpen && pos && createPortal(
-        <CustomSelectListbox menuRef={menuRef} id={menuId} pos={pos}>
+        <CustomSelectListbox
+          menuRef={menuRef}
+          id={menuId}
+          pos={pos}
+          onPressInside={() => {
+            listboxPointerRef.current = true;
+          }}
+        >
           {renderOptions()}
           {options.length === 0 && (
             <li role="presentation" className="px-3 py-2 text-sm text-wedly-muted text-center">옵션이 없습니다</li>
