@@ -153,6 +153,10 @@
       "types": "./src/ai/verdict.ts",
       "default": "./src/ai/verdict.ts"
     },
+    "./ai/customer-evidence": {
+      "types": "./src/ai/customer-evidence.ts",
+      "default": "./src/ai/customer-evidence.ts"
+    },
     "./ai/breakthrough": {
       "types": "./src/ai/breakthrough.ts",
       "default": "./src/ai/breakthrough.ts"

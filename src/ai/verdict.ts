@@ -3,7 +3,7 @@
  *
  * **판정 결과는 시간이 지난다고 버리지 않는다**(2026-08-25 사장님 「한 번 요약한 자료를 매번
  * 새로 요약할 필요가 없잖아」). 캐시 열쇠에 판정을 바꿀 수 있는 것이 전부 들어 있다 —
- * 공고를 다시 읽었는지(structuredAt)·첨부가 바뀌었는지(지문)·사업자 정보·아래 판본.
+ * 공고를 다시 읽었는지(structuredAt)·첨부가 바뀌었는지(지문)·사업자 정보·고객 자료·아래 판본.
  * 그중 하나라도 바뀌면 열쇠가 달라져 저절로 다시 부른다. 날짜로 또 버리면 **아무것도
  * 안 바뀌었는데 8일째에 돈을 다시 내는** 것뿐이다.
  *
@@ -15,12 +15,25 @@
  */
 import type { BusinessProfile } from "../engine/match-engine";
 import type { ConditionVerdict, MatchGrade } from "../engine/structure-types";
+import {
+  customerEvidencePromptSection,
+  type CustomerEvidenceContext,
+} from "./customer-evidence";
+
+export {
+  applyIncompleteEvidenceGuard,
+  customerEvidencePromptSection,
+  readCustomerEvidenceContext,
+  CUSTOMER_EVIDENCE_MALFORMED_MESSAGE,
+  INCOMPLETE_EVIDENCE_REASON,
+} from "./customer-evidence";
+export type { CustomerEvidenceContext } from "./customer-evidence";
 
 /**
  * 지시문·판정 규칙이 바뀌면 이 수를 올린다 → 저장해 둔 판정이 저절로 무효가 된다.
  * 캐시를 날짜로 버리지 않는 대신, **바뀐 게 있을 때만** 이 수로 버린다.
  */
-export const VERDICT_VERSION = 1;
+export const VERDICT_VERSION = 2;
 
 export const VERDICT_STATUSES = ["충족", "미충족", "확인필요"] as const;
 export type VerdictStatus = (typeof VERDICT_STATUSES)[number];
@@ -96,6 +109,8 @@ export interface VerdictPromptInput {
   profile: BusinessProfile;
   machine: { grade: MatchGrade; checks: { rawText: string; verdict: ConditionVerdict; note: string }[] };
   attachmentText?: string;
+  /** 서버가 고객 권한을 확인한 뒤에만 붙인다. 요청 본문에서 읽지 않는다. */
+  customerEvidence?: CustomerEvidenceContext;
 }
 
 const VERDICT_LABEL: Record<ConditionVerdict, string> = {
@@ -116,9 +131,12 @@ export function profileLines(p: BusinessProfile): string[] {
     ["작년 연매출", p.lastYearRevenueKrw == null ? "" : `${p.lastYearRevenueKrw.toLocaleString("ko-KR")}원`],
     ["상시 근로자 수", p.employeeCount == null ? "" : `${p.employeeCount}명`],
     ["기업 규모", p.companyScale ?? ""],
+    ["기업 형태", p.orgTypes?.length ? p.orgTypes.join(", ") : ""],
     ["세금 체납", p.taxDelinquent == null ? "" : p.taxDelinquent ? "체납 있음" : "체납 없음"],
     ["인증 보유", p.hasCert == null ? "" : p.hasCert ? "보유" : "미보유"],
     ["특허 보유", p.hasPatent == null ? "" : p.hasPatent ? "보유" : "미보유"],
+    ["신용점수", p.creditScore == null ? "" : String(p.creditScore)],
+    ["기존 대출", p.hasExistingLoan == null ? "" : p.hasExistingLoan ? "있음" : "없음"],
   ];
   return rows.map(([label, value]) => `- ${label}: ${value || "모름"}`);
 }
@@ -154,6 +172,7 @@ export function buildVerdictUserPrompt(input: VerdictPromptInput): string {
     "",
     "[사업자 정보] — 「모름」은 값이 없다는 뜻이다. 충족으로 단정하지 마라.",
     ...profileLines(input.profile),
+    ...customerEvidenceParts(input.customerEvidence),
     "",
     "[기계 대조 결과] — 참고용. 원문과 어긋나면 원문을 따르되, 왜 다른지 설명에 적어라.",
     `기계 등급: ${input.machine.grade}`,
@@ -176,4 +195,9 @@ export function buildVerdictUserPrompt(input: VerdictPromptInput): string {
     "- explanation 은 한국어 3~5문장.",
   );
   return parts.join("\n");
+}
+
+function customerEvidenceParts(evidence: VerdictPromptInput["customerEvidence"]): string[] {
+  const section = customerEvidencePromptSection(evidence);
+  return section ? ["", section] : [];
 }

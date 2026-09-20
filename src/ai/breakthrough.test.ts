@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   BLOCKED_CAP,
   BREAKTHROUGH_JSON_SCHEMA,
+  BREAKTHROUGH_VERSION,
   blockedConditionsOf,
   breakthroughCapNote,
   buildBreakthroughUserPrompt,
@@ -9,6 +10,12 @@ import {
   sourceBadgeBox,
   sourceKindOf,
 } from "./breakthrough";
+
+describe("BREAKTHROUGH_VERSION — 캐시 열쇠에 들어가는 판본", () => {
+  it("지금 판본은 3이다 — 올릴 때는 저장해 둔 돌파구가 전부 무효가 된다는 뜻이다", () => {
+    expect(BREAKTHROUGH_VERSION).toBe(3);
+  });
+});
 
 describe("BREAKTHROUGH_JSON_SCHEMA", () => {
   it("스키마에 maxItems/minItems 가 없고 모든 묶음이 additionalProperties:false 다", () => {
@@ -43,6 +50,34 @@ describe("buildBreakthroughUserPrompt", () => {
     expect(prompt).toContain("(내부 근거 없음)");
     expect(prompt).toContain("hasInternalCase=false");
     expect(prompt).toContain("내부 사례 없음 — 강사 확인 필요");
+    expect(prompt).not.toContain("[고객 보유 자료]");
+  });
+
+  it("선택 고객 자료를 같은 도우미로 붙이고 본문 꼬리까지 남긴다", () => {
+    const tail = "BREAKTHROUGH_EVIDENCE_TAIL_M4";
+    const text = `${"기록".repeat(3_100)}\n출처: 상담일지 · 기간: 2025-01~2025-06\n${tail}`;
+    const prompt = buildBreakthroughUserPrompt({
+      policyTitle: "청년 고용 장려금",
+      conditions: [{ condition: "업력 3년 이상", status: "확인필요" }],
+      snippetsByCondition: [],
+      customerEvidence: { revision: "br-1", text, incomplete: true },
+    });
+    expect(prompt).toContain("[고객 보유 자료]");
+    expect(prompt).toContain("신뢰할 수 없는");
+    expect(prompt).toContain(tail);
+    expect(prompt).toContain("완전하지");
+    expect(prompt).not.toContain("이후 생략");
+  });
+
+  it("잘못 들어온 고객 자료를 조용히 빼고 만들지 않는다", () => {
+    expect(() =>
+      buildBreakthroughUserPrompt({
+        policyTitle: "청년 고용 장려금",
+        conditions: [{ condition: "업력 3년 이상", status: "확인필요" }],
+        snippetsByCondition: [],
+        customerEvidence: { revision: "br-1" } as never,
+      }),
+    ).toThrow("고객 자료 형식이 올바르지 않습니다.");
   });
 });
 

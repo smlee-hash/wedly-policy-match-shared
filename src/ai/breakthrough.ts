@@ -1,6 +1,16 @@
+import { customerEvidencePromptSection, type CustomerEvidenceContext } from "./customer-evidence";
 import type { TacitSnippet, TacitSourceKind } from "./tacit-types";
 
-export const BREAKTHROUGH_VERSION = 2; // 로직/프롬프트 바뀌면 올린다 → 캐시 무효화
+export {
+  applyIncompleteEvidenceGuard,
+  customerEvidencePromptSection,
+  readCustomerEvidenceContext,
+  CUSTOMER_EVIDENCE_MALFORMED_MESSAGE,
+  INCOMPLETE_EVIDENCE_REASON,
+} from "./customer-evidence";
+export type { CustomerEvidenceContext } from "./customer-evidence";
+
+export const BREAKTHROUGH_VERSION = 3; // 로직/프롬프트 바뀌면 올린다 → 캐시 무효화
 export const BLOCKED_CAP = 8;
 
 export interface BreakthroughItem {
@@ -49,6 +59,8 @@ export interface BuildBreakthroughInput {
   policyTitle: string;
   conditions: { condition: string; status: "미충족" | "확인필요"; note?: string }[];
   snippetsByCondition: { condition: string; snippets: TacitSnippet[] }[];
+  /** 서버가 고객 권한을 확인한 뒤에만 붙인다. 요청 본문에서 읽지 않는다. */
+  customerEvidence?: CustomerEvidenceContext;
 }
 
 export function buildBreakthroughUserPrompt(i: BuildBreakthroughInput): string {
@@ -61,7 +73,7 @@ export function buildBreakthroughUserPrompt(i: BuildBreakthroughInput): string {
       return `- 조건: ${c.condition} [${c.status}]${c.note ? ` — ${c.note}` : ""}\n${ev}`;
     })
     .join("\n\n");
-  return [
+  const parts = [
     `대상 사업: ${i.policyTitle}`,
     ``,
     `아래 각 "안 되는/애매한 조건"마다, 제시된 내부 근거만을 바탕으로 "이 조건을 넘는 실무적 방법(돌파구)"을 쓰세요.`,
@@ -72,7 +84,10 @@ export function buildBreakthroughUserPrompt(i: BuildBreakthroughInput): string {
     ``,
     `조건과 근거:`,
     blocks,
-  ].join("\n");
+  ];
+  const evidence = customerEvidencePromptSection(i.customerEvidence);
+  if (evidence) parts.push("", evidence);
+  return parts.join("\n");
 }
 
 export const BREAKTHROUGH_SYSTEM =

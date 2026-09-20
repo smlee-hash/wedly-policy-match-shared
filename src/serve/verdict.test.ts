@@ -21,7 +21,8 @@ const prompt: VerdictPromptModule = {
   VERDICT_SYSTEM: "너는 판정 컨설턴트다",
   VERDICT_JSON_SCHEMA: { type: "object" },
   VERDICT_STATUSES: STATUSES,
-  buildVerdictUserPrompt: (input) => `제목: ${input.title}|첨부: ${input.attachmentText ?? "(없음)"}`,
+  buildVerdictUserPrompt: (input) =>
+    `제목: ${input.title}|첨부: ${input.attachmentText ?? "(없음)"}|고객자료: ${input.customerEvidence?.text ?? "(없음)"}`,
 };
 
 const OK_JSON = JSON.stringify({
@@ -78,15 +79,22 @@ describe("attachmentFingerprint — 첨부 지문", () => {
 describe("cacheKeyOf — 캐시 열쇠", () => {
   const P = { industry: "제조", region: "서울", employeeCount: 10, companyName: "위들리", bizno: "111" };
   const at = new Date("2026-09-01T00:00:00Z");
+  const E = { revision: "rev-1", text: "출처: 원장 · 기간: 2024", incomplete: false as const };
 
   it("policy-verdict:{공고}:{16자리} 모양", () => {
     const k = cacheKeyOf(1, "a1", P, at, null);
     expect(k).toMatch(/^policy-verdict:a1:[0-9a-f]{16}$/);
   });
 
-  it("★판정에 안 쓰는 칸(상호·사업자번호)이 달라도 열쇠는 같다", () => {
-    expect(cacheKeyOf(1, "a1", P, at, null)).toBe(
+  it("상호·사업자번호가 다르면 열쇠가 달라진다 — 고객 자료가 있으면 회사 사이 재사용은 위험하다", () => {
+    expect(cacheKeyOf(1, "a1", P, at, null)).not.toBe(
       cacheKeyOf(1, "a1", { ...P, companyName: "다른이름", bizno: "999" }, at, null),
+    );
+    expect(cacheKeyOf(1, "a1", P, at, null)).not.toBe(
+      cacheKeyOf(1, "a1", { ...P, companyName: "다른이름" }, at, null),
+    );
+    expect(cacheKeyOf(1, "a1", P, at, null)).not.toBe(
+      cacheKeyOf(1, "a1", { ...P, bizno: "999" }, at, null),
     );
   });
 
@@ -100,6 +108,31 @@ describe("cacheKeyOf — 캐시 열쇠", () => {
     );
   });
 
+  it("orgTypes·신용점수·기존 대출이 달라지면 열쇠가 달라진다", () => {
+    const base = cacheKeyOf(1, "a1", P, at, null);
+    expect(cacheKeyOf(1, "a1", { ...P, orgTypes: ["사회적기업"] }, at, null)).not.toBe(base);
+    expect(cacheKeyOf(1, "a1", { ...P, orgTypes: ["사회적기업"] }, at, null)).not.toBe(
+      cacheKeyOf(1, "a1", { ...P, orgTypes: ["예비창업자"] }, at, null),
+    );
+    expect(cacheKeyOf(1, "a1", { ...P, creditScore: 720 }, at, null)).not.toBe(
+      cacheKeyOf(1, "a1", { ...P, creditScore: 800 }, at, null),
+    );
+    expect(cacheKeyOf(1, "a1", { ...P, hasExistingLoan: true }, at, null)).not.toBe(
+      cacheKeyOf(1, "a1", { ...P, hasExistingLoan: false }, at, null),
+    );
+  });
+
+  it("같은 정규 값이면 칸 순서가 달라도 같은 열쇠 — 배열 내용도 남긴다", () => {
+    expect(cacheKeyOf(1, "a1", { region: "서울", industry: "제조" }, at, null)).toBe(
+      cacheKeyOf(1, "a1", { industry: "제조", region: "서울" }, at, null),
+    );
+    expect(
+      cacheKeyOf(1, "a1", { orgTypes: ["사회적기업"], creditScore: 720, region: "서울" }, at, null),
+    ).toBe(
+      cacheKeyOf(1, "a1", { region: "서울", creditScore: 720, orgTypes: ["사회적기업"] }, at, null),
+    );
+  });
+
   it("지시문 판본·재독 시각·첨부가 바뀌면 열쇠가 달라진다", () => {
     const base = cacheKeyOf(1, "a1", P, at, null);
     expect(cacheKeyOf(2, "a1", P, at, null)).not.toBe(base);
@@ -107,10 +140,27 @@ describe("cacheKeyOf — 캐시 열쇠", () => {
     expect(cacheKeyOf(1, "a1", P, at, "첨부 원문")).not.toBe(base);
   });
 
-  it("칸 순서가 달라도 같은 열쇠", () => {
-    expect(cacheKeyOf(1, "a1", { region: "서울", industry: "제조" }, at, null)).toBe(
-      cacheKeyOf(1, "a1", { industry: "제조", region: "서울" }, at, null),
+  it("고객 자료의 회사·출처·본문·판본·불완전 여부가 다르면 열쇠가 달라진다", () => {
+    const base = cacheKeyOf(1, "a1", P, at, null, E);
+    expect(cacheKeyOf(1, "a1", { ...P, companyName: "다른회사" }, at, null, E)).not.toBe(base);
+    expect(cacheKeyOf(1, "a1", P, at, null, { ...E, text: "출처: 상담일지 · 기간: 2024" })).not.toBe(base);
+    expect(cacheKeyOf(1, "a1", P, at, null, { ...E, revision: "rev-2" })).not.toBe(base);
+    expect(cacheKeyOf(1, "a1", P, at, null, { ...E, incomplete: true })).not.toBe(base);
+    expect(cacheKeyOf(1, "a1", P, at, null)).not.toBe(base);
+  });
+
+  it("판본 글자만 같고 본문이 바뀌면 열쇠가 달라진다 — 판본 글자만 믿지 않는다", () => {
+    const head = "가".repeat(200);
+    expect(
+      cacheKeyOf(1, "a1", P, at, null, { revision: "rev-1", text: `${head}뒤A`, incomplete: false }),
+    ).not.toBe(
+      cacheKeyOf(1, "a1", P, at, null, { revision: "rev-1", text: `${head}뒤B`, incomplete: false }),
     );
+  });
+
+  it("여섯 번째 인자가 없으면 예전 호출과 같고, null 도 없는 것과 같다", () => {
+    expect(cacheKeyOf(1, "a1", P, at, null)).toBe(cacheKeyOf(1, "a1", P, at, null, undefined));
+    expect(cacheKeyOf(1, "a1", P, at, null)).toBe(cacheKeyOf(1, "a1", P, at, null, null));
   });
 });
 
@@ -286,5 +336,86 @@ describe("runVerdict — 흐름", () => {
       } as never,
     });
     expect((await runVerdict({ announcementId: "a1", profile: {} }, d)).status).toBe("ok");
+  });
+
+  it("서버 deps 의 고객 자료를 지시문에 넘긴다", async () => {
+    const { d, callModel } = deps({
+      customerEvidence: { revision: "r1", text: "출처: 원장 · 작년 매출 12억", incomplete: false },
+    });
+    await runVerdict({ announcementId: "a1", profile: {} }, d);
+    expect((callModel.mock.calls[0][0] as { user: string }).user).toContain("출처: 원장 · 작년 매출 12억");
+  });
+
+  it("고객 자료 본문은 6,000자 넘어 꼬리까지 자르지 않고 넘긴다", async () => {
+    const tail = "SERVE_EVIDENCE_TAIL_W2";
+    const text = `${"본문".repeat(3_100)}\n${tail}`;
+    const { d, callModel } = deps({
+      customerEvidence: { revision: "r1", text, incomplete: false },
+    });
+    await runVerdict({ announcementId: "a1", profile: {} }, d);
+    const user = (callModel.mock.calls[0][0] as { user: string }).user;
+    expect(user).toContain(tail);
+    expect(user).not.toContain("이후 생략");
+  });
+
+  it("요청 본문의 customerEvidence 는 쓰지 않는다", async () => {
+    const { d, callModel } = deps();
+    await runVerdict(
+      { announcementId: "a1", profile: {}, customerEvidence: { revision: "x", text: "몰래 넣은 자료", incomplete: false } } as never,
+      d,
+    );
+    expect((callModel.mock.calls[0][0] as { user: string }).user).not.toContain("몰래 넣은 자료");
+    expect((callModel.mock.calls[0][0] as { user: string }).user).toContain("고객자료: (없음)");
+  });
+
+  it("deps 고객 자료가 잘못되면 bad_request — 캐시 possible 도 쓰지 않는다", async () => {
+    const cached = { grade: "possible", explanation: "저장본", checklist: [] };
+    const { d, callModel } = deps({ customerEvidence: { text: "만" } as never }, row(), cached);
+    const res = await runVerdict({ announcementId: "a1", profile: {} }, d);
+    expect(res.status).toBe("bad_request");
+    if (res.status !== "bad_request") return;
+    expect(res.message).toContain("고객 자료");
+    expect(callModel).not.toHaveBeenCalled();
+  });
+
+  it("complete 자료면 모델 possible 을 그대로 둔다", async () => {
+    const { d } = deps({
+      customerEvidence: { revision: "r1", text: "원장 전체", incomplete: false },
+    });
+    const res = await runVerdict({ announcementId: "a1", profile: {} }, d);
+    expect(res.status).toBe("ok");
+    if (res.status !== "ok") return;
+    expect(res.data.grade).toBe("possible");
+  });
+
+  it("incomplete 자료면 모델이 possible 을 줘도 uncertain 으로 내리고 이유를 붙인다", async () => {
+    const { d, cacheSet } = deps({
+      customerEvidence: { revision: "r1", text: "일부 원장만", incomplete: true },
+    });
+    const res = await runVerdict({ announcementId: "a1", profile: {} }, d);
+    expect(res.status).toBe("ok");
+    if (res.status !== "ok") return;
+    expect(res.data.grade).toBe("uncertain");
+    expect(res.data.explanation).toContain("완전하지");
+    expect(res.data.cached).toBe(false);
+    expect(cacheSet.mock.calls[0][1]).toMatchObject({ grade: "uncertain" });
+  });
+
+  it("incomplete 자료면 캐시에 possible 이 있어도 uncertain 으로 내린다", async () => {
+    const cached = { grade: "possible", explanation: "저장본 가능", checklist: [] };
+    const { d, callModel } = deps(
+      { customerEvidence: { revision: "r1", text: "일부 원장만", incomplete: true } },
+      row(),
+      cached,
+    );
+    const res = await runVerdict({ announcementId: "a1", profile: {} }, d);
+    expect(res).toMatchObject({
+      status: "ok",
+      data: { grade: "uncertain", cached: true },
+    });
+    if (res.status !== "ok") return;
+    expect(res.data.explanation).toContain("저장본 가능");
+    expect(res.data.explanation).toContain("완전하지");
+    expect(callModel).not.toHaveBeenCalled();
   });
 });

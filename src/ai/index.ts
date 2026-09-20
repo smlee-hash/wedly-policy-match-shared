@@ -9,5 +9,6 @@
  *  반드시 함께 올린다 — 안 올리면 옛 지시문으로 만든 판정이 새 지시문 결과인 척 남는다.
  */
 export * from "./tacit-types";
+export * from "./customer-evidence";
 export * from "./verdict";
 export * from "./breakthrough";

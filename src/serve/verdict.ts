@@ -6,6 +6,12 @@
 //  「전문가가 본 AI 판정」과 「직원이 본 것」이 달라진다.
 import { createHash } from "crypto";
 import {
+  applyIncompleteEvidenceGuard,
+  readCustomerEvidenceContext,
+  CUSTOMER_EVIDENCE_MALFORMED_MESSAGE,
+  type CustomerEvidenceContext,
+} from "../ai/customer-evidence";
+import {
   matchAnnouncement,
   parseBusinessProfile,
   readStoredStructure,
@@ -73,10 +79,12 @@ function attachmentExcerpt(text: string | null | undefined): string | undefined 
   return `${t.slice(0, ATTACHMENT_EXCERPT_CAP)}\n${EXCERPT_CUT_MARK}`;
 }
 
-/* 캐시 열쇠에 넣는 칸 — **판정에 쓰이는 값만**.
- * 상호·사업자번호는 판정에 안 쓰이는데 열쇠에 넣으면 이름 한 글자만 바꿔도 캐시를 비껴가
- * 같은 판정에 AI 값을 계속 물린다(2026-08-22 리뷰 8번). */
+/* 캐시 열쇠에 넣는 칸 — 지시문·추론에 쓰는 프로필 값 전부.
+ * 상호·사업자번호도 넣는다. 고객 자료가 있으면 회사 사이 캐시 재사용은 위험하다.
+ * orgTypes 배열 내용까지 남긴다 — JSON.stringify 의 키 목록 replacer 는 배열 칸을 버린다. */
 const MATCH_FIELDS = [
+  "companyName",
+  "bizno",
   "industry",
   "region",
   "regionSigungu",
@@ -84,9 +92,12 @@ const MATCH_FIELDS = [
   "lastYearRevenueKrw",
   "employeeCount",
   "companyScale",
+  "orgTypes",
   "taxDelinquent",
   "hasCert",
   "hasPatent",
+  "creditScore",
+  "hasExistingLoan",
 ] as const;
 
 /**
@@ -102,8 +113,10 @@ export function attachmentFingerprint(attachmentText: string | null | undefined)
 }
 
 /**
- * 공고+프로필이 같으면 같은 열쇠 — 칸 순서가 달라도 같게(정렬 뒤 해시).
+ * 공고+프로필이 같으면 같은 열쇠 — 칸 순서가 달라도 같게(키 정렬 뒤 해시).
  * 공고를 다시 읽었으면(structuredAt 이 바뀌거나 첨부 원문이 갱신되면) 옛 판정을 쓰지 않는다.
+ * 마지막 인자는 서버 고객 자료다. 본문·판본 글자·불완전 여부를 통째로 지문에 넣는다.
+ * 판본 글자만 믿지 않는다 — 본문이 바뀌면 열쇠가 달라진다.
  */
 export function cacheKeyOf(
   verdictVersion: number,
@@ -111,20 +124,43 @@ export function cacheKeyOf(
   profile: BusinessProfile,
   structuredAt: Date | string | null | undefined,
   attachmentText: string | null | undefined,
+  customerEvidence?: CustomerEvidenceContext | null,
 ): string {
   const picked: Record<string, unknown> = {};
   for (const k of MATCH_FIELDS) {
     const v = profile[k];
     if (v !== undefined) picked[k] = v;
   }
-  const canonical = JSON.stringify(picked, Object.keys(picked).sort());
+  const canonical = stableCanonical(picked);
   const stamp = structuredAt ? new Date(structuredAt).toISOString() : "";
   const att = attachmentFingerprint(attachmentText);
+  const evidenceFp = customerEvidenceFingerprint(customerEvidence);
   const hash = createHash("sha256")
-    .update(`${verdictVersion}|${canonical || "{}"}|${stamp}|${att}`)
+    .update(`${verdictVersion}|${canonical || "{}"}|${stamp}|${att}|${evidenceFp}`)
     .digest("hex")
     .slice(0, 16);
   return `${CACHE_PREFIX}:${announcementId}:${hash}`;
+}
+
+/** 객체 키만 정렬한다. 배열 값은 순서 그대로 남긴다 — 키 목록 replacer 는 쓰지 않는다. */
+function stableCanonical(value: unknown): string {
+  return JSON.stringify(sortKeysDeep(value));
+}
+
+function sortKeysDeep(value: unknown): unknown {
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map(sortKeysDeep);
+  const obj = value as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(obj).sort()) out[key] = sortKeysDeep(obj[key]);
+  return out;
+}
+
+export function customerEvidenceFingerprint(evidence: CustomerEvidenceContext | null | undefined): string {
+  if (evidence == null) return "";
+  return createHash("sha256")
+    .update(`rev:${evidence.revision}|inc:${evidence.incomplete ? "1" : "0"}|${evidence.text}`)
+    .digest("hex");
 }
 
 /** 모델이 준 글자를 JSON 으로 — 끊김·거절·빈 답을 사람 말로 가른다. */
@@ -201,6 +237,11 @@ export type RunVerdictDeps = {
   by: string;
   /** 하루 상한 문구에 쓰는 숫자(ERP 150). */
   dailyMax: number;
+  /**
+   * 서버가 고객 권한을 확인한 뒤에만 넘긴다.
+   * 요청 본문(`RunVerdictInput`)에서 읽지 않는다.
+   */
+  customerEvidence?: CustomerEvidenceContext;
 };
 
 export type RunVerdictResult =
@@ -217,6 +258,12 @@ export async function runVerdict(
   const announcementId = String(input?.announcementId ?? "").trim();
   if (!announcementId) return { status: "bad_request", message: "공고를 선택해 주세요." };
 
+  const evidenceRead = readCustomerEvidenceContext(deps.customerEvidence);
+  if (evidenceRead.status === "malformed") {
+    return { status: "bad_request", message: CUSTOMER_EVIDENCE_MALFORMED_MESSAGE };
+  }
+  const customerEvidence = evidenceRead.status === "ok" ? evidenceRead.value : undefined;
+
   const profile = parseBusinessProfile(input?.profile);
 
   const row = await deps.q.findAnnouncement<VerdictRow>(announcementId, VERDICT_SELECT);
@@ -228,9 +275,13 @@ export async function runVerdict(
     profile,
     row.structuredAt,
     row.attachmentText,
+    customerEvidence,
   );
   const cached = await readCache(deps, key);
-  if (cached) return { status: "ok", data: { ...cached, cached: true } };
+  if (cached) {
+    const guarded = applyIncompleteEvidenceGuard(cached, customerEvidence);
+    return { status: "ok", data: { ...guarded, cached: true } };
+  }
 
   // ★이 통로도 **같은 하루 예산 장부**를 지나간다(2026-08-25 사장님 「이 부분도 비용 개선」).
   // 캐시에 없을 때만 자리를 잡는다 — 캐시로 돌려준 것은 돈이 안 든다.
@@ -275,6 +326,7 @@ export async function runVerdict(
           ? attachmentExcerpt(row.attachmentText)
           : undefined,
         profile,
+        customerEvidence,
         machine: {
           grade: machine.grade,
           checks: machine.checks.map((c) => ({
@@ -287,6 +339,7 @@ export async function runVerdict(
     });
     verdict = parseVerdict(readModelJson(res), deps.prompt.VERDICT_STATUSES);
     if (!verdict) throw new Error("AI 응답 형식이 올바르지 않습니다.");
+    verdict = applyIncompleteEvidenceGuard(verdict, customerEvidence);
   } catch (err) {
     // ★환불은 **호출 자체가 안 나간 실패**에만(크레딧·열쇠 문제).
     // 답이 끊겼거나(max_tokens) 시간이 초과된 호출은 토큰이 **실제로 청구된다** —

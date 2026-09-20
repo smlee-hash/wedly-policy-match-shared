@@ -10,8 +10,11 @@
  *  자기 표 쓰기만). 코어가 Prisma 를 물면 랩이 ERP 의 고객 표까지 볼 수 있는 통로가 열린다.
  */
 
+import type { CustomerEvidenceContext } from "../ai/customer-evidence";
 import type { BusinessProfile } from "../engine/match-engine";
 import type { ConditionVerdict, MatchGrade } from "../engine/structure-types";
+
+export type { CustomerEvidenceContext };
 
 /** Prisma 의 `Prisma.sql` 태그와 같은 모양. 조각의 실제 타입은 앱이 정한다. */
 export type SqlTag = (strings: TemplateStringsArray, ...values: unknown[]) => unknown;
@@ -99,6 +102,8 @@ export type VerdictPromptInputLike = {
   profile: BusinessProfile;
   machine: { grade: MatchGrade; checks: { rawText: string; verdict: ConditionVerdict; note: string }[] };
   attachmentText?: string;
+  /** 서버가 고객 권한을 확인한 뒤에만 붙인다. 요청 본문에서 읽지 않는다. */
+  customerEvidence?: CustomerEvidenceContext;
 };
 
 /** AI 판정 결과 — 지시문 모듈의 `VerdictResult` 와 같은 모양. */
