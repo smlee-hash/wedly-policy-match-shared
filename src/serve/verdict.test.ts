@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  AI_INPUT_OVERHEAD_BYTES,
+  AI_INPUT_TOO_LARGE_MESSAGE,
+  MAX_AI_INPUT_BYTES,
+  measureAiInputBytes,
+  utf8ByteLength,
+} from "../ai/customer-evidence";
+import {
   VERDICT_MAX_TOKENS,
   VERDICT_SELECT,
   attachmentFingerprint,
@@ -417,5 +424,90 @@ describe("runVerdict — 흐름", () => {
     expect(res.data.explanation).toContain("저장본 가능");
     expect(res.data.explanation).toContain("완전하지");
     expect(callModel).not.toHaveBeenCalled();
+  });
+
+  it("최종 지시문이 앱 바이트 상한을 넘으면 bad_request — 예산을 안 잡고 모델도 안 부른다", async () => {
+    const user = "한".repeat(Math.ceil((MAX_AI_INPUT_BYTES + 1) / 3));
+    expect(user.length).toBeLessThan(MAX_AI_INPUT_BYTES);
+    const buildVerdictUserPrompt = vi.fn(() => user);
+    const { d, reserve, callModel, cacheSet } = deps({
+      prompt: { ...prompt, buildVerdictUserPrompt },
+    });
+    const res = await runVerdict({ announcementId: "a1", profile: {} }, d);
+    expect(res.status).toBe("bad_request");
+    if (res.status !== "bad_request") return;
+    expect(res.message).toBe(AI_INPUT_TOO_LARGE_MESSAGE);
+    expect(res.message).toMatch(/나눠서 검토/);
+    expect(buildVerdictUserPrompt).toHaveBeenCalledTimes(1);
+    expect(reserve).not.toHaveBeenCalled();
+    expect(callModel).not.toHaveBeenCalled();
+    expect(cacheSet).not.toHaveBeenCalled();
+  });
+
+  it("상한과 같은 바이트는 통과하고 한 바이트 더하면 거절한다", async () => {
+    const system = prompt.VERDICT_SYSTEM;
+    const budget = MAX_AI_INPUT_BYTES - AI_INPUT_OVERHEAD_BYTES - utf8ByteLength(system);
+    const exact = "a".repeat(budget);
+    const over = "a".repeat(budget + 1);
+    expect(measureAiInputBytes(system, exact)).toBe(MAX_AI_INPUT_BYTES);
+    expect(measureAiInputBytes(system, over)).toBe(MAX_AI_INPUT_BYTES + 1);
+
+    const exactRun = deps({
+      prompt: { ...prompt, VERDICT_SYSTEM: system, buildVerdictUserPrompt: () => exact },
+    });
+    const ok = await runVerdict({ announcementId: "a1", profile: {} }, exactRun.d);
+    expect(ok.status).toBe("ok");
+    expect(exactRun.reserve).toHaveBeenCalledTimes(1);
+    expect(exactRun.callModel).toHaveBeenCalledTimes(1);
+    expect(exactRun.callModel.mock.calls[0][0].user).toBe(exact);
+    expect(exactRun.callModel.mock.calls[0][0].system).toBe(system);
+
+    const overRun = deps({
+      prompt: { ...prompt, VERDICT_SYSTEM: system, buildVerdictUserPrompt: () => over },
+    });
+    const bad = await runVerdict({ announcementId: "a1", profile: {} }, overRun.d);
+    expect(bad.status).toBe("bad_request");
+    if (bad.status !== "bad_request") return;
+    expect(bad.message).toBe(AI_INPUT_TOO_LARGE_MESSAGE);
+    expect(overRun.reserve).not.toHaveBeenCalled();
+    expect(overRun.callModel).not.toHaveBeenCalled();
+  });
+
+  it("작은 지시문은 만든 글자를 그대로 모델에 넘기고 한 번만 조립한다", async () => {
+    const buildVerdictUserPrompt = vi.fn(prompt.buildVerdictUserPrompt);
+    const { d, callModel } = deps({ prompt: { ...prompt, buildVerdictUserPrompt } });
+    await runVerdict({ announcementId: "a1", profile: {} }, d);
+    expect(buildVerdictUserPrompt).toHaveBeenCalledTimes(1);
+    const user = buildVerdictUserPrompt.mock.results[0]?.value as string;
+    expect(user).toBe("제목: 공고|첨부: (없음)|고객자료: (없음)");
+    expect(callModel.mock.calls[0][0].user).toBe(user);
+    expect(callModel.mock.calls[0][0].system).toBe(prompt.VERDICT_SYSTEM);
+  });
+
+  it("모델이 추론 전에 맥락이 너무 길다고 400 으로 거절하면 자리를 한 번 돌려준다", async () => {
+    const err = Object.assign(new Error("prompt is too long"), { status: 400 });
+    const { d, refund, reserve, callModel } = deps({
+      callModel: vi.fn(async () => {
+        throw err;
+      }),
+    });
+    const res = await runVerdict({ announcementId: "a1", profile: {} }, d);
+    expect(res.status).toBe("ai_failed");
+    expect(reserve).toHaveBeenCalledTimes(1);
+    expect(d.callModel).toHaveBeenCalledTimes(1);
+    expect(refund).toHaveBeenCalledTimes(1);
+    expect(refund).toHaveBeenCalledWith("a@b.c", 1);
+  });
+
+  it("다른 400 은 자리를 돌려주지 않는다", async () => {
+    const err = Object.assign(new Error("maxItems is not allowed"), { status: 400 });
+    const { d, refund } = deps({
+      callModel: vi.fn(async () => {
+        throw err;
+      }),
+    });
+    const res = await runVerdict({ announcementId: "a1", profile: {} }, d);
+    expect(res.status).toBe("ai_failed");
+    expect(refund).not.toHaveBeenCalled();
   });
 });

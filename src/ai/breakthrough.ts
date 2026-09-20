@@ -3,14 +3,19 @@ import type { TacitSnippet, TacitSourceKind } from "./tacit-types";
 
 export {
   applyIncompleteEvidenceGuard,
+  checkAiInputBytes,
   customerEvidencePromptSection,
+  isContextTooLongBeforeInference,
   readCustomerEvidenceContext,
+  AI_INPUT_OVERHEAD_BYTES,
+  AI_INPUT_TOO_LARGE_MESSAGE,
   CUSTOMER_EVIDENCE_MALFORMED_MESSAGE,
   INCOMPLETE_EVIDENCE_REASON,
+  MAX_AI_INPUT_BYTES,
 } from "./customer-evidence";
 export type { CustomerEvidenceContext } from "./customer-evidence";
 
-export const BREAKTHROUGH_VERSION = 3; // 로직/프롬프트 바뀌면 올린다 → 캐시 무효화
+export const BREAKTHROUGH_VERSION = 4; // 로직/프롬프트 바뀌면 올린다 → 캐시 무효화
 export const BLOCKED_CAP = 8;
 
 export interface BreakthroughItem {
@@ -73,9 +78,10 @@ export function buildBreakthroughUserPrompt(i: BuildBreakthroughInput): string {
       return `- 조건: ${c.condition} [${c.status}]${c.note ? ` — ${c.note}` : ""}\n${ev}`;
     })
     .join("\n\n");
-  const parts = [
-    `대상 사업: ${i.policyTitle}`,
-    ``,
+  const evidence = customerEvidencePromptSection(i.customerEvidence);
+  const parts = [`대상 사업: ${i.policyTitle}`, ``];
+  if (evidence) parts.push(evidence, ``);
+  parts.push(
     `아래 각 "안 되는/애매한 조건"마다, 제시된 내부 근거만을 바탕으로 "이 조건을 넘는 실무적 방법(돌파구)"을 쓰세요.`,
     `규칙:`,
     `1) 내부 근거가 있는 조건: 근거에 기반해 구체적 방법을 쓰고, 사용한 근거를 sources 에 (kind, ref)로 담고 hasInternalCase=true.`,
@@ -84,9 +90,7 @@ export function buildBreakthroughUserPrompt(i: BuildBreakthroughInput): string {
     ``,
     `조건과 근거:`,
     blocks,
-  ];
-  const evidence = customerEvidencePromptSection(i.customerEvidence);
-  if (evidence) parts.push("", evidence);
+  );
   return parts.join("\n");
 }
 

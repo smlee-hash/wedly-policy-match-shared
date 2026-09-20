@@ -65,11 +65,28 @@ readAnnouncementDetailRow(q, id)   // 없으면 404
 | `status` | HTTP | code | message |
 |---|---|---|---|
 | `ok` | 200 | — | `data`(판정 + `cached`) |
-| `bad_request` | 400 | `BAD_REQUEST` | `공고를 선택해 주세요.` |
+| `bad_request` | 400 | `BAD_REQUEST` | 코어가 준 `message` |
 | `not_found` | 404 | `NOT_FOUND` | `공고를 찾을 수 없습니다.` |
 | `limit` | 429 | `DAILY_LIMIT` | 코어가 준 `message`(하루 상한 수가 들어 있다) |
 | `ai_failed` | 502 | `AI_FAILED` | 코어가 준 `message` |
 
+- `bad_request` 문구는 고정이 아니다. 공고 번호가 비면 「공고를 선택해 주세요.」,
+  고객 자료 칸이 잘못되면 「고객 자료 형식이 올바르지 않습니다.」,
+  최종 system+user 지시문이 앱 입력 상한(`MAX_AI_INPUT_BYTES` = 160000 UTF-8 바이트,
+  여유 `AI_INPUT_OVERHEAD_BYTES` 포함)을 넘으면
+  「고객 자료 전체가 한 번에 분석할 수 있는 크기를 넘습니다. 나눠서 검토해 주세요.」.
+  상한을 넘으면 자료를 자르거나 빼지 않고, `reserve`·`callModel` 도 부르지 않는다.
+  이 숫자는 앱 자원 한도이지 모든 모델의 토큰 한도가 아니며, 저장된 파일을 모두 읽었다는 증거도 아니다.
+- `deps.customerEvidence` 는 **요청 본문에서 읽지 않는다.** 앱이 그 고객의 접근 권한을
+  확인한 뒤에만 서버가 붙인다. 본문·판본 글자·불완전 여부를 캐시 열쇠에 **통째로** 넣는다
+  (첨부처럼 앞머리+길이가 아니다). `incomplete: true` 이면 모델이나 캐시가 possible 을
+  줘도 uncertain 으로 내리고, 완전히 확인됨으로 보고하지 말라는 이유를 붙인다.
+- 최종 지시문은 한 번만 조립해 그 글자 그대로 `callModel` 에 넘긴다.
+  호출 전에 모델이 HTTP 400 으로 맥락/입력이 너무 길다고 거절하면 하루 자리를 한 번
+  돌려준다. 그 밖의 400 과 생성 후 `max_tokens` 끊김은 기존처럼 환불하지 않는다.
+- 돌파구 호출은 이 코어 `runVerdict` 밖에 있다. 앱이 **같은**
+  `@wedly/policy-match-shared/ai/customer-evidence` 의 `checkAiInputBytes` 가드와
+  고객 자료 전체 지문 캐시를 스스로 붙여야 한다. 이 코어가 돌파구 예산·캐시를 지키지 않는다.
 - `deps.callModel` 은 **앱이 자기 열쇠·자기 SDK 로** 부른다. 모델·상한은 코어 상수를 쓴다
   (`VERDICT_MODEL`·`VERDICT_MAX_TOKENS`·`VERDICT_AI_TIMEOUT_MS`·`VERDICT_AI_EFFORT`).
   응답에서 글자와 `stop_reason` 을 뽑아 `{ text, stopReason }` 으로만 돌려준다 —

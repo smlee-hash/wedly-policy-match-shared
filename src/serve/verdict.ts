@@ -7,6 +7,8 @@
 import { createHash } from "crypto";
 import {
   applyIncompleteEvidenceGuard,
+  checkAiInputBytes,
+  isContextTooLongBeforeInference,
   readCustomerEvidenceContext,
   CUSTOMER_EVIDENCE_MALFORMED_MESSAGE,
   type CustomerEvidenceContext,
@@ -81,7 +83,9 @@ function attachmentExcerpt(text: string | null | undefined): string | undefined 
 
 /* 캐시 열쇠에 넣는 칸 — 지시문·추론에 쓰는 프로필 값 전부.
  * 상호·사업자번호도 넣는다. 고객 자료가 있으면 회사 사이 캐시 재사용은 위험하다.
- * orgTypes 배열 내용까지 남긴다 — JSON.stringify 의 키 목록 replacer 는 배열 칸을 버린다. */
+ * orgTypes 는 MATCH_FIELDS 에 있어야 열쇠에 남는다 — 예전 버그는 키 목록 replacer 가
+ * 배열을 버려서가 아니라, 이 칸 자체가 목록에 없던 것이었다.
+ * 키를 재귀적으로 정렬한 JSON 은 같은 값이면 같은 글자가 나오게 하려는 안정화다. */
 const MATCH_FIELDS = [
   "companyName",
   "bizno",
@@ -142,7 +146,7 @@ export function cacheKeyOf(
   return `${CACHE_PREFIX}:${announcementId}:${hash}`;
 }
 
-/** 객체 키만 정렬한다. 배열 값은 순서 그대로 남긴다 — 키 목록 replacer 는 쓰지 않는다. */
+/** 객체 키를 재귀적으로 정렬해 같은 값이면 같은 JSON 글자가 나오게 한다. 배열은 순서를 유지한다. */
 function stableCanonical(value: unknown): string {
   return JSON.stringify(sortKeysDeep(value));
 }
@@ -156,6 +160,7 @@ function sortKeysDeep(value: unknown): unknown {
   return out;
 }
 
+/** 본문 전체를 지문에 넣는다. 앞머리+길이가 아니다. 없으면 빈 글자. */
 export function customerEvidenceFingerprint(evidence: CustomerEvidenceContext | null | undefined): string {
   if (evidence == null) return "";
   return createHash("sha256")
@@ -283,8 +288,50 @@ export async function runVerdict(
     return { status: "ok", data: { ...guarded, cached: true } };
   }
 
+  // 추천 화면과 **같은 공용 함수**로 지역 조건을 보탠다 — AI 에게 넘기는 「기계 등급」이
+  // 화면과 어긋나면 AI 가 잘못된 전제로 판단한다.
+  const structure = withRegionConditions(readStoredStructure(row.structure), row);
+  const machine = matchAnnouncement(structure, profile);
+  const system = deps.prompt.VERDICT_SYSTEM;
+  const user = deps.prompt.buildVerdictUserPrompt({
+    title: row.title,
+    agency: row.agency,
+    category: row.category,
+    applyPeriodText: row.applyPeriodText,
+    targetText: row.targetText,
+    summary: row.summary,
+    benefitSummary: structure.benefitSummary,
+    supportAmountText: structure.supportAmountText,
+    conditions: structure.conditions.map((c) => ({
+      rawText: c.rawText,
+      machineReadable: c.machineReadable,
+    })),
+    humanCheck: structure.humanCheck,
+    structureIncomplete: row.structureStatus === "needs_review",
+    // ★첨부 원문은 **구조화가 덜 된 공고에만** 보낸다(2026-08-25 사장님 「이 부분도 비용 개선」).
+    // AI 가 이미 읽어 조건을 뽑아 둔 공고라면 그 조건이 곧 첨부의 요약이라,
+    // 원문 6,000자를 다시 실어 보내는 것은 같은 값을 두 번 사는 것이다.
+    // 이 한 줄이 판정 한 번에 보내는 글자를 약 4분의 1로 줄인다.
+    attachmentText: structureNeedsRawText(row.structureStatus, row.structureVersion, structure)
+      ? attachmentExcerpt(row.attachmentText)
+      : undefined,
+    profile,
+    customerEvidence,
+    machine: {
+      grade: machine.grade,
+      checks: machine.checks.map((c) => ({
+        rawText: c.condition.rawText,
+        verdict: c.verdict,
+        note: c.note,
+      })),
+    },
+  });
+  const bound = checkAiInputBytes(system, user);
+  if (!bound.ok) return { status: "bad_request", message: bound.message };
+
   // ★이 통로도 **같은 하루 예산 장부**를 지나간다(2026-08-25 사장님 「이 부분도 비용 개선」).
   // 캐시에 없을 때만 자리를 잡는다 — 캐시로 돌려준 것은 돈이 안 든다.
+  // 상한을 넘는 최종 지시문은 자리를 잡기 전에 거절한다. 자료를 자르지 않는다.
   if ((await deps.reserve(deps.by)) <= 0) {
     return {
       status: "limit",
@@ -292,50 +339,13 @@ export async function runVerdict(
     };
   }
 
-  // 추천 화면과 **같은 공용 함수**로 지역 조건을 보탠다 — AI 에게 넘기는 「기계 등급」이
-  // 화면과 어긋나면 AI 가 잘못된 전제로 판단한다.
-  const structure = withRegionConditions(readStoredStructure(row.structure), row);
-  const machine = matchAnnouncement(structure, profile);
-
   let verdict: VerdictResultLike | null = null;
   try {
     const res = await deps.callModel({
-      system: deps.prompt.VERDICT_SYSTEM,
+      system,
       schema: deps.prompt.VERDICT_JSON_SCHEMA,
       maxTokens: VERDICT_MAX_TOKENS,
-      user: deps.prompt.buildVerdictUserPrompt({
-        title: row.title,
-        agency: row.agency,
-        category: row.category,
-        applyPeriodText: row.applyPeriodText,
-        targetText: row.targetText,
-        summary: row.summary,
-        benefitSummary: structure.benefitSummary,
-        supportAmountText: structure.supportAmountText,
-        conditions: structure.conditions.map((c) => ({
-          rawText: c.rawText,
-          machineReadable: c.machineReadable,
-        })),
-        humanCheck: structure.humanCheck,
-        structureIncomplete: row.structureStatus === "needs_review",
-        // ★첨부 원문은 **구조화가 덜 된 공고에만** 보낸다(2026-08-25 사장님 「이 부분도 비용 개선」).
-        // AI 가 이미 읽어 조건을 뽑아 둔 공고라면 그 조건이 곧 첨부의 요약이라,
-        // 원문 6,000자를 다시 실어 보내는 것은 같은 값을 두 번 사는 것이다.
-        // 이 한 줄이 판정 한 번에 보내는 글자를 약 4분의 1로 줄인다.
-        attachmentText: structureNeedsRawText(row.structureStatus, row.structureVersion, structure)
-          ? attachmentExcerpt(row.attachmentText)
-          : undefined,
-        profile,
-        customerEvidence,
-        machine: {
-          grade: machine.grade,
-          checks: machine.checks.map((c) => ({
-            rawText: c.condition.rawText,
-            verdict: c.verdict,
-            note: c.note,
-          })),
-        },
-      }),
+      user,
     });
     verdict = parseVerdict(readModelJson(res), deps.prompt.VERDICT_STATUSES);
     if (!verdict) throw new Error("AI 응답 형식이 올바르지 않습니다.");
@@ -345,7 +355,10 @@ export async function runVerdict(
     // 답이 끊겼거나(max_tokens) 시간이 초과된 호출은 토큰이 **실제로 청구된다** —
     // 그걸 환불하면 「실패할 때마다 공짜로 다시 시도」가 되어 상한 밖으로 샌다
     // (2026-08-25 적대적 리뷰 「중요 1」).
-    if (deps.isBillingOrAuthError(err)) await deps.refund(deps.by, 1);
+    // 추론 전에 맥락·입력이 너무 길다고 거절한 400 은 청구 전이므로 자리를 한 번 돌려준다.
+    if (deps.isBillingOrAuthError(err) || isContextTooLongBeforeInference(err)) {
+      await deps.refund(deps.by, 1);
+    }
     return {
       status: "ai_failed",
       message: `AI 정밀 판정에 실패했습니다 — ${err instanceof Error ? err.message : String(err)}`,
