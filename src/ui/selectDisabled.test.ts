@@ -22,7 +22,12 @@ describe("disabled select options", () => {
   });
   it("never finds an unavailable item with typeahead", () => {
     const options = [{label: "Alpha", disabled: true}, {label: "Alpine"}, {label: "Beta", disabled: true}];
-    expect(typeAheadIndex(options, "Al", 0)).toBe(1);
-    expect(typeAheadIndex(options, "Be", 0)).toBe(-1);
+    const unavailable = (index: number) => !!options[index]?.disabled;
+    expect(typeAheadIndex(options, "Al", 0, unavailable)).toBe(1);
+    expect(typeAheadIndex(options, "Be", 0, unavailable)).toBe(-1);
+  });
+  it("preserves legacy three-argument matching when data has a disabled property", () => {
+    const options = [{label: "Alpha", disabled: true}, {label: "Alpine"}];
+    expect(typeAheadIndex(options, "Al", 0)).toBe(0);
   });
 });

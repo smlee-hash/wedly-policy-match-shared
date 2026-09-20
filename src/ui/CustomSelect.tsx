@@ -200,6 +200,7 @@ export default function CustomSelect({
   // 닫을 때의 뒷정리(하이라이트·타자 버퍼 비우기)를 한 곳에 모은다 —
   // 바깥 클릭·Escape·선택 등 어떤 경로로 닫혀도 같은 상태로 돌아간다.
   const closeMenu = useCallback(() => {
+    listboxPointerRef.current = false;
     setIsOpen(false);
     setHighlight(-1);
     typeBufRef.current = "";
@@ -230,7 +231,7 @@ export default function CustomSelect({
     const buffer = appendTypeAhead(typeBufRef.current, char, now - typeAtRef.current, TYPE_AHEAD_RESET_MS);
     typeBufRef.current = buffer;
     typeAtRef.current = now;
-    const found = typeAheadIndex(options, buffer, typeAheadStart(buffer, highlight, options.length));
+    const found = typeAheadIndex(options, buffer, typeAheadStart(buffer, highlight, options.length), isOptionDisabled);
     if (found >= 0) setHighlight(found);
   };
 
@@ -321,19 +322,24 @@ export default function CustomSelect({
       listboxPointerRef.current = false;
     }
     document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("mouseup", handlePointerRelease);
-    document.addEventListener("pointerup", handlePointerRelease);
+    // 자식이 버블링을 막거나 누른 채 창을 떠나도 다음 blur를 가로채지 않는다.
+    document.addEventListener("mouseup", handlePointerRelease, true);
+    document.addEventListener("pointerup", handlePointerRelease, true);
+    document.addEventListener("pointercancel", handlePointerRelease, true);
+    window.addEventListener("blur", handlePointerRelease);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("mouseup", handlePointerRelease);
-      document.removeEventListener("pointerup", handlePointerRelease);
+      document.removeEventListener("mouseup", handlePointerRelease, true);
+      document.removeEventListener("pointerup", handlePointerRelease, true);
+      document.removeEventListener("pointercancel", handlePointerRelease, true);
+      window.removeEventListener("blur", handlePointerRelease);
     };
   }, [isOpen, closeMenu]);
 
   useEffect(() => {
     if (!isOpen) return;
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") closeMenu();
+      if (e.key === "Escape" && !e.defaultPrevented) closeMenu();
     }
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);

@@ -5,9 +5,10 @@
 /** 이동 방향: 1 = 아래(다음), -1 = 위(이전) */
 export type MoveDirection = 1 | -1;
 
-/** typeAheadIndex가 필요로 하는 최소 형태 — 라벨만 있으면 된다. disabled면 타자 검색에서 건너뛴다. */
+/** typeAheadIndex가 필요로 하는 최소 형태 — 라벨만 있으면 된다. */
 export interface LabeledOption {
   label: string;
+  /** 선택 정보 전달용. 검색에서 제외하려면 typeAheadIndex의 isDisabled 콜백을 지정한다. */
   disabled?: boolean;
 }
 
@@ -49,12 +50,13 @@ export function nextIndex(
 /**
  * 라벨이 buffer로 "시작하는" 첫 옵션의 인덱스. from부터 찾고 끝에 닿으면 처음으로 돌아온다.
  * 대소문자는 구분하지 않는다(toLowerCase). 한글은 그대로 비교되므로 그대로 동작한다.
- * disabled인 항목은 건너뛴다. 못 찾으면 -1.
+ * isDisabled가 있으면 해당 항목을 건너뛴다. 생략하면 기존 세 인자 동작을 유지한다. 못 찾으면 -1.
  */
 export function typeAheadIndex(
   options: readonly LabeledOption[],
   buffer: string,
   from: number,
+  isDisabled?: (index: number) => boolean,
 ): number {
   const len = options.length;
   if (len === 0 || buffer === "") return -1;
@@ -63,7 +65,7 @@ export function typeAheadIndex(
   for (let step = 0; step < len; step++) {
     const idx = (start + step) % len;
     const option = options[idx];
-    if (option?.disabled) continue;
+    if (isDisabled?.(idx)) continue;
     const label = option?.label ?? "";
     if (label.toLowerCase().startsWith(needle)) return idx;
   }
