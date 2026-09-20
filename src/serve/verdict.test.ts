@@ -1,7 +1,10 @@
+import { createHash } from "crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
   AI_INPUT_OVERHEAD_BYTES,
   AI_INPUT_TOO_LARGE_MESSAGE,
+  INCOMPLETE_EVIDENCE_CONDITION,
+  INCOMPLETE_EVIDENCE_REASON,
   MAX_AI_INPUT_BYTES,
   measureAiInputBytes,
   utf8ByteLength,
@@ -11,6 +14,7 @@ import {
   VERDICT_SELECT,
   attachmentFingerprint,
   cacheKeyOf,
+  customerEvidenceFingerprint,
   parseVerdict,
   readModelJson,
   runVerdict,
@@ -168,6 +172,32 @@ describe("cacheKeyOf — 캐시 열쇠", () => {
   it("여섯 번째 인자가 없으면 예전 호출과 같고, null 도 없는 것과 같다", () => {
     expect(cacheKeyOf(1, "a1", P, at, null)).toBe(cacheKeyOf(1, "a1", P, at, null, undefined));
     expect(cacheKeyOf(1, "a1", P, at, null)).toBe(cacheKeyOf(1, "a1", P, at, null, null));
+  });
+});
+
+describe("customerEvidenceFingerprint — JSON 튜플 해시", () => {
+  it("해시 입력은 [revision, incomplete, text] JSON 튜플이다 — 본문 전체를 넣는다", () => {
+    const e = { revision: "rev-1", incomplete: false as const, text: "출처: 원장 · 기간: 2024" };
+    expect(customerEvidenceFingerprint(e)).toBe(
+      createHash("sha256").update(JSON.stringify(["rev-1", false, "출처: 원장 · 기간: 2024"])).digest("hex"),
+    );
+    const long = { revision: "rev-1", incomplete: false as const, text: `${"가".repeat(200)}뒤A` };
+    const other = { ...long, text: `${"가".repeat(200)}뒤B` };
+    expect(customerEvidenceFingerprint(long)).not.toBe(customerEvidenceFingerprint(other));
+  });
+
+  it("예전에 구분자 이어붙이면 같던 튜플은 서로 다른 해시가 된다", () => {
+    const left = { revision: "a", incomplete: false as const, text: "b|inc:1|c" };
+    const right = { revision: "a|inc:0|b", incomplete: true as const, text: "c" };
+    const concat = (e: { revision: string; incomplete: boolean; text: string }) =>
+      `rev:${e.revision}|inc:${e.incomplete ? "1" : "0"}|${e.text}`;
+    expect(concat(left)).toBe(concat(right));
+    expect(customerEvidenceFingerprint(left)).not.toBe(customerEvidenceFingerprint(right));
+
+    const swapLeft = { revision: "x|inc:0", incomplete: false as const, text: "y" };
+    const swapRight = { revision: "x", incomplete: false as const, text: "inc:0|y" };
+    expect(concat(swapLeft)).toBe(concat(swapRight));
+    expect(customerEvidenceFingerprint(swapLeft)).not.toBe(customerEvidenceFingerprint(swapRight));
   });
 });
 
@@ -393,6 +423,8 @@ describe("runVerdict — 흐름", () => {
     expect(res.status).toBe("ok");
     if (res.status !== "ok") return;
     expect(res.data.grade).toBe("possible");
+    expect(res.data.checklist).toEqual([{ condition: "서울 소재", status: "충족", note: "본사가 서울" }]);
+    expect(res.data.checklist.some((row) => row.condition === INCOMPLETE_EVIDENCE_CONDITION)).toBe(false);
   });
 
   it("incomplete 자료면 모델이 possible 을 줘도 uncertain 으로 내리고 이유를 붙인다", async () => {
@@ -405,11 +437,25 @@ describe("runVerdict — 흐름", () => {
     expect(res.data.grade).toBe("uncertain");
     expect(res.data.explanation).toContain("완전하지");
     expect(res.data.cached).toBe(false);
-    expect(cacheSet.mock.calls[0][1]).toMatchObject({ grade: "uncertain" });
+    expect(res.data.checklist).toEqual([
+      { condition: "서울 소재", status: "충족", note: "본사가 서울" },
+      { condition: INCOMPLETE_EVIDENCE_CONDITION, status: "확인필요", note: INCOMPLETE_EVIDENCE_REASON },
+    ]);
+    expect(cacheSet.mock.calls[0][1]).toMatchObject({
+      grade: "uncertain",
+      checklist: [
+        { condition: "서울 소재", status: "충족", note: "본사가 서울" },
+        { condition: INCOMPLETE_EVIDENCE_CONDITION, status: "확인필요", note: INCOMPLETE_EVIDENCE_REASON },
+      ],
+    });
   });
 
   it("incomplete 자료면 캐시에 possible 이 있어도 uncertain 으로 내린다", async () => {
-    const cached = { grade: "possible", explanation: "저장본 가능", checklist: [] };
+    const cached = {
+      grade: "possible",
+      explanation: "저장본 가능",
+      checklist: [{ condition: "서울 소재", status: "충족", note: "본사" }],
+    };
     const { d, callModel } = deps(
       { customerEvidence: { revision: "r1", text: "일부 원장만", incomplete: true } },
       row(),
@@ -423,7 +469,55 @@ describe("runVerdict — 흐름", () => {
     if (res.status !== "ok") return;
     expect(res.data.explanation).toContain("저장본 가능");
     expect(res.data.explanation).toContain("완전하지");
+    expect(res.data.checklist).toEqual([
+      { condition: "서울 소재", status: "충족", note: "본사" },
+      { condition: INCOMPLETE_EVIDENCE_CONDITION, status: "확인필요", note: INCOMPLETE_EVIDENCE_REASON },
+    ]);
     expect(callModel).not.toHaveBeenCalled();
+  });
+
+  it("incomplete 캐시에 확인 범위 행이 있으면 한 줄만 유지하고 기존 충족은 남긴다", async () => {
+    const cached = {
+      grade: "uncertain",
+      explanation: `저장본 ${INCOMPLETE_EVIDENCE_REASON}`,
+      checklist: [
+        { condition: "서울 소재", status: "충족", note: "본사" },
+        { condition: INCOMPLETE_EVIDENCE_CONDITION, status: "확인필요", note: INCOMPLETE_EVIDENCE_REASON },
+      ],
+    };
+    const { d, callModel } = deps(
+      { customerEvidence: { revision: "r1", text: "일부 원장만", incomplete: true } },
+      row(),
+      cached,
+    );
+    const res = await runVerdict({ announcementId: "a1", profile: {} }, d);
+    expect(res.status).toBe("ok");
+    if (res.status !== "ok") return;
+    expect(res.data.grade).toBe("uncertain");
+    expect(res.data.checklist).toEqual(cached.checklist);
+    expect(res.data.checklist.filter((row) => row.condition === INCOMPLETE_EVIDENCE_CONDITION)).toHaveLength(1);
+    expect(callModel).not.toHaveBeenCalled();
+  });
+
+  it("공백만 있는 revision·text 는 malformed — 캐시 possible 도 쓰지 않는다", async () => {
+    const cached = { grade: "possible", explanation: "저장본", checklist: [] };
+    const blankRevision = deps(
+      { customerEvidence: { revision: "  ", text: "원장", incomplete: false } },
+      row(),
+      cached,
+    );
+    const blankText = deps(
+      { customerEvidence: { revision: "r1", text: "\n\t ", incomplete: false } },
+      row(),
+      cached,
+    );
+    for (const { d, callModel } of [blankRevision, blankText]) {
+      const res = await runVerdict({ announcementId: "a1", profile: {} }, d);
+      expect(res.status).toBe("bad_request");
+      if (res.status !== "bad_request") return;
+      expect(res.message).toContain("고객 자료");
+      expect(callModel).not.toHaveBeenCalled();
+    }
   });
 
   it("최종 지시문이 앱 바이트 상한을 넘으면 bad_request — 예산을 안 잡고 모델도 안 부른다", async () => {

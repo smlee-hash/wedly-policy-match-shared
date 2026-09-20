@@ -164,7 +164,7 @@ function sortKeysDeep(value: unknown): unknown {
 export function customerEvidenceFingerprint(evidence: CustomerEvidenceContext | null | undefined): string {
   if (evidence == null) return "";
   return createHash("sha256")
-    .update(`rev:${evidence.revision}|inc:${evidence.incomplete ? "1" : "0"}|${evidence.text}`)
+    .update(JSON.stringify([evidence.revision, evidence.incomplete, evidence.text]))
     .digest("hex");
 }
 

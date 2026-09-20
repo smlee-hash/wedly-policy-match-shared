@@ -16,15 +16,18 @@
 import type { BusinessProfile } from "../engine/match-engine";
 import type { ConditionVerdict, MatchGrade } from "../engine/structure-types";
 import {
+  businessProfilePromptSection,
   customerEvidencePromptSection,
   type CustomerEvidenceContext,
 } from "./customer-evidence";
 
 export {
   applyIncompleteEvidenceGuard,
+  businessProfilePromptSection,
   customerEvidencePromptSection,
   readCustomerEvidenceContext,
   CUSTOMER_EVIDENCE_MALFORMED_MESSAGE,
+  INCOMPLETE_EVIDENCE_CONDITION,
   INCOMPLETE_EVIDENCE_REASON,
 } from "./customer-evidence";
 export type { CustomerEvidenceContext } from "./customer-evidence";
@@ -33,7 +36,7 @@ export type { CustomerEvidenceContext } from "./customer-evidence";
  * 지시문·판정 규칙이 바뀌면 이 수를 올린다 → 저장해 둔 판정이 저절로 무효가 된다.
  * 캐시를 날짜로 버리지 않는 대신, **바뀐 게 있을 때만** 이 수로 버린다.
  */
-export const VERDICT_VERSION = 2;
+export const VERDICT_VERSION = 3;
 
 export const VERDICT_STATUSES = ["충족", "미충족", "확인필요"] as const;
 export type VerdictStatus = (typeof VERDICT_STATUSES)[number];
@@ -170,8 +173,7 @@ export function buildVerdictUserPrompt(input: VerdictPromptInput): string {
     "[사람이 직접 확인해야 하는 조건]",
     input.humanCheck.length ? input.humanCheck.map((h) => `- ${h}`).join("\n") : "- (없음)",
     "",
-    "[사업자 정보] — 「모름」은 값이 없다는 뜻이다. 충족으로 단정하지 마라.",
-    ...profileLines(input.profile),
+    businessProfilePromptSection(profileLines(input.profile).join("\n")),
     ...customerEvidenceParts(input.customerEvidence),
     "",
     "[기계 대조 결과] — 참고용. 원문과 어긋나면 원문을 따르되, 왜 다른지 설명에 적어라.",
@@ -199,5 +201,10 @@ export function buildVerdictUserPrompt(input: VerdictPromptInput): string {
 
 function customerEvidenceParts(evidence: VerdictPromptInput["customerEvidence"]): string[] {
   const section = customerEvidencePromptSection(evidence);
-  return section ? ["", section] : [];
+  if (!section) return [];
+  const parts = ["", section];
+  if (evidence?.incomplete) {
+    parts.push("신청 가능(possible)으로 단정하지 말고 uncertain 으로 판정하라.");
+  }
+  return parts;
 }

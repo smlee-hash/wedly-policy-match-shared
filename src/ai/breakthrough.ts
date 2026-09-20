@@ -1,8 +1,15 @@
-import { customerEvidencePromptSection, type CustomerEvidenceContext } from "./customer-evidence";
+import type { BusinessProfile } from "../engine/match-engine";
+import {
+  businessProfilePromptSection,
+  customerEvidencePromptSection,
+  type CustomerEvidenceContext,
+} from "./customer-evidence";
 import type { TacitSnippet, TacitSourceKind } from "./tacit-types";
+import { profileLines } from "./verdict";
 
 export {
   applyIncompleteEvidenceGuard,
+  businessProfilePromptSection,
   checkAiInputBytes,
   customerEvidencePromptSection,
   isContextTooLongBeforeInference,
@@ -10,12 +17,13 @@ export {
   AI_INPUT_OVERHEAD_BYTES,
   AI_INPUT_TOO_LARGE_MESSAGE,
   CUSTOMER_EVIDENCE_MALFORMED_MESSAGE,
+  INCOMPLETE_EVIDENCE_CONDITION,
   INCOMPLETE_EVIDENCE_REASON,
   MAX_AI_INPUT_BYTES,
 } from "./customer-evidence";
 export type { CustomerEvidenceContext } from "./customer-evidence";
 
-export const BREAKTHROUGH_VERSION = 4; // 로직/프롬프트 바뀌면 올린다 → 캐시 무효화
+export const BREAKTHROUGH_VERSION = 5; // 로직/프롬프트 바뀌면 올린다 → 캐시 무효화
 export const BLOCKED_CAP = 8;
 
 export interface BreakthroughItem {
@@ -66,6 +74,8 @@ export interface BuildBreakthroughInput {
   snippetsByCondition: { condition: string; snippets: TacitSnippet[] }[];
   /** 서버가 고객 권한을 확인한 뒤에만 붙인다. 요청 본문에서 읽지 않는다. */
   customerEvidence?: CustomerEvidenceContext;
+  /** 서버가 확인한 사업자 정보. 없으면 사업자 블록을 넣지 않아 옛 호출과 같다. */
+  profile?: BusinessProfile;
 }
 
 export function buildBreakthroughUserPrompt(i: BuildBreakthroughInput): string {
@@ -80,6 +90,9 @@ export function buildBreakthroughUserPrompt(i: BuildBreakthroughInput): string {
     .join("\n\n");
   const evidence = customerEvidencePromptSection(i.customerEvidence);
   const parts = [`대상 사업: ${i.policyTitle}`, ``];
+  if (i.profile) {
+    parts.push(businessProfilePromptSection(profileLines(i.profile).join("\n")), ``);
+  }
   if (evidence) parts.push(evidence, ``);
   parts.push(
     `아래 각 "안 되는/애매한 조건"마다, 제시된 내부 근거만을 바탕으로 "이 조건을 넘는 실무적 방법(돌파구)"을 쓰세요.`,
