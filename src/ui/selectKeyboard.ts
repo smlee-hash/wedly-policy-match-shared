@@ -8,6 +8,8 @@ export type MoveDirection = 1 | -1;
 /** typeAheadIndex가 필요로 하는 최소 형태 — 라벨만 있으면 된다. */
 export interface LabeledOption {
   label: string;
+  /** 선택 정보 전달용. 검색에서 제외하려면 typeAheadIndex의 isDisabled 콜백을 지정한다. */
+  disabled?: boolean;
 }
 
 /** 타자 검색 버퍼가 비워지는 기본 시간(ms). */
@@ -17,9 +19,28 @@ export const TYPE_AHEAD_RESET_MS = 700;
  * 하이라이트를 dir 방향으로 한 칸 옮긴 인덱스(끝에서 반대편으로 순환).
  * 옵션이 없으면(-1) 하이라이트할 것이 없다는 뜻으로 -1.
  * current가 범위 밖(예: 아직 하이라이트 없음 = -1)이면 방향에 따라 처음/끝에서 시작한다.
+ * isDisabled가 있으면 그 항목은 건너뛰고, 모두 건너뛰면 -1. 네 번째 인자 없이 부르면 예전과 같다.
  */
-export function nextIndex(current: number, len: number, dir: MoveDirection): number {
+export function nextIndex(
+  current: number,
+  len: number,
+  dir: MoveDirection,
+  isDisabled?: (index: number) => boolean,
+): number {
   if (len <= 0) return -1;
+  if (isDisabled) {
+    const from =
+      !Number.isInteger(current) || current < 0 || current >= len
+        ? dir === 1
+          ? -1
+          : len
+        : current;
+    for (let step = 1; step <= len; step++) {
+      const idx = (((from + dir * step) % len) + len) % len;
+      if (!isDisabled(idx)) return idx;
+    }
+    return -1;
+  }
   if (!Number.isInteger(current) || current < 0 || current >= len) {
     return dir === 1 ? 0 : len - 1;
   }
@@ -29,12 +50,13 @@ export function nextIndex(current: number, len: number, dir: MoveDirection): num
 /**
  * 라벨이 buffer로 "시작하는" 첫 옵션의 인덱스. from부터 찾고 끝에 닿으면 처음으로 돌아온다.
  * 대소문자는 구분하지 않는다(toLowerCase). 한글은 그대로 비교되므로 그대로 동작한다.
- * 못 찾으면 -1.
+ * isDisabled가 있으면 해당 항목을 건너뛴다. 생략하면 기존 세 인자 동작을 유지한다. 못 찾으면 -1.
  */
 export function typeAheadIndex(
   options: readonly LabeledOption[],
   buffer: string,
   from: number,
+  isDisabled?: (index: number) => boolean,
 ): number {
   const len = options.length;
   if (len === 0 || buffer === "") return -1;
@@ -42,7 +64,9 @@ export function typeAheadIndex(
   const start = !Number.isInteger(from) || from < 0 || from >= len ? 0 : from;
   for (let step = 0; step < len; step++) {
     const idx = (start + step) % len;
-    const label = options[idx]?.label ?? "";
+    const option = options[idx];
+    if (isDisabled?.(idx)) continue;
+    const label = option?.label ?? "";
     if (label.toLowerCase().startsWith(needle)) return idx;
   }
   return -1;
@@ -76,12 +100,26 @@ export type OpenIntent = "first" | "last" | "selected";
 /**
  * 목록을 열 때의 시작 하이라이트 인덱스.
  * ArrowDown = 첫 항목, ArrowUp = 마지막 항목, 그 외(Enter·Space) = 현재 선택 항목(없으면 첫 항목).
+ * isDisabled가 있으면 그 항목은 건너뛴다. 선택된 항목이 비활성이면 첫 활성 항목. 모두 비활성이면 -1.
+ * 네 번째 인자 없이 부르면 예전과 같다.
  */
-export function initialHighlight(intent: OpenIntent, len: number, selectedIndex: number): number {
+export function initialHighlight(
+  intent: OpenIntent,
+  len: number,
+  selectedIndex: number,
+  isDisabled?: (index: number) => boolean,
+): number {
   if (len <= 0) return -1;
-  if (intent === "first") return 0;
-  if (intent === "last") return len - 1;
-  return selectedIndex >= 0 && selectedIndex < len ? selectedIndex : 0;
+  if (!isDisabled) {
+    if (intent === "first") return 0;
+    if (intent === "last") return len - 1;
+    return selectedIndex >= 0 && selectedIndex < len ? selectedIndex : 0;
+  }
+  if (intent === "selected" && selectedIndex >= 0 && selectedIndex < len && !isDisabled(selectedIndex)) {
+    return selectedIndex;
+  }
+  if (intent === "last") return nextIndex(-1, len, -1, isDisabled);
+  return nextIndex(-1, len, 1, isDisabled);
 }
 
 /**
