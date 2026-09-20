@@ -222,6 +222,24 @@ export type IncompleteEvidenceGuardItem = {
   note: string;
 };
 
+/** 자료 범위 부족을 알리는 합성 체크리스트 행. 자격조건이 아니다. */
+export const INCOMPLETE_EVIDENCE_COVERAGE_ROW = {
+  condition: INCOMPLETE_EVIDENCE_CONDITION,
+  status: "확인필요",
+  note: INCOMPLETE_EVIDENCE_REASON,
+} as const satisfies IncompleteEvidenceGuardItem;
+
+/** 조건·상태·메모가 합성 행과 모두 같은지. 이름만 같으면 실제 자격조건으로 본다. */
+export function isIncompleteEvidenceCoverageRow(
+  row: Partial<IncompleteEvidenceGuardItem>,
+): boolean {
+  return (
+    row.condition === INCOMPLETE_EVIDENCE_COVERAGE_ROW.condition &&
+    row.status === INCOMPLETE_EVIDENCE_COVERAGE_ROW.status &&
+    row.note === INCOMPLETE_EVIDENCE_COVERAGE_ROW.note
+  );
+}
+
 export function applyIncompleteEvidenceGuard<
   T extends { grade: MatchGrade; explanation: string; checklist: IncompleteEvidenceGuardItem[] },
 >(verdict: T, evidence: CustomerEvidenceContext | undefined): T {
@@ -238,17 +256,8 @@ export function applyIncompleteEvidenceGuard<
   return { ...verdict, grade, explanation, checklist: checklist as T["checklist"] };
 }
 
+/** 합성 짝이 없을 때만 뒤에 붙인다. 같은 이름·다른 상태·메모인 실제 행은 덮지 않는다. */
 function withIncompleteEvidenceCoverageRow<I extends IncompleteEvidenceGuardItem>(checklist: I[]): I[] {
-  const row = {
-    condition: INCOMPLETE_EVIDENCE_CONDITION,
-    status: "확인필요",
-    note: INCOMPLETE_EVIDENCE_REASON,
-  };
-  const idx = checklist.findIndex((item) => item.condition === INCOMPLETE_EVIDENCE_CONDITION);
-  if (idx === -1) return [...checklist, row as I];
-  const cur = checklist[idx];
-  if (cur.status === row.status && cur.note === row.note) return checklist;
-  const next = checklist.slice();
-  next[idx] = { ...cur, ...row };
-  return next;
+  if (checklist.some(isIncompleteEvidenceCoverageRow)) return checklist;
+  return [...checklist, { ...INCOMPLETE_EVIDENCE_COVERAGE_ROW } as I];
 }

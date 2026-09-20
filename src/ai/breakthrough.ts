@@ -2,6 +2,7 @@ import type { BusinessProfile } from "../engine/match-engine";
 import {
   businessProfilePromptSection,
   customerEvidencePromptSection,
+  isIncompleteEvidenceCoverageRow,
   type CustomerEvidenceContext,
 } from "./customer-evidence";
 import type { TacitSnippet, TacitSourceKind } from "./tacit-types";
@@ -13,11 +14,13 @@ export {
   checkAiInputBytes,
   customerEvidencePromptSection,
   isContextTooLongBeforeInference,
+  isIncompleteEvidenceCoverageRow,
   readCustomerEvidenceContext,
   AI_INPUT_OVERHEAD_BYTES,
   AI_INPUT_TOO_LARGE_MESSAGE,
   CUSTOMER_EVIDENCE_MALFORMED_MESSAGE,
   INCOMPLETE_EVIDENCE_CONDITION,
+  INCOMPLETE_EVIDENCE_COVERAGE_ROW,
   INCOMPLETE_EVIDENCE_REASON,
   MAX_AI_INPUT_BYTES,
 } from "./customer-evidence";
@@ -113,13 +116,14 @@ export const BREAKTHROUGH_SYSTEM =
 const BLOCKED: ReadonlySet<string> = new Set(["미충족", "확인필요"]);
 const SOURCE_KINDS: ReadonlySet<string> = new Set(["자료실", "고객이력", "통화"]);
 
-/** 정밀 판정 체크리스트에서 돌파구를 만들 조건만 남긴다. 0건이면 UI 는 블록 자체를 숨긴다. */
+/** 정밀 판정 체크리스트에서 돌파구를 만들 조건만 남긴다. 0건이면 UI 는 블록 자체를 숨긴다. 합성 확인 범위 행은 넣지 않는다. */
 export function blockedConditionsOf(
   checklist: { condition: string; status: string; note?: string }[],
 ): { condition: string; status: "미충족" | "확인필요"; note?: string }[] {
   const out: { condition: string; status: "미충족" | "확인필요"; note?: string }[] = [];
   for (const c of checklist) {
     if (!BLOCKED.has(c.status)) continue;
+    if (isIncompleteEvidenceCoverageRow(c)) continue;
     const row: { condition: string; status: "미충족" | "확인필요"; note?: string } = {
       condition: c.condition,
       status: c.status as "미충족" | "확인필요",
@@ -130,13 +134,13 @@ export function blockedConditionsOf(
   return out;
 }
 
-/** 미충족을 먼저, 그다음 확인필요. AI 로 보내는 상한은 BLOCKED_CAP. */
-export function pickBlockedForAi<T extends { status: "미충족" | "확인필요" }>(
-  conditions: T[],
-  cap = BLOCKED_CAP,
-): T[] {
-  const blocked = conditions.filter((c) => c.status === "미충족");
-  const unsure = conditions.filter((c) => c.status === "확인필요");
+/** 미충족을 먼저, 그다음 확인필요. AI 로 보내는 상한은 BLOCKED_CAP. 합성 확인 범위 행은 넣지 않는다. */
+export function pickBlockedForAi<
+  T extends { status: "미충족" | "확인필요"; condition?: string; note?: string },
+>(conditions: T[], cap = BLOCKED_CAP): T[] {
+  const eligible = conditions.filter((c) => !isIncompleteEvidenceCoverageRow(c));
+  const blocked = eligible.filter((c) => c.status === "미충족");
+  const unsure = eligible.filter((c) => c.status === "확인필요");
   return [...blocked, ...unsure].slice(0, cap);
 }
 

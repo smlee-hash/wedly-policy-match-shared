@@ -3,11 +3,15 @@ import {
   BLOCKED_CAP,
   BREAKTHROUGH_JSON_SCHEMA,
   BREAKTHROUGH_VERSION,
+  INCOMPLETE_EVIDENCE_CONDITION,
+  INCOMPLETE_EVIDENCE_REASON,
   MAX_AI_INPUT_BYTES,
+  applyIncompleteEvidenceGuard,
   blockedConditionsOf,
   breakthroughCapNote,
   buildBreakthroughUserPrompt,
   checkAiInputBytes,
+  isIncompleteEvidenceCoverageRow,
   pickBlockedForAi,
   sourceBadgeBox,
   sourceKindOf,
@@ -214,6 +218,12 @@ describe("buildBreakthroughUserPrompt", () => {
   });
 });
 
+const SYNTHETIC_COVERAGE = {
+  condition: INCOMPLETE_EVIDENCE_CONDITION,
+  status: "확인필요" as const,
+  note: INCOMPLETE_EVIDENCE_REASON,
+};
+
 describe("blockedConditionsOf", () => {
   it("미충족·확인필요만 남기고 충족은 뺀다 — 0건이면 빈 배열", () => {
     expect(
@@ -227,6 +237,44 @@ describe("blockedConditionsOf", () => {
       { condition: "업력 3년", status: "확인필요" },
     ]);
     expect(blockedConditionsOf([{ condition: "서울 소재", status: "충족" }])).toEqual([]);
+  });
+
+  it("합성 확인 범위 행은 빼고, 같은 이름·다른 메모인 실제 행은 남긴다", () => {
+    const realUnmet = {
+      condition: INCOMPLETE_EVIDENCE_CONDITION,
+      status: "미충족" as const,
+      note: "실제 자격조건이 미충족",
+    };
+    const realUnsure = {
+      condition: INCOMPLETE_EVIDENCE_CONDITION,
+      status: "확인필요" as const,
+      note: "실제 확인이 필요한 다른 이유",
+    };
+    expect(isIncompleteEvidenceCoverageRow(SYNTHETIC_COVERAGE)).toBe(true);
+    expect(blockedConditionsOf([SYNTHETIC_COVERAGE])).toEqual([]);
+    expect(blockedConditionsOf([realUnmet, SYNTHETIC_COVERAGE])).toEqual([realUnmet]);
+    expect(blockedConditionsOf([realUnsure, SYNTHETIC_COVERAGE])).toEqual([realUnsure]);
+    expect(
+      blockedConditionsOf([
+        { condition: "고용보험 5인", status: "미충족", note: "3인" },
+        SYNTHETIC_COVERAGE,
+      ]),
+    ).toEqual([{ condition: "고용보험 5인", status: "미충족", note: "3인" }]);
+  });
+
+  it("충족만 있고 합성 확인 범위 행이면 돌파구 조건이 없다", () => {
+    const guarded = applyIncompleteEvidenceGuard(
+      {
+        grade: "possible" as const,
+        explanation: "서류상 맞습니다.",
+        checklist: [{ condition: "서울 소재", status: "충족", note: "맞음" }],
+      },
+      { revision: "r-inc", text: "일부 원장만", incomplete: true },
+    );
+    expect(guarded.grade).toBe("uncertain");
+    expect(guarded.checklist).toContainEqual(SYNTHETIC_COVERAGE);
+    expect(blockedConditionsOf(guarded.checklist)).toEqual([]);
+    expect(pickBlockedForAi(blockedConditionsOf(guarded.checklist))).toEqual([]);
   });
 });
 
@@ -294,6 +342,51 @@ describe("pickBlockedForAi", () => {
     expect(picked).toHaveLength(8);
     expect(picked.every((c) => c.status === "미충족")).toBe(true);
     expect(picked[7].condition).toBe("막힘-7");
+  });
+
+  it("합성 확인 범위 행은 고르지 않고, 같은 이름·다른 메모인 실제 행은 고른다", () => {
+    const realUnmet = {
+      condition: INCOMPLETE_EVIDENCE_CONDITION,
+      status: "미충족" as const,
+      note: "실제 자격조건이 미충족",
+    };
+    const realUnsure = {
+      condition: INCOMPLETE_EVIDENCE_CONDITION,
+      status: "확인필요" as const,
+      note: "실제 확인이 필요한 다른 이유",
+    };
+    expect(pickBlockedForAi([SYNTHETIC_COVERAGE])).toEqual([]);
+    expect(pickBlockedForAi([realUnmet, SYNTHETIC_COVERAGE])).toEqual([realUnmet]);
+    expect(pickBlockedForAi([SYNTHETIC_COVERAGE, realUnsure])).toEqual([realUnsure]);
+    expect(pickBlockedForAi([realUnmet, SYNTHETIC_COVERAGE, realUnsure])).toEqual([realUnmet, realUnsure]);
+  });
+
+  it("상태만 있는 옛 호출도 고르고, 합성 행은 상한 칸을 쓰지 않는다", () => {
+    expect(pickBlockedForAi([{ status: "확인필요" as const }, { status: "미충족" as const }])).toEqual([
+      { status: "미충족" },
+      { status: "확인필요" },
+    ]);
+    const rows = [
+      SYNTHETIC_COVERAGE,
+      ...Array.from({ length: 8 }, (_, i) => ({
+        condition: `확인-${i}`,
+        status: "확인필요" as const,
+        note: `사유 ${i}`,
+      })),
+    ];
+    const picked = pickBlockedForAi(rows);
+    expect(picked).toHaveLength(8);
+    expect(picked.every((c) => !isIncompleteEvidenceCoverageRow(c))).toBe(true);
+    expect(picked.map((c) => c.condition)).toEqual([
+      "확인-0",
+      "확인-1",
+      "확인-2",
+      "확인-3",
+      "확인-4",
+      "확인-5",
+      "확인-6",
+      "확인-7",
+    ]);
   });
 });
 

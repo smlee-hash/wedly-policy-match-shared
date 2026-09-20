@@ -16,6 +16,7 @@ import {
   customerEvidencePromptSection,
   encodeUntrustedEvidenceJson,
   isContextTooLongBeforeInference,
+  isIncompleteEvidenceCoverageRow,
   measureAiInputBytes,
   readCustomerEvidenceContext,
   readUntrustedBusinessProfileFromPrompt,
@@ -306,6 +307,83 @@ describe("applyIncompleteEvidenceGuard — 불완전 자료는 possible 이 될 
     expect(twice).toEqual(once);
     expect(twice.checklist.filter((row) => row.condition === INCOMPLETE_EVIDENCE_CONDITION)).toHaveLength(1);
     expect(twice.explanation.split(INCOMPLETE_EVIDENCE_REASON)).toHaveLength(2);
+  });
+
+  it("같은 이름인데 미충족인 실제 행은 덮지 않고 합성 행을 뒤에 붙인다", () => {
+    const real = {
+      condition: INCOMPLETE_EVIDENCE_CONDITION,
+      status: "미충족",
+      note: "실제 자격조건이 미충족",
+    };
+    const once = applyIncompleteEvidenceGuard(
+      { grade: "impossible" as const, explanation: "어긋남", checklist: [real] },
+      { ...VALID, incomplete: true },
+    );
+    expect(once.checklist[0]).toEqual(real);
+    expect(once.checklist[0].status).toBe("미충족");
+    expect(once.checklist[0].note).toBe("실제 자격조건이 미충족");
+    expect(once.checklist).toEqual([real, coverage]);
+    expect(once.checklist.filter((row) => row.condition === INCOMPLETE_EVIDENCE_CONDITION)).toHaveLength(2);
+    const twice = applyIncompleteEvidenceGuard(once, { ...VALID, incomplete: true });
+    expect(twice).toEqual(once);
+    expect(twice.checklist).toEqual([real, coverage]);
+  });
+
+  it("같은 이름·다른 메모인 확인필요 실제 행도 덮지 않는다", () => {
+    const real = {
+      condition: INCOMPLETE_EVIDENCE_CONDITION,
+      status: "확인필요",
+      note: "실제 확인이 필요한 다른 이유",
+    };
+    const v = applyIncompleteEvidenceGuard(
+      { grade: "uncertain" as const, explanation: "모름", checklist: [real] },
+      { ...VALID, incomplete: true },
+    );
+    expect(v.checklist).toEqual([real, coverage]);
+    expect(v.checklist[0].note).toBe("실제 확인이 필요한 다른 이유");
+    expect(isIncompleteEvidenceCoverageRow(v.checklist[0])).toBe(false);
+    expect(isIncompleteEvidenceCoverageRow(v.checklist[1])).toBe(true);
+  });
+});
+
+describe("isIncompleteEvidenceCoverageRow — 합성 행은 조건·상태·메모 짝으로만 본다", () => {
+  const coverage = {
+    condition: INCOMPLETE_EVIDENCE_CONDITION,
+    status: "확인필요",
+    note: INCOMPLETE_EVIDENCE_REASON,
+  };
+
+  it("세 칸이 모두 합성 짝일 때만 참이고, 이름만 같으면 거짓이다", () => {
+    expect(isIncompleteEvidenceCoverageRow(coverage)).toBe(true);
+    expect(isIncompleteEvidenceCoverageRow({ ...coverage })).toBe(true);
+    expect(
+      isIncompleteEvidenceCoverageRow({
+        condition: INCOMPLETE_EVIDENCE_CONDITION,
+        status: "확인필요",
+      }),
+    ).toBe(false);
+    expect(
+      isIncompleteEvidenceCoverageRow({
+        condition: INCOMPLETE_EVIDENCE_CONDITION,
+        status: "미충족",
+        note: INCOMPLETE_EVIDENCE_REASON,
+      }),
+    ).toBe(false);
+    expect(
+      isIncompleteEvidenceCoverageRow({
+        condition: INCOMPLETE_EVIDENCE_CONDITION,
+        status: "확인필요",
+        note: "실제 확인이 필요한 다른 이유",
+      }),
+    ).toBe(false);
+    expect(
+      isIncompleteEvidenceCoverageRow({
+        condition: "서울 소재",
+        status: "확인필요",
+        note: INCOMPLETE_EVIDENCE_REASON,
+      }),
+    ).toBe(false);
+    expect(isIncompleteEvidenceCoverageRow({ status: "확인필요" })).toBe(false);
   });
 });
 
