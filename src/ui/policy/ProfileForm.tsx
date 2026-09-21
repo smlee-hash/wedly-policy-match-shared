@@ -2,7 +2,7 @@
 
 // 사업자 정보 입력 — 이 화면의 주인공. 여기서 넣은 값이 매칭 진단의 입력이 된다.
 // 모르는 칸은 「모름」으로 두면 그 조건은 「확인 필요」로 분류된다(모름을 통과로 치지 않는다).
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { BusinessProfile } from "../../engine/match-engine";
 
 /**
@@ -107,12 +107,15 @@ function useCustomerPrefill(
   const [query, setQuery] = useState("");
   const [prefilling, setPrefilling] = useState(false);
   const [prefillNote, setPrefillNote] = useState("");
+  const latestLoad = useRef(0);
 
   /** 고객 불러오기 — 먼저 폼을 비우고, 아는 값만 채운다(모르는 칸은 「모름」으로 남는다). */
   const loadCustomer = async () => {
     if (!endpoint) return; // 통로가 없는 앱 — 검색 줄을 안 그리므로 여기까지 올 일도 없다
+    const loadId = ++latestLoad.current;
     const t = query.trim();
     if (!t) {
+      setPrefilling(false);
       setPrefillNote("사업자번호 또는 상호를 입력하세요");
       return;
     }
@@ -120,6 +123,7 @@ function useCustomerPrefill(
     setPrefillNote("");
     try {
       const j = await fetch(`${endpoint}?query=${encodeURIComponent(t)}`).then((r) => r.json());
+      if (loadId !== latestLoad.current) return;
       if (!j?.success) {
         setPrefillNote(j?.error?.message ?? "고객 정보를 불러오지 못했습니다");
         return;
@@ -132,9 +136,9 @@ function useCustomerPrefill(
       onLoad(d);
       setPrefillNote(`${d.companyName || t} 정보를 불러왔습니다 — 아는 값만 채웠습니다`);
     } catch {
-      setPrefillNote("고객 정보를 불러오지 못했습니다");
+      if (loadId === latestLoad.current) setPrefillNote("고객 정보를 불러오지 못했습니다");
     } finally {
-      setPrefilling(false);
+      if (loadId === latestLoad.current) setPrefilling(false);
     }
   };
 
@@ -260,7 +264,12 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint }:
       setRevenueManwon(String(Math.round(d.lastYearRevenueKrw / 10_000)));
     }
     if (typeof d.employeeCount === "number") setEmployeeCount(String(d.employeeCount));
+    if (d.companyScale) setCompanyScale(d.companyScale);
     if (typeof d.taxDelinquent === "boolean") setTaxDelinquent(d.taxDelinquent ? "yes" : "no");
+    if (typeof d.hasCert === "boolean") setHasCert(d.hasCert ? "yes" : "no");
+    if (typeof d.hasPatent === "boolean") setHasPatent(d.hasPatent ? "yes" : "no");
+    if (typeof d.creditScore === "number") setCreditScore(String(d.creditScore));
+    if (typeof d.hasExistingLoan === "boolean") setHasExistingLoan(d.hasExistingLoan ? "yes" : "no");
   };
 
   // 검색 상태는 여기(부모)서 든다 — 폼을 접으면 아래 검색 줄은 사라지지만 검색어·안내는 남는다.

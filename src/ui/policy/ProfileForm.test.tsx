@@ -206,6 +206,59 @@ async function 고객불러오기(화면: 손React, data: BusinessProfile, 검�
   await 불러온뒤그리기(화면, data.companyName || 검색어);
 }
 
+function 엔터로불러오기(화면: 손React): 그림 {
+  const input = 칸찾기(화면.tree, 검색안내);
+  if (!input) throw new Error("기존 고객 검색 칸이 화면에 없다");
+  (input.props.onKeyDown as (e: { key: string; nativeEvent: { isComposing: boolean } }) => void)({
+    key: "Enter",
+    nativeEvent: { isComposing: false },
+  });
+  return 화면.다시그리기();
+}
+
+function 지연응답붙이기() {
+  type 응답 = { json: () => Promise<unknown> };
+  type 대기 = { resolve: (value: 응답) => void; reject: (reason?: unknown) => void };
+  const 대기중 = new Map<string, 대기>();
+  vi.stubGlobal("fetch", vi.fn((raw: string | URL | Request) => {
+    const query = new URL(String(raw), "http://local.test").searchParams.get("query") ?? "";
+    return new Promise<응답>((resolve, reject) => {
+      대기중.set(query, { resolve, reject });
+    });
+  }));
+  const 꺼내기 = (query: string): 대기 => {
+    const waiting = 대기중.get(query);
+    if (!waiting) throw new Error(`「${query}」 요청이 시작되지 않았다`);
+    return waiting;
+  };
+  return {
+    성공: (query: string, data: BusinessProfile | null) => {
+      꺼내기(query).resolve({ json: async () => ({ success: true, data }) });
+    },
+    실패: (query: string) => {
+      꺼내기(query).reject(new Error("synthetic network failure"));
+    },
+  };
+}
+
+async function 비동기흘리기(화면: 손React): Promise<그림> {
+  let tree = 화면.tree;
+  for (let i = 0; i < 10; i++) {
+    await Promise.resolve();
+    tree = 화면.다시그리기();
+  }
+  return tree;
+}
+
+async function 안내기다리기(화면: 손React, 안내: string): Promise<그림> {
+  for (let i = 0; i < 20; i++) {
+    await Promise.resolve();
+    const tree = 화면.다시그리기();
+    if (글자(tree).includes(안내)) return tree;
+  }
+  throw new Error(`안내를 기다렸지만 나오지 않았다: ${안내}`);
+}
+
 function 진단받기(): { 받은: BusinessProfile[]; 화면: 손React } {
   const 받은: BusinessProfile[] = [];
   const 화면 = new 손React();
@@ -293,5 +346,138 @@ describe("ProfileForm — 시군구는 칸 없이 통과시킨다(리뷰 F1)", (
     expect(p.region).toBe("서울");
     expect(p.regionSigungu).toBeUndefined();
     expect("regionSigungu" in p).toBe(false);
+  });
+});
+
+describe("ProfileForm — 기존 고객의 판정 조건을 빠짐없이 채운다", () => {
+  it("기업 규모·인증·특허·신용점수·기존 대출을 화면과 진단 입력에 보존한다", async () => {
+    const { 받은, 화면 } = 진단받기();
+    await 고객불러오기(화면, {
+      companyName: "위들리테크",
+      companyScale: "중소기업",
+      hasCert: false,
+      hasPatent: true,
+      creditScore: 780,
+      hasExistingLoan: false,
+    }, "위들리테크");
+
+    expect(선택칸찾기(화면.tree, "기업 규모")?.props.value).toBe("중소기업");
+    expect(선택칸찾기(화면.tree, "기업인증 보유")?.props.value).toBe("no");
+    expect(선택칸찾기(화면.tree, "특허 보유")?.props.value).toBe("yes");
+    expect(칸찾기(화면.tree, "300~1000")?.props.value).toBe("780");
+    expect(선택칸찾기(화면.tree, "기존 대출")?.props.value).toBe("no");
+    expect(진단하기(화면, 받은)).toMatchObject({
+      companyScale: "중소기업",
+      hasCert: false,
+      hasPatent: true,
+      creditScore: 780,
+      hasExistingLoan: false,
+    });
+  });
+
+  it("숫자 0도 화면에 그대로 채우고, 다음 고객에게 없는 값은 모두 모름으로 비운다", async () => {
+    const { 받은, 화면 } = 진단받기();
+    await 고객불러오기(화면, {
+      companyName: "첫회사",
+      companyScale: "소상공인",
+      hasCert: true,
+      hasPatent: false,
+      creditScore: 0,
+      hasExistingLoan: true,
+    }, "첫회사");
+
+    expect(선택칸찾기(화면.tree, "기업 규모")?.props.value).toBe("소상공인");
+    expect(선택칸찾기(화면.tree, "기업인증 보유")?.props.value).toBe("yes");
+    expect(선택칸찾기(화면.tree, "특허 보유")?.props.value).toBe("no");
+    expect(칸찾기(화면.tree, "300~1000")?.props.value).toBe("0");
+    expect(선택칸찾기(화면.tree, "기존 대출")?.props.value).toBe("yes");
+
+    await 고객불러오기(화면, { companyName: "다음회사" }, "다음회사");
+    expect(선택칸찾기(화면.tree, "기업 규모")?.props.value).toBe("");
+    expect(선택칸찾기(화면.tree, "기업인증 보유")?.props.value).toBe("");
+    expect(선택칸찾기(화면.tree, "특허 보유")?.props.value).toBe("");
+    expect(칸찾기(화면.tree, "300~1000")?.props.value).toBe("");
+    expect(선택칸찾기(화면.tree, "기존 대출")?.props.value).toBe("");
+    const p = 진단하기(화면, 받은);
+    for (const key of ["companyScale", "hasCert", "hasPatent", "creditScore", "hasExistingLoan"]) {
+      expect(key in p, `${key}가 앞 고객에서 남았다`).toBe(false);
+    }
+  });
+});
+
+describe("ProfileForm — 가장 최근 고객 검색만 반영한다", () => {
+  it("B가 먼저 끝나고 A가 늦게 끝나도 B 고객의 값이 남는다", async () => {
+    const 요청 = 지연응답붙이기();
+    const { 받은, 화면 } = 진단받기();
+    적기(화면, 검색안내, "A회사");
+    누르기(화면, "불러오기");
+    적기(화면, 검색안내, "B회사");
+    엔터로불러오기(화면);
+
+    요청.성공("B회사", { companyName: "B회사", companyScale: "소상공인", hasCert: false });
+    await 안내기다리기(화면, "B회사 정보를 불러왔습니다");
+    요청.성공("A회사", { companyName: "A회사", companyScale: "중소기업", hasCert: true });
+    await 비동기흘리기(화면);
+
+    expect(진단하기(화면, 받은)).toMatchObject({
+      companyName: "B회사",
+      companyScale: "소상공인",
+      hasCert: false,
+    });
+  });
+
+  it("A의 늦은 오류가 B의 대기 표시를 끝내거나 오류 안내로 바꾸지 않는다", async () => {
+    const 요청 = 지연응답붙이기();
+    const { 받은, 화면 } = 진단받기();
+    적기(화면, 검색안내, "A회사");
+    누르기(화면, "불러오기");
+    적기(화면, 검색안내, "B회사");
+    엔터로불러오기(화면);
+
+    요청.실패("A회사");
+    let tree = await 비동기흘리기(화면);
+    expect(글자(tree)).toContain("불러오는 중…");
+    expect(글자(tree)).not.toContain("고객 정보를 불러오지 못했습니다");
+
+    요청.성공("B회사", { companyName: "B회사", hasPatent: false });
+    tree = await 안내기다리기(화면, "B회사 정보를 불러왔습니다");
+    expect(글자(tree)).not.toContain("불러오는 중…");
+    expect(진단하기(화면, 받은)).toMatchObject({ companyName: "B회사", hasPatent: false });
+  });
+
+  it("최신 B를 찾지 못했으면 늦은 A 성공을 무시하고 찾지 못함을 유지한다", async () => {
+    const 요청 = 지연응답붙이기();
+    const { 받은, 화면 } = 진단받기();
+    적기(화면, 검색안내, "A회사");
+    누르기(화면, "불러오기");
+    적기(화면, 검색안내, "B회사");
+    엔터로불러오기(화면);
+
+    요청.성공("B회사", null);
+    await 안내기다리기(화면, "찾지 못했습니다");
+    요청.성공("A회사", { companyName: "A회사", companyScale: "중소기업" });
+    const tree = await 비동기흘리기(화면);
+    expect(글자(tree)).toContain("찾지 못했습니다");
+    const p = 진단하기(화면, 받은);
+    expect(p.companyName).toBeUndefined();
+    expect(p.companyScale).toBeUndefined();
+  });
+
+  it("최신 검색어가 비었으면 늦은 A 성공을 무시하고 입력 안내를 유지한다", async () => {
+    const 요청 = 지연응답붙이기();
+    const { 받은, 화면 } = 진단받기();
+    적기(화면, 검색안내, "A회사");
+    누르기(화면, "불러오기");
+    적기(화면, 검색안내, "");
+    let tree = 엔터로불러오기(화면);
+    expect(글자(tree)).toContain("사업자번호 또는 상호를 입력하세요");
+    expect(글자(tree)).not.toContain("불러오는 중…");
+
+    요청.성공("A회사", { companyName: "A회사", companyScale: "중소기업" });
+    tree = await 비동기흘리기(화면);
+    expect(글자(tree)).toContain("사업자번호 또는 상호를 입력하세요");
+    const p = 진단하기(화면, 받은);
+    expect(p.companyName).toBeUndefined();
+    expect(p.companyScale).toBeUndefined();
   });
 });
