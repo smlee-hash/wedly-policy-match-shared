@@ -533,11 +533,6 @@ export type StrictFitContext = {
    * 「통과」로 만든다(9/23: 광고회사에 「치매의료기술연구개발」, 영등포 회사에 「광진구 사업장」 공고).
    */
   ruleOnly?: boolean;
-  /**
-   * 조건 대조 결과. 업종 조건이 맞음 수준으로 통과했으면 제목 분야 검사를 건너뛴다 — 「식품제조업 전용
-   * 홍보영상」의 「영상」은 지원 수단이지 대상 업종이 아니다(2차 리뷰 2026-09-24).
-   */
-  checks?: ConditionCheck[];
 };
 
 /**
@@ -573,7 +568,7 @@ const ADMIN_NOTE = /지원\s*내용|지원\s*규모|지원\s*금액|지원\s*한
 const FILLER_PIECES = [
   "되었거나", "해당되는", "하였거나", "했거나", "받았거나", "되거나", "하거나", "받거나", "있거나", "없거나",
   "중인", "하는", "하여", "하고", "있는", "없는", "받은", "받는", "되어", "된", "인", "한", "할", "의",
-  "국세", "지방세", "세금", "보험료", "기업", "업체", "사업자", "사업장", "법인", "회사", "대표자", "대표",
+  "국세", "지방세", "세금", "보험료", "기업", "업체", "사업장", "회사", "대표자", "대표",
   "본인", "또는", "혹은", "및", "등", "경우", "자", "곳", "제외", "불가", "배제", "지원", "신청", "사업",
   "수혜", "이력", "해당", "현재", "최근", "상태", "기간", "내", "중", "이", "가", "은", "는", "을", "를",
   "에", "에서", "으로", "로", "와", "과", "도", "이나", "나", "것", "시", "적", "관련", "이상", "사실", "있음",
@@ -605,6 +600,8 @@ export function substantiveHumanChecks(texts: readonly string[], title = ""): st
       let rest = body.replace(new RegExp(GENERIC_DISQUALIFIER.source, "g"), " ");
       if (listed) rest = rest.replace(new RegExp(LISTED.source, "g"), " ");
       rest = rest.replace(new RegExp(ADMIN_NOTE.source, "g"), " ");
+      // 대상을 좁히는 말이 남으면 자격 문장이다 — 연결어 조각(「한」+「하여」)으로 흩어져 새지 않게 먼저 본다(4차 리뷰).
+      if (/한\s*하여|한\s*함|한정|에\s*한|만\s|만$|전용|대상|이상|이하|초과|미만|\d/.test(rest)) return false;
       return onlyFiller(rest, admin && /지원\s*내용/.test(body));
     });
   });
@@ -670,20 +667,11 @@ export function strictFitBlock(ctx: StrictFitContext): string | null {
   if (domains.length > 0) {
     const mine = sectorFamiliesOfIndustry(ctx.profile?.industry ?? "");
     if (mine.length === 0) return "제목에 분야가 있는데 회사 업종을 분야로 못 읽음";
-    const relatedToMe = (d: string) => mine.some((f) => relatedFamiliesOf([d]).has(f));
-    // 업종 조건이 맞음 수준으로 통과했고 그 조건이 **제목 분야 중 하나를 가리키면**(「식품」), 그 분야가 대상이고
-    // 나머지(「홍보영상」)는 지원 수단이다. 「제조업」처럼 넓은 조건은 분야를 못 가리켜 면제하지 않는다(3차 리뷰).
-    const condFamilies = (ctx.checks ?? [])
-      .filter((c) => c.condition.key === "industry" && c.verdict === "pass" && conditionPassIsFitGrade(c, ctx.profile))
-      .flatMap((c) => {
-        const v: unknown = c.condition.value;
-        return (Array.isArray(v) ? v : [v]).map((x) => String(x));
-      })
-      .flatMap((v) => sectorFamiliesOfIndustry(v));
-    const targeted = condFamilies.length > 0 ? domains.filter((d) => relatedFamiliesOf(condFamilies).has(d)) : [];
     // 적힌 분야가 **모두** 회사 업종과 이어져야 한다 — 하나만 맞아도 통과시키면 「식품제조업 전용 홍보영상」이
-    // 「영상」 하나로 광고회사에 맞음이 된다(독립 리뷰 review-1b329d8d).
-    const unrelated = targeted.length > 0 && targeted.every(relatedToMe) ? [] : domains.filter((d) => !relatedToMe(d));
+    // 「영상」 하나로 광고회사에 맞음이 된다(독립 리뷰 review-1b329d8d). 업종 조건으로 분야를 면제하는 규칙은
+    // 선택지 중 무엇이 맞았는지 모르는 탓에 구멍이 계속 나서 없앴다(4차 리뷰) — 대상 업체가 「확인 필요」로
+    // 내려가는 손해는 정확도 우선(사장님 「정확도 100%」)으로 감수한다.
+    const unrelated = domains.filter((d) => !mine.some((f) => relatedFamiliesOf([d]).has(f)));
     if (unrelated.length > 0) return "회사 업종과 관련 없는 분야의 공고";
   }
   return null;
@@ -701,7 +689,7 @@ export function matchAnnouncement(
   if (
     grade === "possible"
     && (checks.some((c) => c.blocksFit || !conditionPassIsFitGrade(c, p))
-      || strictFitBlock({ title: opts.title, profile: p, humanCheckTexts: s.humanCheck, checks }))
+      || strictFitBlock({ title: opts.title, profile: p, humanCheckTexts: s.humanCheck }))
   ) {
     grade = "uncertain";
   }

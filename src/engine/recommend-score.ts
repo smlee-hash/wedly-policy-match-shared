@@ -87,7 +87,7 @@ export function fitVerdictOf(checks: ConditionCheck[], ctx?: StrictFitContext): 
   // 2026-09-18 실측: 화면 4,566건 중 637건(14%)이 「맞음」에서 「확인 필요」로 내려간다.
   if (checks.some((c) => c.blocksFit)) return "unverified";
   if (checks.some((c) => c.verdict === "unknown")) return "unverified";
-  if (ctx && strictFitBlock({ ...ctx, checks })) return "unverified";
+  if (ctx && strictFitBlock(ctx)) return "unverified";
   if (ctx && checks.some((c) => !conditionPassIsFitGrade(c, ctx.profile))) return "unverified";
   if (checks.some((c) => c.verdict === "pass" && !isWeakPass(c))) return "fit";
   return "unverified";

@@ -225,6 +225,7 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
     "코스닥 상장기업만 신청서 제출 가능",
     "연체 중인 소상공인",
     "폐업 소상공인",
+    "체납이 없는 법인에 한하여 신청",
   ])("자격 문장 「%s」 이 남으면 맞음이 아니다", (t) => {
     expect(fitVerdictOf([empPass], { title: "2026년 경영환경 개선 지원사업", profile: P, humanCheckTexts: [t] })).toBe("unverified");
   });
@@ -232,9 +233,14 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
     expect(fitVerdictOf([empPass], { title: "2026년 폐업 소상공인 사업정리 지원사업 공고", profile: P, humanCheckTexts: ["폐업 소상공인"] })).toBe("unverified");
     expect(fitVerdictOf([empPass], { title: "소상공인 재기 지원", profile: P, humanCheckTexts: ["연체 중인 소상공인"] })).toBe("unverified");
   });
-  it("업종 조건이 기계로 확인되면 제목의 지원 수단(홍보영상)이 대상 업체를 막지 않는다", () => {
+  it("제목 분야는 업종 조건으로 면제하지 않는다 — 선택지 중 무엇이 맞았는지 몰라 구멍이 난다(4차 리뷰)", () => {
     const indPass = { condition: { key: "industry", op: "in", value: ["식품"], rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
-    expect(fitVerdictOf([empPass, indPass], { title: "2026년 식품제조업 전용 홍보영상 제작 지원사업", profile: { region: "서울", industry: "식품 제조업" } })).toBe("fit");
+    // 정확도 우선: 식품업체도 「홍보영상」(콘텐츠) 분야와 이어지지 않아 확인 필요로 내려간다(알려진 손해).
+    expect(fitVerdictOf([empPass, indPass], { title: "2026년 식품제조업 전용 홍보영상 제작 지원사업", profile: { region: "서울", industry: "식품 제조업" } })).toBe("unverified");
+    const adPass = { condition: { key: "industry", op: "in", value: ["광고"], rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([empPass, adPass], { title: "2026년 식품제조업 전용 홍보영상 제작 지원사업", profile: P })).toBe("unverified");
+    const mixed = { condition: { key: "industry", op: "in", value: ["제조업", "소프트웨어"], rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([empPass, mixed], { title: "2026년 식품제조업 전용 홍보영상 제작 지원사업", profile: P })).toBe("unverified");
     // 넓은 업종 조건(「제조업」)은 제목의 구체 분야(식품)를 확인하지 못한다 — 광고물 제조업체는 막는다.
     const broad = { condition: { key: "industry", op: "in", value: ["제조업"], rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
     expect(fitVerdictOf([empPass, broad], { title: "2026년 식품제조업 전용 홍보영상 제작 지원사업", profile: P })).toBe("unverified");
