@@ -21,7 +21,11 @@ import {
 } from "../engine/match-engine";
 import { withRegionConditions } from "../engine/region-augment";
 import type { MatchGrade } from "../engine/structure-types";
-import { CURRENT_STRUCTURE_VERSION } from "./structure-status";
+/**
+ * 첨부 정독 규칙이 들어간 판본(3). 원문을 함께 실을지는 이 판본으로만 가른다 — 정리 판본이 다른 이유(v4 업종 범위)로
+ * 올라가도 AI 판정마다 원문을 싣는 비용이 늘지 않게.
+ */
+const ATTACHMENT_READ_VERSION = 3;
 import type {
   ServeQuery,
   VerdictModelCall,
@@ -71,7 +75,7 @@ export function structureNeedsRawText(
   // 판본 1 은 첨부를 정독하기 전 규칙이라, 저장된 조건이 **본문(평균 325자)만 보고 뽑은 것**일 수 있다.
   // 그걸 「첨부의 요약」으로 믿고 원문을 빼면, 첨부(평균 5,935자)에만 있는 제외 조건을 못 본 채
   // 「가능」이 나가고 캐시에 영구히 남는다. 실측(2026-08-25): 모집중 중 판본 1 이 337건.
-  return version < CURRENT_STRUCTURE_VERSION;
+  return version < ATTACHMENT_READ_VERSION;
 }
 
 function attachmentExcerpt(text: string | null | undefined): string | undefined {

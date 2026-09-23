@@ -210,7 +210,10 @@ describe("structureNeedsRawText — 첨부 원문을 실을까", () => {
     expect(structureNeedsRawText("done", CURRENT_STRUCTURE_VERSION, s(0))).toBe(true);
   });
   it("판본이 낡으면 싣는다 — 옛 규칙은 본문만 보고 뽑았을 수 있다", () => {
-    expect(structureNeedsRawText("done", CURRENT_STRUCTURE_VERSION - 1, s(3))).toBe(true);
+    expect(structureNeedsRawText("done", 2, s(3))).toBe(true);
+  });
+  it("첨부 정독 판본(3) 이상이면 정리 판본이 더 올라가도(v4 업종 범위) 원문을 싣지 않는다 — 판정 비용이 늘지 않게", () => {
+    expect(structureNeedsRawText("done", 3, s(3))).toBe(false);
   });
   it("현재 판본으로 조건이 뽑혀 있으면 안 싣는다 — 같은 값을 두 번 사지 않는다", () => {
     expect(structureNeedsRawText("done", CURRENT_STRUCTURE_VERSION, s(3))).toBe(false);

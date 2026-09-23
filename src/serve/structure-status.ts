@@ -8,7 +8,8 @@
  */
 import type { ServeQuery } from "./types";
 
-export const CURRENT_STRUCTURE_VERSION = 3;
+/** v4(2026-09-24): AI 가 업종 범위(industryScope)를 답한다 — 없는 옛 정리분은 「맞음」을 못 받아 다시 읽는다. */
+export const CURRENT_STRUCTURE_VERSION = 4;
 
 /** done·needs_review 이고 현재 버전이면 캐시 — 다시 읽지 않는다. */
 export function isCurrentStructure(row: {
