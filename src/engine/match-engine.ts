@@ -479,9 +479,16 @@ function sidoWordsIn(raw: string): string[] {
   return (raw.match(/(?:서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청북|충청남|충북|충남|전라북|전라남|전북|전남|경상북|경상남|경북|경남|제주)(?:특별자치도|특별자치시|특별시|광역시|도)?/g) ?? []);
 }
 
+/** 기업 규모·유형 자격 말 — 이 말을 확인하는 조건(규모·자격 유형)이 아니면 원문에 있을 때 맞음을 막는다. */
+const TARGET_TYPE_WORD =
+  /중소\s*기업|소상공인|소기업|중견|대기업|벤처|창업\s*기업|예비\s*창업|스타트업|여성\s*기업|장애인|사회적\s*기업|협동\s*조합|청년|개인\s*사업자|법인|비영리|소공인|농업인|어업인/;
+
 export function conditionPassIsFitGrade(check: ConditionCheck, p: BusinessProfile | undefined): boolean {
   if (check.verdict !== "pass") return true;
   const key = check.condition.key;
+  // 원문에 규모·유형 자격이 같이 적혔으면(「상시근로자 50인 이하 중소기업」) 이 조건 통과만으로는 그 자격을 확인한
+  // 게 아니다(18차 리뷰). 규모·자격 유형 조건 자체는 그 말을 대조하므로 예외.
+  if (key !== "companyScale" && key !== "targetOrg" && TARGET_TYPE_WORD.test(check.condition.rawText ?? "")) return false;
   if (key === "industry") {
     // 조건 낱말이 회사 업종에서 **낱말 첫머리**로 나와야 한다 — 「비금속」 속 「금속」은 아니다.
     const mine = p?.industry ?? "";

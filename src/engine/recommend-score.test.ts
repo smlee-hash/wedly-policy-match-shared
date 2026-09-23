@@ -364,3 +364,10 @@ describe("정밀 맞음 — 지역 원문은 허용된 말만(16차 리뷰)", ()
     expect(fitVerdictOf([reg("수원시 소재 기업")], ctx)).toBe("fit");
   });
 });
+
+describe("정밀 맞음 — 조건 원문의 규모·유형 말(18차 리뷰)", () => {
+  it("「상시근로자 50인 이하 중소기업」 직원 조건만 통과해서는 맞음이 아니다", () => {
+    const emp = { condition: { key: "employeeMax", op: "lte", value: 50, rawText: "상시근로자 50인 이하 중소기업", machineReadable: true }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([emp], { title: "경영개선 지원사업", profile: { region: "서울", companyScale: "중견기업" }, requireIndustryScope: true, industryScope: "all" })).toBe("unverified");
+  });
+});
