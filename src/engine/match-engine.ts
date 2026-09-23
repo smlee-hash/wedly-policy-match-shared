@@ -600,21 +600,25 @@ export function substantiveHumanChecks(texts: readonly string[], title = ""): st
     const parts = s.split(/[()（）\[\],，;；\n]+/).map((x) => x.trim()).filter((x) => x.length > 0);
     return !parts.every((part) => {
       const body = part.replace(/지원\s*대상\s*에서\s*(?:제외|배제)/g, "제외");
-      const listed = LISTED.test(body) && /제외|불가/.test(body);
       // 상태 낱말은 **하나만**, 빼는 말과 함께, 다른 결격과 섞이지 않았을 때만 결격이다 — 「신용불량 기업 중 휴업
       // 기업 제외」처럼 제외가 다른 상태에 붙으면 앞 상태(자격)까지 지워진다(8차 리뷰).
+      // 대상이 **될 수 있는** 말(상태·상장)은 조각 안에 하나뿐이고, 빼는 말과 함께이며, 다른 결격과 섞이지 않았을
+      // 때만 결격이다 — 「신용불량 기업 중 상장기업 제외」처럼 둘이면 제외가 어디에 붙는지 몰라 막는다(8·9차 리뷰).
       const states = body.match(new RegExp(STATE_DISQUALIFIER.source, "g")) ?? [];
+      const listedHits = body.match(new RegExp(LISTED.source, "g")) ?? [];
       const moral = MORAL_DISQUALIFIER.test(body);
-      const stateCounts = states.length === 1 && EXCLUDING_WORD.test(body) && !moral;
-      if (states.length > 0 && !stateCounts) return false;
-      const generic = moral || stateCounts || listed;
+      const targetable = states.length + listedHits.length;
+      const targetableCounts = targetable === 1 && EXCLUDING_WORD.test(body) && !moral;
+      if (targetable > 0 && !targetableCounts) return false;
+      const stateCounts = targetableCounts && states.length === 1;
+      const generic = moral || targetableCounts;
       const admin = ADMIN_NOTE.test(body);
       if (!generic && !admin) return false;
       // 상태 낱말(신용불량 …)은 빼는 말과 함께일 때만 결격이므로 그때만 지운다 — 안내 조각(「지원내용: 신용불량
       // 상태인 기업」)에서 조건 없이 지우면 자격이 샌다(7차 리뷰).
       let rest = body.replace(new RegExp(MORAL_DISQUALIFIER.source, "g"), " ");
       if (stateCounts) rest = rest.replace(new RegExp(STATE_DISQUALIFIER.source, "g"), " ");
-      if (listed) rest = rest.replace(new RegExp(LISTED.source, "g"), " ");
+      if (targetableCounts && listedHits.length === 1) rest = rest.replace(new RegExp(LISTED.source, "g"), " ");
       rest = rest.replace(new RegExp(ADMIN_NOTE.source, "g"), " ");
       // 대상을 좁히는 말이 남으면 자격 문장이다 — 연결어 조각(「한」+「하여」)으로 흩어져 새지 않게 먼저 본다(4차 리뷰).
       if (/한\s*하여|한\s*함|한정|에\s*한|만\s|만$|전용|대상|이상|이하|초과|미만|\d/.test(rest)) return false;
@@ -698,8 +702,10 @@ export function strictFitBlock(ctx: StrictFitContext): string | null {
   const compounds = compoundFamiliesIn(title);
   if (compounds.unknown.length > 0) return "제목의 분야를 읽지 못함";
   // 뒤에 업종 표시(업·제조·기관 …)가 붙으면 수단이 아니라 대상이다 — 「기계설비 제조업」·「교육훈련기관」(8차 리뷰).
+  // 수단 표현(개선·지원·도입 …)이 **바로 뒤에** 올 때만 가린다 — 업종 표시 목록으로 예외를 두면 「대행업」·
+  // 「서비스업」·「유지보수업」이 계속 샜다(9차 리뷰). 모르는 쓰임은 분야로 읽혀 맞음이 줄어드는 쪽으로 틀린다.
   const masked = TITLE_MEANS_MASK.reduce(
-    (t, m) => t.replace(new RegExp(`${m}(?!\\s*(?:업|제조|기관|기업|업체|분야|산업|사업자|협회|조합|전문))`, "g"), " "),
+    (t, m) => t.replace(new RegExp(`${m}(?=\\s*(?:개선|지원|비용|비|도입|구축|확충|활용|개척|확대|진출|조성|사업(?!자)|$))`, "g"), " "),
     maskCompounds(title),
   );
   const domains = [
