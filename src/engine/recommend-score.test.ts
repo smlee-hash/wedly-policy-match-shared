@@ -371,3 +371,20 @@ describe("정밀 맞음 — 조건 원문의 규모·유형 말(18차 리뷰)", 
     expect(fitVerdictOf([emp], { title: "경영개선 지원사업", profile: { region: "서울", companyScale: "중견기업" }, requireIndustryScope: true, industryScope: "all" })).toBe("unverified");
   });
 });
+
+describe("정밀 맞음 — 조건 원문은 조건으로 설명되는 말만(19차 리뷰)", () => {
+  const c = (key: string, op: string, value: unknown, rawText: string) =>
+    ({ condition: { key, op, value, rawText, machineReadable: true }, verdict: "pass", note: "" }) as never;
+  const ctx = { title: "경영개선 지원사업", profile: { region: "서울", companyScale: "중소기업", employeeCount: 5 }, requireIndustryScope: true, industryScope: "all" as const };
+  it.each([
+    ["companyScale", "in", ["중소기업"], "법인 중소기업"],
+    ["targetOrg", "in", ["사회적기업"], "중소기업에 해당하는 사회적기업"],
+    ["employeeMax", "lte", 10, "상시근로자 10인 이하 마을기업"],
+    ["employeeMax", "lte", 10, "상시근로자 10인 이하 사회적경제기업"],
+  ])("%s 원문 「%s」 는 맞음 근거가 아니다", (key, op, value, raw) => {
+    expect(fitVerdictOf([c(key as string, op as string, value, raw as string)], ctx)).toBe("unverified");
+  });
+  it("「상시근로자 50인 이하」 처럼 조건으로 설명되는 원문은 맞음 근거다", () => {
+    expect(fitVerdictOf([c("employeeMax", "lte", 50, "상시근로자 50인 이하")], ctx)).toBe("fit");
+  });
+});

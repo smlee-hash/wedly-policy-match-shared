@@ -479,16 +479,44 @@ function sidoWordsIn(raw: string): string[] {
   return (raw.match(/(?:서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청북|충청남|충북|충남|전라북|전라남|전북|전남|경상북|경상남|경북|경남|제주)(?:특별자치도|특별자치시|특별시|광역시|도)?/g) ?? []);
 }
 
-/** 기업 규모·유형 자격 말 — 이 말을 확인하는 조건(규모·자격 유형)이 아니면 원문에 있을 때 맞음을 막는다. */
-const TARGET_TYPE_WORD =
-  /중소\s*기업|소상공인|소기업|중견|대기업|벤처|창업\s*기업|예비\s*창업|스타트업|여성\s*기업|장애인|사회적\s*기업|협동\s*조합|청년|개인\s*사업자|법인|비영리|소공인|농업인|어업인/;
+/**
+ * 조건 원문에 남아도 되는 말 — 조건 값·숫자·단위를 지운 뒤 낱말이 모두 이 목록에 있어야 「맞음」 근거가 된다.
+ * 금지 목록(규모·유형 말)으로는 「마을기업」·「법인」처럼 목록 밖 자격이 계속 샜다(18·19차 리뷰). 모르는 말이
+ * 하나라도 남으면 그 조건 통과만으로는 자격을 확인한 게 아니다. 지역 조건은 regionRawTextIsPlain 이 따로 본다.
+ */
+const CONDITION_FILLER = new Set([
+  "상시", "상시근로자", "근로자", "종업원", "직원", "인원", "수", "매출", "매출액", "연매출", "연간", "최근", "직전",
+  "년도", "연도", "기준", "업력", "창업", "설립", "개업", "후", "이내", "이하", "이상", "미만", "초과", "경과", "된", "한",
+  "인", "기업", "업체", "사업장", "소재", "해당", "해당하는", "대상", "신청", "가능", "및", "또는", "등", "합계", "평균",
+  "기간", "동안", "보유", "보유한", "있는", "일", "현재", "공고일", "마감일", "접수", "기업으로", "기업만",
+]);
+const JOSA_TAIL = /(?:으로|에서|에게|까지|부터|이며|이고|은|는|이|가|을|를|의|에|로|와|과|도|만)$/;
+const NUMBER_WORD = /^[0-9][0-9.,]*(?:명|인|억|억원|천만원|백만원|만원|원|년|개월|개|%|세|배|시간|일)?(?:이하|이상|미만|초과|이내)?$/;
+function rawTextExplained(check: ConditionCheck): boolean {
+  const raw = check.condition.rawText ?? "";
+  if (!raw.trim()) return true;
+  const v: unknown = check.condition.value;
+  // 글자 값만 지운다 — 숫자 값(3)을 지우면 「3년」이 「년」만 남는다. 숫자는 NUMBER_WORD 가 본다.
+  const values = (Array.isArray(v) ? v : [v])
+    .filter((x) => typeof x === "string")
+    .map((x) => String(x))
+    .filter((x) => x.length > 0);
+  let t = raw;
+  for (const val of [...values].sort((x, y) => y.length - x.length)) t = t.split(val).join(" ");
+  const words = t.split(/[\s,·ㆍ()（）\[\]/:："'「」~\-]+/).filter((w) => w.length > 0);
+  return words.every((w) => {
+    if (NUMBER_WORD.test(w) || CONDITION_FILLER.has(w)) return true;
+    const stem = w.replace(JOSA_TAIL, "");
+    return stem.length > 0 && (CONDITION_FILLER.has(stem) || NUMBER_WORD.test(stem));
+  });
+}
 
 export function conditionPassIsFitGrade(check: ConditionCheck, p: BusinessProfile | undefined): boolean {
   if (check.verdict !== "pass") return true;
   const key = check.condition.key;
-  // 원문에 규모·유형 자격이 같이 적혔으면(「상시근로자 50인 이하 중소기업」) 이 조건 통과만으로는 그 자격을 확인한
-  // 게 아니다(18차 리뷰). 규모·자격 유형 조건 자체는 그 말을 대조하므로 예외.
-  if (key !== "companyScale" && key !== "targetOrg" && TARGET_TYPE_WORD.test(check.condition.rawText ?? "")) return false;
+  // 원문의 모든 말이 이 조건(값·숫자·허용 연결어)으로 설명돼야 한다 — 「상시근로자 50인 이하 중소기업」·「법인
+  // 중소기업」·「10인 이하 마을기업」처럼 따로 확인하지 않은 자격이 섞이면 맞음이 아니다(18·19차 리뷰).
+  if (key !== "region" && !rawTextExplained(check)) return false;
   if (key === "industry") {
     // 조건 낱말이 회사 업종에서 **낱말 첫머리**로 나와야 한다 — 「비금속」 속 「금속」은 아니다.
     const mine = p?.industry ?? "";
