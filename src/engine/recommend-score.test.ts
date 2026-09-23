@@ -272,6 +272,8 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
     "2026년 IT 기업 전용 지원사업", "2026년 교육업 전용 지원사업", "2026년 기계 제조업 전용 지원사업",
     "기계설비 제조업 전용 지원사업", "교육훈련기관 전용 지원사업",
     "교육훈련 서비스업 전용 지원사업", "기계설비 유지보수업 전용 지원사업",
+    "교육훈련 사업체 전용 지원사업", "기계설비 사업주 지원사업", "성장지원 대상 업종: 교육훈련",
+    "보험업 전용 경영개선 지원사업", "법률서비스업 전용 경영개선 지원사업",
   ])(
     "판정용 분야 사전 낱말도 제목 분야로 읽는다 — 「%s」",
     (title) => {
@@ -282,7 +284,12 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
   it("「정보통신」 한국어 표기도 분야로 읽는다", () => {
     expect(fitVerdictOf([empPass], { title: "2026년 정보통신산업 기술개발 지원사업", profile: { region: "서울", industry: "음식점업" } })).toBe("unverified");
   });
+  it("제목의 「○○업」이 회사 업종 글에 있으면 막지 않는다", () => {
+    expect(fitVerdictOf([empPass], { title: "음식점업 경영개선 지원사업", profile: { region: "서울", industry: "한식 음식점업" } })).toBe("fit");
+  });
   it("분야가 안 적힌 일반 공고는 업종과 상관없이 맞음(작업환경 개선 등)", () => {
-    expect(fitVerdictOf([empPass], { title: "도시제조업 작업환경개선 지원", profile: P })).toBe("fit");
+    expect(fitVerdictOf([empPass], { title: "소공인 작업환경개선 지원", profile: P })).toBe("fit");
+    // 제목이 업종(도시제조업)을 적었는데 회사 업종 글에 그 말이 없으면 정확도 우선으로 막는다(알려진 손해).
+    expect(fitVerdictOf([empPass], { title: "도시제조업 작업환경개선 지원", profile: P })).toBe("unverified");
   });
 });

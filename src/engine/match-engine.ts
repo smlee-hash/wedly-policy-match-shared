@@ -662,6 +662,10 @@ const TITLE_MEANS_MASK = [
   "판로", "판매망", "판매 촉진", "판매촉진", "홍보물", "기계설비", "설비 도입", "설비도입", "시설 설비", "디자인 개발",
   "플랫폼 입점", "전자상거래 입점",
 ];
+/** 「업」으로 끝나도 업종이 아닌 말. */
+const NOT_INDUSTRY_WORD =
+  /(?:기업|사업|창업|산업|작업|영업|협업|직업|실업|졸업|분업|수업|개업|폐업|휴업|취업|학업|과업|잔업|스타트업)$|^(?:업|조업|성업)$/;
+
 function titleWordsOf(f: (typeof SECTOR_FAMILIES)[number]): string[] {
   return [...f.announcementWords, ...f.companyWords].filter((w) => !/^[A-Za-z]+$/.test(w));
 }
@@ -705,9 +709,19 @@ export function strictFitBlock(ctx: StrictFitContext): string | null {
   // 수단 표현(개선·지원·도입 …)이 **바로 뒤에** 올 때만 가린다 — 업종 표시 목록으로 예외를 두면 「대행업」·
   // 「서비스업」·「유지보수업」이 계속 샜다(9차 리뷰). 모르는 쓰임은 분야로 읽혀 맞음이 줄어드는 쪽으로 틀린다.
   const masked = TITLE_MEANS_MASK.reduce(
-    (t, m) => t.replace(new RegExp(`${m}(?=\\s*(?:개선|지원|비용|비|도입|구축|확충|활용|개척|확대|진출|조성|사업(?!자)|$))`, "g"), " "),
+    (t, m) => t.replace(new RegExp(`${m}(?=\\s*(?:개선|지원|비용|비|도입|구축|확충|활용|개척|확대|진출|조성|사업(?![자체주장])))`, "g"), " "),
     maskCompounds(title),
   );
+  // 제목이 적은 「○○업」(보험업·법률서비스업 …)은 사전에 없어도 대상 업종이다 — 회사 업종 글에 그 말이 없으면
+  // 맞음 금지. 사전 분야로만 보면 사전 밖 업종이 전부 샜다(10차 리뷰). 기업·사업·창업 같은 말은 업종이 아니다.
+  const industryWords = (masked.match(/[가-힣]+(?:업종|업체|업)(?![가-힣])/g) ?? [])
+    .map((w) => w.replace(/(?:업종|업체)$/, "업"))
+    .filter((w) => !NOT_INDUSTRY_WORD.test(w));
+  if (industryWords.length > 0) {
+    const mineText = (ctx.profile?.industry ?? "").replace(/\s+/g, "");
+    if (!mineText) return "제목에 업종이 있는데 회사 업종을 모름";
+    if (industryWords.some((w) => !mineText.includes(w))) return "제목의 업종이 회사 업종과 다름";
+  }
   const domains = [
     ...new Set([
       ...TITLE_DOMAINS.filter(([, re]) => re.test(masked)).map(([f]) => f),
