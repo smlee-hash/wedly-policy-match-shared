@@ -65,6 +65,15 @@ function siblingTd(start: HTMLElement, cls: string, dir: 1 | -1): HTMLElement | 
 }
 
 export function parseCistepList(html: string, _page = 1, now = Date.now()): BoardRow[] {
+  return parseCistepRows(html, now, true);
+}
+
+/** 거르개 전 원본 행 — 검증 관문용. 지원사업 거르개·오래된 붙박이를 거치지 않는다. */
+export function parseCistepRaw(html: string): BoardRow[] {
+  return parseCistepRows(html, Date.now(), false);
+}
+
+function parseCistepRows(html: string, now: number, filter: boolean): BoardRow[] {
   const out: BoardRow[] = [];
   const seen = new Set<string>();
   for (const td of parseHtml(html).querySelectorAll("table.list_1 td.subject")) {
@@ -72,7 +81,7 @@ export function parseCistepList(html: string, _page = 1, now = Date.now()): Boar
     const id = (a?.getAttribute("href") ?? "").match(PKID)?.[1] ?? "";
     if (!id || seen.has(id)) continue;
     const title = (a?.text ?? "").replace(/\s+/g, " ").trim();
-    if (!title || DROP.test(title)) continue;
+    if (!title || (filter && DROP.test(title))) continue;
     /**
      * 등록일은 **`td.date` 칸을 직접** 집는다.
      * ⚠️ 행 전체 글자에서 찾으면 안 된다 — 번호 칸 「312」 + 「2026-08-19」가
@@ -84,7 +93,7 @@ export function parseCistepList(html: string, _page = 1, now = Date.now()): Boar
     const ymd = d ? `${d[1]}-${d[2].padStart(2, "0")}-${d[3].padStart(2, "0")}` : "";
     const num = (siblingTd(td, "num", -1)?.text ?? "").replace(/\s+/g, " ").trim();
     const pinned = num.includes("공지");
-    if (pinned && ymd && now - Date.parse(`${ymd}T00:00:00Z`) > PINNED_MAX_AGE_MS) continue;
+    if (filter && pinned && ymd && now - Date.parse(`${ymd}T00:00:00Z`) > PINNED_MAX_AGE_MS) continue;
     seen.add(id);
     out.push({
       title,
@@ -118,12 +127,14 @@ export const cistepConfig: BoardConfig = {
     },
   },
   customParse: parseCistepList,
+  validationParse: parseCistepRaw,
   /**
    * 상세 실측(`/zboard/read.do?lmCode=notice&pd_pkid=14428`, 2026-09-03):
    * 본문 `td.bbs_detail`(공고 글 + 한글 편집기 상자), 첨부 `td.file`(`printFileDown.do`).
    */
   detailContentSelector: "td.bbs_detail",
   attachmentsScopeSelector: "td.file",
-  // 한 쪽 10줄에서 거르개를 지나면 절반 근처가 남는다. 0행이면 서식 변경.
+  // 한 쪽 10줄. 검증은 거르개 전 행(`validationParse`)으로 한다 — 2026-09-23 1쪽은 평가위원·제안서
+  // 평가 6줄을 빼고 4줄이 남아 거르개 뒤 행으로 재면 「최소 5행」에 걸려 게시판 전체가 버려졌다.
   expectMinRows: 5,
 };

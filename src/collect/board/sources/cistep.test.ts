@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { cistepConfig, isCistepDropTitle, parseCistepList } from "./cistep";
+import { validateRows } from "../validate";
 
 /**
  * ★손으로 쓴 HTML 대신 **실사이트 고정본**으로 잰다.
@@ -138,5 +139,19 @@ describe("망가뜨려 보기", () => {
         (r) => r.dateText === "",
       ),
     ).toBe(true);
+  });
+});
+
+/**
+ * 2026-09-23 누락 실측 — 1쪽 10줄 중 6줄이 평가위원·제안서 평가라 거르개 뒤 4줄이 남았고,
+ * 「최소 5행」 검증에 걸려 지원사업 4건이 든 게시판 전체가 버려졌다.
+ */
+describe("cistep — 2026-09-23 원문(1쪽)", () => {
+  const live = readFileSync(join(__dirname, "../__fixtures__/cistep-list-20260923.html"), "utf-8");
+  it("거르개 뒤 남은 지원사업이 4건이어도 검증은 거르개 전 10줄로 통과한다", () => {
+    expect(parseCistepList(live).length).toBe(4);
+    const raw = cistepConfig.validationParse?.(live, 1) ?? [];
+    expect(raw.length).toBe(10);
+    expect(validateRows(raw, { expectMinRows: cistepConfig.expectMinRows, prevCount: 0 }).ok).toBe(true);
   });
 });
