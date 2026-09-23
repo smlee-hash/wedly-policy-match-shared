@@ -1013,8 +1013,9 @@ describe("정밀 맞음 — 지역 외 조건·원문·약칭(리뷰 review-afe4
   it("「비금속」 업종은 「금속」 조건으로 신청 가능이 아니다", () => {
     expect(grade([{ key: "industry", op: "in", value: ["금속"], rawText: "금속 가공업 사업자", machineReadable: true }], { industry: "비금속 광물제품 제조업" })).toBe("uncertain");
   });
-  it("「금속가공업」 업종은 「금속」 조건으로 신청 가능", () => {
-    expect(grade([{ key: "industry", op: "in", value: ["금속"], rawText: "금속 가공업 사업자", machineReadable: true }], { industry: "금속가공업" })).toBe("possible");
+  // 2026-09-24(16차 리뷰): 업종 조건이 있는 공고는 글자 대조로 확정하지 않는다 — 항상 사람 확인(가능 금지).
+  it("업종 조건이 있으면 「금속가공업」 회사여도 가능이 아니라 애매", () => {
+    expect(grade([{ key: "industry", op: "in", value: ["금속"], rawText: "금속 가공업 사업자", machineReadable: true }], { industry: "금속가공업" })).toBe("uncertain");
   });
   it("「중소기업」은 「소기업」 조건으로 신청 가능이 아니다", () => {
     expect(grade([

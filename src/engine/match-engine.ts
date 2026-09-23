@@ -459,6 +459,25 @@ function companySigunguName(p: BusinessProfile | undefined): string | null {
  * 조건 하나가 「맞음」의 근거가 될 만큼 확정인가(판정은 바꾸지 않는다 — 2026-09-24 정밀 맞음, 리뷰 6회).
  * 지역·업종·규모는 판정이 글자 포함으로 넓게 통과시키므로, 「맞음」에서는 더 엄격히 본다.
  */
+/** 지역 원문에 남아도 되는 말(지역 이름을 지운 뒤). */
+const REGION_FILLER = new Set([
+  "소재", "소재한", "소재지", "위치한", "관내", "내", "지역", "지역의", "기업", "업체", "사업장", "본사", "주소지", "주사무소",
+  "사업자", "중소기업", "소상공인", "에", "의", "을", "를", "이", "가", "은", "는", "둔", "있는", "두고", "및", "또는", "등",
+  "전국", "도", "시", "군", "구", "특별시", "광역시", "특별자치시", "특별자치도",
+]);
+function regionRawTextIsPlain(raw: string): boolean {
+  if (!raw.trim()) return true;
+  let t = raw;
+  // 시군구는 약칭(「구미」)으로도 적히므로 끝 글자(시·군·구)를 뗀 어간도 지운다.
+  const names = subRegionNamesIn(raw).flatMap((n) => [n, n.replace(/[시군구]$/, "")]).filter((n) => n.length >= 2);
+  for (const n of [...names, ...sidoWordsIn(raw)].sort((x, y) => y.length - x.length)) t = t.split(n).join(" ");
+  const words = t.split(/[\s,·ㆍ()（）\[\]/:："'「」]+/).filter((w) => w.length > 0);
+  return words.every((w) => REGION_FILLER.has(w));
+}
+function sidoWordsIn(raw: string): string[] {
+  return (raw.match(/(?:서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청북|충청남|충북|충남|전라북|전라남|전북|전남|경상북|경상남|경북|경남|제주)(?:특별자치도|특별자치시|특별시|광역시|도)?/g) ?? []);
+}
+
 export function conditionPassIsFitGrade(check: ConditionCheck, p: BusinessProfile | undefined): boolean {
   if (check.verdict !== "pass") return true;
   const key = check.condition.key;
@@ -473,8 +492,9 @@ export function conditionPassIsFitGrade(check: ConditionCheck, p: BusinessProfil
     return (check.condition.value as unknown[]).map((v) => String(v).replace(/\s/g, "")).includes(mine);
   }
   if (key !== "region") return true;
-  // 원문에 제외 지역이 있으면(「경기도 소재 기업(수원시 제외)」) 값만으로는 회사가 빠지는지 모른다(15차 리뷰).
-  if (/제외|불가|배제/.test(check.condition.rawText ?? "")) return false;
+  // 원문이 지역 이름과 허용된 말(소재·관내·기업 …)로만 이뤄져야 한다 — 「수원시 제외」·「수원시 외 지역」·「지원
+  // 대상이 아님」처럼 빼는 말은 모양이 끝없이 많아 금지 목록으로는 못 막았다(15·16차 리뷰).
+  if (!regionRawTextIsPlain(check.condition.rawText ?? "")) return false;
   // 원문에 시군구(약칭 포함)가 있으면 회사 시군구가 그중 하나여야 한다 — 값이 시도로 축약돼도(리뷰 review-afe4e27f).
   const rawNames = subRegionNamesIn(check.condition.rawText ?? "");
   if (rawNames.length > 0) {
@@ -688,27 +708,13 @@ function titleWordsOf(f: (typeof SECTOR_FAMILIES)[number]): string[] {
  * 그 밖(모름·옛 정리분)은 막는다.
  */
 function industryScopeBlock(ctx: StrictFitContext): string | null {
-  if (ctx.industryScope === "all") return null;
-  if (ctx.industryScope !== "restricted") return "업종 제한 여부를 아직 확인하지 못함";
-  const industryChecks = (ctx.checks ?? []).filter((c) => c.condition.key === "industry");
-  if (industryChecks.length === 0) return "업종 제한 공고인데 업종 조건이 없음";
-  const mine = sectorFamiliesOfIndustry(ctx.profile?.industry ?? "");
-  if (mine.length === 0) return "업종 제한 공고인데 회사 업종을 분야로 못 읽음";
-  const mineText = ctx.profile?.industry ?? "";
-  for (const c of industryChecks) {
-    if (c.verdict !== "pass" || !conditionPassIsFitGrade(c, ctx.profile)) return "업종 제한을 확인하지 못함";
-    const v: unknown = c.condition.value;
-    const values = (Array.isArray(v) ? v : [v]).map((x) => String(x));
-    // 선택지마다 따로 본다 — 글자가 맞은 선택지가 **그 자체로** 구체 분야이고 회사와 이어져야 한다. 선택지들의
-    // 분야를 합치면 「인쇄」 글자 + 「소프트웨어」 분야처럼 서로 다른 선택지의 근거가 섞인다(12차 리뷰).
-    const hits = values.filter((x) => wordStartIn(mineText, x));
-    if (hits.length === 0) return "업종 제한을 확인하지 못함";
-    const ok = hits.some((x) => {
-      const fams = sectorFamiliesOfIndustry(x);
-      return fams.length > 0 && mine.some((f) => relatedFamiliesOf(fams).has(f));
-    });
-    if (!ok) return "업종 제한이 넓은 말이거나 회사 업종과 달라 확인하지 못함";
-  }
+  // 업종 제한 공고는 회사 업종 글과 조건 글을 맞대는 것으로는 확정이 안 된다 — 「식품 포장용기 제조업」·「음ㆍ식료품
+  // 및 담배 가공기계 제조업」처럼 글자가 겹쳐도 다른 업종이 계속 나왔다(12~16차 리뷰). 업종 제한이 있으면 항상
+  // 사람이 확인한다(정확도 우선 — 대상 업체도 「확인 필요」로 내려가는 손해를 감수한다).
+  if (ctx.industryScope === "restricted") return "업종 제한 공고 — 회사 업종 자격은 사람이 확인";
+  if (ctx.industryScope !== "all") return "업종 제한 여부를 아직 확인하지 못함";
+  // 제한 없음이라면서 업종 조건이 있으면 AI 답이 서로 어긋난다 — 믿지 않는다.
+  if ((ctx.checks ?? []).some((c) => c.condition.key === "industry")) return "업종 범위 답과 업종 조건이 어긋남";
   return null;
 }
 

@@ -317,26 +317,12 @@ describe("정밀 맞음 — AI 업종 범위(industryScope)", () => {
     expect(fitVerdictOf([empPass], { ...base, industryScope: "unknown" })).toBe("unverified");
     expect(fitVerdictOf([empPass], { ...base })).toBe("unverified");
   });
-  it("restricted 는 구체 분야 업종 조건이 회사와 맞을 때만", () => {
-    expect(fitVerdictOf([empPass, ind(["식품"])], { ...base, industryScope: "restricted" })).toBe("fit");
-    // 선택지별로 본다 — 식품 회사는 「식품」 선택지로 충족하니 맞음, 광고물 제조업체는 넓은 「제조업」 글자로만 맞아 막는다
-    expect(fitVerdictOf([empPass, ind(["식품", "제조업"])], { ...base, industryScope: "restricted" })).toBe("fit");
-    const sign = { region: "서울", industry: "간판 및 광고물 제조업" };
-    expect(fitVerdictOf([empPass, ind(["식품", "제조업"])], { ...base, profile: sign, industryScope: "restricted" })).toBe("unverified");
-    expect(fitVerdictOf([empPass, ind(["제조업"])], { ...base, industryScope: "restricted" })).toBe("unverified");
-    // 업종 조건 없음
+  it("restricted 는 업종 조건이 맞아 보여도 항상 확인 필요 — 글자 대조로 업종 자격을 확정하지 않는다(16차 리뷰)", () => {
+    expect(fitVerdictOf([empPass, ind(["식품"])], { ...base, industryScope: "restricted" })).toBe("unverified");
     expect(fitVerdictOf([empPass], { ...base, industryScope: "restricted" })).toBe("unverified");
-    // 선택지 근거가 섞이면 안 된다 — 「인쇄」 글자 + 「소프트웨어」 분야(12차 리뷰)
-    // 영문 단어 안의 약어(FITNESS 속 IT)는 업종 근거가 아니다(13차 리뷰)
-    const fit = { region: "서울", industry: "FITNESS(체력단련시설 운영업)" };
-    expect(fitVerdictOf([empPass, ind(["IT"])], { ...base, title: "IT 기업 전용 지원사업", profile: fit, industryScope: "restricted" })).toBe("unverified");
-    expect(fitVerdictOf([empPass, ind(["IT 서비스"])], { ...base, title: "IT 서비스 기업 성장 지원사업", profile: { region: "서울", industry: "CREDIT 서비스 및 광고업" }, industryScope: "restricted" })).toBe("unverified");
-    // 합성어 앞머리(식품가공기계의 식품)는 업종 근거가 아니다(14차 리뷰)
-    expect(fitVerdictOf([empPass, ind(["식품"])], { ...base, title: "2026년 식품 제조업 전용 지원사업", profile: { region: "서울", industry: "식품가공기계 제조업" }, industryScope: "restricted" })).toBe("unverified");
-    // 공백 뒤 설명이 업종을 바꾸면 아니다 — 「식품 포장용기 제조업」(15차 리뷰)
-    expect(fitVerdictOf([empPass, ind(["식품"])], { ...base, title: "2026년 식품 제조업 경영개선 지원사업", profile: { region: "서울", industry: "식품 포장용기 제조업" }, industryScope: "restricted" })).toBe("unverified");
-    const pcb = { region: "서울", industry: "인쇄회로기판 제조업" };
-    expect(fitVerdictOf([empPass, ind(["인쇄", "소프트웨어"])], { ...base, profile: pcb, industryScope: "restricted" })).toBe("unverified");
+  });
+  it("all 인데 업종 조건이 있으면 AI 답이 어긋나 확인 필요", () => {
+    expect(fitVerdictOf([empPass, ind(["식품"])], { ...base, industryScope: "all" })).toBe("unverified");
   });
   it("금융상품처럼 요구하지 않으면 영향 없다", () => {
     expect(fitVerdictOf([empPass], { title: "2026년 경영개선 지원사업", profile: food })).toBe("fit");
@@ -347,5 +333,21 @@ describe("정밀 맞음 — 지역 조건 원문의 제외(15차 리뷰)", () =>
   it("「경기도 소재 기업(수원시 제외)」 은 수원시 회사에 맞음이 아니다", () => {
     const reg = { condition: { key: "region", op: "in", value: ["경기"], rawText: "경기도 소재 기업(수원시 제외)", machineReadable: true }, verdict: "pass", note: "" } as never;
     expect(fitVerdictOf([reg], { title: "경영개선 지원사업", profile: { region: "경기", regionSigungu: "수원시" }, requireIndustryScope: true, industryScope: "all" })).toBe("unverified");
+  });
+});
+
+describe("정밀 맞음 — 지역 원문은 허용된 말만(16차 리뷰)", () => {
+  const reg = (rawText: string) =>
+    ({ condition: { key: "region", op: "in", value: ["경기"], rawText, machineReadable: true }, verdict: "pass", note: "" }) as never;
+  const suwon = { region: "경기", regionSigungu: "수원시" };
+  const ctx = { title: "경영개선 지원사업", profile: suwon, requireIndustryScope: true, industryScope: "all" as const };
+  it.each(["경기도 내 수원시 외 지역 소재 기업", "수원시 소재 기업은 지원 대상이 아님", "경기도 소재 기업(수원시 제외)"])(
+    "「%s」 는 수원시 회사에 맞음이 아니다",
+    (raw) => {
+      expect(fitVerdictOf([reg(raw)], ctx)).toBe("unverified");
+    },
+  );
+  it("「수원시 소재 기업」 은 수원시 회사에 맞음", () => {
+    expect(fitVerdictOf([reg("수원시 소재 기업")], ctx)).toBe("fit");
   });
 });
