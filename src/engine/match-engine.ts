@@ -1,6 +1,6 @@
 // 프로필 vs 구조화 조건 순수 대조 — AI 없음, 저장소 접근 없음(설계서 §3, 계획 Task 4).
 // 「모름」은 절대 통과로 치지 않는다 — 값이 없으면 unknown → 등급은 최고 uncertain 까지만 간다.
-import { compoundFamiliesIn, maskCompounds, relatedFamiliesOf, sectorFamiliesOfIndustry, SECTOR_FAMILY_NAMES } from "./sector";
+import { compoundFamiliesIn, maskCompounds, relatedFamiliesOf, SECTOR_FAMILIES, sectorFamiliesOfIndustry, SECTOR_FAMILY_NAMES } from "./sector";
 import { SIGUNGU_TO_SIDO, sigunguSido } from "./sigungu";
 import { ORG_TYPE_NAMES, profileOrgTypes } from "./target-org";
 import {
@@ -549,8 +549,16 @@ const PRE_FOUNDER_ONLY = /예비\s*창업|재\s*창업|재도전/;
  * 거의 모든 회사가 해당 없는 결격 사항(휴·폐업·허위신청·체납·중복지원·사치향락업 …) — 「맞음」을 막지 않고
  * 「신청 전 확인」으로 보인다(2026-09-24 사장님 결정: 결격 사항은 표시만).
  */
-const GENERIC_DISQUALIFIER =
-  /휴\s*[·ㆍ.,]?\s*폐업|폐업|허위|부정한\s*방법|부정\s*수급|체납|이해\s*관계|중복\s*(?:지원|수혜|신청)|불건전|사행|유흥|부도|제재|참여\s*제한|신용\s*불량|적정하지\s*않다고|지원\s*결정\s*후|관외\s*이전|환수|보증\s*심사\s*규정|연체|채무\s*불이행|파산|회생|사치|향락|투기|퇴폐|무신고|횡령|영업\s*정지|행정\s*처분|결격|사회적\s*물의/;
+/** 어떤 공고의 대상도 될 수 없는 결격(부정·사행·중복수혜 …) — 문장에 있기만 하면 결격이다. */
+const MORAL_DISQUALIFIER =
+  /허위|부정한\s*방법|부정\s*수급|이해\s*관계|중복\s*(?:지원|수혜|신청)|불건전|사행|유흥|제재|참여\s*제한|적정하지\s*않다고|지원\s*결정\s*후|관외\s*이전|환수|보증\s*심사\s*규정|사치|향락|투기|퇴폐|무신고|횡령|영업\s*정지|행정\s*처분|결격|사회적\s*물의/;
+/**
+ * 지원 대상이 **될 수도 있는** 상태(폐업 지원·신용불량 기업 경영정상화·회생기업 …). 같은 조각에 빼는 말
+ * (제외·불가·배제)이 있을 때만 결격으로 본다(6차 리뷰 — 제목만으로는 그런 공고를 다 못 알아본다).
+ */
+const STATE_DISQUALIFIER = /휴\s*[·ㆍ.,]?\s*폐업|폐업|휴업|체납|부도|신용\s*불량|연체|채무\s*불이행|파산|회생/;
+const EXCLUDING_WORD = /제외|불가|배제/;
+const GENERIC_DISQUALIFIER = new RegExp(`${MORAL_DISQUALIFIER.source}|${STATE_DISQUALIFIER.source}`);
 /** 「상장기업」은 빼는 말(제외·불가)이 같은 조각에 있을 때만 결격이다 — 「코스닥 상장 기업」이 대상일 수 있다. */
 const LISTED = /상장\s*(?:기업|법인|회사)/;
 /**
@@ -572,7 +580,7 @@ const ADMIN_NOTE = /지원\s*내용|지원\s*규모|지원\s*금액|지원\s*한
 const FILLER_WORDS = new Set([
   "현재", "기업", "업체", "기업의", "기업이", "기업인", "기업은", "업체는", "중인", "중", "상태", "상태의", "상태인",
   "인", "경우", "또는", "나", "및", "등", "등이", "으로", "방법으로", "신청한", "국세", "지방세", "제외", "지원제외",
-  "대표자", "자", "자인", "은", "는", "이", "가", "의",
+  "대표자", "자", "자인", "은", "는", "이", "가", "의", "불가", "배제",
 ]);
 const ADMIN_FILLER_WORDS = new Set(["자세한", "세부", "상세", "공고문", "참조"]);
 function onlyFiller(rest: string, admin: boolean): boolean {
@@ -593,7 +601,7 @@ export function substantiveHumanChecks(texts: readonly string[], title = ""): st
     return !parts.every((part) => {
       const body = part.replace(/지원\s*대상\s*에서\s*(?:제외|배제)/g, "제외");
       const listed = LISTED.test(body) && /제외|불가/.test(body);
-      const generic = GENERIC_DISQUALIFIER.test(body) || listed;
+      const generic = MORAL_DISQUALIFIER.test(body) || (STATE_DISQUALIFIER.test(body) && EXCLUDING_WORD.test(body)) || listed;
       const admin = ADMIN_NOTE.test(body);
       if (!generic && !admin) return false;
       let rest = body.replace(new RegExp(GENERIC_DISQUALIFIER.source, "g"), " ");
@@ -628,6 +636,19 @@ const TITLE_DOMAINS: Array<readonly [string, RegExp]> = [
   ["건설", /건설|건축/],
   ["물류운수", /물류|운송|운수/],
 ];
+
+/**
+ * 판정용 분야 사전의 낱말도 제목 분야로 읽는다 — 「맞음」 전용 목록만 보면 「음료 제조업 전용」·「미용업 전용」이
+ * 샜다(6차 리뷰). 다만 일반 공고에 흔한 **지원 수단** 낱말(작업환경·교육·판로·광고·임대료 …)은 뺀다.
+ * 영문 약어(IT·SW·AI)는 글자 경계가 필요해 TITLE_DOMAINS 가 맡는다.
+ */
+const GENERIC_TITLE_WORDS = new Set([
+  "환경", "교육", "플랫폼", "판매", "디자인", "설비", "앱", "임대", "광고", "홍보물", "판촉물", "유통", "소매", "도소매",
+  "도매", "전자상거래", "기계", "IT", "SW", "AI", "ICT",
+]);
+function titleWordsOf(f: (typeof SECTOR_FAMILIES)[number]): string[] {
+  return [...f.announcementWords, ...f.companyWords].filter((w) => !GENERIC_TITLE_WORDS.has(w) && !/^[A-Za-z]+$/.test(w));
+}
 
 /** 막을 이유(사람 말 한 줄) 또는 null. */
 export function strictFitBlock(ctx: StrictFitContext): string | null {
@@ -664,8 +685,13 @@ export function strictFitBlock(ctx: StrictFitContext): string | null {
   // 업종 무관 차단 — 제목이 분야를 적었으면 회사 업종이 그 분야(이웃 포함)여야 「맞음」이다.
   const compounds = compoundFamiliesIn(title);
   if (compounds.unknown.length > 0) return "제목의 분야를 읽지 못함";
+  const masked = maskCompounds(title);
   const domains = [
-    ...new Set([...TITLE_DOMAINS.filter(([, re]) => re.test(maskCompounds(title))).map(([f]) => f), ...compounds.families]),
+    ...new Set([
+      ...TITLE_DOMAINS.filter(([, re]) => re.test(masked)).map(([f]) => f),
+      ...SECTOR_FAMILIES.filter((f) => titleWordsOf(f).some((w) => masked.includes(w))).map((f) => f.family),
+      ...compounds.families,
+    ]),
   ];
   if (domains.length > 0) {
     const mine = sectorFamiliesOfIndustry(ctx.profile?.industry ?? "");

@@ -193,7 +193,7 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
   const P = { region: "서울", industry: "간판 및 광고물 제조업" };
   it("결격 사항·지원내용 안내뿐이면 맞음", () => {
     expect(fitVerdictOf([empPass], { title: "소상공인 경영개선 지원", profile: P, humanCheck: 0, humanCheckTexts: [
-      "휴·폐업중인 기업", "허위 또는 부정한 방법으로 신청한 경우", "※ 자세한 지원내용 공고문 참조", "국세·지방세 체납 기업",
+      "휴·폐업 기업 제외", "허위 또는 부정한 방법으로 신청한 경우", "※ 자세한 지원내용 공고문 참조", "국세·지방세 체납 기업 제외",
     ] })).toBe("fit");
   });
   it("자격 관련 사람 확인(「중소기업」·「지원대상 공고문 참조」)이 남으면 맞음이 아니다", () => {
@@ -228,6 +228,9 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
     "체납이 없는 법인에 한하여 신청",
     "체납이 없는 시내 기업",
     "신청자는 폐업 이력이 있는 자",
+    "신용불량 상태인 기업",
+    "회생 중인 기업",
+    "휴·폐업중인 기업",
   ])("자격 문장 「%s」 이 남으면 맞음이 아니다", (t) => {
     expect(fitVerdictOf([empPass], { title: "2026년 경영환경 개선 지원사업", profile: P, humanCheckTexts: [t] })).toBe("unverified");
   });
@@ -259,6 +262,12 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
     const broad = { condition: { key: "industry", op: "in", value: ["제조업"], rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
     expect(fitVerdictOf([empPass, broad], { title: "2026년 귀금속 제조업 전용 지원사업", profile: { region: "서울", industry: "식품 제조업" } })).toBe("unverified");
   });
+  it.each(["2026년 음료 제조업 전용 지원사업", "2026년 미용업 전용 경영환경 개선 지원사업"])(
+    "판정용 분야 사전 낱말도 제목 분야로 읽는다 — 「%s」",
+    (title) => {
+      expect(fitVerdictOf([empPass], { title, profile: P, humanCheckTexts: ["국세·지방세 체납 기업 제외"] })).toBe("unverified");
+    },
+  );
   it("「정보통신」 한국어 표기도 분야로 읽는다", () => {
     expect(fitVerdictOf([empPass], { title: "2026년 정보통신산업 기술개발 지원사업", profile: { region: "서울", industry: "음식점업" } })).toBe("unverified");
   });
