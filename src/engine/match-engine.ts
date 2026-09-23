@@ -675,8 +675,11 @@ export function strictFitBlock(ctx: StrictFitContext): string | null {
     // 나머지(「홍보영상」)는 지원 수단이다. 「제조업」처럼 넓은 조건은 분야를 못 가리켜 면제하지 않는다(3차 리뷰).
     const condFamilies = (ctx.checks ?? [])
       .filter((c) => c.condition.key === "industry" && c.verdict === "pass" && conditionPassIsFitGrade(c, ctx.profile))
-      .flatMap((c) => (Array.isArray(c.condition.value) ? c.condition.value : [c.condition.value]))
-      .flatMap((v) => sectorFamiliesOfIndustry(String(v)));
+      .flatMap((c) => {
+        const v: unknown = c.condition.value;
+        return (Array.isArray(v) ? v : [v]).map((x) => String(x));
+      })
+      .flatMap((v) => sectorFamiliesOfIndustry(v));
     const targeted = condFamilies.length > 0 ? domains.filter((d) => relatedFamiliesOf(condFamilies).has(d)) : [];
     // 적힌 분야가 **모두** 회사 업종과 이어져야 한다 — 하나만 맞아도 통과시키면 「식품제조업 전용 홍보영상」이
     // 「영상」 하나로 광고회사에 맞음이 된다(독립 리뷰 review-1b329d8d).
