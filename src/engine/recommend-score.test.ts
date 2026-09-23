@@ -218,8 +218,21 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
     "대학과 기술이전 계약을 체결한 경우",
     "만 39세 초과 시 신청 불가",
     "체납이 없고 수출 실적이 있는 기업",
+    "상장기업 및 수출 실적이 없는 기업은 지원대상에서 제외",
+    "대표자가 만 39세 이하인 기업은 신청서 제출",
+    "신청서상 대표자가 만 39세 이하인 경우",
   ])("자격 문장 「%s」 이 남으면 맞음이 아니다", (t) => {
     expect(fitVerdictOf([empPass], { title: "2026년 경영환경 개선 지원사업", profile: P, humanCheckTexts: [t] })).toBe("unverified");
+  });
+  it("결격 낱말이 공고의 대상이면(폐업 지원) 결격으로 보지 않는다", () => {
+    expect(fitVerdictOf([empPass], { title: "2026년 폐업 소상공인 사업정리 지원사업 공고", profile: P, humanCheckTexts: ["폐업 소상공인"] })).toBe("unverified");
+    expect(fitVerdictOf([empPass], { title: "소상공인 재기 지원", profile: P, humanCheckTexts: ["연체 중인 소상공인"] })).toBe("unverified");
+  });
+  it("업종 조건이 기계로 확인되면 제목의 지원 수단(홍보영상)이 대상 업체를 막지 않는다", () => {
+    const indPass = { condition: { key: "industry", op: "in", value: ["식품"], rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([empPass, indPass], { title: "2026년 식품제조업 전용 홍보영상 제작 지원사업", profile: { region: "서울", industry: "식품 제조업" } })).toBe("fit");
+    // 업종 조건이 없으면 여전히 막는다(광고회사)
+    expect(fitVerdictOf([empPass], { title: "2026년 식품제조업 전용 홍보영상 제작 지원사업", profile: P })).toBe("unverified");
   });
   it("「지원대상에서 제외」라는 결격 문장은 맞음을 막지 않는다", () => {
     expect(fitVerdictOf([empPass], { title: "2026년 경영환경 개선 지원사업", profile: P, humanCheckTexts: ["상장기업은 지원대상에서 제외", "국세·지방세 체납 기업 제외"] })).toBe("fit");

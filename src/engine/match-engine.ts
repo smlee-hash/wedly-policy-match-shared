@@ -533,6 +533,11 @@ export type StrictFitContext = {
    * 「통과」로 만든다(9/23: 광고회사에 「치매의료기술연구개발」, 영등포 회사에 「광진구 사업장」 공고).
    */
   ruleOnly?: boolean;
+  /**
+   * 조건 대조 결과. 업종 조건이 맞음 수준으로 통과했으면 제목 분야 검사를 건너뛴다 — 「식품제조업 전용
+   * 홍보영상」의 「영상」은 지원 수단이지 대상 업종이 아니다(2차 리뷰 2026-09-24).
+   */
+  checks?: ConditionCheck[];
 };
 
 /**
@@ -550,7 +555,14 @@ const PRE_FOUNDER_ONLY = /예비\s*창업|재\s*창업|재도전/;
  * 「신청 전 확인」으로 보인다(2026-09-24 사장님 결정: 결격 사항은 표시만).
  */
 const GENERIC_DISQUALIFIER =
-  /휴\s*[·ㆍ.,]?\s*폐업|폐업|허위|부정한\s*방법|부정\s*수급|체납|이해\s*관계|중복\s*(?:지원|수혜|신청)|불건전|사행|유흥|부도|제재|참여\s*제한|신용\s*불량|적정하지\s*않다고|지원\s*결정\s*후|관외\s*이전|환수|보증\s*심사\s*규정|연체|채무\s*불이행|파산|회생|사치|향락|투기|퇴폐|무신고|횡령|영업\s*정지|행정\s*처분|결격|사회적\s*물의|상장\s*(?:기업|법인|회사)[\s\S]*?(?:제외|불가)/;
+  /휴\s*[·ㆍ.,]?\s*폐업|폐업|허위|부정한\s*방법|부정\s*수급|체납|이해\s*관계|중복\s*(?:지원|수혜|신청)|불건전|사행|유흥|부도|제재|참여\s*제한|신용\s*불량|적정하지\s*않다고|지원\s*결정\s*후|관외\s*이전|환수|보증\s*심사\s*규정|연체|채무\s*불이행|파산|회생|사치|향락|투기|퇴폐|무신고|횡령|영업\s*정지|행정\s*처분|결격|사회적\s*물의/;
+/** 「상장기업」은 빼는 말(제외·불가)이 같은 조각에 있을 때만 결격이다 — 「코스닥 상장 기업」이 대상일 수 있다. */
+const LISTED = /상장\s*(?:기업|법인|회사)/;
+/**
+ * 공고 자체가 결격 낱말을 대상으로 삼는 경우(폐업 지원·재기·채무조정·회생) — 그 공고에서는 결격 낱말이
+ * 자격이다. 이런 제목이면 사람 확인 항목을 하나도 결격으로 빼지 않는다(2차 리뷰 2026-09-24).
+ */
+const DISTRESS_PROGRAM = /폐업|휴업|사업\s*정리|재기|재도전|재창업|희망\s*리턴|채무\s*조정|신용\s*회복|회생|파산|연체|부도|체납|원상\s*복구|점포\s*철거/;
 /** 지원 내용·서류·절차 안내 — 자격이 아니다. */
 const ADMIN_NOTE = /지원\s*내용|지원\s*규모|지원\s*금액|지원\s*한도|제출\s*서류|구비\s*서류|신청\s*방법|접수\s*방법|문의|개인정보|수집\s*·?\s*이용\s*동의|신청서|서식/;
 /**
@@ -565,7 +577,8 @@ const ELIGIBILITY_SIGNAL =
  * 문장 끝 모양(「경우」·「불가」·「한하여 신청」)으로는 가르지 않는다 — 「대표자가 만 39세 이하인 경우」·
  * 「만 39세 초과 시 신청 불가」는 자격이다(독립 리뷰 review-1b329d8d 등, 2026-09-24). 애매하면 막는다.
  */
-export function substantiveHumanChecks(texts: readonly string[]): string[] {
+export function substantiveHumanChecks(texts: readonly string[], title = ""): string[] {
+  if (DISTRESS_PROGRAM.test(title)) return texts.filter((t) => t.trim().length > 0);
   return texts.filter((t) => {
     const s = t.trim();
     if (!s) return false;
@@ -573,12 +586,19 @@ export function substantiveHumanChecks(texts: readonly string[]): string[] {
     return !parts.every((part) => {
       // 「지원대상에서 제외」는 빼는 말이지 대상을 정하는 말이 아니다 — 자격 신호 검사 전에 지운다.
       const body = part.replace(/지원\s*대상\s*에서\s*(?:제외|배제)/g, "제외").replace(/^[※*·\-\s]+/, "");
-      if (GENERIC_DISQUALIFIER.test(body)) {
-        const rest = body.replace(new RegExp(GENERIC_DISQUALIFIER.source, "g"), " ");
-        return !ELIGIBILITY_SIGNAL.test(rest);
-      }
-      if (ADMIN_NOTE.test(body)) return !/지원\s*대상|한하여|에\s*한|만\s*(?:신청|지원|가능)|자격|요건/.test(body);
-      return false;
+      const listed = LISTED.test(body) && /제외|불가/.test(body);
+      const generic = GENERIC_DISQUALIFIER.test(body) || listed;
+      const admin = ADMIN_NOTE.test(body);
+      if (!generic && !admin) return false;
+      // 결격·안내 낱말만 지우고 **남은 말**에 자격 신호가 있으면 자격 문장이다(「상장기업 및 수출 실적이 없는
+      // 기업은 … 제외」·「대표자가 만 39세 이하인 기업은 신청서 제출」).
+      const rest = body
+        .replace(new RegExp(GENERIC_DISQUALIFIER.source, "g"), " ")
+        .replace(new RegExp(LISTED.source, "g"), " ")
+        .replace(new RegExp(ADMIN_NOTE.source, "g"), " ")
+        // 「자세한 지원내용은 공고문 참조」 — 지원 내용을 가리키는 참조는 자격이 아니다.
+        .replace(/지원\s*내용/.test(body) ? /공고문\s*참조/g : /$^/g, " ");
+      return !ELIGIBILITY_SIGNAL.test(rest) && !/지원\s*대상|자격|요건/.test(rest);
     });
   });
 }
@@ -609,7 +629,7 @@ const TITLE_DOMAINS: Array<readonly [string, RegExp]> = [
 /** 막을 이유(사람 말 한 줄) 또는 null. */
 export function strictFitBlock(ctx: StrictFitContext): string | null {
   if (ctx.humanCheckTexts) {
-    if (substantiveHumanChecks(ctx.humanCheckTexts).length > 0) return "자격 관련 사람 확인 조건이 있음";
+    if (substantiveHumanChecks(ctx.humanCheckTexts, ctx.title ?? "").length > 0) return "자격 관련 사람 확인 조건이 있음";
   }
   if ((ctx.humanCheck ?? 0) > 0) return "사람이 직접 확인할 조건이 있음";
   if (ctx.ruleOnly) return "조건이 아직 AI 로 정리되지 않음";
@@ -639,8 +659,11 @@ export function strictFitBlock(ctx: StrictFitContext): string | null {
     return "예비·재창업자 대상 공고";
   }
   // 업종 무관 차단 — 제목이 분야를 적었으면 회사 업종이 그 분야(이웃 포함)여야 「맞음」이다.
+  const industryConfirmed = (ctx.checks ?? []).some(
+    (c) => c.condition.key === "industry" && c.verdict === "pass" && conditionPassIsFitGrade(c, ctx.profile),
+  );
   const domains = TITLE_DOMAINS.filter(([, re]) => re.test(maskCompounds(title))).map(([f]) => f);
-  if (domains.length > 0) {
+  if (domains.length > 0 && !industryConfirmed) {
     const mine = sectorFamiliesOfIndustry(ctx.profile?.industry ?? "");
     if (mine.length === 0) return "제목에 분야가 있는데 회사 업종을 분야로 못 읽음";
     // 적힌 분야가 **모두** 회사 업종과 이어져야 한다 — 하나만 맞아도 통과시키면 「식품제조업 전용 홍보영상」이
@@ -663,7 +686,7 @@ export function matchAnnouncement(
   if (
     grade === "possible"
     && (checks.some((c) => c.blocksFit || !conditionPassIsFitGrade(c, p))
-      || strictFitBlock({ title: opts.title, profile: p, humanCheckTexts: s.humanCheck }))
+      || strictFitBlock({ title: opts.title, profile: p, humanCheckTexts: s.humanCheck, checks }))
   ) {
     grade = "uncertain";
   }
