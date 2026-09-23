@@ -1,6 +1,6 @@
 // 프로필 vs 구조화 조건 순수 대조 — AI 없음, 저장소 접근 없음(설계서 §3, 계획 Task 4).
 // 「모름」은 절대 통과로 치지 않는다 — 값이 없으면 unknown → 등급은 최고 uncertain 까지만 간다.
-import { relatedFamiliesOf, sectorFamiliesOfIndustry, SECTOR_FAMILY_NAMES } from "./sector";
+import { maskCompounds, relatedFamiliesOf, sectorFamiliesOfIndustry, SECTOR_FAMILY_NAMES } from "./sector";
 import { SIGUNGU_TO_SIDO, sigunguSido } from "./sigungu";
 import { ORG_TYPE_NAMES, profileOrgTypes } from "./target-org";
 import {
@@ -524,8 +524,10 @@ export type StrictFitContext = {
   title?: string;
   /** 대조한 회사 정보. */
   profile?: BusinessProfile;
-  /** 사람이 직접 확인해야 하는 조건 수. */
+  /** 사람이 직접 확인해야 하는 조건 수(글을 모를 때 — 상품의 기계 못 읽는 조건 등). */
   humanCheck?: number;
+  /** 사람이 직접 확인해야 하는 조건 글. 주면 결격 사항·지원내용 안내는 빼고 자격 관련만 센다(2026-09-24 사장님 결정). */
+  humanCheckTexts?: string[];
   /**
    * 조건이 규칙 추출로만 뽑혔는가(AI 정리 미완료). 규칙 추출은 원문 조각을 잘못 잘라 엉뚱한 조건을
    * 「통과」로 만든다(9/23: 광고회사에 「치매의료기술연구개발」, 영등포 회사에 「광진구 사업장」 공고).
@@ -543,8 +545,63 @@ const NON_PROGRAM =
 /** 기존 사업자는 대상이 아닌 공고 — 예비·재창업자 전용. */
 const PRE_FOUNDER_ONLY = /예비\s*창업|재\s*창업|재도전/;
 
+/**
+ * 사람 확인 항목 중 **자격을 가르는 것**만 — 거의 모든 회사가 해당 없는 결격 사항(휴·폐업·허위신청·체납·
+ * 중복지원 …)과 지원내용·서류 안내는 「맞음」을 막지 않는다(2026-09-24 사장님 결정: 결격 사항은 표시만).
+ * AI 로 정리된 공고 656건 중 654건에 사람 확인 항목이 붙어 있어, 전부 막으면 「맞음」이 0 이 된다.
+ */
+const GENERIC_DISQUALIFIER =
+  /휴\s*[·ㆍ.,]?\s*폐업|폐업|허위|부정한\s*방법|부정\s*수급|체납|이해\s*관계|중복\s*(?:지원|수혜|신청)|불건전|사행|유흥|부도|제재|참여\s*제한|신용\s*불량|적정하지\s*않다고|지원\s*결정\s*후|관외\s*이전|환수|보증\s*심사\s*규정|연체|채무\s*불이행|파산|회생/;
+const NON_ELIGIBILITY_NOTE = /지원\s*내용|지원\s*규모|지원\s*금액|지원\s*한도|제출\s*서류|구비\s*서류|증명원?|신청\s*방법|접수\s*방법|문의|동의|개인정보|신청서|서식|1개\s*분야|한하여\s*신청|중복\s*신청/;
+/**
+ * 대상을 **빼는** 문장(결격 사항)의 모양 — 낱말 목록이 아니라 문장 형태로 가른다(길게 늘어지는 제외 조항
+ * 「상장기업」·「사치 향락적 업종」·「영업정지 1년 미경과 업소」·「사회적 물의」…). 회사가 신청 전에 스스로
+ * 확인할 항목으로 보이고 「맞음」은 막지 않는다.
+ */
+const EXCLUSION_FORM =
+  /제외|불가|않[은는]|아닌|위반|물의|제한[된되]|부적합|부적정|합당하지|어렵다고|업소|상장|사치|향락|투기|퇴폐|무신고|미경과|없는\s*(?:업체|경우|기업|사업자)|횡령|처분|정지|결격|금지|대상\s*아님|경우$/;
+/** 대상을 **정하는** 문장의 신호 — 이것은 모양이 빼기처럼 보여도 자격 확인으로 남긴다. */
+const TARGET_DEFINING = /지원\s*대상|자격|요건|첨부\s*원문|원문\s*확인|공고문\s*참조/;
+export function substantiveHumanChecks(texts: readonly string[]): string[] {
+  return texts.filter((t) => {
+    const s = t.trim();
+    if (!s) return false;
+    if (TARGET_DEFINING.test(s) && !GENERIC_DISQUALIFIER.test(s)) return !/지원\s*내용/.test(s);
+    if (GENERIC_DISQUALIFIER.test(s)) return false;
+    if (NON_ELIGIBILITY_NOTE.test(s)) return false;
+    if (EXCLUSION_FORM.test(s)) return false;
+    return true;
+  });
+}
+
+/**
+ * 「맞음」 전용 제목 분야 낱말(2026-09-24 사장님 「업종이랑 전혀 관련 없는 걸 막아야」).
+ * 판정용 분야 사전(sector.ts — 안 맞음을 낼 수 있다)과 따로 둔다 — 여기는 맞음만 막는다.
+ * 교육·환경·유통·광고처럼 일반 공고에도 흔한 낱말은 넣지 않는다(「작업환경 개선」을 막지 않게).
+ */
+const TITLE_DOMAINS: Array<readonly [string, RegExp]> = [
+  ["제약바이오", /의료|치매|바이오|제약|의약|헬스케어|신약|백신|진단기기|의료기기/],
+  ["정보통신", /소프트웨어|(?<![A-Za-z])SW(?![A-Za-z])|ICT|인공지능|(?<![A-Za-z])AI(?![A-Za-z])|블록체인|메타버스|클라우드|사이버\s*보안|정보보호/],
+  ["반도체전자", /반도체|디스플레이|전자부품/],
+  ["기계금속", /로봇|금속|뿌리\s*산업|소부장|소재\s*·?\s*부품|기계\s*산업/],
+  ["에너지환경", /에너지|신재생|탄소\s*중립|수소|이차\s*전지|배터리/],
+  ["자동차", /자동차|모빌리티|전기차/],
+  ["조선해양", /조선|선박|해양/],
+  ["콘텐츠", /콘텐츠|영상|영화|웹툰|애니메이션|게임|음악|출판|방송/],
+  ["식품", /식품|푸드|외식|밀키트/],
+  ["농림어업", /농업|어업|수산|축산|임업|산림|스마트\s*팜/],
+  ["뷰티", /화장품|뷰티/],
+  ["섬유패션", /섬유|패션|의류/],
+  ["관광", /관광|여행/],
+  ["건설", /건설|건축/],
+  ["물류운수", /물류|운송|운수/],
+];
+
 /** 막을 이유(사람 말 한 줄) 또는 null. */
 export function strictFitBlock(ctx: StrictFitContext): string | null {
+  if (ctx.humanCheckTexts) {
+    if (substantiveHumanChecks(ctx.humanCheckTexts).length > 0) return "자격 관련 사람 확인 조건이 있음";
+  }
   if ((ctx.humanCheck ?? 0) > 0) return "사람이 직접 확인할 조건이 있음";
   if (ctx.ruleOnly) return "조건이 아직 AI 로 정리되지 않음";
   const title = ctx.title ?? "";
@@ -572,6 +629,14 @@ export function strictFitBlock(ctx: StrictFitContext): string | null {
   if (PRE_FOUNDER_ONLY.test(title) && ctx.profile?.companyScale !== "예비창업자") {
     return "예비·재창업자 대상 공고";
   }
+  // 업종 무관 차단 — 제목이 분야를 적었으면 회사 업종이 그 분야(이웃 포함)여야 「맞음」이다.
+  const domains = TITLE_DOMAINS.filter(([, re]) => re.test(maskCompounds(title))).map(([f]) => f);
+  if (domains.length > 0) {
+    const mine = sectorFamiliesOfIndustry(ctx.profile?.industry ?? "");
+    if (mine.length === 0) return "제목에 분야가 있는데 회사 업종을 분야로 못 읽음";
+    const related = relatedFamiliesOf(domains);
+    if (!mine.some((f) => related.has(f))) return "회사 업종과 관련 없는 분야의 공고";
+  }
   return null;
 }
 
@@ -587,7 +652,7 @@ export function matchAnnouncement(
   if (
     grade === "possible"
     && (checks.some((c) => c.blocksFit || !conditionPassIsFitGrade(c, p))
-      || strictFitBlock({ title: opts.title, profile: p, humanCheck: s.humanCheck.length }))
+      || strictFitBlock({ title: opts.title, profile: p, humanCheckTexts: s.humanCheck }))
   ) {
     grade = "uncertain";
   }

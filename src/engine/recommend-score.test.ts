@@ -163,7 +163,7 @@ describe("정밀 맞음 — 공고 단위 안전장치(strictFitBlock)", () => {
   it("예비창업자·재창업자 공고는 회사가 예비창업자일 때만 fit", () => {
     const title = "2026년 로봇분야 예비창업자 및 재창업자를 위한 창업 성장 프로그램";
     expect(fitVerdictOf([seoulPass], { title, profile: { region: "서울", foundedDate: "2024-03-01" } })).toBe("unverified");
-    expect(fitVerdictOf([seoulPass], { title, profile: { region: "서울", companyScale: "예비창업자" } })).toBe("fit");
+    expect(fitVerdictOf([seoulPass], { title, profile: { region: "서울", companyScale: "예비창업자", industry: "산업용 로봇 제조업" } })).toBe("fit");
   });
   it("제목에 시군구가 있으면 회사 시군구가 같을 때만 fit — 9/23 재측정 「창원시 벤처투자」·「용인시 반도체」", () => {
     expect(fitVerdictOf([seoulPass], { title: "창원시 벤처투자 『매칭&피칭데이』참여기업 모집 공고", profile: { region: "경남", regionSigungu: "양산시" } })).toBe("unverified");
@@ -184,5 +184,32 @@ describe("정밀 맞음 — 공고 단위 안전장치(strictFitBlock)", () => {
   it("안전장치는 fail(excluded)을 fit 으로 올리지 않는다", () => {
     const f = { condition: { key: "region", op: "in", value: ["부산"], rawText: "", machineReadable: true }, verdict: "fail", note: "" } as never;
     expect(fitVerdictOf([f], { title: "서울 지원", profile: { region: "서울" } })).toBe("excluded");
+  });
+});
+
+/** 2026-09-24 사장님 결정 — 결격 사항은 막지 않고 표시, 자격 관련 사람 확인은 막음, 업종 무관 공고는 맞음 금지. */
+describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", () => {
+  const empPass = { condition: { key: "employeeMax", op: "lte", value: 50, rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
+  const P = { region: "서울", industry: "간판 및 광고물 제조업" };
+  it("결격 사항·지원내용 안내뿐이면 맞음", () => {
+    expect(fitVerdictOf([empPass], { title: "소상공인 경영개선 지원", profile: P, humanCheck: 0, humanCheckTexts: [
+      "휴·폐업중인 기업", "허위 또는 부정한 방법으로 신청한 경우", "※ 자세한 지원내용 공고문 참조", "국세·지방세 체납 기업",
+    ] })).toBe("fit");
+  });
+  it("자격 관련 사람 확인(「중소기업」·「지원대상 공고문 참조」)이 남으면 맞음이 아니다", () => {
+    expect(fitVerdictOf([empPass], { title: "소상공인 경영개선 지원", profile: P, humanCheckTexts: ["중소기업"] })).toBe("unverified");
+    expect(fitVerdictOf([empPass], { title: "소상공인 경영개선 지원", profile: P, humanCheckTexts: ["※ 자세한 지원대상 공고문 참조"] })).toBe("unverified");
+  });
+  it("회사 업종과 무관한 분야 공고는 맞음이 아니다 — 광고회사에 치매의료기술연구개발", () => {
+    expect(fitVerdictOf([empPass], { title: "2026년도 치매의료기술연구개발사업 1차 신규과제 공모", profile: P })).toBe("unverified");
+  });
+  it("업종을 모르면 분야가 적힌 공고는 맞음이 아니다", () => {
+    expect(fitVerdictOf([empPass], { title: "로봇분야 스타트업 성장 지원", profile: { region: "서울" } })).toBe("unverified");
+  });
+  it("회사 업종과 같은(이웃) 분야면 맞음", () => {
+    expect(fitVerdictOf([empPass], { title: "로봇분야 스타트업 성장 지원", profile: { region: "서울", industry: "금속 절삭가공 제조업" } })).toBe("fit");
+  });
+  it("분야가 안 적힌 일반 공고는 업종과 상관없이 맞음(작업환경 개선 등)", () => {
+    expect(fitVerdictOf([empPass], { title: "도시제조업 작업환경개선 지원", profile: P })).toBe("fit");
   });
 });
