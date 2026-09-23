@@ -618,7 +618,9 @@ export function substantiveHumanChecks(texts: readonly string[], title = ""): st
       const listedHits = body.match(new RegExp(LISTED.source, "g")) ?? [];
       const moral = MORAL_DISQUALIFIER.test(body);
       const targetable = states.length + listedHits.length;
-      const targetableCounts = targetable === 1 && EXCLUDING_WORD.test(body) && !moral;
+      // 안내 문구가 같은 조각에 있으면 빼는 말이 안내에 붙었을 수 있다 — 「회생 중인 기업 중 개인정보 수집·이용
+      // 동의 불가 기업 제외」(12차 리뷰).
+      const targetableCounts = targetable === 1 && EXCLUDING_WORD.test(body) && !moral && !ADMIN_NOTE.test(body);
       if (targetable > 0 && !targetableCounts) return false;
       const stateCounts = targetableCounts && states.length === 1;
       const generic = moral || targetableCounts;
@@ -692,17 +694,31 @@ function industryScopeBlock(ctx: StrictFitContext): string | null {
   if (industryChecks.length === 0) return "업종 제한 공고인데 업종 조건이 없음";
   const mine = sectorFamiliesOfIndustry(ctx.profile?.industry ?? "");
   if (mine.length === 0) return "업종 제한 공고인데 회사 업종을 분야로 못 읽음";
+  const mineText = ctx.profile?.industry ?? "";
   for (const c of industryChecks) {
     if (c.verdict !== "pass" || !conditionPassIsFitGrade(c, ctx.profile)) return "업종 제한을 확인하지 못함";
     const v: unknown = c.condition.value;
     const values = (Array.isArray(v) ? v : [v]).map((x) => String(x));
-    // 모든 선택지가 구체 분야여야 한다 — 하나라도 넓은 말이면 회사가 어느 선택지로 맞았는지 몰라 막는다.
-    const fams = values.map((x) => sectorFamiliesOfIndustry(x));
-    if (fams.some((f) => f.length === 0)) return "업종 제한이 넓은 말로 적혀 확인하지 못함";
-    const condFamilies = fams.flat();
-    if (!mine.some((f) => relatedFamiliesOf(condFamilies).has(f))) return "업종 제한과 회사 업종이 다름";
+    // 선택지마다 따로 본다 — 글자가 맞은 선택지가 **그 자체로** 구체 분야이고 회사와 이어져야 한다. 선택지들의
+    // 분야를 합치면 「인쇄」 글자 + 「소프트웨어」 분야처럼 서로 다른 선택지의 근거가 섞인다(12차 리뷰).
+    const hits = values.filter((x) => wordStartIn(mineText, x));
+    if (hits.length === 0) return "업종 제한을 확인하지 못함";
+    const ok = hits.some((x) => {
+      const fams = sectorFamiliesOfIndustry(x);
+      return fams.length > 0 && mine.some((f) => relatedFamiliesOf(fams).has(f));
+    });
+    if (!ok) return "업종 제한이 넓은 말이거나 회사 업종과 달라 확인하지 못함";
   }
   return null;
+}
+
+function wordStartIn(text: string, word: string): boolean {
+  let i = text.indexOf(word);
+  while (i >= 0) {
+    if (!isHangul(text[i - 1])) return true;
+    i = text.indexOf(word, i + 1);
+  }
+  return false;
 }
 
 /** 막을 이유(사람 말 한 줄) 또는 null. */

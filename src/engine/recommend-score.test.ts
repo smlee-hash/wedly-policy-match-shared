@@ -236,6 +236,8 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
     "신용불량 기업 중 허위 신청 기업 제외",
     "신용불량 기업 중 상장기업 제외",
     "상장기업 중 체납 기업 제외",
+    "회생 중인 기업 중 개인정보 수집·이용 동의 불가 기업 제외",
+    "상장기업 중 개인정보 수집·이용 동의 불가 기업 제외",
   ])("자격 문장 「%s」 이 남으면 맞음이 아니다", (t) => {
     expect(fitVerdictOf([empPass], { title: "2026년 경영환경 개선 지원사업", profile: P, humanCheckTexts: [t] })).toBe("unverified");
   });
@@ -315,11 +317,16 @@ describe("정밀 맞음 — AI 업종 범위(industryScope)", () => {
   });
   it("restricted 는 구체 분야 업종 조건이 회사와 맞을 때만", () => {
     expect(fitVerdictOf([empPass, ind(["식품"])], { ...base, industryScope: "restricted" })).toBe("fit");
-    // 넓은 말(제조업)이 섞이면 어느 선택지로 맞았는지 몰라 막는다
-    expect(fitVerdictOf([empPass, ind(["식품", "제조업"])], { ...base, industryScope: "restricted" })).toBe("unverified");
+    // 선택지별로 본다 — 식품 회사는 「식품」 선택지로 충족하니 맞음, 광고물 제조업체는 넓은 「제조업」 글자로만 맞아 막는다
+    expect(fitVerdictOf([empPass, ind(["식품", "제조업"])], { ...base, industryScope: "restricted" })).toBe("fit");
+    const sign = { region: "서울", industry: "간판 및 광고물 제조업" };
+    expect(fitVerdictOf([empPass, ind(["식품", "제조업"])], { ...base, profile: sign, industryScope: "restricted" })).toBe("unverified");
     expect(fitVerdictOf([empPass, ind(["제조업"])], { ...base, industryScope: "restricted" })).toBe("unverified");
     // 업종 조건 없음
     expect(fitVerdictOf([empPass], { ...base, industryScope: "restricted" })).toBe("unverified");
+    // 선택지 근거가 섞이면 안 된다 — 「인쇄」 글자 + 「소프트웨어」 분야(12차 리뷰)
+    const pcb = { region: "서울", industry: "인쇄회로기판 제조업" };
+    expect(fitVerdictOf([empPass, ind(["인쇄", "소프트웨어"])], { ...base, profile: pcb, industryScope: "restricted" })).toBe("unverified");
   });
   it("금융상품처럼 요구하지 않으면 영향 없다", () => {
     expect(fitVerdictOf([empPass], { title: "2026년 경영개선 지원사업", profile: food })).toBe("fit");
