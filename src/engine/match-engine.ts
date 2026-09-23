@@ -473,6 +473,8 @@ export function conditionPassIsFitGrade(check: ConditionCheck, p: BusinessProfil
     return (check.condition.value as unknown[]).map((v) => String(v).replace(/\s/g, "")).includes(mine);
   }
   if (key !== "region") return true;
+  // 원문에 제외 지역이 있으면(「경기도 소재 기업(수원시 제외)」) 값만으로는 회사가 빠지는지 모른다(15차 리뷰).
+  if (/제외|불가|배제/.test(check.condition.rawText ?? "")) return false;
   // 원문에 시군구(약칭 포함)가 있으면 회사 시군구가 그중 하나여야 한다 — 값이 시도로 축약돼도(리뷰 review-afe4e27f).
   const rawNames = subRegionNamesIn(check.condition.rawText ?? "");
   if (rawNames.length > 0) {
@@ -720,12 +722,17 @@ function wordStartIn(text: string, word: string): boolean {
   let i = text.indexOf(word);
   while (i >= 0) {
     const before = text[i - 1] ?? "";
-    const rest = text.slice(i + word.length).split(/[\s,·ㆍ()/]/)[0];
+    // 낱말 뒤 **같은 구절 전체**(쉼표·괄호·「및」 전까지)가 업종 꼬리여야 한다 — 「식품 포장용기 제조업」의
+    // 「포장용기」처럼 공백 뒤 설명이 업종을 바꾸면 아니다(15차 리뷰).
+    const clause = text.slice(i + word.length).split(/[,·ㆍ()/]|\s및\s/)[0];
+    const tailWords = clause.split(/\s+/);
+    const rest = tailWords[0] ?? "";
+    const restOk = tailWords.slice(1).every((w) => w === "" || INDUSTRY_TAIL.test(w));
     // 앞: 한글·(영문으로 시작하면) 영문이 붙지 않음. 뒤: 영문으로 끝나면 영문이 붙지 않고, 한글이 붙으면 업종 꼬리
     // (업·제조업·산업 …)만 — 「식품가공기계」의 「식품」, 「CREDIT」의 「IT」는 아니다(13·14차 리뷰).
     const okBefore = !isHangul(before) && !(latinStart && /[A-Za-z]/.test(before));
     const okAfter = !(latinEnd && /^[A-Za-z]/.test(rest)) && INDUSTRY_TAIL.test(rest);
-    if (okBefore && okAfter) return true;
+    if (okBefore && okAfter && restOk) return true;
     i = text.indexOf(word, i + 1);
   }
   return false;

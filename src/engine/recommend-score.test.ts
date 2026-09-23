@@ -333,10 +333,19 @@ describe("정밀 맞음 — AI 업종 범위(industryScope)", () => {
     expect(fitVerdictOf([empPass, ind(["IT 서비스"])], { ...base, title: "IT 서비스 기업 성장 지원사업", profile: { region: "서울", industry: "CREDIT 서비스 및 광고업" }, industryScope: "restricted" })).toBe("unverified");
     // 합성어 앞머리(식품가공기계의 식품)는 업종 근거가 아니다(14차 리뷰)
     expect(fitVerdictOf([empPass, ind(["식품"])], { ...base, title: "2026년 식품 제조업 전용 지원사업", profile: { region: "서울", industry: "식품가공기계 제조업" }, industryScope: "restricted" })).toBe("unverified");
+    // 공백 뒤 설명이 업종을 바꾸면 아니다 — 「식품 포장용기 제조업」(15차 리뷰)
+    expect(fitVerdictOf([empPass, ind(["식품"])], { ...base, title: "2026년 식품 제조업 경영개선 지원사업", profile: { region: "서울", industry: "식품 포장용기 제조업" }, industryScope: "restricted" })).toBe("unverified");
     const pcb = { region: "서울", industry: "인쇄회로기판 제조업" };
     expect(fitVerdictOf([empPass, ind(["인쇄", "소프트웨어"])], { ...base, profile: pcb, industryScope: "restricted" })).toBe("unverified");
   });
   it("금융상품처럼 요구하지 않으면 영향 없다", () => {
     expect(fitVerdictOf([empPass], { title: "2026년 경영개선 지원사업", profile: food })).toBe("fit");
+  });
+});
+
+describe("정밀 맞음 — 지역 조건 원문의 제외(15차 리뷰)", () => {
+  it("「경기도 소재 기업(수원시 제외)」 은 수원시 회사에 맞음이 아니다", () => {
+    const reg = { condition: { key: "region", op: "in", value: ["경기"], rawText: "경기도 소재 기업(수원시 제외)", machineReadable: true }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([reg], { title: "경영개선 지원사업", profile: { region: "경기", regionSigungu: "수원시" }, requireIndustryScope: true, industryScope: "all" })).toBe("unverified");
   });
 });
