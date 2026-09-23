@@ -231,6 +231,7 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
     "신용불량 상태인 기업",
     "회생 중인 기업",
     "휴·폐업중인 기업",
+    "지원내용: 신용불량 상태인 기업",
   ])("자격 문장 「%s」 이 남으면 맞음이 아니다", (t) => {
     expect(fitVerdictOf([empPass], { title: "2026년 경영환경 개선 지원사업", profile: P, humanCheckTexts: [t] })).toBe("unverified");
   });
@@ -262,10 +263,14 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
     const broad = { condition: { key: "industry", op: "in", value: ["제조업"], rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
     expect(fitVerdictOf([empPass, broad], { title: "2026년 귀금속 제조업 전용 지원사업", profile: { region: "서울", industry: "식품 제조업" } })).toBe("unverified");
   });
-  it.each(["2026년 음료 제조업 전용 지원사업", "2026년 미용업 전용 경영환경 개선 지원사업"])(
+  it.each([
+    "2026년 음료 제조업 전용 지원사업", "2026년 미용업 전용 경영환경 개선 지원사업",
+    "2026년 IT 기업 전용 지원사업", "2026년 교육업 전용 지원사업", "2026년 기계 제조업 전용 지원사업",
+  ])(
     "판정용 분야 사전 낱말도 제목 분야로 읽는다 — 「%s」",
     (title) => {
-      expect(fitVerdictOf([empPass], { title, profile: P, humanCheckTexts: ["국세·지방세 체납 기업 제외"] })).toBe("unverified");
+      const food = { region: "서울", industry: "한식 음식점업" };
+      expect(fitVerdictOf([empPass], { title, profile: /음료/.test(title) ? P : food, humanCheckTexts: ["국세·지방세 체납 기업 제외"] })).toBe("unverified");
     },
   );
   it("「정보통신」 한국어 표기도 분야로 읽는다", () => {

@@ -604,7 +604,11 @@ export function substantiveHumanChecks(texts: readonly string[], title = ""): st
       const generic = MORAL_DISQUALIFIER.test(body) || (STATE_DISQUALIFIER.test(body) && EXCLUDING_WORD.test(body)) || listed;
       const admin = ADMIN_NOTE.test(body);
       if (!generic && !admin) return false;
-      let rest = body.replace(new RegExp(GENERIC_DISQUALIFIER.source, "g"), " ");
+      // 상태 낱말(신용불량 …)은 빼는 말과 함께일 때만 결격이므로 그때만 지운다 — 안내 조각(「지원내용: 신용불량
+      // 상태인 기업」)에서 조건 없이 지우면 자격이 샌다(7차 리뷰).
+      const stateCounts = STATE_DISQUALIFIER.test(body) && EXCLUDING_WORD.test(body);
+      let rest = body.replace(new RegExp(MORAL_DISQUALIFIER.source, "g"), " ");
+      if (stateCounts) rest = rest.replace(new RegExp(STATE_DISQUALIFIER.source, "g"), " ");
       if (listed) rest = rest.replace(new RegExp(LISTED.source, "g"), " ");
       rest = rest.replace(new RegExp(ADMIN_NOTE.source, "g"), " ");
       // 대상을 좁히는 말이 남으면 자격 문장이다 — 연결어 조각(「한」+「하여」)으로 흩어져 새지 않게 먼저 본다(4차 리뷰).
@@ -621,7 +625,7 @@ export function substantiveHumanChecks(texts: readonly string[], title = ""): st
  */
 const TITLE_DOMAINS: Array<readonly [string, RegExp]> = [
   ["제약바이오", /의료|치매|바이오|제약|의약|헬스케어|신약|백신|진단기기|의료기기/],
-  ["정보통신", /정보\s*통신|정보\s*기술|빅\s*데이터|소프트웨어|(?<![A-Za-z])SW(?![A-Za-z])|ICT|인공지능|(?<![A-Za-z])AI(?![A-Za-z])|블록체인|메타버스|클라우드|사이버\s*보안|정보보호/],
+  ["정보통신", /정보\s*통신|정보\s*기술|빅\s*데이터|소프트웨어|(?<![A-Za-z])SW(?![A-Za-z])|(?<![A-Za-z])IT(?![A-Za-z])|ICT|인공지능|(?<![A-Za-z])AI(?![A-Za-z])|블록체인|메타버스|클라우드|사이버\s*보안|정보보호/],
   ["반도체전자", /반도체|디스플레이|전자부품/],
   ["기계금속", /로봇|금속|뿌리\s*산업|소부장|소재\s*·?\s*부품|기계\s*산업/],
   ["에너지환경", /에너지|신재생|탄소\s*중립|수소|이차\s*전지|배터리/],
@@ -638,16 +642,19 @@ const TITLE_DOMAINS: Array<readonly [string, RegExp]> = [
 ];
 
 /**
- * 판정용 분야 사전의 낱말도 제목 분야로 읽는다 — 「맞음」 전용 목록만 보면 「음료 제조업 전용」·「미용업 전용」이
- * 샜다(6차 리뷰). 다만 일반 공고에 흔한 **지원 수단** 낱말(작업환경·교육·판로·광고·임대료 …)은 뺀다.
- * 영문 약어(IT·SW·AI)는 글자 경계가 필요해 TITLE_DOMAINS 가 맡는다.
+ * 판정용 분야 사전의 낱말도 **전부** 제목 분야로 읽는다 — 「맞음」 전용 목록만 보면 「음료 제조업 전용」이,
+ * 흔한 낱말을 빼면 「교육업 전용」·「기계 제조업 전용」이 샜다(6·7차 리뷰). 대신 지원 **수단**으로 굳은 합성어만
+ * 가린다(작업환경 개선·임대료 지원 …). 가림 목록에 없는 쓰임은 분야로 읽혀 「맞음」이 줄어드는 쪽으로 틀린다.
+ * 영문 약어는 글자 경계가 필요해 TITLE_DOMAINS 가 맡는다.
  */
-const GENERIC_TITLE_WORDS = new Set([
-  "환경", "교육", "플랫폼", "판매", "디자인", "설비", "앱", "임대", "광고", "홍보물", "판촉물", "유통", "소매", "도소매",
-  "도매", "전자상거래", "기계", "IT", "SW", "AI", "ICT",
-]);
+const TITLE_MEANS_MASK = [
+  "작업환경", "작업 환경", "근무환경", "근무 환경", "경영환경", "경영 환경", "근로환경", "창업환경", "창업 환경",
+  "임대료", "임차료", "교육훈련", "직무교육", "창업교육", "경영교육", "교육비", "광고비", "온라인 광고", "온라인광고",
+  "판로", "판매망", "판매 촉진", "판매촉진", "홍보물", "기계설비", "설비 도입", "설비도입", "시설 설비", "디자인 개발",
+  "플랫폼 입점", "전자상거래 입점",
+];
 function titleWordsOf(f: (typeof SECTOR_FAMILIES)[number]): string[] {
-  return [...f.announcementWords, ...f.companyWords].filter((w) => !GENERIC_TITLE_WORDS.has(w) && !/^[A-Za-z]+$/.test(w));
+  return [...f.announcementWords, ...f.companyWords].filter((w) => !/^[A-Za-z]+$/.test(w));
 }
 
 /** 막을 이유(사람 말 한 줄) 또는 null. */
@@ -685,7 +692,7 @@ export function strictFitBlock(ctx: StrictFitContext): string | null {
   // 업종 무관 차단 — 제목이 분야를 적었으면 회사 업종이 그 분야(이웃 포함)여야 「맞음」이다.
   const compounds = compoundFamiliesIn(title);
   if (compounds.unknown.length > 0) return "제목의 분야를 읽지 못함";
-  const masked = maskCompounds(title);
+  const masked = TITLE_MEANS_MASK.reduce((t, m) => t.split(m).join(" "), maskCompounds(title));
   const domains = [
     ...new Set([
       ...TITLE_DOMAINS.filter(([, re]) => re.test(masked)).map(([f]) => f),
