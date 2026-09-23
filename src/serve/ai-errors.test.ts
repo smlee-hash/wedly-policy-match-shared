@@ -14,6 +14,7 @@ const 참_문구 = [
   "permission_error",
   "invalid x-api-key",
   "organization has been disabled",
+  "Could not resolve authentication method",
 ] as const;
 
 describe("isBillingOrAuthError — 참(돈·열쇠·권한 탓)", () => {

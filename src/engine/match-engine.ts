@@ -485,11 +485,31 @@ function sidoWordsIn(raw: string): string[] {
  * 하나라도 남으면 그 조건 통과만으로는 자격을 확인한 게 아니다. 지역 조건은 regionRawTextIsPlain 이 따로 본다.
  */
 const CONDITION_FILLER = new Set([
-  "상시", "상시근로자", "근로자", "종업원", "직원", "인원", "수", "매출", "매출액", "연매출", "연간", "최근", "직전",
-  "년도", "연도", "기준", "업력", "창업", "설립", "개업", "후", "이내", "이하", "이상", "미만", "초과", "경과", "된", "한",
-  "인", "기업", "업체", "사업장", "소재", "해당", "해당하는", "대상", "신청", "가능", "및", "또는", "등", "합계", "평균",
-  "기간", "동안", "보유", "보유한", "있는", "일", "현재", "공고일", "마감일", "접수", "기업으로", "기업만",
+  // 「평균」·「합계」·「최근」·「직전」(계산 기준이 다름)과 「및」·「또는」(조건이 둘)은 넣지 않는다(20차 리뷰).
+  "상시", "상시근로자", "근로자", "종업원", "직원", "인원", "수", "매출", "매출액", "연매출", "연간",
+  "기준", "업력", "창업", "설립", "개업", "후", "이내", "이하", "이상", "경과", "된", "한",
+  "인", "기업", "업체", "사업장", "소재", "해당", "해당하는", "대상", "신청", "가능", "등",
+  "보유", "보유한", "있는", "일", "현재", "기업으로", "기업만",
 ]);
+/** 숫자 조건 — 원문의 숫자가 하나이고, 단위를 따져 저장값과 같고, 비교 말이 저장된 방향과 같아야 한다(20차 리뷰). */
+const NUMERIC_MAX_KEYS = new Set(["businessAgeMaxYears", "revenueMaxKrw", "employeeMax", "creditScoreMax"]);
+const NUMERIC_MIN_KEYS = new Set(["businessAgeMinYears", "revenueMinKrw", "employeeMin", "creditScoreMin"]);
+const KOREAN_UNIT: Record<string, number> = { 억: 1e8, 천만: 1e7, 백만: 1e6, 만: 1e4 };
+function numericRawTextMatches(check: ConditionCheck): boolean {
+  const key = check.condition.key;
+  const isMax = NUMERIC_MAX_KEYS.has(key);
+  const isMin = NUMERIC_MIN_KEYS.has(key);
+  if (!isMax && !isMin) return true;
+  const raw = check.condition.rawText ?? "";
+  const nums = [...raw.matchAll(/(\d[\d,]*(?:\.\d+)?)\s*(억|천만|백만|만)?/g)];
+  if (nums.length !== 1) return false;
+  const n = Number(nums[0][1].replace(/,/g, "")) * (KOREAN_UNIT[nums[0][2] ?? ""] ?? 1);
+  if (!Number.isFinite(n) || n !== Number(check.condition.value)) return false;
+  // 경계를 빼는 말(미만·초과)은 저장값이 보정됐는지 알 수 없다 — 맞음 근거로 쓰지 않는다.
+  if (/미만|초과/.test(raw)) return false;
+  if (isMax) return /이하|이내|까지/.test(raw) && !/이상/.test(raw);
+  return /이상/.test(raw) && !/이하|이내|까지/.test(raw);
+}
 const JOSA_TAIL = /(?:으로|에서|에게|까지|부터|이며|이고|은|는|이|가|을|를|의|에|로|와|과|도|만)$/;
 const NUMBER_WORD = /^[0-9][0-9.,]*(?:명|인|억|억원|천만원|백만원|만원|원|년|개월|개|%|세|배|시간|일)?(?:이하|이상|미만|초과|이내)?$/;
 function rawTextExplained(check: ConditionCheck): boolean {
@@ -517,6 +537,7 @@ export function conditionPassIsFitGrade(check: ConditionCheck, p: BusinessProfil
   // 원문의 모든 말이 이 조건(값·숫자·허용 연결어)으로 설명돼야 한다 — 「상시근로자 50인 이하 중소기업」·「법인
   // 중소기업」·「10인 이하 마을기업」처럼 따로 확인하지 않은 자격이 섞이면 맞음이 아니다(18·19차 리뷰).
   if (key !== "region" && !rawTextExplained(check)) return false;
+  if (!numericRawTextMatches(check)) return false;
   if (key === "industry") {
     // 조건 낱말이 회사 업종에서 **낱말 첫머리**로 나와야 한다 — 「비금속」 속 「금속」은 아니다.
     const mine = p?.industry ?? "";

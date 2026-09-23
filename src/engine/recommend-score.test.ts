@@ -168,7 +168,7 @@ describe("정밀 맞음 — 공고 단위 안전장치(strictFitBlock)", () => {
   it("제목에 시군구가 있으면 회사 시군구가 같을 때만 fit — 9/23 재측정 「창원시 벤처투자」·「용인시 반도체」", () => {
     expect(fitVerdictOf([seoulPass], { title: "창원시 벤처투자 『매칭&피칭데이』참여기업 모집 공고", profile: { region: "경남", regionSigungu: "양산시" } })).toBe("unverified");
     expect(fitVerdictOf([seoulPass], { title: "용인시 반도체 기업 채용 연계 지원 안내", profile: { region: "경기" } })).toBe("unverified");
-    const empPass = { condition: { key: "employeeMax", op: "lte", value: 50, rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
+    const empPass = { condition: { key: "employeeMax", op: "lte", value: 50, rawText: "상시근로자 50인 이하", machineReadable: true }, verdict: "pass", note: "" } as never;
     expect(fitVerdictOf([empPass], { title: "창원시 벤처투자 참여기업 모집", profile: { region: "경남", regionSigungu: "창원시" } })).toBe("fit");
   });
   it.each([
@@ -189,7 +189,7 @@ describe("정밀 맞음 — 공고 단위 안전장치(strictFitBlock)", () => {
 
 /** 2026-09-24 사장님 결정 — 결격 사항은 막지 않고 표시, 자격 관련 사람 확인은 막음, 업종 무관 공고는 맞음 금지. */
 describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", () => {
-  const empPass = { condition: { key: "employeeMax", op: "lte", value: 50, rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
+  const empPass = { condition: { key: "employeeMax", op: "lte", value: 50, rawText: "상시근로자 50인 이하", machineReadable: true }, verdict: "pass", note: "" } as never;
   const P = { region: "서울", industry: "간판 및 광고물 제조업" };
   it("결격 사항·지원내용 안내뿐이면 맞음", () => {
     expect(fitVerdictOf([empPass], { title: "소상공인 경영개선 지원", profile: P, humanCheck: 0, humanCheckTexts: [
@@ -306,7 +306,7 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
 
 /** 2026-09-24 — 공고 맞음에 AI 의 업종 범위 판단을 요구한다(제목 글자 규칙만으로는 11차 리뷰까지 구멍이 계속 났다). */
 describe("정밀 맞음 — AI 업종 범위(industryScope)", () => {
-  const empPass = { condition: { key: "employeeMax", op: "lte", value: 50, rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
+  const empPass = { condition: { key: "employeeMax", op: "lte", value: 50, rawText: "상시근로자 50인 이하", machineReadable: true }, verdict: "pass", note: "" } as never;
   const ind = (value: string[], verdict = "pass") =>
     ({ condition: { key: "industry", op: "in", value, rawText: "", machineReadable: true }, verdict, note: "" }) as never;
   const food = { region: "서울", industry: "식품 제조업" };
@@ -381,10 +381,19 @@ describe("정밀 맞음 — 조건 원문은 조건으로 설명되는 말만(19
     ["targetOrg", "in", ["사회적기업"], "중소기업에 해당하는 사회적기업"],
     ["employeeMax", "lte", 10, "상시근로자 10인 이하 마을기업"],
     ["employeeMax", "lte", 10, "상시근로자 10인 이하 사회적경제기업"],
+    ["employeeMax", "lte", 10, "상시근로자 5인 이상 10인 이하"],
+    ["employeeMax", "lte", 10, "상시근로자 10인 이하 및 매출액 10억원 이하 기업"],
+    ["revenueMaxKrw", "lte", 1000000000, "최근 3년 평균 매출액 10억원 이하 기업"],
+    ["employeeMax", "lte", 10, "상시근로자 10인 미만 기업"],
+    ["employeeMax", "lte", 10, "상시근로자 20인 이하"],
   ])("%s 원문 「%s」 는 맞음 근거가 아니다", (key, op, value, raw) => {
     expect(fitVerdictOf([c(key as string, op as string, value, raw as string)], ctx)).toBe("unverified");
   });
   it("「상시근로자 50인 이하」 처럼 조건으로 설명되는 원문은 맞음 근거다", () => {
     expect(fitVerdictOf([c("employeeMax", "lte", 50, "상시근로자 50인 이하")], ctx)).toBe("fit");
+  });
+  it("단위를 따져 같으면 맞음 근거다 — 「매출액 10억원 이하」", () => {
+    const p = { ...ctx, profile: { ...ctx.profile, lastYearRevenueKrw: 500000000 } };
+    expect(fitVerdictOf([c("revenueMaxKrw", "lte", 1000000000, "매출액 10억원 이하")], p)).toBe("fit");
   });
 });
