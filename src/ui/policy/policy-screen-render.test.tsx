@@ -452,3 +452,32 @@ describe("⑥-감시선 — PolicyMatchScreen 이 slots.verdictFeedback 을 지�
     expect(src, "카드 바닥 자리가 「map」으로 못박혀 있지 않다").toContain('place: "map"');
   });
 });
+
+/**
+ * 2026-09-23 사용자 결정 — 화면에서 고친 조건으로 이번 진단만 돌린다(저장된 고객 정보는 그대로).
+ * 화면이 보내는 네 통로(진단·지도·AI 판정·돌파구)는 「화면 입력값」 표시를 달아야 서버가
+ * 저장값으로 덮어쓰지 않는다. 표시가 없는 자동 호출은 서버가 저장값을 쓴다.
+ */
+describe("화면 입력값 표시 — 네 통로 모두 profileSource 를 보낸다", () => {
+  const 폴더 = new URL(".", import.meta.url);
+  const 읽기 = (name: string) => readFileSync(new URL(name, 폴더), "utf8");
+
+  it("표시 값은 endpoints 의 상수 하나다", async () => {
+    const mod = await import("./endpoints");
+    expect(mod.SCREEN_PROFILE_SOURCE).toBe("screen");
+  });
+
+  it("진단 요청 몸통에 profileSource 가 있다", () => {
+    expect(읽기("PolicyMatchScreen.tsx")).toContain(
+      "body: JSON.stringify({ profile: p, profileSource: SCREEN_PROFILE_SOURCE })",
+    );
+  });
+
+  it("AI 판정·돌파구 요청 몸통에 profileSource 가 있다", () => {
+    const src = 읽기("DetailPanel.tsx");
+    expect(src).toContain(
+      "body: JSON.stringify({ announcementId: detail.id, profile, profileSource: SCREEN_PROFILE_SOURCE })",
+    );
+    expect(src).toMatch(/profile,\s*\n\s*profileSource: SCREEN_PROFILE_SOURCE,\s*\n\s*bizno: profile\.bizno/);
+  });
+});

@@ -24,6 +24,7 @@ import FundingDrawer from "../FundingDrawer";
 import type {
   PolicyMatchEndpoints, PolicyMatchFeatures, PolicyMatchSlots, VerdictFeedbackContext,
 } from "./endpoints";
+import { SCREEN_PROFILE_SOURCE } from "./endpoints";
 
 /** 탐색(1단계) 목록 한 줄 — announcements 통로 응답 그대로. */
 export interface Row {
@@ -169,6 +170,7 @@ export async function postFundingMap(req: FundingRequest, url: string): Promise<
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         profile: req.profile,
+        profileSource: SCREEN_PROFILE_SOURCE,
         filters: req.filters,
         sort: req.sort,
         topN: FUNDING_TOP_N,
@@ -472,7 +474,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
       const j = await fetch(endpoints.diagnose, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile: p }),
+        body: JSON.stringify({ profile: p, profileSource: SCREEN_PROFILE_SOURCE }),
       }).then((r) => r.json());
       if (!j?.success) {
         setNotice(j?.error?.message ?? "진단에 실패했습니다");

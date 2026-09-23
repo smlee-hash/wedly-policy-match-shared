@@ -115,6 +115,7 @@ describe("postFundingMap — 통로 계약(b)", () => {
     expect(init.method).toBe("POST");
     expect(JSON.parse(String(init.body))).toEqual({
       profile: 프로필,
+      profileSource: "screen",
       filters: { openOnly: true, soonOnly: false, includeExcluded: true },
       sort: "dead",
       topN: 80,

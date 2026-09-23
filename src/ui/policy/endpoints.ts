@@ -36,6 +36,13 @@ export type PolicyMatchEndpoints = {
   prefill?: string;              // GET ?query= — 없으면 고객 검색 칸 미표시
 };
 
+/**
+ * 화면(사업자 정보 입력 카드)에서 온 프로필이라는 표시 — 2026-09-23 사용자 결정.
+ * 서버는 이 표시가 있을 때만 화면 값으로 이번 진단을 돌리고(저장된 고객 정보는 바꾸지 않는다),
+ * 표시가 없는 자동 호출은 저장된 고객 정보로 진단한다.
+ */
+export const SCREEN_PROFILE_SOURCE = "screen" as const;
+
 /** ERP 의 현재 절대경로 그대로 — ERP 껍데기가 이 상수를 넘긴다. */
 export const ERP_POLICY_MATCH_ENDPOINTS: PolicyMatchEndpoints = {
   fundingMap: "/api/policy-match/funding-map",

@@ -45,6 +45,7 @@ import {
 import { buildInstructorQuestion } from "./ask-instructor-text";
 import { nextPollAction, readingMessageFor, serverKeepsStructurizing, type PollAction } from "./detail-poll";
 import type { PolicyMatchEndpoints, PolicyMatchFeatures, VerdictFeedbackContext } from "./endpoints";
+import { SCREEN_PROFILE_SOURCE } from "./endpoints";
 import type { DiagnoseItem, GradeKey, ListMode } from "./PolicyMatchScreen";
 import {
   BTN_SECONDARY, clipRegion, daysLeft, ddayBadge, deadlineMetricLabel, periodLabel, PILL, PILL_NEUTRAL,
@@ -716,7 +717,7 @@ export default function DetailPanel({
       const res = await fetch(endpoints.verdict, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ announcementId: detail.id, profile }),
+        body: JSON.stringify({ announcementId: detail.id, profile, profileSource: SCREEN_PROFILE_SOURCE }),
       });
       const j = await res.json();
       if (seq !== verdictSeq.current) return;
@@ -773,6 +774,7 @@ export default function DetailPanel({
           body: JSON.stringify({
             announcementId: announcementIdForCall,
             profile,
+            profileSource: SCREEN_PROFILE_SOURCE,
             bizno: profile.bizno ?? "",
             conditions: blocked,
           }),
