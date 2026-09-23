@@ -209,6 +209,27 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
   it("회사 업종과 같은(이웃) 분야면 맞음", () => {
     expect(fitVerdictOf([empPass], { title: "로봇분야 스타트업 성장 지원", profile: { region: "서울", industry: "금속 절삭가공 제조업" } })).toBe("fit");
   });
+  // 독립 리뷰 review-1b329d8d·ERP 리뷰 — 문장 끝 모양(「경우」·「한하여 신청」)이나 결격 낱말 하나로
+  // 자격 문장 전체를 결격으로 치면 나이·실적을 확인하지 않고 맞음이 된다.
+  it.each([
+    "대표자가 만 39세 이하인 경우",
+    "수출 실적이 있는 기업에 한하여 신청",
+    "지원대상: 수출 실적 보유 기업(국세 체납 기업 제외)",
+    "대학과 기술이전 계약을 체결한 경우",
+    "만 39세 초과 시 신청 불가",
+    "체납이 없고 수출 실적이 있는 기업",
+  ])("자격 문장 「%s」 이 남으면 맞음이 아니다", (t) => {
+    expect(fitVerdictOf([empPass], { title: "2026년 경영환경 개선 지원사업", profile: P, humanCheckTexts: [t] })).toBe("unverified");
+  });
+  it("「지원대상에서 제외」라는 결격 문장은 맞음을 막지 않는다", () => {
+    expect(fitVerdictOf([empPass], { title: "2026년 경영환경 개선 지원사업", profile: P, humanCheckTexts: ["상장기업은 지원대상에서 제외", "국세·지방세 체납 기업 제외"] })).toBe("fit");
+  });
+  it("제목의 분야가 여럿이면 모두 회사 업종과 관련 있어야 맞음 — 식품제조업 전용 홍보영상", () => {
+    expect(fitVerdictOf([empPass], { title: "2026년 식품제조업 전용 홍보영상 제작 지원사업", profile: P })).toBe("unverified");
+  });
+  it("「정보통신」 한국어 표기도 분야로 읽는다", () => {
+    expect(fitVerdictOf([empPass], { title: "2026년 정보통신산업 기술개발 지원사업", profile: { region: "서울", industry: "음식점업" } })).toBe("unverified");
+  });
   it("분야가 안 적힌 일반 공고는 업종과 상관없이 맞음(작업환경 개선 등)", () => {
     expect(fitVerdictOf([empPass], { title: "도시제조업 작업환경개선 지원", profile: P })).toBe("fit");
   });

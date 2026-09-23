@@ -546,31 +546,40 @@ const NON_PROGRAM =
 const PRE_FOUNDER_ONLY = /예비\s*창업|재\s*창업|재도전/;
 
 /**
- * 사람 확인 항목 중 **자격을 가르는 것**만 — 거의 모든 회사가 해당 없는 결격 사항(휴·폐업·허위신청·체납·
- * 중복지원 …)과 지원내용·서류 안내는 「맞음」을 막지 않는다(2026-09-24 사장님 결정: 결격 사항은 표시만).
- * AI 로 정리된 공고 656건 중 654건에 사람 확인 항목이 붙어 있어, 전부 막으면 「맞음」이 0 이 된다.
+ * 거의 모든 회사가 해당 없는 결격 사항(휴·폐업·허위신청·체납·중복지원·사치향락업 …) — 「맞음」을 막지 않고
+ * 「신청 전 확인」으로 보인다(2026-09-24 사장님 결정: 결격 사항은 표시만).
  */
 const GENERIC_DISQUALIFIER =
-  /휴\s*[·ㆍ.,]?\s*폐업|폐업|허위|부정한\s*방법|부정\s*수급|체납|이해\s*관계|중복\s*(?:지원|수혜|신청)|불건전|사행|유흥|부도|제재|참여\s*제한|신용\s*불량|적정하지\s*않다고|지원\s*결정\s*후|관외\s*이전|환수|보증\s*심사\s*규정|연체|채무\s*불이행|파산|회생/;
-const NON_ELIGIBILITY_NOTE = /지원\s*내용|지원\s*규모|지원\s*금액|지원\s*한도|제출\s*서류|구비\s*서류|증명원?|신청\s*방법|접수\s*방법|문의|동의|개인정보|신청서|서식|1개\s*분야|한하여\s*신청|중복\s*신청/;
+  /휴\s*[·ㆍ.,]?\s*폐업|폐업|허위|부정한\s*방법|부정\s*수급|체납|이해\s*관계|중복\s*(?:지원|수혜|신청)|불건전|사행|유흥|부도|제재|참여\s*제한|신용\s*불량|적정하지\s*않다고|지원\s*결정\s*후|관외\s*이전|환수|보증\s*심사\s*규정|연체|채무\s*불이행|파산|회생|사치|향락|투기|퇴폐|무신고|횡령|영업\s*정지|행정\s*처분|결격|사회적\s*물의|상장\s*(?:기업|법인|회사)[\s\S]*?(?:제외|불가)/;
+/** 지원 내용·서류·절차 안내 — 자격이 아니다. */
+const ADMIN_NOTE = /지원\s*내용|지원\s*규모|지원\s*금액|지원\s*한도|제출\s*서류|구비\s*서류|신청\s*방법|접수\s*방법|문의|개인정보|수집\s*·?\s*이용\s*동의|신청서|서식/;
 /**
- * 대상을 **빼는** 문장(결격 사항)의 모양 — 낱말 목록이 아니라 문장 형태로 가른다(길게 늘어지는 제외 조항
- * 「상장기업」·「사치 향락적 업종」·「영업정지 1년 미경과 업소」·「사회적 물의」…). 회사가 신청 전에 스스로
- * 확인할 항목으로 보이고 「맞음」은 막지 않는다.
+ * 결격 낱말이 있어도 **그 조각에 자격 신호가 함께 있으면** 결격 문장이 아니다(「체납이 없고 수출 실적이 있는
+ * 기업」). 나이·실적·인증·소재·업종·대상 한정 같은, 회사마다 갈리는 말이다.
  */
-const EXCLUSION_FORM =
-  /제외|불가|않[은는]|아닌|위반|물의|제한[된되]|부적합|부적정|합당하지|어렵다고|업소|상장|사치|향락|투기|퇴폐|무신고|미경과|없는\s*(?:업체|경우|기업|사업자)|횡령|처분|정지|결격|금지|대상\s*아님|경우$/;
-/** 대상을 **정하는** 문장의 신호 — 이것은 모양이 빼기처럼 보여도 자격 확인으로 남긴다. */
-const TARGET_DEFINING = /지원\s*대상|자격|요건|첨부\s*원문|원문\s*확인|공고문\s*참조/;
+const ELIGIBILITY_SIGNAL =
+  /실적|이상|이하|초과|미만|만\s*\d|\d\s*(?:년|세|명|억|천만|백만|%)|매출|수출|인증|확인서|보유|등록|소재|업종|대표자|청년|여성|장애|창업|기술\s*이전|계약|한하여|한함|한정|에\s*한|만\s*(?:신청|지원|가능)|전용|대상\s*(?:기업|자)|지원\s*대상\s*[:：]|요건|자격|첨부\s*원문|원문\s*확인|공고문\s*참조/;
+/**
+ * 사람 확인 항목 중 **자격을 가르는 것**. 문장을 조각(괄호·쉼표·쌍반점·줄)으로 나눠, **모든 조각이** 거의 모든
+ * 회사가 해당 없는 결격(체납·휴폐업·부정수급·사치향락업 …)이거나 지원내용·서류 안내일 때만 「맞음」을 막지 않는다.
+ * 문장 끝 모양(「경우」·「불가」·「한하여 신청」)으로는 가르지 않는다 — 「대표자가 만 39세 이하인 경우」·
+ * 「만 39세 초과 시 신청 불가」는 자격이다(독립 리뷰 review-1b329d8d 등, 2026-09-24). 애매하면 막는다.
+ */
 export function substantiveHumanChecks(texts: readonly string[]): string[] {
   return texts.filter((t) => {
     const s = t.trim();
     if (!s) return false;
-    if (TARGET_DEFINING.test(s) && !GENERIC_DISQUALIFIER.test(s)) return !/지원\s*내용/.test(s);
-    if (GENERIC_DISQUALIFIER.test(s)) return false;
-    if (NON_ELIGIBILITY_NOTE.test(s)) return false;
-    if (EXCLUSION_FORM.test(s)) return false;
-    return true;
+    const parts = s.split(/[()（）\[\],，;；\n]+/).map((x) => x.trim()).filter((x) => x.length > 0);
+    return !parts.every((part) => {
+      // 「지원대상에서 제외」는 빼는 말이지 대상을 정하는 말이 아니다 — 자격 신호 검사 전에 지운다.
+      const body = part.replace(/지원\s*대상\s*에서\s*(?:제외|배제)/g, "제외").replace(/^[※*·\-\s]+/, "");
+      if (GENERIC_DISQUALIFIER.test(body)) {
+        const rest = body.replace(new RegExp(GENERIC_DISQUALIFIER.source, "g"), " ");
+        return !ELIGIBILITY_SIGNAL.test(rest);
+      }
+      if (ADMIN_NOTE.test(body)) return !/지원\s*대상|한하여|에\s*한|만\s*(?:신청|지원|가능)|자격|요건/.test(body);
+      return false;
+    });
   });
 }
 
@@ -581,7 +590,7 @@ export function substantiveHumanChecks(texts: readonly string[]): string[] {
  */
 const TITLE_DOMAINS: Array<readonly [string, RegExp]> = [
   ["제약바이오", /의료|치매|바이오|제약|의약|헬스케어|신약|백신|진단기기|의료기기/],
-  ["정보통신", /소프트웨어|(?<![A-Za-z])SW(?![A-Za-z])|ICT|인공지능|(?<![A-Za-z])AI(?![A-Za-z])|블록체인|메타버스|클라우드|사이버\s*보안|정보보호/],
+  ["정보통신", /정보\s*통신|정보\s*기술|빅\s*데이터|소프트웨어|(?<![A-Za-z])SW(?![A-Za-z])|ICT|인공지능|(?<![A-Za-z])AI(?![A-Za-z])|블록체인|메타버스|클라우드|사이버\s*보안|정보보호/],
   ["반도체전자", /반도체|디스플레이|전자부품/],
   ["기계금속", /로봇|금속|뿌리\s*산업|소부장|소재\s*·?\s*부품|기계\s*산업/],
   ["에너지환경", /에너지|신재생|탄소\s*중립|수소|이차\s*전지|배터리/],
@@ -634,8 +643,10 @@ export function strictFitBlock(ctx: StrictFitContext): string | null {
   if (domains.length > 0) {
     const mine = sectorFamiliesOfIndustry(ctx.profile?.industry ?? "");
     if (mine.length === 0) return "제목에 분야가 있는데 회사 업종을 분야로 못 읽음";
-    const related = relatedFamiliesOf(domains);
-    if (!mine.some((f) => related.has(f))) return "회사 업종과 관련 없는 분야의 공고";
+    // 적힌 분야가 **모두** 회사 업종과 이어져야 한다 — 하나만 맞아도 통과시키면 「식품제조업 전용 홍보영상」이
+    // 「영상」 하나로 광고회사에 맞음이 된다(독립 리뷰 review-1b329d8d).
+    const unrelated = domains.filter((d) => !mine.some((f) => relatedFamiliesOf([d]).has(f)));
+    if (unrelated.length > 0) return "회사 업종과 관련 없는 분야의 공고";
   }
   return null;
 }
