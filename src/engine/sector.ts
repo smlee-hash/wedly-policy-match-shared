@@ -158,7 +158,12 @@ export function sectorFamiliesOfIndustry(industry: string): string[] {
   const masked = maskCompounds(raw);
   const found: string[] = [];
   for (const fam of SECTOR_FAMILIES) {
-    const hit = fam.companyWords.some((w) => (COMPOUND_MASK.includes(w) ? raw.includes(w) : masked.includes(w)));
+    const hit = fam.companyWords.some((w) => {
+      const text = COMPOUND_MASK.includes(w) ? raw : masked;
+      // 영문 약어(IT·AI)는 영문 단어 안에서 찾지 않는다 — 「FITNESS」 속 「IT」는 정보통신이 아니다(13차 리뷰).
+      if (/^[A-Za-z]+$/.test(w)) return new RegExp(`(?<![A-Za-z])${w}(?![A-Za-z])`).test(text);
+      return text.includes(w);
+    });
     if (hit) found.push(fam.family);
   }
   return found;

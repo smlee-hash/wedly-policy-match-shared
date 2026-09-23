@@ -465,14 +465,7 @@ export function conditionPassIsFitGrade(check: ConditionCheck, p: BusinessProfil
   if (key === "industry") {
     // 조건 낱말이 회사 업종에서 **낱말 첫머리**로 나와야 한다 — 「비금속」 속 「금속」은 아니다.
     const mine = p?.industry ?? "";
-    return (check.condition.value as unknown[]).map(String).some((k) => {
-      let i = mine.indexOf(k);
-      while (i >= 0) {
-        if (!isHangul(mine[i - 1])) return true;
-        i = mine.indexOf(k, i + 1);
-      }
-      return false;
-    });
+    return (check.condition.value as unknown[]).map(String).some((k) => wordStartIn(mine, k));
   }
   if (key === "companyScale") {
     // 회사 규모가 조건 값과 **정확히** 같아야 한다 — 「중소기업」 ⊃ 「소기업」 글자 포함은 아니다.
@@ -622,6 +615,9 @@ export function substantiveHumanChecks(texts: readonly string[], title = ""): st
       // 동의 불가 기업 제외」(12차 리뷰).
       const targetableCounts = targetable === 1 && EXCLUDING_WORD.test(body) && !moral && !ADMIN_NOTE.test(body);
       if (targetable > 0 && !targetableCounts) return false;
+      // 결격 낱말과 안내 문구가 한 조각에 섞이면 빼는 말이 어디에 붙었는지 모른다 — 「영업 정지 중인 기업 중
+      // 개인정보 수집·이용 동의 불가 기업 제외」(13차 리뷰).
+      if (moral && ADMIN_NOTE.test(body)) return false;
       const stateCounts = targetableCounts && states.length === 1;
       const generic = moral || targetableCounts;
       const admin = ADMIN_NOTE.test(body);
@@ -713,9 +709,13 @@ function industryScopeBlock(ctx: StrictFitContext): string | null {
 }
 
 function wordStartIn(text: string, word: string): boolean {
+  const latin = /^[A-Za-z]+$/.test(word);
   let i = text.indexOf(word);
   while (i >= 0) {
-    if (!isHangul(text[i - 1])) return true;
+    const before = text[i - 1];
+    const after = text[i + word.length];
+    // 영문 약어는 앞뒤가 영문이 아니어야 한다(「FITNESS」 속 「IT」 아님, 13차 리뷰).
+    if (latin ? !/[A-Za-z]/.test(before ?? "") && !/[A-Za-z]/.test(after ?? "") : !isHangul(before)) return true;
     i = text.indexOf(word, i + 1);
   }
   return false;
