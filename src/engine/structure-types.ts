@@ -105,7 +105,14 @@ export interface AnnouncementStructure {
   humanCheck: string[];                         // 기계로 못 바꾼 조건 원문 — 버리지 않는다
   documents: string[];
   verified: boolean;                            // 2차 검산 통과 여부
+  /**
+   * 공고가 특정 업종·분야만 대상으로 하는가 — AI 가 원문 전체를 읽고 답한다(2026-09-24 정확도 100% 지시).
+   * all=업종 제한 없음, restricted=특정 업종·분야만, unknown=판단 못 함. 없으면(옛 정리분) 모름으로 본다.
+   */
+  industryScope?: IndustryScope;
 }
+
+export type IndustryScope = "all" | "restricted" | "unknown";
 
 export type ConditionVerdict = "pass" | "fail" | "unknown";
 export interface ConditionCheck {

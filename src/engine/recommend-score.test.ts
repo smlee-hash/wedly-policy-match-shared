@@ -274,6 +274,7 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
     "교육훈련 서비스업 전용 지원사업", "기계설비 유지보수업 전용 지원사업",
     "교육훈련 사업체 전용 지원사업", "기계설비 사업주 지원사업", "성장지원 대상 업종: 교육훈련",
     "보험업 전용 경영개선 지원사업", "법률서비스업 전용 경영개선 지원사업",
+    "보험업을 위한 경영개선 지원사업", "교육훈련 지원기관 모집",
   ])(
     "판정용 분야 사전 낱말도 제목 분야로 읽는다 — 「%s」",
     (title) => {
@@ -284,6 +285,10 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
   it("「정보통신」 한국어 표기도 분야로 읽는다", () => {
     expect(fitVerdictOf([empPass], { title: "2026년 정보통신산업 기술개발 지원사업", profile: { region: "서울", industry: "음식점업" } })).toBe("unverified");
   });
+  it("합성어 업종(귀금속제조업)은 회사 업종 글에 그 말이 있어야 한다", () => {
+    expect(fitVerdictOf([empPass], { title: "귀금속제조업 전용 지원사업", profile: { region: "서울", industry: "의류 제조업" } })).toBe("unverified");
+    expect(fitVerdictOf([empPass], { title: "인쇄회로제조업 전용 지원사업", profile: { region: "서울", industry: "반도체 제조업" } })).toBe("unverified");
+  });
   it("제목의 「○○업」이 회사 업종 글에 있으면 막지 않는다", () => {
     expect(fitVerdictOf([empPass], { title: "음식점업 경영개선 지원사업", profile: { region: "서울", industry: "한식 음식점업" } })).toBe("fit");
   });
@@ -291,5 +296,32 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
     expect(fitVerdictOf([empPass], { title: "소공인 작업환경개선 지원", profile: P })).toBe("fit");
     // 제목이 업종(도시제조업)을 적었는데 회사 업종 글에 그 말이 없으면 정확도 우선으로 막는다(알려진 손해).
     expect(fitVerdictOf([empPass], { title: "도시제조업 작업환경개선 지원", profile: P })).toBe("unverified");
+  });
+});
+
+/** 2026-09-24 — 공고 맞음에 AI 의 업종 범위 판단을 요구한다(제목 글자 규칙만으로는 11차 리뷰까지 구멍이 계속 났다). */
+describe("정밀 맞음 — AI 업종 범위(industryScope)", () => {
+  const empPass = { condition: { key: "employeeMax", op: "lte", value: 50, rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
+  const ind = (value: string[], verdict = "pass") =>
+    ({ condition: { key: "industry", op: "in", value, rawText: "", machineReadable: true }, verdict, note: "" }) as never;
+  const food = { region: "서울", industry: "식품 제조업" };
+  const base = { title: "2026년 경영개선 지원사업", profile: food, requireIndustryScope: true };
+  it("all 이면 통과", () => {
+    expect(fitVerdictOf([empPass], { ...base, industryScope: "all" })).toBe("fit");
+  });
+  it("모름·없음이면 막는다", () => {
+    expect(fitVerdictOf([empPass], { ...base, industryScope: "unknown" })).toBe("unverified");
+    expect(fitVerdictOf([empPass], { ...base })).toBe("unverified");
+  });
+  it("restricted 는 구체 분야 업종 조건이 회사와 맞을 때만", () => {
+    expect(fitVerdictOf([empPass, ind(["식품"])], { ...base, industryScope: "restricted" })).toBe("fit");
+    // 넓은 말(제조업)이 섞이면 어느 선택지로 맞았는지 몰라 막는다
+    expect(fitVerdictOf([empPass, ind(["식품", "제조업"])], { ...base, industryScope: "restricted" })).toBe("unverified");
+    expect(fitVerdictOf([empPass, ind(["제조업"])], { ...base, industryScope: "restricted" })).toBe("unverified");
+    // 업종 조건 없음
+    expect(fitVerdictOf([empPass], { ...base, industryScope: "restricted" })).toBe("unverified");
+  });
+  it("금융상품처럼 요구하지 않으면 영향 없다", () => {
+    expect(fitVerdictOf([empPass], { title: "2026년 경영개선 지원사업", profile: food })).toBe("fit");
   });
 });

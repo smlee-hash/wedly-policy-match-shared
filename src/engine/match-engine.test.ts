@@ -41,6 +41,7 @@ function structure(over: Partial<AnnouncementStructure> = {}): AnnouncementStruc
     humanCheck: [],
     documents: [],
     verified: true,
+    industryScope: "all",
     ...over,
   };
 }
@@ -915,7 +916,7 @@ describe("진단 등급 — 정밀 맞음 안전장치(2026-09-24)", () => {
   const s = {
     conditions: [{ key: "region", op: "in", value: ["서울"], rawText: "서울", machineReadable: true }],
     humanCheck: [] as string[], benefitSummary: "", supportAmountText: "",
-    aiSummary: { purpose: "", target: "", scale: "", scaleItems: [] }, documents: [], verified: false,
+    aiSummary: { purpose: "", target: "", scale: "", scaleItems: [] }, documents: [], verified: false, industryScope: "all",
   } as never;
   it("모든 조건 통과여도 제목이 다른 시도면 possible 이 아니라 uncertain", () => {
     expect(matchAnnouncement(s, { region: "서울" }, new Date(), { title: "대전 팁스타운 입주기업 모집" }).grade).toBe("uncertain");
@@ -933,7 +934,7 @@ describe("지역 — 판정은 넓게, 「맞음」·「신청 가능」은 시�
   const S = (value: string[]) => ({
     conditions: [{ key: "region", op: "in", value, rawText: value.join(","), machineReadable: true }],
     humanCheck: [] as string[], benefitSummary: "", supportAmountText: "",
-    aiSummary: { purpose: "", target: "", scale: "", scaleItems: [] }, documents: [], verified: false,
+    aiSummary: { purpose: "", target: "", scale: "", scaleItems: [] }, documents: [], verified: false, industryScope: "all",
   }) as never;
   const grade = (value: string[], p: object, title = "지원사업 모집") => matchAnnouncement(S(value), p, NOW, { title }).grade;
   it.each([
@@ -968,7 +969,7 @@ describe("지역 맞음 — 덩어리 안에서 시도·시군구가 함께 맞�
   const S = (value: string[]) => ({
     conditions: [{ key: "region", op: "in", value, rawText: value.join(","), machineReadable: true }],
     humanCheck: [] as string[], benefitSummary: "", supportAmountText: "",
-    aiSummary: { purpose: "", target: "", scale: "", scaleItems: [] }, documents: [], verified: false,
+    aiSummary: { purpose: "", target: "", scale: "", scaleItems: [] }, documents: [], verified: false, industryScope: "all",
   }) as never;
   const grade = (value: string[], p: object, title = "지원사업 모집") => matchAnnouncement(S(value), p, NOW, { title }).grade;
   it("「서울 중구 및 부산 강서구」는 서울 강서구 회사에 신청 가능이 아니다", () => {
@@ -1000,7 +1001,7 @@ describe("지역 맞음 — 덩어리 안에서 시도·시군구가 함께 맞�
 describe("정밀 맞음 — 지역 외 조건·원문·약칭(리뷰 review-afe4e27f)", () => {
   const S = (conditions: unknown[]) => ({
     conditions, humanCheck: [] as string[], benefitSummary: "", supportAmountText: "",
-    aiSummary: { purpose: "", target: "", scale: "", scaleItems: [] }, documents: [], verified: false,
+    aiSummary: { purpose: "", target: "", scale: "", scaleItems: [] }, documents: [], verified: false, industryScope: "all",
   }) as never;
   const grade = (conditions: unknown[], p: object, title = "지원사업 모집") => matchAnnouncement(S(conditions), p, NOW, { title }).grade;
   it("값은 「서울」이어도 원문에 광진구 제한이 있으면 영등포 회사에 신청 가능이 아니다", () => {

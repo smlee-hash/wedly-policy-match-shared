@@ -22,6 +22,7 @@ function structure(over: Partial<AnnouncementStructure> = {}): AnnouncementStruc
     humanCheck: [],
     documents: [],
     verified: true,
+    industryScope: "all",
     ...over,
   };
 }

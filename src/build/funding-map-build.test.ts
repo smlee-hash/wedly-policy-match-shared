@@ -1440,9 +1440,18 @@ describe("buildFundingMap — 정밀 맞음 배선", () => {
     const data = await buildFundingMap(profile, NOW, { filters: { includeExcluded: true } });
     return byId(data.groups, "a:a1")?.fitVerdict;
   };
-  const aiDone = (humanCheck: string[] = []) => ({ structure: rule(humanCheck), structureStatus: "done" });
+  const aiDone = (humanCheck: string[] = [], industryScope: string | null = "all") => ({
+    structure: { ...rule(humanCheck), ...(industryScope ? { industryScope } : {}) }, structureStatus: "done",
+  });
   it("AI 로 정리된 공고에서 막을 것이 없으면 맞음", async () => {
     expect(await verdictOf({ title: "2026년 소상공인 경영개선 지원", ...aiDone() })).toBe("fit");
+  });
+  it("AI 가 업종 범위를 답하지 않았거나(옛 정리분) 모른다고 했으면 맞음이 아니다", async () => {
+    expect(await verdictOf({ title: "2026년 소상공인 경영개선 지원", ...aiDone([], null) })).toBe("unverified");
+    expect(await verdictOf({ title: "2026년 소상공인 경영개선 지원", ...aiDone([], "unknown") })).toBe("unverified");
+  });
+  it("AI 가 업종 제한 공고라 했는데 업종 조건이 없으면 맞음이 아니다", async () => {
+    expect(await verdictOf({ title: "2026년 소상공인 경영개선 지원", ...aiDone([], "restricted") })).toBe("unverified");
   });
   it("규칙으로만 뽑은 조건(ruleStructure)이면 맞음이 아니다", async () => {
     expect(await verdictOf({ title: "2026년 소상공인 경영개선 지원", ruleStructure: rule() })).toBe("unverified");

@@ -342,7 +342,10 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
     where: r.agency ?? "",
     fit,
     // 정밀 맞음(2026-09-24) — 제목의 지역·예비창업자 대상·사람 확인 조건도 본다.
-    fitVerdict: fitVerdictOf(m.checks, { title: r.title ?? "", profile, humanCheckTexts: m.humanCheck, ruleOnly: r.structureStatus !== "done" }),
+    fitVerdict: fitVerdictOf(m.checks, {
+      title: r.title ?? "", profile, humanCheckTexts: m.humanCheck, ruleOnly: r.structureStatus !== "done",
+      requireIndustryScope: true, industryScope: structure.industryScope,
+    }),
     humanCheck,
     score: scoreOf(m.checks),
     why: unclassified ? `${UNCLASSIFIED_PREFIX}${why}` : why,

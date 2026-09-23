@@ -6,6 +6,7 @@ import { ORG_TYPE_NAMES, profileOrgTypes } from "./target-org";
 import {
   AnnouncementStructure,
   ConditionCheck,
+  IndustryScope,
   MatchGrade,
   StructuredCondition,
   gradeOf,
@@ -533,6 +534,15 @@ export type StrictFitContext = {
    * 「통과」로 만든다(9/23: 광고회사에 「치매의료기술연구개발」, 영등포 회사에 「광진구 사업장」 공고).
    */
   ruleOnly?: boolean;
+  /**
+   * 공고(지원사업)면 true — 「맞음」에 AI 의 업종 범위 판단을 요구한다. 제목 글자 규칙만으로는 한국어 표현
+   * (조사·합성어·「○○업을 위한」)을 끝까지 못 막아 리뷰마다 새 구멍이 났다(1~11차). 금융상품은 쓰지 않는다.
+   */
+  requireIndustryScope?: boolean;
+  /** AI 가 답한 업종 범위(없으면 옛 정리분 — 모름). */
+  industryScope?: IndustryScope;
+  /** 조건 대조 결과 — 업종 조건이 구체 분야로 맞았는지 본다. */
+  checks?: ConditionCheck[];
 };
 
 /**
@@ -670,6 +680,31 @@ function titleWordsOf(f: (typeof SECTOR_FAMILIES)[number]): string[] {
   return [...f.announcementWords, ...f.companyWords].filter((w) => !/^[A-Za-z]+$/.test(w));
 }
 
+/**
+ * AI 업종 범위 판단으로 맞음을 가른다. all 이면 통과. restricted 면 업종 조건이 **구체 분야**(사전이 아는 분야 —
+ * 「제조업」처럼 넓은 말은 아님)로만 적혔고 그 조건이 맞음 수준으로 통과했으며 그 분야가 회사 업종과 이어질 때만.
+ * 그 밖(모름·옛 정리분)은 막는다.
+ */
+function industryScopeBlock(ctx: StrictFitContext): string | null {
+  if (ctx.industryScope === "all") return null;
+  if (ctx.industryScope !== "restricted") return "업종 제한 여부를 아직 확인하지 못함";
+  const industryChecks = (ctx.checks ?? []).filter((c) => c.condition.key === "industry");
+  if (industryChecks.length === 0) return "업종 제한 공고인데 업종 조건이 없음";
+  const mine = sectorFamiliesOfIndustry(ctx.profile?.industry ?? "");
+  if (mine.length === 0) return "업종 제한 공고인데 회사 업종을 분야로 못 읽음";
+  for (const c of industryChecks) {
+    if (c.verdict !== "pass" || !conditionPassIsFitGrade(c, ctx.profile)) return "업종 제한을 확인하지 못함";
+    const v: unknown = c.condition.value;
+    const values = (Array.isArray(v) ? v : [v]).map((x) => String(x));
+    // 모든 선택지가 구체 분야여야 한다 — 하나라도 넓은 말이면 회사가 어느 선택지로 맞았는지 몰라 막는다.
+    const fams = values.map((x) => sectorFamiliesOfIndustry(x));
+    if (fams.some((f) => f.length === 0)) return "업종 제한이 넓은 말로 적혀 확인하지 못함";
+    const condFamilies = fams.flat();
+    if (!mine.some((f) => relatedFamiliesOf(condFamilies).has(f))) return "업종 제한과 회사 업종이 다름";
+  }
+  return null;
+}
+
 /** 막을 이유(사람 말 한 줄) 또는 null. */
 export function strictFitBlock(ctx: StrictFitContext): string | null {
   if (ctx.humanCheckTexts) {
@@ -677,6 +712,10 @@ export function strictFitBlock(ctx: StrictFitContext): string | null {
   }
   if ((ctx.humanCheck ?? 0) > 0) return "사람이 직접 확인할 조건이 있음";
   if (ctx.ruleOnly) return "조건이 아직 AI 로 정리되지 않음";
+  if (ctx.requireIndustryScope) {
+    const block = industryScopeBlock(ctx);
+    if (block) return block;
+  }
   const title = ctx.title ?? "";
   if (!title) return null;
   if (NON_PROGRAM.test(title)) return "지원사업 공고가 아닌 글";
@@ -709,12 +748,19 @@ export function strictFitBlock(ctx: StrictFitContext): string | null {
   // 수단 표현(개선·지원·도입 …)이 **바로 뒤에** 올 때만 가린다 — 업종 표시 목록으로 예외를 두면 「대행업」·
   // 「서비스업」·「유지보수업」이 계속 샜다(9차 리뷰). 모르는 쓰임은 분야로 읽혀 맞음이 줄어드는 쪽으로 틀린다.
   const masked = TITLE_MEANS_MASK.reduce(
-    (t, m) => t.replace(new RegExp(`${m}(?=\\s*(?:개선|지원|비용|비|도입|구축|확충|활용|개척|확대|진출|조성|사업(?![자체주장])))`, "g"), " "),
+    (t, m) => t.replace(new RegExp(`${m}(?=\\s*(?:개선|지원|비용|비|도입|구축|확충|활용|개척|확대|진출|조성)(?:사업|을|를|이|및)?(?![가-힣]))`, "g"), " "),
     maskCompounds(title),
   );
   // 제목이 적은 「○○업」(보험업·법률서비스업 …)은 사전에 없어도 대상 업종이다 — 회사 업종 글에 그 말이 없으면
   // 맞음 금지. 사전 분야로만 보면 사전 밖 업종이 전부 샜다(10차 리뷰). 기업·사업·창업 같은 말은 업종이 아니다.
-  const industryWords = (masked.match(/[가-힣]+(?:업종|업체|업)(?![가-힣])/g) ?? [])
+  // 합성어 가림 전 글에서 뽑는다(「귀금속제조업」이 「제조업」으로 줄지 않게), 조사가 붙어도(「보험업을」) 뽑는다(11차 리뷰).
+  const meansMasked = TITLE_MEANS_MASK.reduce(
+    (t, m) => t.replace(new RegExp(`${m}(?=\\s*(?:개선|지원|비용|비|도입|구축|확충|활용|개척|확대|진출|조성)(?:사업|을|를|이|및)?(?![가-힣]))`, "g"), " "),
+    title,
+  );
+  const industryWords = (meansMasked.match(
+    /[가-힣]+?(?:업종|업체|업)(?=$|[^가-힣]|(?:을|를|이|가|은|는|의|에|과|와|도|으로|로|에서|만)(?:$|[^가-힣]))/g,
+  ) ?? [])
     .map((w) => w.replace(/(?:업종|업체)$/, "업"))
     .filter((w) => !NOT_INDUSTRY_WORD.test(w));
   if (industryWords.length > 0) {
@@ -754,7 +800,10 @@ export function matchAnnouncement(
   if (
     grade === "possible"
     && (checks.some((c) => c.blocksFit || !conditionPassIsFitGrade(c, p))
-      || strictFitBlock({ title: opts.title, profile: p, humanCheckTexts: s.humanCheck }))
+      || strictFitBlock({
+        title: opts.title, profile: p, humanCheckTexts: s.humanCheck,
+        requireIndustryScope: true, industryScope: s.industryScope, checks,
+      }))
   ) {
     grade = "uncertain";
   }
@@ -849,6 +898,9 @@ export function readStoredStructure(raw: unknown): AnnouncementStructure {
   };
   s.documents = Array.isArray(o.documents) ? o.documents.filter((d): d is string => typeof d === "string") : [];
   s.verified = o.verified === true;
+  if (o.industryScope === "all" || o.industryScope === "restricted" || o.industryScope === "unknown") {
+    s.industryScope = o.industryScope;
+  }
 
   const human: string[] = Array.isArray(o.humanCheck)
     ? o.humanCheck.filter((h): h is string => typeof h === "string" && h.trim() !== "")
