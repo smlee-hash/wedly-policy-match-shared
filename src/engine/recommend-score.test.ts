@@ -240,6 +240,7 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
     "상장기업 중 개인정보 수집·이용 동의 불가 기업 제외",
     "영업 정지 중인 기업 중 개인정보 수집·이용 동의 불가 기업 제외",
     "영업 정지 중인 기업(개인정보 수집·이용 동의 불가 기업 제외)",
+    "영업 정지 중인 기업",
   ])("자격 문장 「%s」 이 남으면 맞음이 아니다", (t) => {
     expect(fitVerdictOf([empPass], { title: "2026년 경영환경 개선 지원사업", profile: P, humanCheckTexts: [t] })).toBe("unverified");
   });
@@ -321,6 +322,10 @@ describe("정밀 맞음 — AI 업종 범위(industryScope)", () => {
     expect(fitVerdictOf([empPass, ind(["식품"])], { ...base, industryScope: "restricted" })).toBe("unverified");
     expect(fitVerdictOf([empPass], { ...base, industryScope: "restricted" })).toBe("unverified");
   });
+  it("제목에서 붙은 분야 조건(targetSector)도 업종 제한으로 본다", () => {
+    const ts = { condition: { key: "targetSector", op: "in", value: ["식품"], rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([empPass, ts], { ...base, industryScope: "all" })).toBe("unverified");
+  });
   it("all 인데 업종 조건이 있으면 AI 답이 어긋나 확인 필요", () => {
     expect(fitVerdictOf([empPass, ind(["식품"])], { ...base, industryScope: "all" })).toBe("unverified");
   });
@@ -347,6 +352,14 @@ describe("정밀 맞음 — 지역 원문은 허용된 말만(16차 리뷰)", ()
       expect(fitVerdictOf([reg(raw)], ctx)).toBe("unverified");
     },
   );
+  it("규모 말(소상공인)이 든 지역 원문은 맞음이 아니다", () => {
+    const r = { condition: { key: "region", op: "in", value: ["경기"], rawText: "경기 소재 소상공인", machineReadable: true }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([r], ctx)).toBe("unverified");
+  });
+  it("원문 시도가 회사와 다르면(값이 전국으로 뭉개져도) 맞음이 아니다", () => {
+    const r = { condition: { key: "region", op: "in", value: ["전국"], rawText: "서울특별시 중구 소재 기업", machineReadable: true }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([r], { ...ctx, profile: { region: "부산", regionSigungu: "중구" } })).toBe("unverified");
+  });
   it("「수원시 소재 기업」 은 수원시 회사에 맞음", () => {
     expect(fitVerdictOf([reg("수원시 소재 기업")], ctx)).toBe("fit");
   });

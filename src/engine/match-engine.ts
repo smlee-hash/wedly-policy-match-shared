@@ -461,8 +461,9 @@ function companySigunguName(p: BusinessProfile | undefined): string | null {
  */
 /** 지역 원문에 남아도 되는 말(지역 이름을 지운 뒤). */
 const REGION_FILLER = new Set([
+  // 「소상공인」·「중소기업」·「사업자」는 규모·유형 자격이라 넣지 않는다(17차 리뷰).
   "소재", "소재한", "소재지", "위치한", "관내", "내", "지역", "지역의", "기업", "업체", "사업장", "본사", "주소지", "주사무소",
-  "사업자", "중소기업", "소상공인", "에", "의", "을", "를", "이", "가", "은", "는", "둔", "있는", "두고", "및", "또는", "등",
+  "에", "의", "을", "를", "이", "가", "은", "는", "둔", "있는", "두고", "및", "또는", "등",
   "전국", "도", "시", "군", "구", "특별시", "광역시", "특별자치시", "특별자치도",
 ]);
 function regionRawTextIsPlain(raw: string): boolean {
@@ -495,6 +496,16 @@ export function conditionPassIsFitGrade(check: ConditionCheck, p: BusinessProfil
   // 원문이 지역 이름과 허용된 말(소재·관내·기업 …)로만 이뤄져야 한다 — 「수원시 제외」·「수원시 외 지역」·「지원
   // 대상이 아님」처럼 빼는 말은 모양이 끝없이 많아 금지 목록으로는 못 막았다(15·16차 리뷰).
   if (!regionRawTextIsPlain(check.condition.rawText ?? "")) return false;
+  // 원문에 적힌 시도는 모두 회사 시도여야 한다 — 값이 「전국」으로 뭉개져도 원문 「서울특별시 중구」가 부산 중구를
+  // 통과시키지 않게(17차 리뷰).
+  // 시군구 이름을 먼저 지운 뒤 읽는다 — 「경기도 광주시」의 「광주」가 광주광역시로 읽히지 않게.
+  const rawSidos = sidoWordsIn(
+    subRegionNamesIn(check.condition.rawText ?? "").reduce((t, n) => t.split(n).join(" "), check.condition.rawText ?? ""),
+  );
+  if (rawSidos.length > 0) {
+    const mineSido = canonicalRegion(p?.region);
+    if (!mineSido || rawSidos.some((w) => canonicalRegion(w) !== mineSido)) return false;
+  }
   // 원문에 시군구(약칭 포함)가 있으면 회사 시군구가 그중 하나여야 한다 — 값이 시도로 축약돼도(리뷰 review-afe4e27f).
   const rawNames = subRegionNamesIn(check.condition.rawText ?? "");
   if (rawNames.length > 0) {
@@ -576,12 +587,14 @@ const PRE_FOUNDER_ONLY = /예비\s*창업|재\s*창업|재도전/;
  */
 /** 어떤 공고의 대상도 될 수 없는 결격(부정·사행·중복수혜 …) — 문장에 있기만 하면 결격이다. */
 const MORAL_DISQUALIFIER =
-  /허위|부정한\s*방법|부정\s*수급|이해\s*관계|중복\s*(?:지원|수혜|신청)|불건전|사행|유흥|제재|참여\s*제한|적정하지\s*않다고|지원\s*결정\s*후|관외\s*이전|환수|보증\s*심사\s*규정|사치|향락|투기|퇴폐|무신고|횡령|영업\s*정지|행정\s*처분|결격|사회적\s*물의/;
+  /허위|부정한\s*방법|부정\s*수급|이해\s*관계|중복\s*(?:지원|수혜|신청)|불건전|사행|유흥|적정하지\s*않다고|지원\s*결정\s*후|관외\s*이전|환수|보증\s*심사\s*규정|사치|향락|투기|퇴폐|무신고|횡령|결격|사회적\s*물의/;
 /**
  * 지원 대상이 **될 수도 있는** 상태(폐업 지원·신용불량 기업 경영정상화·회생기업 …). 같은 조각에 빼는 말
  * (제외·불가·배제)이 있을 때만 결격으로 본다(6차 리뷰 — 제목만으로는 그런 공고를 다 못 알아본다).
  */
-const STATE_DISQUALIFIER = /휴\s*[·ㆍ.,]?\s*폐업|폐업|휴업|체납|부도|신용\s*불량|연체|채무\s*불이행|파산|회생/;
+// 영업정지·행정처분·제재·참여제한도 피해 기업 지원의 대상이 될 수 있다(17차 리뷰) — 빼는 말이 있을 때만 결격.
+const STATE_DISQUALIFIER =
+  /휴\s*[·ㆍ.,]?\s*폐업|폐업|휴업|체납|부도|신용\s*불량|연체|채무\s*불이행|파산|회생|영업\s*정지|행정\s*처분|제재|참여\s*제한/;
 const EXCLUDING_WORD = /제외|불가|배제/;
 const GENERIC_DISQUALIFIER = new RegExp(`${MORAL_DISQUALIFIER.source}|${STATE_DISQUALIFIER.source}`);
 /** 「상장기업」은 빼는 말(제외·불가)이 같은 조각에 있을 때만 결격이다 — 「코스닥 상장 기업」이 대상일 수 있다. */
@@ -590,7 +603,7 @@ const LISTED = /상장\s*(?:기업|법인|회사)/;
  * 공고 자체가 결격 낱말을 대상으로 삼는 경우(폐업 지원·재기·채무조정·회생) — 그 공고에서는 결격 낱말이
  * 자격이다. 이런 제목이면 사람 확인 항목을 하나도 결격으로 빼지 않는다(2차 리뷰 2026-09-24).
  */
-const DISTRESS_PROGRAM = /폐업|휴업|사업\s*정리|재기|재도전|재창업|희망\s*리턴|채무\s*조정|신용\s*회복|회생|파산|연체|부도|체납|원상\s*복구|점포\s*철거/;
+const DISTRESS_PROGRAM = /영업\s*정지|행정\s*처분|폐업|휴업|사업\s*정리|재기|재도전|재창업|희망\s*리턴|채무\s*조정|신용\s*회복|회생|파산|연체|부도|체납|원상\s*복구|점포\s*철거/;
 /** 지원 내용·서류·절차 안내 — 자격이 아니다. */
 const ADMIN_NOTE = /지원\s*내용|지원\s*규모|지원\s*금액|지원\s*한도|제출\s*서류|구비\s*서류|신청\s*방법|접수\s*방법|문의|개인정보|수집\s*·?\s*이용\s*동의|신청서|서식/;
 /**
@@ -714,7 +727,10 @@ function industryScopeBlock(ctx: StrictFitContext): string | null {
   if (ctx.industryScope === "restricted") return "업종 제한 공고 — 회사 업종 자격은 사람이 확인";
   if (ctx.industryScope !== "all") return "업종 제한 여부를 아직 확인하지 못함";
   // 제한 없음이라면서 업종 조건이 있으면 AI 답이 서로 어긋난다 — 믿지 않는다.
-  if ((ctx.checks ?? []).some((c) => c.condition.key === "industry")) return "업종 범위 답과 업종 조건이 어긋남";
+  // 제목에서 붙은 분야 조건(targetSector)도 업종 제한이다(17차 리뷰).
+  if ((ctx.checks ?? []).some((c) => c.condition.key === "industry" || c.condition.key === "targetSector")) {
+    return "업종·분야 조건이 있어 사람이 확인";
+  }
   return null;
 }
 

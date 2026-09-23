@@ -711,7 +711,7 @@ describe("checkCondition — 기계로 못 읽는 조건", () => {
 });
 
 describe("matchAnnouncement — 등급", () => {
-  const pass = cond({ value: ["전국"] });
+  const pass = cond({ value: ["전국"], rawText: "전국" });
   const failing = cond({ key: "employeeMax", op: "lte", value: 5, rawText: "5명 이하", machineReadable: true });
   const unknownCond = cond({ key: "revenueMaxKrw", op: "lte", value: 100, rawText: "매출 100원 이하" });
 
