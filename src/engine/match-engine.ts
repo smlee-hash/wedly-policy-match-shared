@@ -601,12 +601,17 @@ export function substantiveHumanChecks(texts: readonly string[], title = ""): st
     return !parts.every((part) => {
       const body = part.replace(/지원\s*대상\s*에서\s*(?:제외|배제)/g, "제외");
       const listed = LISTED.test(body) && /제외|불가/.test(body);
-      const generic = MORAL_DISQUALIFIER.test(body) || (STATE_DISQUALIFIER.test(body) && EXCLUDING_WORD.test(body)) || listed;
+      // 상태 낱말은 **하나만**, 빼는 말과 함께, 다른 결격과 섞이지 않았을 때만 결격이다 — 「신용불량 기업 중 휴업
+      // 기업 제외」처럼 제외가 다른 상태에 붙으면 앞 상태(자격)까지 지워진다(8차 리뷰).
+      const states = body.match(new RegExp(STATE_DISQUALIFIER.source, "g")) ?? [];
+      const moral = MORAL_DISQUALIFIER.test(body);
+      const stateCounts = states.length === 1 && EXCLUDING_WORD.test(body) && !moral;
+      if (states.length > 0 && !stateCounts) return false;
+      const generic = moral || stateCounts || listed;
       const admin = ADMIN_NOTE.test(body);
       if (!generic && !admin) return false;
       // 상태 낱말(신용불량 …)은 빼는 말과 함께일 때만 결격이므로 그때만 지운다 — 안내 조각(「지원내용: 신용불량
       // 상태인 기업」)에서 조건 없이 지우면 자격이 샌다(7차 리뷰).
-      const stateCounts = STATE_DISQUALIFIER.test(body) && EXCLUDING_WORD.test(body);
       let rest = body.replace(new RegExp(MORAL_DISQUALIFIER.source, "g"), " ");
       if (stateCounts) rest = rest.replace(new RegExp(STATE_DISQUALIFIER.source, "g"), " ");
       if (listed) rest = rest.replace(new RegExp(LISTED.source, "g"), " ");
@@ -692,7 +697,11 @@ export function strictFitBlock(ctx: StrictFitContext): string | null {
   // 업종 무관 차단 — 제목이 분야를 적었으면 회사 업종이 그 분야(이웃 포함)여야 「맞음」이다.
   const compounds = compoundFamiliesIn(title);
   if (compounds.unknown.length > 0) return "제목의 분야를 읽지 못함";
-  const masked = TITLE_MEANS_MASK.reduce((t, m) => t.split(m).join(" "), maskCompounds(title));
+  // 뒤에 업종 표시(업·제조·기관 …)가 붙으면 수단이 아니라 대상이다 — 「기계설비 제조업」·「교육훈련기관」(8차 리뷰).
+  const masked = TITLE_MEANS_MASK.reduce(
+    (t, m) => t.replace(new RegExp(`${m}(?!\\s*(?:업|제조|기관|기업|업체|분야|산업|사업자|협회|조합|전문))`, "g"), " "),
+    maskCompounds(title),
+  );
   const domains = [
     ...new Set([
       ...TITLE_DOMAINS.filter(([, re]) => re.test(masked)).map(([f]) => f),
