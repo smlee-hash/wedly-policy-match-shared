@@ -226,6 +226,8 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
     "연체 중인 소상공인",
     "폐업 소상공인",
     "체납이 없는 법인에 한하여 신청",
+    "체납이 없는 시내 기업",
+    "신청자는 폐업 이력이 있는 자",
   ])("자격 문장 「%s」 이 남으면 맞음이 아니다", (t) => {
     expect(fitVerdictOf([empPass], { title: "2026년 경영환경 개선 지원사업", profile: P, humanCheckTexts: [t] })).toBe("unverified");
   });
@@ -252,6 +254,10 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
   });
   it("제목의 분야가 여럿이면 모두 회사 업종과 관련 있어야 맞음 — 식품제조업 전용 홍보영상", () => {
     expect(fitVerdictOf([empPass], { title: "2026년 식품제조업 전용 홍보영상 제작 지원사업", profile: P })).toBe("unverified");
+  });
+  it("가림 합성어(귀금속)도 제목 분야로 읽는다 — 식품 제조업체에 귀금속 제조업 전용 공고", () => {
+    const broad = { condition: { key: "industry", op: "in", value: ["제조업"], rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([empPass, broad], { title: "2026년 귀금속 제조업 전용 지원사업", profile: { region: "서울", industry: "식품 제조업" } })).toBe("unverified");
   });
   it("「정보통신」 한국어 표기도 분야로 읽는다", () => {
     expect(fitVerdictOf([empPass], { title: "2026년 정보통신산업 기술개발 지원사업", profile: { region: "서울", industry: "음식점업" } })).toBe("unverified");

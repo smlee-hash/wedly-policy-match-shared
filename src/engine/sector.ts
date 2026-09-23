@@ -136,6 +136,22 @@ export function maskCompounds(text: string): string {
   return COMPOUND_MASK.reduce((t, c) => t.split(c).join(" "), text ?? "");
 }
 
+/**
+ * 글에 든 합성어(「귀금속」·「인쇄회로」 …)의 분야. 제목 분야 검사가 가림 글만 보면 「귀금속 제조업 전용」의 분야가
+ * 사라진다(5차 리뷰) — 가린 말은 따로 분야로 읽는다. 분야를 못 정하는 합성어는 `unknown` 에 담는다.
+ */
+export function compoundFamiliesIn(text: string): { families: string[]; unknown: string[] } {
+  const families = new Set<string>();
+  const unknown: string[] = [];
+  for (const c of COMPOUND_MASK) {
+    if (!(text ?? "").includes(c)) continue;
+    const fams = SECTOR_FAMILIES.filter((f) => f.companyWords.includes(c) || f.announcementWords.includes(c)).map((f) => f.family);
+    if (fams.length === 0) unknown.push(c);
+    for (const f of fams) families.add(f);
+  }
+  return { families: [...families], unknown };
+}
+
 export function sectorFamiliesOfIndustry(industry: string): string[] {
   const raw = industry ?? "";
   if (!raw.trim()) return [];

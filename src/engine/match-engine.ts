@@ -1,6 +1,6 @@
 // 프로필 vs 구조화 조건 순수 대조 — AI 없음, 저장소 접근 없음(설계서 §3, 계획 Task 4).
 // 「모름」은 절대 통과로 치지 않는다 — 값이 없으면 unknown → 등급은 최고 uncertain 까지만 간다.
-import { maskCompounds, relatedFamiliesOf, sectorFamiliesOfIndustry, SECTOR_FAMILY_NAMES } from "./sector";
+import { compoundFamiliesIn, maskCompounds, relatedFamiliesOf, sectorFamiliesOfIndustry, SECTOR_FAMILY_NAMES } from "./sector";
 import { SIGUNGU_TO_SIDO, sigunguSido } from "./sigungu";
 import { ORG_TYPE_NAMES, profileOrgTypes } from "./target-org";
 import {
@@ -565,20 +565,19 @@ const ADMIN_NOTE = /지원\s*내용|지원\s*규모|지원\s*금액|지원\s*한
  * 자격 신호를 금지 목록으로 모으면 「중소기업만」·「소상공인」·「코스닥」처럼 목록 밖 말이 계속 샜다
  * (독립 리뷰 1~3차, 2026-09-24). 모르는 말이 하나라도 남으면 자격 문장으로 보고 「맞음」을 막는다.
  */
-const FILLER_PIECES = [
-  "되었거나", "해당되는", "하였거나", "했거나", "받았거나", "되거나", "하거나", "받거나", "있거나", "없거나",
-  "중인", "하는", "하여", "하고", "있는", "없는", "받은", "받는", "되어", "된", "인", "한", "할", "의",
-  "국세", "지방세", "세금", "보험료", "기업", "업체", "사업장", "회사", "대표자", "대표",
-  "본인", "또는", "혹은", "및", "등", "경우", "자", "곳", "제외", "불가", "배제", "지원", "신청", "사업",
-  "수혜", "이력", "해당", "현재", "최근", "상태", "기간", "내", "중", "이", "가", "은", "는", "을", "를",
-  "에", "에서", "으로", "로", "와", "과", "도", "이나", "나", "것", "시", "적", "관련", "이상", "사실", "있음",
-].sort((a, b) => b.length - a.length);
-const FILLER_WORD = new RegExp(`^(?:${FILLER_PIECES.join("|")})+$`);
-/** 지원내용 안내 조각에서만 남아도 되는 말 — 「자세한 지원내용은 공고문 참조」. */
-const ADMIN_FILLER_WORD = /^(?:자세한|세부|상세|공고문|공고|참조|확인|바람|바랍니다|※)+$/;
+/**
+ * 운영 AI 정리 공고의 결격 문장 19종(휴·폐업·부도·허위·체납 …)에서 결격 낱말을 지우고 남는 낱말만 — 낱말
+ * **통째로** 맞아야 한다. 조각을 이어 붙이게 두면 「시」+「내」=「시내」, 「이력」+「있는」처럼 자격 말이 샌다(5차 리뷰).
+ */
+const FILLER_WORDS = new Set([
+  "현재", "기업", "업체", "기업의", "기업이", "기업인", "기업은", "업체는", "중인", "중", "상태", "상태의", "상태인",
+  "인", "경우", "또는", "나", "및", "등", "등이", "으로", "방법으로", "신청한", "국세", "지방세", "제외", "지원제외",
+  "대표자", "자", "자인", "은", "는", "이", "가", "의",
+]);
+const ADMIN_FILLER_WORDS = new Set(["자세한", "세부", "상세", "공고문", "참조"]);
 function onlyFiller(rest: string, admin: boolean): boolean {
   const words = rest.split(/[\s·ㆍ.,:：/※*'"「」『』~\-]+/).filter((w) => w.length > 0);
-  return words.every((w) => FILLER_WORD.test(w) || (admin && ADMIN_FILLER_WORD.test(w)));
+  return words.every((w) => FILLER_WORDS.has(w) || (admin && ADMIN_FILLER_WORDS.has(w)));
 }
 /**
  * 사람 확인 항목 중 **자격을 가르는 것**. 문장을 조각(괄호·쉼표·쌍반점·줄)으로 나눠, **모든 조각이**
@@ -663,7 +662,11 @@ export function strictFitBlock(ctx: StrictFitContext): string | null {
     return "예비·재창업자 대상 공고";
   }
   // 업종 무관 차단 — 제목이 분야를 적었으면 회사 업종이 그 분야(이웃 포함)여야 「맞음」이다.
-  const domains = TITLE_DOMAINS.filter(([, re]) => re.test(maskCompounds(title))).map(([f]) => f);
+  const compounds = compoundFamiliesIn(title);
+  if (compounds.unknown.length > 0) return "제목의 분야를 읽지 못함";
+  const domains = [
+    ...new Set([...TITLE_DOMAINS.filter(([, re]) => re.test(maskCompounds(title))).map(([f]) => f), ...compounds.families]),
+  ];
   if (domains.length > 0) {
     const mine = sectorFamiliesOfIndustry(ctx.profile?.industry ?? "");
     if (mine.length === 0) return "제목에 분야가 있는데 회사 업종을 분야로 못 읽음";
