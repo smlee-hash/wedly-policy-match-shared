@@ -566,16 +566,29 @@ const DISTRESS_PROGRAM = /폐업|휴업|사업\s*정리|재기|재도전|재창�
 /** 지원 내용·서류·절차 안내 — 자격이 아니다. */
 const ADMIN_NOTE = /지원\s*내용|지원\s*규모|지원\s*금액|지원\s*한도|제출\s*서류|구비\s*서류|신청\s*방법|접수\s*방법|문의|개인정보|수집\s*·?\s*이용\s*동의|신청서|서식/;
 /**
- * 결격 낱말이 있어도 **그 조각에 자격 신호가 함께 있으면** 결격 문장이 아니다(「체납이 없고 수출 실적이 있는
- * 기업」). 나이·실적·인증·소재·업종·대상 한정 같은, 회사마다 갈리는 말이다.
+ * 결격·안내 낱말을 지운 뒤 **남아도 되는 말**(허용 목록). 남은 낱말이 전부 이것들로만 이뤄져야 결격 문장이다.
+ * 자격 신호를 금지 목록으로 모으면 「중소기업만」·「소상공인」·「코스닥」처럼 목록 밖 말이 계속 샜다
+ * (독립 리뷰 1~3차, 2026-09-24). 모르는 말이 하나라도 남으면 자격 문장으로 보고 「맞음」을 막는다.
  */
-const ELIGIBILITY_SIGNAL =
-  /실적|이상|이하|초과|미만|만\s*\d|\d\s*(?:년|세|명|억|천만|백만|%)|매출|수출|인증|확인서|보유|등록|소재|업종|대표자|청년|여성|장애|창업|기술\s*이전|계약|한하여|한함|한정|에\s*한|만\s*(?:신청|지원|가능)|전용|대상\s*(?:기업|자)|지원\s*대상\s*[:：]|요건|자격|첨부\s*원문|원문\s*확인|공고문\s*참조/;
+const FILLER_PIECES = [
+  "되었거나", "해당되는", "하였거나", "했거나", "받았거나", "되거나", "하거나", "받거나", "있거나", "없거나",
+  "중인", "하는", "하여", "하고", "있는", "없는", "받은", "받는", "되어", "된", "인", "한", "할", "의",
+  "국세", "지방세", "세금", "보험료", "기업", "업체", "사업자", "사업장", "법인", "회사", "대표자", "대표",
+  "본인", "또는", "혹은", "및", "등", "경우", "자", "곳", "제외", "불가", "배제", "지원", "신청", "사업",
+  "수혜", "이력", "해당", "현재", "최근", "상태", "기간", "내", "중", "이", "가", "은", "는", "을", "를",
+  "에", "에서", "으로", "로", "와", "과", "도", "이나", "나", "것", "시", "적", "관련", "이상", "사실", "있음",
+].sort((a, b) => b.length - a.length);
+const FILLER_WORD = new RegExp(`^(?:${FILLER_PIECES.join("|")})+$`);
+/** 지원내용 안내 조각에서만 남아도 되는 말 — 「자세한 지원내용은 공고문 참조」. */
+const ADMIN_FILLER_WORD = /^(?:자세한|세부|상세|공고문|공고|참조|확인|바람|바랍니다|※)+$/;
+function onlyFiller(rest: string, admin: boolean): boolean {
+  const words = rest.split(/[\s·ㆍ.,:：/※*'"「」『』~\-]+/).filter((w) => w.length > 0);
+  return words.every((w) => FILLER_WORD.test(w) || (admin && ADMIN_FILLER_WORD.test(w)));
+}
 /**
- * 사람 확인 항목 중 **자격을 가르는 것**. 문장을 조각(괄호·쉼표·쌍반점·줄)으로 나눠, **모든 조각이** 거의 모든
- * 회사가 해당 없는 결격(체납·휴폐업·부정수급·사치향락업 …)이거나 지원내용·서류 안내일 때만 「맞음」을 막지 않는다.
- * 문장 끝 모양(「경우」·「불가」·「한하여 신청」)으로는 가르지 않는다 — 「대표자가 만 39세 이하인 경우」·
- * 「만 39세 초과 시 신청 불가」는 자격이다(독립 리뷰 review-1b329d8d 등, 2026-09-24). 애매하면 막는다.
+ * 사람 확인 항목 중 **자격을 가르는 것**. 문장을 조각(괄호·쉼표·쌍반점·줄)으로 나눠, **모든 조각이**
+ * 결격 낱말(체납·휴폐업·부정수급 …) 또는 지원내용·서류 안내 낱말 + 허용된 연결어로만 이뤄졌을 때만
+ * 「맞음」을 막지 않는다. 문장 끝 모양(「경우」·「불가」·「한하여 신청」)으로는 가르지 않는다. 애매하면 막는다.
  */
 export function substantiveHumanChecks(texts: readonly string[], title = ""): string[] {
   if (DISTRESS_PROGRAM.test(title)) return texts.filter((t) => t.trim().length > 0);
@@ -584,21 +597,15 @@ export function substantiveHumanChecks(texts: readonly string[], title = ""): st
     if (!s) return false;
     const parts = s.split(/[()（）\[\],，;；\n]+/).map((x) => x.trim()).filter((x) => x.length > 0);
     return !parts.every((part) => {
-      // 「지원대상에서 제외」는 빼는 말이지 대상을 정하는 말이 아니다 — 자격 신호 검사 전에 지운다.
-      const body = part.replace(/지원\s*대상\s*에서\s*(?:제외|배제)/g, "제외").replace(/^[※*·\-\s]+/, "");
+      const body = part.replace(/지원\s*대상\s*에서\s*(?:제외|배제)/g, "제외");
       const listed = LISTED.test(body) && /제외|불가/.test(body);
       const generic = GENERIC_DISQUALIFIER.test(body) || listed;
       const admin = ADMIN_NOTE.test(body);
       if (!generic && !admin) return false;
-      // 결격·안내 낱말만 지우고 **남은 말**에 자격 신호가 있으면 자격 문장이다(「상장기업 및 수출 실적이 없는
-      // 기업은 … 제외」·「대표자가 만 39세 이하인 기업은 신청서 제출」).
-      const rest = body
-        .replace(new RegExp(GENERIC_DISQUALIFIER.source, "g"), " ")
-        .replace(new RegExp(LISTED.source, "g"), " ")
-        .replace(new RegExp(ADMIN_NOTE.source, "g"), " ")
-        // 「자세한 지원내용은 공고문 참조」 — 지원 내용을 가리키는 참조는 자격이 아니다.
-        .replace(/지원\s*내용/.test(body) ? /공고문\s*참조/g : /$^/g, " ");
-      return !ELIGIBILITY_SIGNAL.test(rest) && !/지원\s*대상|자격|요건/.test(rest);
+      let rest = body.replace(new RegExp(GENERIC_DISQUALIFIER.source, "g"), " ");
+      if (listed) rest = rest.replace(new RegExp(LISTED.source, "g"), " ");
+      rest = rest.replace(new RegExp(ADMIN_NOTE.source, "g"), " ");
+      return onlyFiller(rest, admin && /지원\s*내용/.test(body));
     });
   });
 }
@@ -659,16 +666,21 @@ export function strictFitBlock(ctx: StrictFitContext): string | null {
     return "예비·재창업자 대상 공고";
   }
   // 업종 무관 차단 — 제목이 분야를 적었으면 회사 업종이 그 분야(이웃 포함)여야 「맞음」이다.
-  const industryConfirmed = (ctx.checks ?? []).some(
-    (c) => c.condition.key === "industry" && c.verdict === "pass" && conditionPassIsFitGrade(c, ctx.profile),
-  );
   const domains = TITLE_DOMAINS.filter(([, re]) => re.test(maskCompounds(title))).map(([f]) => f);
-  if (domains.length > 0 && !industryConfirmed) {
+  if (domains.length > 0) {
     const mine = sectorFamiliesOfIndustry(ctx.profile?.industry ?? "");
     if (mine.length === 0) return "제목에 분야가 있는데 회사 업종을 분야로 못 읽음";
+    const relatedToMe = (d: string) => mine.some((f) => relatedFamiliesOf([d]).has(f));
+    // 업종 조건이 맞음 수준으로 통과했고 그 조건이 **제목 분야 중 하나를 가리키면**(「식품」), 그 분야가 대상이고
+    // 나머지(「홍보영상」)는 지원 수단이다. 「제조업」처럼 넓은 조건은 분야를 못 가리켜 면제하지 않는다(3차 리뷰).
+    const condFamilies = (ctx.checks ?? [])
+      .filter((c) => c.condition.key === "industry" && c.verdict === "pass" && conditionPassIsFitGrade(c, ctx.profile))
+      .flatMap((c) => (Array.isArray(c.condition.value) ? c.condition.value : [c.condition.value]))
+      .flatMap((v) => sectorFamiliesOfIndustry(String(v)));
+    const targeted = condFamilies.length > 0 ? domains.filter((d) => relatedFamiliesOf(condFamilies).has(d)) : [];
     // 적힌 분야가 **모두** 회사 업종과 이어져야 한다 — 하나만 맞아도 통과시키면 「식품제조업 전용 홍보영상」이
     // 「영상」 하나로 광고회사에 맞음이 된다(독립 리뷰 review-1b329d8d).
-    const unrelated = domains.filter((d) => !mine.some((f) => relatedFamiliesOf([d]).has(f)));
+    const unrelated = targeted.length > 0 && targeted.every(relatedToMe) ? [] : domains.filter((d) => !relatedToMe(d));
     if (unrelated.length > 0) return "회사 업종과 관련 없는 분야의 공고";
   }
   return null;
