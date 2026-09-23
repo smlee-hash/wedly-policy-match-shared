@@ -386,6 +386,8 @@ describe("정밀 맞음 — 조건 원문은 조건으로 설명되는 말만(19
     ["revenueMaxKrw", "lte", 1000000000, "최근 3년 평균 매출액 10억원 이하 기업"],
     ["employeeMax", "lte", 10, "상시근로자 10인 미만 기업"],
     ["employeeMax", "lte", 10, "상시근로자 20인 이하"],
+    ["businessAgeMaxYears", "lte", 6, "창업 후 6개월 이내 기업"],
+    ["companyScale", "in", ["중소기업"], "업력 3년 이하 중소기업"],
   ])("%s 원문 「%s」 는 맞음 근거가 아니다", (key, op, value, raw) => {
     expect(fitVerdictOf([c(key as string, op as string, value, raw as string)], ctx)).toBe("unverified");
   });

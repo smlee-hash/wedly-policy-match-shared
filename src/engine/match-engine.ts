@@ -499,11 +499,20 @@ function numericRawTextMatches(check: ConditionCheck): boolean {
   const key = check.condition.key;
   const isMax = NUMERIC_MAX_KEYS.has(key);
   const isMin = NUMERIC_MIN_KEYS.has(key);
-  if (!isMax && !isMin) return true;
   const raw = check.condition.rawText ?? "";
-  const nums = [...raw.matchAll(/(\d[\d,]*(?:\.\d+)?)\s*(억|천만|백만|만)?/g)];
+  // 숫자가 없는 조건(규모·유형 …)의 원문에 숫자가 섞이면 따로 확인하지 않은 숫자 자격이다(「업력 3년 이하 중소기업」, 21차 리뷰).
+  if (!isMax && !isMin) return !/\d/.test(raw);
+  const nums = [...raw.matchAll(/(\d[\d,]*(?:\.\d+)?)\s*(억|천만|백만|만)?\s*(원|명|인|년|개월|점|%)?/g)];
   if (nums.length !== 1) return false;
-  const n = Number(nums[0][1].replace(/,/g, "")) * (KOREAN_UNIT[nums[0][2] ?? ""] ?? 1);
+  const [, digits, mult, unit] = nums[0];
+  // 단위 종류도 조건과 맞아야 한다 — 「6개월 이내」를 업력 6년으로 저장한 것을 걸러낸다(21차 리뷰).
+  const unitOk = key.startsWith("businessAge") ? unit === "년"
+    : key.startsWith("employee") ? unit === "명" || unit === "인"
+    : key.startsWith("revenue") ? unit === "원" || (!!mult && unit === undefined)
+    : key.startsWith("creditScore") ? unit === "점" || unit === undefined
+    : false;
+  if (!unitOk) return false;
+  const n = Number(digits.replace(/,/g, "")) * (KOREAN_UNIT[mult ?? ""] ?? 1);
   if (!Number.isFinite(n) || n !== Number(check.condition.value)) return false;
   // 경계를 빼는 말(미만·초과)은 저장값이 보정됐는지 알 수 없다 — 맞음 근거로 쓰지 않는다.
   if (/미만|초과/.test(raw)) return false;
