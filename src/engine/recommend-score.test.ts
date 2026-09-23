@@ -239,6 +239,7 @@ describe("정밀 맞음 — 사람 확인 항목 분류·업종 무관 차단", 
     "회생 중인 기업 중 개인정보 수집·이용 동의 불가 기업 제외",
     "상장기업 중 개인정보 수집·이용 동의 불가 기업 제외",
     "영업 정지 중인 기업 중 개인정보 수집·이용 동의 불가 기업 제외",
+    "영업 정지 중인 기업(개인정보 수집·이용 동의 불가 기업 제외)",
   ])("자격 문장 「%s」 이 남으면 맞음이 아니다", (t) => {
     expect(fitVerdictOf([empPass], { title: "2026년 경영환경 개선 지원사업", profile: P, humanCheckTexts: [t] })).toBe("unverified");
   });
@@ -329,6 +330,9 @@ describe("정밀 맞음 — AI 업종 범위(industryScope)", () => {
     // 영문 단어 안의 약어(FITNESS 속 IT)는 업종 근거가 아니다(13차 리뷰)
     const fit = { region: "서울", industry: "FITNESS(체력단련시설 운영업)" };
     expect(fitVerdictOf([empPass, ind(["IT"])], { ...base, title: "IT 기업 전용 지원사업", profile: fit, industryScope: "restricted" })).toBe("unverified");
+    expect(fitVerdictOf([empPass, ind(["IT 서비스"])], { ...base, title: "IT 서비스 기업 성장 지원사업", profile: { region: "서울", industry: "CREDIT 서비스 및 광고업" }, industryScope: "restricted" })).toBe("unverified");
+    // 합성어 앞머리(식품가공기계의 식품)는 업종 근거가 아니다(14차 리뷰)
+    expect(fitVerdictOf([empPass, ind(["식품"])], { ...base, title: "2026년 식품 제조업 전용 지원사업", profile: { region: "서울", industry: "식품가공기계 제조업" }, industryScope: "restricted" })).toBe("unverified");
     const pcb = { region: "서울", industry: "인쇄회로기판 제조업" };
     expect(fitVerdictOf([empPass, ind(["인쇄", "소프트웨어"])], { ...base, profile: pcb, industryScope: "restricted" })).toBe("unverified");
   });

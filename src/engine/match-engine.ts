@@ -600,6 +600,8 @@ export function substantiveHumanChecks(texts: readonly string[], title = ""): st
   return texts.filter((t) => {
     const s = t.trim();
     if (!s) return false;
+    // 문장 전체에서 결격 낱말과 안내 문구가 섞였으면 괄호로 나눠도 빼는 말이 어디에 붙었는지 모른다(14차 리뷰).
+    if (ADMIN_NOTE.test(s) && (MORAL_DISQUALIFIER.test(s) || STATE_DISQUALIFIER.test(s) || LISTED.test(s))) return true;
     const parts = s.split(/[()（）\[\],，;；\n]+/).map((x) => x.trim()).filter((x) => x.length > 0);
     return !parts.every((part) => {
       const body = part.replace(/지원\s*대상\s*에서\s*(?:제외|배제)/g, "제외");
@@ -708,14 +710,22 @@ function industryScopeBlock(ctx: StrictFitContext): string | null {
   return null;
 }
 
+/** 업종 낱말 뒤에 붙어도 되는 꼬리 — 없거나 업종을 뜻하는 말만. */
+const INDUSTRY_TAIL =
+  /^(?:|업|업체|업종|산업|기업|분야|제조|제조업|가공업|도매업|소매업|도소매업|판매업|유통업|서비스|서비스업|생산업|개발업|공급업|[A-Za-z0-9]*)$/;
+
 function wordStartIn(text: string, word: string): boolean {
-  const latin = /^[A-Za-z]+$/.test(word);
+  const latinStart = /^[A-Za-z]/.test(word);
+  const latinEnd = /[A-Za-z]$/.test(word);
   let i = text.indexOf(word);
   while (i >= 0) {
-    const before = text[i - 1];
-    const after = text[i + word.length];
-    // 영문 약어는 앞뒤가 영문이 아니어야 한다(「FITNESS」 속 「IT」 아님, 13차 리뷰).
-    if (latin ? !/[A-Za-z]/.test(before ?? "") && !/[A-Za-z]/.test(after ?? "") : !isHangul(before)) return true;
+    const before = text[i - 1] ?? "";
+    const rest = text.slice(i + word.length).split(/[\s,·ㆍ()/]/)[0];
+    // 앞: 한글·(영문으로 시작하면) 영문이 붙지 않음. 뒤: 영문으로 끝나면 영문이 붙지 않고, 한글이 붙으면 업종 꼬리
+    // (업·제조업·산업 …)만 — 「식품가공기계」의 「식품」, 「CREDIT」의 「IT」는 아니다(13·14차 리뷰).
+    const okBefore = !isHangul(before) && !(latinStart && /[A-Za-z]/.test(before));
+    const okAfter = !(latinEnd && /^[A-Za-z]/.test(rest)) && INDUSTRY_TAIL.test(rest);
+    if (okBefore && okAfter) return true;
     i = text.indexOf(word, i + 1);
   }
   return false;
