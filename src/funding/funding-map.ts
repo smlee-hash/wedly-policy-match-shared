@@ -26,6 +26,13 @@ export interface FundingDeadline {
   date: string | null;
   text: string; // 원문 그대로 — 화면 서랍이 「언제까지」 밑에 곁들인다
   dDay: number | null; // 한국시간 달력 기준 남은 날짜. 오늘 마감이면 0, 지났으면 음수. upcoming 은 접수까지 남은 날(올림)
+  /**
+   * upcoming 만 — 실제 **마감**까지 남은 날(2026-09-24 승인 시안). 추천순이 접수 시작일이 아니라
+   * 마감일로 줄 서게 한다. 마감일이 없으면 null.
+   */
+  endDDay?: number | null;
+  /** upcoming 만 — 실제 마감 순간(ISO). 화면이 날이 바뀐 뒤에도 마감까지 남은 날을 다시 센다. */
+  endDate?: string | null;
 }
 
 export interface FundingItem {
@@ -236,7 +243,11 @@ export function deadlineOfAnnouncement(
 ): FundingDeadline {
   if (applyStart != null && Number.isFinite(applyStart.getTime()) && applyStart.getTime() > now.getTime()) {
     const n = Math.ceil((applyStart.getTime() - now.getTime()) / DAY_MS);
-    return { kind: "upcoming", date: applyStart.toISOString(), text: `${n}일 뒤 접수`, dDay: n };
+    const endDDay = applyEnd && Number.isFinite(applyEnd.getTime()) ? dDayOf(applyEnd, now) : null;
+    // 승인 시안(2026-09-24): 마감을 알면 「접수 예정 · 마감 D-N」 — 「D-1」로 보이면 마감이 내일로 읽힌다.
+    const text = endDDay !== null ? `접수 예정 · 마감 D-${endDDay}` : `${n}일 뒤 접수`;
+    const endDate = endDDay !== null && applyEnd ? applyEnd.toISOString() : null;
+    return { kind: "upcoming", date: applyStart.toISOString(), text, dDay: n, endDDay, endDate };
   }
   const text = (periodText ?? "").replace(/\s+/g, " ").trim();
   if (applyEnd && Number.isFinite(applyEnd.getTime())) return dateDeadline(applyEnd, text, now);
@@ -544,10 +555,20 @@ export function applyFilters(items: FundingItem[], f: FundingFilters): FundingIt
 
 const FIT_RANK: Record<FitVerdict, number> = { fit: 0, unverified: 1, excluded: 2 };
 
-/** 마감 정렬 열쇠 — 가까운 마감이 앞, 상시는 그 뒤, 마감 지난 것은 맨 뒤(미리보기와 같은 차례). */
+/**
+ * 마감 정렬 열쇠(2026-09-24 승인 시안) — 마감 가까운 순 → 상시 → 예산 소진 시 → 기간 미기재 → 접수 종료.
+ * 접수 예정은 접수 시작까지가 아니라 **실제 마감**까지 남은 날로 선다.
+ */
+const NO_DATE_RANK: Partial<Record<FundingDeadline["kind"], number>> = {
+  always: 90_000, budget: 90_001, text: 90_002, unknown: 90_003,
+};
 function deadRank(d: FundingDeadline): number {
   if (d.kind === "closed") return 99_999;
-  if (d.dDay === null) return 9_999;
+  if (d.kind === "upcoming") {
+    if (d.endDDay == null) return 89_999; // 마감을 모르는 접수 예정 — 날짜 있는 것 뒤, 상시 앞
+    return d.endDDay < 0 ? 99_999 : d.endDDay;
+  }
+  if (d.dDay === null) return NO_DATE_RANK[d.kind] ?? 90_003;
   return d.dDay < 0 ? 99_999 : d.dDay;
 }
 
@@ -558,11 +579,13 @@ export function sortItems(items: FundingItem[], sort: FundingSort): FundingItem[
     return list.sort((a, b) => (a.rateMin ?? Number.MAX_SAFE_INTEGER) - (b.rateMin ?? Number.MAX_SAFE_INTEGER));
   }
   if (sort === "amt") return list.sort((a, b) => (b.amountMaxWon ?? -1) - (a.amountMaxWon ?? -1));
+  // 추천순(2026-09-24 승인 시안): 맞음 → 확인 필요 → 안 맞음, 같은 칸 안에서는 마감 가까운 순, 같으면 점수.
   return list.sort((a, b) => {
     const byFit = FIT_RANK[a.fitVerdict] - FIT_RANK[b.fitVerdict];
     if (byFit !== 0) return byFit;
-    if (a.score !== b.score) return b.score - a.score;
-    return deadRank(a.deadline) - deadRank(b.deadline);
+    const byDead = deadRank(a.deadline) - deadRank(b.deadline);
+    if (byDead !== 0) return byDead;
+    return b.score - a.score;
   });
 }
 
@@ -722,6 +745,12 @@ export function deadlineWords(
     // ★일수가 0 이하면 이미 시작했다(코덱스 11차 #14, 2026-09-04) — 자료를 만들 때는 예정이었는데
     //  화면을 열어 둔 채 시작일이 지나면 「-1일 뒤 접수 시작」이라는 없는 말이 나왔다.
     if (n <= 0) return { chip: "접수 시작됨", long: "접수 시작됨", tone: "plain" };
+    // 승인 시안(2026-09-24): 마감을 알면 「접수 예정 · 마감 D-N」, 펼침에는 접수 시작까지도 함께.
+    // 날이 바뀐 뒤 열어도 마감까지 남은 날을 다시 센다(리뷰 review-641bb9db P2-5).
+    const endLeft = d.endDate ? dDayOf(new Date(d.endDate), now) : d.endDDay ?? null;
+    if (endLeft != null && endLeft >= 0) {
+      return { chip: `접수 예정 · 마감 D-${endLeft}`, long: `${n}일 뒤 접수 시작 · 마감 D-${endLeft}`, tone: "plain" };
+    }
     const text = `${n}일 뒤 접수 시작`;
     return { chip: text, long: text, tone: "plain" };
   }

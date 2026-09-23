@@ -1,7 +1,7 @@
 // 프로필 vs 구조화 조건 순수 대조 — AI 없음, 저장소 접근 없음(설계서 §3, 계획 Task 4).
 // 「모름」은 절대 통과로 치지 않는다 — 값이 없으면 unknown → 등급은 최고 uncertain 까지만 간다.
 import { relatedFamiliesOf, sectorFamiliesOfIndustry, SECTOR_FAMILY_NAMES } from "./sector";
-import { sigunguSido } from "./sigungu";
+import { SIGUNGU_TO_SIDO, sigunguSido } from "./sigungu";
 import { ORG_TYPE_NAMES, profileOrgTypes } from "./target-org";
 import {
   AnnouncementStructure,
@@ -396,10 +396,202 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
 
 export interface MatchResult { grade: MatchGrade; checks: ConditionCheck[]; humanCheck: string[] }
 
-export function matchAnnouncement(s: AnnouncementStructure, p: BusinessProfile, now = new Date()): MatchResult {
+/* ───────── 정밀 맞음 안전장치(2026-09-24 사장님 지시 「정확도 100%」) ─────────
+ * 「맞음(fit)」·「신청 가능(possible)」은 **모든 자격이 확인된 공고에만** 준다. 조건 목록이 비었거나
+ * 모자라도 공고 자체가 가르는 경우를 막는다 — 9/23 재측정에서 「대전 팁스타운」이 전남 회사에,
+ * 「[강원] 청년창업자금」이 충남 회사에, 예비창업자 공고가 2024년 설립 회사에 「맞음」으로 떴다.
+ * 여기 걸리면 목록에서 지우지 않고 「확인 필요」로 내린다(fail 을 만들지 않는다 — 제목 낱말만으로
+ * 떨어뜨리면 「대전·충남 공동」 같은 공고를 잘못 지운다).
+ */
+/** 사전에서 겹쳐 뺀 시군구 이름(같은 이름이 여러 시도에 있다). 「맞음」 검사에서만 쓴다 — 판정(fail)에는 안 쓴다. */
+const AMBIGUOUS_SIGUNGU = ["중구", "동구", "서구", "남구", "북구", "강서구", "광주시", "고성군"];
+
+function isHangul(ch: string | undefined): boolean {
+  if (!ch) return false;
+  const code = ch.charCodeAt(0);
+  return code >= 0xac00 && code <= 0xd7a3;
+}
+
+/**
+ * 글 안의 시·군·구 이름 — 사전 이름(경계 기준) + 겹친 이름(경계 기준) + 붙여 쓴 「서울특별시광진구」의 뒷부분.
+ * 「맞음」 안전장치 전용(2026-09-24 정밀 맞음, 리뷰 review-116b747b·7898081a·8c467476).
+ */
+export function subRegionNamesIn(text: string): string[] {
+  const names = new Set<string>();
+  for (const name of [...Object.keys(SIGUNGU_TO_SIDO), ...AMBIGUOUS_SIGUNGU]) {
+    let from = 0;
+    while (from <= text.length - name.length) {
+      const i = text.indexOf(name, from);
+      if (i < 0) break;
+      const before = text.slice(0, i);
+      const after = text.slice(i + name.length);
+      // 왼쪽: 한글이 아니거나 시도 이름 바로 뒤(「서울특별시광진구」). 오른쪽: 한글이 아니거나 조사·「소재」류
+      // (「광진구에 소재한」 — 리뷰 review-059ee0f4). 「강남구」 안의 「남구」, 「중구청」은 잡지 않는다.
+      const leftOk = !isHangul(before.slice(-1)) || ALIAS_ENTRIES.some(([a]) => before.endsWith(a));
+      const rightOk = !isHangul(after[0]) || /^(?:에서|에|의|은|는|이|가|을|를|과|와|으로|로|소재|지역|내|관내)/.test(after);
+      if (leftOk && rightOk) { names.add(name); break; }
+      from = i + 1;
+    }
+  }
+  // 약칭(「수원 관내」의 수원) — 낱말 단위로 사전 어간을 본다(리뷰 review-afe4e27f).
+  for (const token of text.split(/[^가-힣]+/)) {
+    const bare = token.replace(/(?:에서|에|의|은|는|이|가|을|를|과|와|으로|로|소재|지역|관내|내)$/, "");
+    if (bare.length < 2 || /[시군구]$/.test(bare)) continue;
+    const hit = sigunguSido(bare);
+    if (hit) names.add(hit.name);
+  }
+  return [...names];
+}
+
+/** 회사 시군구 이름(사전 이름 우선, 겹친 이름은 입력 그대로). */
+function companySigunguName(p: BusinessProfile | undefined): string | null {
+  const raw = (p?.regionSigungu ?? "").replace(/\s/g, "");
+  if (!raw) return null;
+  return sigunguSido(raw)?.name ?? raw;
+}
+
+/**
+ * 지역 조건이 「통과」여도 조건 값에 시·군·구가 적혀 있으면, 회사 시군구가 그 이름 중 하나일 때만
+ * 「맞음」의 근거가 된다. 판정(pass/fail)은 바꾸지 않는다 — 맞음만 막는다.
+ */
+/**
+ * 조건 하나가 「맞음」의 근거가 될 만큼 확정인가(판정은 바꾸지 않는다 — 2026-09-24 정밀 맞음, 리뷰 6회).
+ * 지역·업종·규모는 판정이 글자 포함으로 넓게 통과시키므로, 「맞음」에서는 더 엄격히 본다.
+ */
+export function conditionPassIsFitGrade(check: ConditionCheck, p: BusinessProfile | undefined): boolean {
+  if (check.verdict !== "pass") return true;
+  const key = check.condition.key;
+  if (key === "industry") {
+    // 조건 낱말이 회사 업종에서 **낱말 첫머리**로 나와야 한다 — 「비금속」 속 「금속」은 아니다.
+    const mine = p?.industry ?? "";
+    return (check.condition.value as unknown[]).map(String).some((k) => {
+      let i = mine.indexOf(k);
+      while (i >= 0) {
+        if (!isHangul(mine[i - 1])) return true;
+        i = mine.indexOf(k, i + 1);
+      }
+      return false;
+    });
+  }
+  if (key === "companyScale") {
+    // 회사 규모가 조건 값과 **정확히** 같아야 한다 — 「중소기업」 ⊃ 「소기업」 글자 포함은 아니다.
+    const mine = (p?.companyScale ?? "").replace(/\s/g, "");
+    return (check.condition.value as unknown[]).map((v) => String(v).replace(/\s/g, "")).includes(mine);
+  }
+  if (key !== "region") return true;
+  // 원문에 시군구(약칭 포함)가 있으면 회사 시군구가 그중 하나여야 한다 — 값이 시도로 축약돼도(리뷰 review-afe4e27f).
+  const rawNames = subRegionNamesIn(check.condition.rawText ?? "");
+  if (rawNames.length > 0) {
+    const mineSg = companySigunguName(p);
+    if (!mineSg || !rawNames.includes(mineSg) || rawNames.length > 1) return false;
+  }
+  return regionPassIsFitGrade(check, p);
+}
+
+export function regionPassIsFitGrade(check: ConditionCheck, p: BusinessProfile | undefined): boolean {
+  if (check.condition.key !== "region" || check.verdict !== "pass") return true;
+  const mineSido = canonicalRegion(p?.region);
+  const mineSg = companySigunguName(p);
+  // ★허용 목록(2026-09-24, 리뷰 5회 끝) — 값이 아래 모양으로 **정확히** 떨어질 때만 「맞음」 근거로 쓴다.
+  //  「전국」 한 낱말 · 시도 이름 하나 · 시군구 이름(약칭 포함) 하나 · 「시도+시군구」 하나.
+  //  자유 문장(「전국(단, 서울 제외)」·「중구와 부산 강서구」·「○○시 관내」)은 글자 규칙으로 뜻을 확정할 수
+  //  없어 「확인 필요」로 둔다 — 판정(pass/fail)은 그대로라 목록에서 빠지지 않는다.
+  for (const v of (check.condition.value as unknown[]).map(String)) {
+    const t = v.replace(/\s/g, "");
+    if (t === NATIONWIDE) return true;
+    const exactSido = ALIAS_ENTRIES.find(([a]) => a === t)?.[1];
+    if (exactSido) {
+      if (exactSido === mineSido) return true;
+      continue;
+    }
+    const sg = sigunguSido(t);
+    if (sg) {
+      if (mineSg && sg.name === mineSg && (!mineSido || sg.sido === mineSido || sg.formerSido === mineSido)) return true;
+      continue;
+    }
+    const alias = ALIAS_ENTRIES.find(([a]) => t.startsWith(a) && t.length > a.length);
+    if (alias) {
+      const rest = t.slice(alias[0].length);
+      const name = sigunguSido(rest)?.name ?? (AMBIGUOUS_SIGUNGU.includes(rest) ? rest : null);
+      if (name && mineSg && name === mineSg && alias[1] === mineSido) return true;
+    }
+  }
+  return false;
+}
+
+export type StrictFitContext = {
+  /** 공고 제목(상품명). */
+  title?: string;
+  /** 대조한 회사 정보. */
+  profile?: BusinessProfile;
+  /** 사람이 직접 확인해야 하는 조건 수. */
+  humanCheck?: number;
+  /**
+   * 조건이 규칙 추출로만 뽑혔는가(AI 정리 미완료). 규칙 추출은 원문 조각을 잘못 잘라 엉뚱한 조건을
+   * 「통과」로 만든다(9/23: 광고회사에 「치매의료기술연구개발」, 영등포 회사에 「광진구 사업장」 공고).
+   */
+  ruleOnly?: boolean;
+};
+
+/**
+ * 지원사업 공고가 아닌 글 — 결과 발표·평가위원·매각·입찰·구인·초빙·설문·사칭 주의 안내.
+ * 「채용」은 고용지원금 공고(「청년 채용 장려금」)도 써서 구인 글 모양만 막는다.
+ */
+const NON_PROGRAM =
+  /선정\s*결과|결과\s*(?:공고|발표|안내)|합격자|최종\s*선정자|평가\s*위원|심사\s*위원|매각|입찰|낙찰|(?:직원|신규|경력|정규직|계약직)\s*채용|채용\s*공고|초빙|설문\s*조사|스팸|사칭/;
+
+/** 기존 사업자는 대상이 아닌 공고 — 예비·재창업자 전용. */
+const PRE_FOUNDER_ONLY = /예비\s*창업|재\s*창업|재도전/;
+
+/** 막을 이유(사람 말 한 줄) 또는 null. */
+export function strictFitBlock(ctx: StrictFitContext): string | null {
+  if ((ctx.humanCheck ?? 0) > 0) return "사람이 직접 확인할 조건이 있음";
+  if (ctx.ruleOnly) return "조건이 아직 AI 로 정리되지 않음";
+  const title = ctx.title ?? "";
+  if (!title) return null;
+  if (NON_PROGRAM.test(title)) return "지원사업 공고가 아닌 글";
+  // 제목의 지역 — 시군구 이름을 먼저 떼고 시도를 읽는다(「광주시」가 광주광역시로 읽히지 않게).
+  // 여러 지역이 적혔거나 「제외」가 있으면 글자로 뜻을 확정할 수 없어 막는다(리뷰 review-641bb9db).
+  const titleSigungu = subRegionNamesIn(title);
+  const titleSidos = sidosInText(titleSigungu.reduce((t, n) => t.split(n).join(" "), title));
+  if (titleSidos.length + titleSigungu.length > 0) {
+    if (/제외/.test(title)) return "제목에 제외 지역이 있음";
+    if (titleSidos.length > 1 || titleSigungu.length > 1) return "제목에 여러 지역이 있음";
+  }
+  if (titleSidos.length === 1) {
+    const mine = canonicalRegion(ctx.profile?.region);
+    if (!mine) return "제목에 지역이 있는데 회사 소재지를 모름";
+    if (titleSidos[0] !== mine) return "제목의 지역이 회사 소재지와 다름";
+  }
+  // 시군구도 같은 규율 — 「창원시 벤처투자」가 양산 회사에, 「용인시 반도체」가 부천 회사에 떴다(9/23 재측정).
+  if (titleSigungu.length === 1) {
+    const mineSg = companySigunguName(ctx.profile);
+    if (!mineSg) return "제목에 시군구가 있는데 회사 시군구를 모름";
+    if (titleSigungu[0] !== mineSg) return "제목의 시군구가 회사와 다름";
+  }
+  if (PRE_FOUNDER_ONLY.test(title) && ctx.profile?.companyScale !== "예비창업자") {
+    return "예비·재창업자 대상 공고";
+  }
+  return null;
+}
+
+export function matchAnnouncement(
+  s: AnnouncementStructure,
+  p: BusinessProfile,
+  now = new Date(),
+  opts: { title?: string } = {},
+): MatchResult {
   const checks = s.conditions.map((c) => checkCondition(c, p, now));
-  // humanCheck 는 등급에 넣지 않는다(칩으로 개수만 보인다) — 결과에는 그대로 실어 보낸다.
-  return { grade: gradeOf(checks), checks, humanCheck: s.humanCheck };
+  // humanCheck 는 칩으로 개수를 보이고, 「신청 가능」은 막는다(정밀 맞음 — 사람이 확인할 게 남았다).
+  let grade = gradeOf(checks);
+  if (
+    grade === "possible"
+    && (checks.some((c) => c.blocksFit || !conditionPassIsFitGrade(c, p))
+      || strictFitBlock({ title: opts.title, profile: p, humanCheck: s.humanCheck.length }))
+  ) {
+    grade = "uncertain";
+  }
+  return { grade, checks, humanCheck: s.humanCheck };
 }
 
 /* ───────── 저장된 구조화 JSON → 대조 가능한 모양 (통로 두 곳이 같은 해석을 쓰게) ─────────

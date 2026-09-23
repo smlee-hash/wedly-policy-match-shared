@@ -265,8 +265,31 @@ describe("정렬 4종", () => {
   const E = mkItem({ id: "E", fitVerdict: "fit", score: 90, deadline: deadlineOfAnnouncement(kstEnd("2026-09-01"), "", NOW) });
   const ids = (list: FundingItem[]) => list.map((x) => x.id);
 
-  it("추천 — 맞음(fit) → 확인 필요 → 안 맞음 순, 같은 칸 안에서는 점수 높은 순", () => {
-    expect(ids(sortItems([D, C, B, A, E], "rec"))).toEqual(["E", "A", "B", "C", "D"]);
+  it("★2026-09-24 추천 — 맞음 → 확인 필요 → 안 맞음, 같은 칸 안에서는 마감 가까운 순(마감 지남은 칸 맨 뒤)", () => {
+    expect(ids(sortItems([D, C, B, A, E], "rec"))).toEqual(["B", "A", "E", "C", "D"]);
+  });
+  it("★2026-09-24 추천 — 마감이 같으면 점수 높은 순", () => {
+    const d = deadlineOfAnnouncement(kstEnd("2026-09-10"), "", NOW);
+    const lo = mkItem({ id: "lo", fitVerdict: "fit", score: 10, deadline: d });
+    const hi = mkItem({ id: "hi", fitVerdict: "fit", score: 90, deadline: d });
+    expect(ids(sortItems([lo, hi], "rec"))).toEqual(["hi", "lo"]);
+  });
+  it("★2026-09-24 추천 — 날짜 없는 것은 상시 → 예산 소진 시 → 기간 미기재 순, 접수 종료는 맨 뒤", () => {
+    const f = (id: string, deadline: FundingItem["deadline"]) => mkItem({ id, fitVerdict: "fit", score: 50, deadline });
+    const unknown = f("unknown", deadlineOfAnnouncement(null, "", NOW));
+    const budget = f("budget", deadlineOfAnnouncement(null, "예산 소진 시까지", NOW));
+    const always = f("always", ALWAYS);
+    const dated = f("dated", deadlineOfAnnouncement(kstEnd("2026-10-30"), "", NOW));
+    const closed = f("closed", { kind: "closed", date: null, text: "접수 종료", dDay: null });
+    expect(ids(sortItems([closed, unknown, budget, always, dated], "rec"))).toEqual(["dated", "always", "budget", "unknown", "closed"]);
+  });
+  it("★2026-09-24 추천 — 접수 예정은 「접수 시작까지」가 아니라 실제 마감일로 줄 선다", () => {
+    const soonStartLateEnd = mkItem({
+      id: "upcoming", fitVerdict: "fit", score: 50,
+      deadline: deadlineOfAnnouncement(kstEnd("2026-10-03"), "", NOW, new Date(NOW.getTime() + 86_400_000)),
+    });
+    const openNearEnd = mkItem({ id: "open", fitVerdict: "fit", score: 50, deadline: deadlineOfAnnouncement(kstEnd("2026-09-06"), "", NOW) });
+    expect(ids(sortItems([soonStartLateEnd, openNearEnd], "rec"))).toEqual(["open", "upcoming"]);
   });
   it("추천 — 조건 판정이 점수를 이긴다: 점수 99 짜리 안 맞음이 점수 10 짜리 맞음보다 뒤", () => {
     const lowFit = mkItem({ id: "lowFit", fitVerdict: "fit", score: 10 });
@@ -1540,5 +1563,35 @@ describe("gapParts — 빠진 칸 힌트를 「작은 라벨(위) + 큰 제목(�
       }
       expect(값.label, "무엇을 위한 입력인지는 여전히 말한다").toContain("더 정확하게");
     }
+  });
+});
+
+describe("접수 예정 딱지 — 실제 마감까지 남은 날(2026-09-24 승인 시안)", () => {
+  it("마감일이 있으면 「접수 예정 · 마감 D-N」", () => {
+    const now = new Date("2026-09-24T10:00:00+09:00");
+    const d = deadlineOfAnnouncement(new Date("2026-10-24T23:59:59+09:00"), "", now, new Date("2026-09-25T09:00:00+09:00"));
+    expect(d.kind).toBe("upcoming");
+    expect(d.text).toBe("접수 예정 · 마감 D-30");
+  });
+  it("마감일이 없으면 「N일 뒤 접수」 그대로", () => {
+    const now = new Date("2026-09-24T10:00:00+09:00");
+    const d = deadlineOfAnnouncement(null, "", now, new Date("2026-09-26T09:00:00+09:00"));
+    expect(d.text).toBe("2일 뒤 접수");
+  });
+});
+
+describe("접수 예정 화면 문구 — 마감까지(리뷰 review-116b747b P2-4)", () => {
+  it("deadlineWords 가 「접수 예정 · 마감 D-N」을 보인다", () => {
+    const now = new Date("2026-09-24T10:00:00+09:00");
+    const d = deadlineOfAnnouncement(new Date("2026-10-24T23:59:59+09:00"), "", now, new Date("2026-09-25T09:00:00+09:00"));
+    expect(deadlineWords(d, now).chip).toBe("접수 예정 · 마감 D-30");
+  });
+});
+
+describe("접수 예정 — 날이 바뀐 뒤에도 마감까지 다시 센다(리뷰 review-641bb9db P2-5)", () => {
+  it("다음 날 열면 D-29", () => {
+    const day1 = new Date("2026-09-24T10:00:00+09:00");
+    const d = deadlineOfAnnouncement(new Date("2026-10-24T23:59:59+09:00"), "", day1, new Date("2026-09-28T09:00:00+09:00"));
+    expect(deadlineWords(d, new Date("2026-09-25T10:00:00+09:00")).chip).toBe("접수 예정 · 마감 D-29");
   });
 });

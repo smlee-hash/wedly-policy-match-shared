@@ -291,7 +291,7 @@ export async function runVerdict(
   // 추천 화면과 **같은 공용 함수**로 지역 조건을 보탠다 — AI 에게 넘기는 「기계 등급」이
   // 화면과 어긋나면 AI 가 잘못된 전제로 판단한다.
   const structure = withRegionConditions(readStoredStructure(row.structure), row);
-  const machine = matchAnnouncement(structure, profile);
+  const machine = matchAnnouncement(structure, profile, new Date(), { title: row.title ?? "" });
   const system = deps.prompt.VERDICT_SYSTEM;
   const user = deps.prompt.buildVerdictUserPrompt({
     title: row.title,

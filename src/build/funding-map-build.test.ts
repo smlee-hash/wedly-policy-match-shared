@@ -707,7 +707,7 @@ describe("자금 조달 지도 조립 — 두 표를 한 모양으로", () => {
     expect(byId(data.groups, "p:bad")!.group).toBe("bank");
     expect(data.unclassified).toBe(0);
   });
-  it("접수가 아직 시작 안 한 공고는 「N일 뒤 접수」 — 「지금 신청 가능」에서 뺀다", async () => {
+  it("접수가 아직 시작 안 한 공고는 「접수 예정 · 마감 D-N」(2026-09-24 승인 시안) — 「지금 신청 가능」에서 뺀다", async () => {
     loadOpenAnnouncements.mockResolvedValue([
       ann({ id: "up", applyStart: new Date(NOW.getTime() + 5 * DAY), applyEnd: kstEnd("2026-12-31") }),
     ]);
@@ -715,7 +715,8 @@ describe("자금 조달 지도 조립 — 두 표를 한 모양으로", () => {
     const item = byId(data.groups, "a:up")!;
     expect(item.deadline.kind).toBe("upcoming");
     expect(item.deadline.dDay).toBe(5);
-    expect(item.deadline.text).toBe("5일 뒤 접수");
+    expect(item.deadline.endDDay).toBe(119);
+    expect(item.deadline.text).toBe("접수 예정 · 마감 D-119");
     expect(data.glance.open).toBe(MANUAL_N); // 접수 예정 공고는 「지금 신청 가능」이 아니다
 
     const openOnly = await buildFundingMap({}, NOW, { filters: { openOnly: true } });
@@ -1422,5 +1423,111 @@ describe("이자 하한 — 미기재 0 을 미상으로(2026-09-05 재검사)",
     const data = await buildFundingMap({}, NOW);
     expect(byId(data.groups, "a:chg")).toMatchObject({ rateMin: 2.5, rateText: "연 2.5%" });
     expect(data.glance.minRate).toBe(2.5);
+  });
+});
+
+/** 2026-09-24 정밀 맞음 — 지도 조립이 제목·회사 정보·사람 확인 수를 안전장치로 넘기는지(배선). */
+describe("buildFundingMap — 정밀 맞음 배선", () => {
+  const rule = (humanCheck: string[] = []) => ({
+    ...EMPTY_RULE,
+    humanCheck,
+    conditions: [{ key: "employeeMax", op: "lte", value: 50, rawText: "상시근로자 50인 이하", machineReadable: true }],
+  });
+  const profile = { region: "서울", employeeCount: 10 } as BusinessProfile;
+  const verdictOf = async (over: Record<string, unknown>) => {
+    loadOpenAnnouncements.mockResolvedValue([ann(over)]);
+    productFindMany.mockResolvedValue([]);
+    const data = await buildFundingMap(profile, NOW, { filters: { includeExcluded: true } });
+    return byId(data.groups, "a:a1")?.fitVerdict;
+  };
+  const aiDone = (humanCheck: string[] = []) => ({ structure: rule(humanCheck), structureStatus: "done" });
+  it("AI 로 정리된 공고에서 막을 것이 없으면 맞음", async () => {
+    expect(await verdictOf({ title: "2026년 소상공인 경영개선 지원", ...aiDone() })).toBe("fit");
+  });
+  it("규칙으로만 뽑은 조건(ruleStructure)이면 맞음이 아니다", async () => {
+    expect(await verdictOf({ title: "2026년 소상공인 경영개선 지원", ruleStructure: rule() })).toBe("unverified");
+  });
+  it("제목이 다른 시도면 맞음이 아니다", async () => {
+    expect(await verdictOf({ title: "2026년 제3차 대전 팁스타운 입주기업 모집", ...aiDone() })).not.toBe("fit");
+  });
+  it("예비창업자 공고는 맞음이 아니다", async () => {
+    expect(await verdictOf({ title: "예비창업자 창업 성장 프로그램", ...aiDone() })).not.toBe("fit");
+  });
+  it("사람 확인 조건이 있으면 맞음이 아니다", async () => {
+    expect(await verdictOf({ title: "2026년 소상공인 경영개선 지원", ...aiDone(["대표자 나이 확인"]) })).not.toBe("fit");
+  });
+});
+
+describe("정밀 맞음 — 리뷰 review-116b747b P1-2·P1-3", () => {
+  const rule = (humanCheck: string[] = []) => ({
+    ...EMPTY_RULE, humanCheck,
+    conditions: [{ key: "employeeMax", op: "lte", value: 50, rawText: "상시근로자 50인 이하", machineReadable: true }],
+  });
+  it("같은 사업 묶음에 확인이 남은 수집본이 있으면 대표도 맞음이 아니다", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({ id: "d1", dedupKey: "same", title: "2026년 소상공인 경영개선 지원", structure: rule(), structureStatus: "done" }),
+      ann({ id: "d2", dedupKey: "same", title: "2026년 소상공인 경영개선 지원", structure: rule(["대표자 나이 확인"]), structureStatus: "done" }),
+    ]);
+    productFindMany.mockResolvedValue([]);
+    const data = await buildFundingMap({ region: "서울", employeeCount: 10 } as BusinessProfile, NOW, { filters: { includeExcluded: true } });
+    const rep = itemsOf(data.groups).find((x) => x.id === "a:d1" || x.id === "a:d2");
+    expect(rep?.fitVerdict).not.toBe("fit");
+  });
+  it("손 등록 명부(창구 안내·엔젤매칭) 상품은 설명 글의 조건을 기계가 다 못 읽으므로 맞음이 아니다", async () => {
+    loadOpenAnnouncements.mockResolvedValue([]);
+    productFindMany.mockResolvedValue([]);
+    const data = await buildFundingMap({ foundedDate: "2024-03-01", region: "서울" } as BusinessProfile, NOW, { filters: { includeExcluded: true } });
+    const manual = itemsOf(data.groups).filter((x) => x.id.startsWith("p:manual:"));
+    expect(manual.length).toBeGreaterThan(0);
+    expect(manual.every((x) => x.fitVerdict !== "fit")).toBe(true);
+  });
+});
+
+describe("정밀 맞음 — 상품을 같은 이름 공고에 접을 때(리뷰 review-7898081a P1-3)", () => {
+  it("접힌 상품에 확인이 남았으면 공고도 맞음이 아니다", async () => {
+    const angel = MANUAL_PRODUCTS.find((m) => m.name.includes("엔젤"))!;
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({
+        id: "tw", title: angel.name, agency: angel.institution, structureStatus: "done", fundingGroup: angel.fundingGroup,
+        structure: { ...EMPTY_RULE, conditions: [{ key: "businessAgeMaxYears", op: "lte", value: 7, rawText: "업력 7년 이내", machineReadable: true }] },
+      }),
+    ]);
+    productFindMany.mockResolvedValue([]);
+    const data = await buildFundingMap({ foundedDate: "2024-03-01", region: "서울" } as BusinessProfile, NOW, { filters: { includeExcluded: true } });
+    const item = itemsOf(data.groups).find((x) => x.id === "a:tw");
+    expect(item).toBeDefined();
+    expect(item!.fitVerdict).not.toBe("fit");
+  });
+});
+
+describe("상품 접기 — 공고를 안 맞음으로 끌어내리지 않는다(리뷰 review-8c467476 P1-4)", () => {
+  it("같은 이름 상품이 안 맞음이어도 공고는 제외되지 않는다(최대 확인 필요)", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({ id: "tw2", title: "소상공인 경영안정 자금", agency: "소진공", structureStatus: "done", applyEnd: new Date(NOW.getTime() + 3 * DAY),
+        structure: { ...EMPTY_RULE, conditions: [{ key: "employeeMax", op: "lte", value: 50, rawText: "50인 이하", machineReadable: true }] } }),
+    ]);
+    productFindMany.mockResolvedValue([prod({ id: "pp", name: "소상공인 경영안정 자금", institution: "소진공", targetRules: { employeeMax: 5 } })]);
+    const data = await buildFundingMap({ employeeCount: 10, region: "서울" } as BusinessProfile, NOW, { filters: { soonOnly: true } });
+    const item = itemsOf(data.groups).find((x) => x.id === "a:tw2");
+    expect(item).toBeDefined();
+    expect(item!.fitVerdict).not.toBe("excluded");
+  });
+});
+
+describe("상품 접기 — 필터를 켜도 상품의 확인 조건이 공고에 남는다(리뷰 review-059ee0f4 P1-1)", () => {
+  it("7일 안 마감 필터에서도 맞음이 아니다", async () => {
+    const angel = MANUAL_PRODUCTS.find((m) => m.name.includes("엔젤"))!;
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({
+        id: "tw3", title: angel.name, agency: angel.institution, structureStatus: "done", fundingGroup: angel.fundingGroup,
+        applyEnd: new Date(NOW.getTime() + 3 * DAY),
+        structure: { ...EMPTY_RULE, conditions: [{ key: "businessAgeMaxYears", op: "lte", value: 7, rawText: "업력 7년 이내", machineReadable: true }] },
+      }),
+    ]);
+    productFindMany.mockResolvedValue([]);
+    const data = await buildFundingMap({ foundedDate: "2024-03-01", region: "서울" } as BusinessProfile, NOW, { filters: { soonOnly: true } });
+    const item = itemsOf(data.groups).find((x) => x.id === "a:tw3");
+    expect(item).toBeDefined();
+    expect(item!.fitVerdict).not.toBe("fit");
   });
 });

@@ -1,4 +1,4 @@
-import { isNationwideRegionList } from "./match-engine";
+import { conditionPassIsFitGrade, isNationwideRegionList, strictFitBlock, type StrictFitContext } from "./match-engine";
 import type { ConditionCheck } from "./structure-types";
 
 /** 정렬 구획(설계서 §4 — 겹침 없음). status='open' 행만 들어온다는 전제. */
@@ -71,7 +71,12 @@ function isWeakPass(c: ConditionCheck): boolean {
   return isNationwidePass(c) || isCorporationOnlyPass(c) || isCompanyScaleOnlyPass(c);
 }
 
-export function fitVerdictOf(checks: ConditionCheck[]): FitVerdict {
+/**
+ * 맞음(fit) = 불일치 0 · 확인필요 0 · 강한 일치 1개 이상 · 공고 단위 안전장치 통과(2026-09-24 정밀 맞음).
+ * 예전엔 강한 일치 하나만 있으면 나머지가 「모름」이어도 맞음이었다 — 틀린 추천의 뿌리였다.
+ * `ctx` 를 안 주면 공고 단위 안전장치는 건너뛴다(조건만 보는 호출).
+ */
+export function fitVerdictOf(checks: ConditionCheck[], ctx?: StrictFitContext): FitVerdict {
   if (checks.some((c) => c.verdict === "fail")) return "excluded";
   // 자격 유형(targetOrg)이 대상인 공고는 자격을 모르는 채로 「맞음」이라 할 수 없다.
   // 모르면 fail 이 아니라 「맞음 금지」다 — 목록에서 지우지 않고 「확인 필요」로 내린다.
@@ -81,6 +86,9 @@ export function fitVerdictOf(checks: ConditionCheck[]): FitVerdict {
   // fail 이 아니라 「맞음」만 막는다. 목록에서 지우지 않고 「확인 필요」로 내린다.
   // 2026-09-18 실측: 화면 4,566건 중 637건(14%)이 「맞음」에서 「확인 필요」로 내려간다.
   if (checks.some((c) => c.blocksFit)) return "unverified";
+  if (checks.some((c) => c.verdict === "unknown")) return "unverified";
+  if (ctx && strictFitBlock(ctx)) return "unverified";
+  if (ctx && checks.some((c) => !conditionPassIsFitGrade(c, ctx.profile))) return "unverified";
   if (checks.some((c) => c.verdict === "pass" && !isWeakPass(c))) return "fit";
   return "unverified";
 }

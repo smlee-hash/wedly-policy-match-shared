@@ -100,9 +100,9 @@ const GROUP_ICON: Record<FundingGroup, LucideIcon> = {
   invest: TrendingUp,
 };
 
+// 2026-09-24 승인 시안 — 추천순이 곧 「맞음 먼저 · 마감 빠른 순」이라 「마감 빠른 순」 단추는 따로 두지 않는다.
 const SORT_OPTIONS: Array<{ value: FundingSort; label: string }> = [
-  { value: "rec", label: "추천순" },
-  { value: "dead", label: "마감 빠른 순" },
+  { value: "rec", label: "추천순(마감 빠른 순)" },
   { value: "rate", label: "이자 낮은 순" },
   { value: "amt", label: "한도 큰 순" },
 ];

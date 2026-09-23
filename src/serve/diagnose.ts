@@ -91,7 +91,7 @@ function toItem(row: Row, profile: BusinessProfile, now: Date): DiagnoseItem {
   const structureSource = row.structure;
   // 추천·AI판정과 **같은 공용 함수**로 지역 조건을 보탠다 — 화면마다 판정이 갈리지 않게.
   const s = withRegionConditions(readStoredStructure(structureSource), { title: row.title ?? "", agency: row.agency ?? "", region: row.region ?? "" });
-  const m = matchAnnouncement(s, profile, now);
+  const m = matchAnnouncement(s, profile, now, { title: row.title ?? "" });
   const needsReview = row.structureStatus === "needs_review";
   // 구조화가 덜 끝난 공고(needs_review)는 조건이 빠졌을 수 있다 — 「가능」으로 올리지 않는다.
   const grade: MatchGrade = needsReview && m.grade === "possible" ? "uncertain" : m.grade;

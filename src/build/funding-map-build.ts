@@ -308,7 +308,7 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
   const structure = withRegionConditions(readStoredStructure(aiUsable ? r.structure : r.ruleStructure), r, {
     regionFieldFallback: true,
   });
-  const m = matchAnnouncement(structure, profile, now);
+  const m = matchAnnouncement(structure, profile, now, { title: r.title ?? "" });
   const fit = fitsOf(m.checks);
   const humanCheck = m.humanCheck.length;
   const why = whyOf(fit, humanCheck);
@@ -341,7 +341,8 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
     deadline: deadlineOfAnnouncement(r.applyEnd, r.applyPeriodText ?? "", now, r.applyStart),
     where: r.agency ?? "",
     fit,
-    fitVerdict: fitVerdictOf(m.checks),
+    // 정밀 맞음(2026-09-24) — 제목의 지역·예비창업자 대상·사람 확인 조건도 본다.
+    fitVerdict: fitVerdictOf(m.checks, { title: r.title ?? "", profile, humanCheck, ruleOnly: r.structureStatus !== "done" }),
     humanCheck,
     score: scoreOf(m.checks),
     why: unclassified ? `${UNCLASSIFIED_PREFIX}${why}` : why,
@@ -451,7 +452,9 @@ function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): Buil
   const checks = conditions.map((c) => checkCondition(c, profile, now));
   const fit = fitsOf(checks);
   // 상품에는 AI 의 「사람 확인」 목록이 없다 — 기계로 못 재는 조건(대표 나이 등)이 그 자리다.
-  const humanCheck = conditions.filter((c) => !c.machineReadable).length;
+  // 손 등록 명부는 창구 안내·설명 글에 기계로 못 읽은 조건(엔젤투자 이력 등)이 남아 있다 — 사람 확인 1건으로
+  // 센다(정밀 맞음, 리뷰 review-116b747b P1-3).
+  const humanCheck = Math.max(conditions.filter((c) => !c.machineReadable).length, p.source === "manual" ? 1 : 0);
   const why = whyOf(fit, humanCheck);
   const rate = productRate(p);
 
@@ -477,7 +480,7 @@ function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): Buil
     deadline: deadlineOfProduct(p.deadlineText ?? "", now),
     where: p.channel || p.institution || "",
     fit,
-    fitVerdict: fitVerdictOf(checks),
+    fitVerdict: fitVerdictOf(checks, { title: p.name ?? "", profile, humanCheck }),
     humanCheck,
     score: scoreOf(checks),
     why: unclassified ? `${UNCLASSIFIED_PREFIX}${why}` : why,
@@ -723,6 +726,9 @@ function groupAnnouncements(pairs: AnnPair[]): FundingItem[] {
     const bucket = buckets.get(s.key) ?? [];
     const sorted = [...bucket].sort(compareRep(repRankOf(bucket)));
     const rep = sorted[0].item;
+    // 정밀 맞음(2026-09-24) — 묶음 안에 확인이 남은 수집본이 하나라도 있으면 대표도 맞음이 아니다
+    // (리뷰 review-116b747b P1-2: 조건이 덜 읽힌 쪽이 이겨 사람 확인 조건이 버려졌다).
+    if (rep.fitVerdict === "fit" && sorted.some((p) => p.item.fitVerdict !== "fit")) rep.fitVerdict = "unverified";
     // 혼자면 표식을 붙이지 않는다 — 화면이 「외 0곳」을 그리게 된다.
     if (sorted.length > 1) {
       rep.groupCount = sorted.length;
@@ -763,6 +769,20 @@ function twinKeyOf(it: FundingItem): string {
  *   것이라, 번호까지 남기면 뒤이어 도는 정상·안 맞음 풀의 접기가 「이미 접어 둔 공고」로 읽혀
  *   상품 줄이 접히지 않는다(지도에 같은 사업이 두 줄로 뜬다).
  */
+/** 같은 이름·기관 상품이 「맞음」이 아니면 공고도 「맞음」이 아니다(최대 확인 필요로만 내린다). */
+function downgradeFitTwins(items: FundingItem[]): void {
+  const productVerdict = new Map<string, FitVerdict>();
+  for (const it of items) {
+    if (it.kind !== "product") continue;
+    const key = twinKeyOf(it);
+    if (key && it.fitVerdict !== "fit") productVerdict.set(key, it.fitVerdict);
+  }
+  if (productVerdict.size === 0) return;
+  for (const it of items) {
+    if (it.kind === "announcement" && it.fitVerdict === "fit" && productVerdict.has(twinKeyOf(it))) it.fitVerdict = "unverified";
+  }
+}
+
 function foldTwinProducts(pool: FundingItem[], mark = true): FundingItem[] {
   const annByKey = new Map<string, FundingItem>();
   for (const it of pool) {
@@ -781,6 +801,9 @@ function foldTwinProducts(pool: FundingItem[], mark = true): FundingItem[] {
     if (!twin || folded.has(key) || twin.relatedProductId) return true;
     folded.add(key);
     if (mark) twin.relatedProductId = it.refId;
+    // 정밀 맞음(리뷰 review-7898081a P1-3) — 숨기는 상품에 확인이 남았으면 공고도 맞음이 아니다.
+    // 건수만 세는 호출(mark:false)은 판정을 바꾸지 않고, 바꿀 때도 「확인 필요」까지만 내린다(review-8c467476 P1-4).
+    if (mark && twin.fitVerdict === "fit" && it.fitVerdict !== "fit") twin.fitVerdict = "unverified";
     return false;
   });
 }
@@ -863,6 +886,9 @@ export async function buildFundingMap(
   //  지도·표 어디에도 없는데 발 hint 의 「전체 K건」에는 세어져 사람이 없는 줄을 찾아다녔다.
   //  표식을 남기지 않고(mark:false) 세는 이유는 `foldTwinProducts` 의 주석에 있다 — 아래 정상·
   //  안 맞음 풀의 접기보다 **먼저** 돌아야 한다(뒤로 미루면 표식이 이미 붙어 개수가 틀린다).
+  // 정밀 맞음(리뷰 review-059ee0f4 P1-1) — 거르기 **전에** 같은 이름 상품의 확인 조건을 공고에 반영한다.
+  // 거른 뒤에 하면 상시 상품이 「7일 안 마감」 칩에서 빠져 공고만 「맞음」으로 남는다.
+  downgradeFitTwins(items);
   const allCount = foldTwinProducts(items, false).length;
 
   // ★한눈에 4칸(`glance`)이 셀 목록 — **칩을 거치기 전**이다(브라우저 독립 검사 ①, 2026-09-04).

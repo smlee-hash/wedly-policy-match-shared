@@ -847,7 +847,7 @@ export default function DetailPanel({
   }
 
   const structure = readStoredStructure(detail.structure);
-  const match = matchAnnouncement(structure, profile);
+  const match = matchAnnouncement(structure, profile, new Date(), { title: detail.title ?? "" });
   // 아직 읽는 중인 공고의 「읽지 못했습니다」 줄은 사람이 확인할 조건이 아니다 — 안내로 갈음한다.
   const reading = READING_STATUS.has(detail.structureStatus);
   // noServerAi·serverStructurizes:false 통로에선 이 화면이 AI 읽기를 시작시키지(계속하지) 않는다

@@ -119,7 +119,7 @@ describe("checkCondition — 지역 별칭(줄임말 ↔ 정식명)", () => {
     expect(checkCondition(cond({ value: ["충청남도"] }), { region: "충북" }, NOW).verdict).toBe("fail");
   });
 
-  it("시·군까지 붙은 표기도 시도로 읽는다", () => {
+  it("시·군까지 붙은 표기도 시도로 읽는다(판정은 그대로 — 「맞음」은 recommend-score 의 정밀 맞음이 따로 막는다)", () => {
     expect(checkCondition(cond({ value: ["충청북도 청주시"] }), { region: "충북" }, NOW).verdict).toBe("pass");
     expect(checkCondition(cond({ value: ["경기"] }), { region: "경기도 성남시" }, NOW).verdict).toBe("pass");
   });
@@ -743,13 +743,13 @@ describe("matchAnnouncement — 등급", () => {
 
   // 2026-08-22 독립 화면 검사 1번 — 사람 확인 조건은 등급을 내리지 않는다.
   // (내리면 실공고 거의 전부가 우대사항 한 줄 때문에 애매가 되어 「받을 수 있음」이 영원히 0.)
-  it("전부 pass 면 사람확인필요가 남아 있어도 가능 — 그 조건은 결과에 그대로 실린다", () => {
+  it("★2026-09-24 정밀 맞음 — 전부 pass 여도 사람확인필요가 남으면 애매(가능 아님), 그 조건은 결과에 그대로 실린다", () => {
     const r = matchAnnouncement(
       structure({ conditions: [pass], humanCheck: ["첨부 원문 확인 필요: 공고문.hwp"] }),
       { region: "서울" },
       NOW,
     );
-    expect(r.grade).toBe("possible");
+    expect(r.grade).toBe("uncertain");
     expect(r.humanCheck).toEqual(["첨부 원문 확인 필요: 공고문.hwp"]);
   });
 });
@@ -776,7 +776,8 @@ describe("readStoredStructure — 저장된 구조화 JSON 방어", () => {
     expect(s.humanCheck).toEqual(["매출 제한 있음"]);
     // 못 읽은 조건은 버려지지 않고 사람 확인 목록으로 남는다(화면엔 「직접 확인 조건 N건」 칩).
     // 등급은 읽어낸 기계 조건만으로 매긴다 — 2026-08-22 독립 화면 검사 1번.
-    expect(matchAnnouncement(s, { region: "서울" }, NOW).grade).toBe("possible");
+    // 원문을 사람확인필요로 옮겼으므로 정밀 맞음에서는 「가능」이 아니라 「애매」다(2026-09-24).
+    expect(matchAnnouncement(s, { region: "서울" }, NOW).grade).toBe("uncertain");
   });
 
   it("값 모양이 키와 안 맞으면 대조하지 않는다(터지지 않는다)", () => {
@@ -907,5 +908,117 @@ describe("자금 조달 지도 조건 — 신용점수·기존 대출·법인 �
       documents: [],
     });
     expect(s.conditions.map((c) => c.machineReadable)).toEqual([true, true, true]);
+  });
+});
+
+describe("진단 등급 — 정밀 맞음 안전장치(2026-09-24)", () => {
+  const s = {
+    conditions: [{ key: "region", op: "in", value: ["서울"], rawText: "서울", machineReadable: true }],
+    humanCheck: [] as string[], benefitSummary: "", supportAmountText: "",
+    aiSummary: { purpose: "", target: "", scale: "", scaleItems: [] }, documents: [], verified: false,
+  } as never;
+  it("모든 조건 통과여도 제목이 다른 시도면 possible 이 아니라 uncertain", () => {
+    expect(matchAnnouncement(s, { region: "서울" }, new Date(), { title: "대전 팁스타운 입주기업 모집" }).grade).toBe("uncertain");
+  });
+  it("사람 확인 조건이 있으면 uncertain", () => {
+    const withHuman = { ...(s as object), humanCheck: ["대표자 나이"] } as never;
+    expect(matchAnnouncement(withHuman, { region: "서울" }, new Date(), { title: "서울 지원" }).grade).toBe("uncertain");
+  });
+  it("막을 것이 없으면 possible 그대로", () => {
+    expect(matchAnnouncement(s, { region: "서울" }, new Date(), { title: "서울 소상공인 지원" }).grade).toBe("possible");
+  });
+});
+
+describe("지역 — 판정은 넓게, 「맞음」·「신청 가능」은 시군구까지 확인될 때만(리뷰 116b747b·7898081a·8c467476)", () => {
+  const S = (value: string[]) => ({
+    conditions: [{ key: "region", op: "in", value, rawText: value.join(","), machineReadable: true }],
+    humanCheck: [] as string[], benefitSummary: "", supportAmountText: "",
+    aiSummary: { purpose: "", target: "", scale: "", scaleItems: [] }, documents: [], verified: false,
+  }) as never;
+  const grade = (value: string[], p: object, title = "지원사업 모집") => matchAnnouncement(S(value), p, NOW, { title }).grade;
+  it.each([
+    [["서울특별시 광진구"], { region: "서울", regionSigungu: "영등포구" }],
+    [["서울특별시광진구"], { region: "서울", regionSigungu: "영등포구" }],
+    [["경기도성남시"], { region: "경기", regionSigungu: "안양시" }],
+    [["경기도 광주시"], { region: "경기", regionSigungu: "성남시" }],
+    [["충청북도 청주시"], { region: "충북" }],
+  ])("%j 는 %j 회사에 신청 가능이 아니다(안 맞음으로 빼지도 않는다)", (value, p) => {
+    expect(grade(value, p)).toBe("uncertain");
+  });
+  it.each([
+    [["서울특별시 광진구"], { region: "서울", regionSigungu: "광진구" }],
+    [["경기도 광주시"], { region: "경기", regionSigungu: "광주시" }],
+    [["서울"], { region: "서울", regionSigungu: "영등포구" }],
+  ])("%j 는 %j 회사에 신청 가능", (value, p) => {
+    expect(grade(value, p)).toBe("possible");
+  });
+  it("여러 곳이 나열돼도 자격 있는 회사를 안 맞음으로 빼지 않는다(판정 회귀 없음)", () => {
+    const c = { key: "region", op: "in", value: ["서울특별시 광진구 및 부산광역시 부산진구"], rawText: "", machineReadable: true } as never;
+    expect(checkCondition(c, { region: "부산", regionSigungu: "부산진구" }, NOW).verdict).not.toBe("fail");
+  });
+  it.each([
+    ["경기도 광주시 소재 소상공인 경영개선 지원", { region: "경기", regionSigungu: "성남시" }],
+    ["서울특별시 중구 소재 소상공인 지원", { region: "서울", regionSigungu: "영등포구" }],
+  ])("제목의 사전 밖 시군구 「%s」 도 막는다", (title, p) => {
+    expect(grade(["서울", "경기"], p, title)).toBe("uncertain");
+  });
+});
+
+describe("지역 맞음 — 덩어리 안에서 시도·시군구가 함께 맞아야(리뷰 review-059ee0f4)", () => {
+  const S = (value: string[]) => ({
+    conditions: [{ key: "region", op: "in", value, rawText: value.join(","), machineReadable: true }],
+    humanCheck: [] as string[], benefitSummary: "", supportAmountText: "",
+    aiSummary: { purpose: "", target: "", scale: "", scaleItems: [] }, documents: [], verified: false,
+  }) as never;
+  const grade = (value: string[], p: object, title = "지원사업 모집") => matchAnnouncement(S(value), p, NOW, { title }).grade;
+  it("「서울 중구 및 부산 강서구」는 서울 강서구 회사에 신청 가능이 아니다", () => {
+    expect(grade(["서울특별시 중구 및 부산광역시 강서구"], { region: "서울", regionSigungu: "강서구" })).toBe("uncertain");
+  });
+  it("여러 곳이 한 문장에 적힌 값은 대상 회사여도 「확인 필요」 — 허용 목록 원칙(빼지는 않는다)", () => {
+    expect(grade(["서울특별시 중구 및 부산광역시 강서구"], { region: "부산", regionSigungu: "강서구" })).toBe("uncertain");
+    expect(grade(["서울특별시 광진구, 부산광역시 부산진구"], { region: "부산", regionSigungu: "부산진구" })).toBe("uncertain");
+  });
+  it.each([
+    [["전국(단, 서울 제외)"], { region: "서울", regionSigungu: "영등포구" }, "지원사업 모집"],
+    [["서울특별시 중구와 부산광역시 강서구"], { region: "서울", regionSigungu: "강서구" }, "지원사업 모집"],
+    [["서울", "부산"], { region: "서울", regionSigungu: "강서구" }, "서울특별시 중구 및 부산광역시 강서구 소재 기업 지원"],
+    [["전국"], { region: "서울", regionSigungu: "영등포구" }, "전국(단, 서울 제외) 소상공인 지원"],
+  ])("리뷰 review-641bb9db — %j 는 신청 가능이 아니다", (value, p, title) => {
+    expect(grade(value as string[], p, title as string)).toBe("uncertain");
+  });
+  it("약칭 「구미」 는 구미시 회사에 신청 가능(리뷰 review-641bb9db P2-4)", () => {
+    expect(grade(["구미"], { region: "경북", regionSigungu: "구미시" })).toBe("possible");
+  });
+  it("조사가 붙은 시군구도 읽는다 — 제목", () => {
+    expect(grade(["서울"], { region: "서울", regionSigungu: "영등포구" }, "서울특별시 광진구에 소재한 소상공인 지원")).toBe("uncertain");
+  });
+  it("조사가 붙은 시군구도 읽는다 — 조건 값", () => {
+    expect(grade(["서울특별시 광진구에 소재한 사업장"], { region: "서울", regionSigungu: "영등포구" })).toBe("uncertain");
+  });
+});
+
+describe("정밀 맞음 — 지역 외 조건·원문·약칭(리뷰 review-afe4e27f)", () => {
+  const S = (conditions: unknown[]) => ({
+    conditions, humanCheck: [] as string[], benefitSummary: "", supportAmountText: "",
+    aiSummary: { purpose: "", target: "", scale: "", scaleItems: [] }, documents: [], verified: false,
+  }) as never;
+  const grade = (conditions: unknown[], p: object, title = "지원사업 모집") => matchAnnouncement(S(conditions), p, NOW, { title }).grade;
+  it("값은 「서울」이어도 원문에 광진구 제한이 있으면 영등포 회사에 신청 가능이 아니다", () => {
+    expect(grade([{ key: "region", op: "in", value: ["서울"], rawText: "서울특별시 광진구 소재 사업장", machineReadable: true }], { region: "서울", regionSigungu: "영등포구" })).toBe("uncertain");
+  });
+  it("제목의 시군구 약칭(「수원 관내」)도 막는다", () => {
+    expect(grade([{ key: "region", op: "in", value: ["경기"], rawText: "경기", machineReadable: true }], { region: "경기", regionSigungu: "안양시" }, "[경기] 수원 관내 소상공인 경영개선 지원사업")).toBe("uncertain");
+  });
+  it("「비금속」 업종은 「금속」 조건으로 신청 가능이 아니다", () => {
+    expect(grade([{ key: "industry", op: "in", value: ["금속"], rawText: "금속 가공업 사업자", machineReadable: true }], { industry: "비금속 광물제품 제조업" })).toBe("uncertain");
+  });
+  it("「금속가공업」 업종은 「금속」 조건으로 신청 가능", () => {
+    expect(grade([{ key: "industry", op: "in", value: ["금속"], rawText: "금속 가공업 사업자", machineReadable: true }], { industry: "금속가공업" })).toBe("possible");
+  });
+  it("「중소기업」은 「소기업」 조건으로 신청 가능이 아니다", () => {
+    expect(grade([
+      { key: "companyScale", op: "in", value: ["소기업"], rawText: "소기업에 한함", machineReadable: true },
+      { key: "region", op: "in", value: ["서울"], rawText: "서울", machineReadable: true },
+    ], { companyScale: "중소기업", region: "서울" })).toBe("uncertain");
   });
 });

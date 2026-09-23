@@ -56,8 +56,11 @@ describe("맞음 판정(fitVerdictOf)", () => {
   it("불일치가 하나라도 있으면 excluded — 일치가 있어도 탈락", () => {
     expect(fitVerdictOf([c("pass"), c("fail")])).toBe("excluded");
   });
-  it("일치 1개 이상 + 불일치 0 = fit", () => {
-    expect(fitVerdictOf([c("pass"), c("unknown")])).toBe("fit");
+  it("일치 1개 이상 + 불일치 0 + 확인필요 0 = fit", () => {
+    expect(fitVerdictOf([c("pass")])).toBe("fit");
+  });
+  it("★2026-09-24 정밀 맞음 — 확인필요 조건이 하나라도 남으면 fit 이 아니다", () => {
+    expect(fitVerdictOf([c("pass"), c("unknown")])).toBe("unverified");
   });
   it("조건 0개·확인필요뿐이면 unverified", () => {
     expect(fitVerdictOf([])).toBe("unverified");
@@ -134,5 +137,52 @@ describe("맞음 판정 — 시군구 blocksFit", () => {
   });
   it("blocksFit 이 없으면 종전 그대로 fit", () => {
     expect(fitVerdictOf([regionPass()])).toBe("fit");
+  });
+});
+
+/**
+ * 2026-09-24 사장님 지시 「정확도 100%」 — 「맞음」은 모든 조건이 확인된 것만.
+ * 재측정(9/23): 대전 팁스타운이 전남 회사에, [강원] 청년창업자금이 충남 회사에, 예비창업자 공고가
+ * 2024년 설립 회사에 「맞음」으로 떴다. 공고 쪽 조건이 비어 있어도 제목이 가르는 경우를 막는다.
+ */
+describe("정밀 맞음 — 공고 단위 안전장치(strictFitBlock)", () => {
+  const seoulPass = { condition: { key: "region", op: "in", value: ["서울"], rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
+  it("사람이 직접 확인할 조건이 있으면 fit 이 아니다", () => {
+    expect(fitVerdictOf([seoulPass], { humanCheck: 1 })).toBe("unverified");
+  });
+  it("제목에 회사와 다른 시도가 있으면 fit 이 아니다", () => {
+    expect(fitVerdictOf([seoulPass], { title: "2026년 제3차 대전 팁스타운 입주기업 모집", profile: { region: "서울" } })).toBe("unverified");
+    expect(fitVerdictOf([seoulPass], { title: "[강원] 2026년 청년창업자금 무이자 대출지원", profile: { region: "서울" } })).toBe("unverified");
+  });
+  it("제목의 시도가 회사 시도와 같으면 막지 않는다", () => {
+    expect(fitVerdictOf([seoulPass], { title: "2026년 서울시 소상공인 경영개선 지원", profile: { region: "서울" } })).toBe("fit");
+  });
+  it("회사 시도를 모르면 제목에 시도가 있는 공고는 fit 이 아니다", () => {
+    expect(fitVerdictOf([seoulPass], { title: "부산 스타트업 지원", profile: {} })).toBe("unverified");
+  });
+  it("예비창업자·재창업자 공고는 회사가 예비창업자일 때만 fit", () => {
+    const title = "2026년 로봇분야 예비창업자 및 재창업자를 위한 창업 성장 프로그램";
+    expect(fitVerdictOf([seoulPass], { title, profile: { region: "서울", foundedDate: "2024-03-01" } })).toBe("unverified");
+    expect(fitVerdictOf([seoulPass], { title, profile: { region: "서울", companyScale: "예비창업자" } })).toBe("fit");
+  });
+  it("제목에 시군구가 있으면 회사 시군구가 같을 때만 fit — 9/23 재측정 「창원시 벤처투자」·「용인시 반도체」", () => {
+    expect(fitVerdictOf([seoulPass], { title: "창원시 벤처투자 『매칭&피칭데이』참여기업 모집 공고", profile: { region: "경남", regionSigungu: "양산시" } })).toBe("unverified");
+    expect(fitVerdictOf([seoulPass], { title: "용인시 반도체 기업 채용 연계 지원 안내", profile: { region: "경기" } })).toBe("unverified");
+    const empPass = { condition: { key: "employeeMax", op: "lte", value: 50, rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([empPass], { title: "창원시 벤처투자 참여기업 모집", profile: { region: "경남", regionSigungu: "창원시" } })).toBe("fit");
+  });
+  it.each([
+    ["※스팸문자주의※ :"], ["[공지] PTP포장기 공개매각 공고"], ["제안서 평가위원(후보자) 모집안내"],
+    ["2026년 나노소재기술개발사업 신규과제 선정결과(4차) 공고"], ["한국환경산업기술원 비상임임원(이사 및 감사) 초빙공고"],
+    ["직원 채용 공고"], ["2026 설문조사 안내"],
+  ])("지원사업이 아닌 글은 fit 이 아니다 — %s", (title) => {
+    expect(fitVerdictOf([seoulPass], { title, profile: { region: "서울" } })).toBe("unverified");
+  });
+  it("규칙으로만 뽑은 조건(AI 미검증)이면 fit 이 아니다", () => {
+    expect(fitVerdictOf([seoulPass], { title: "2026년 소상공인 경영개선 지원", profile: { region: "서울" }, ruleOnly: true })).toBe("unverified");
+  });
+  it("안전장치는 fail(excluded)을 fit 으로 올리지 않는다", () => {
+    const f = { condition: { key: "region", op: "in", value: ["부산"], rawText: "", machineReadable: true }, verdict: "fail", note: "" } as never;
+    expect(fitVerdictOf([f], { title: "서울 지원", profile: { region: "서울" } })).toBe("excluded");
   });
 });
