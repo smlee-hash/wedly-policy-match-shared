@@ -31,6 +31,10 @@ import { hopeReturnSource } from "./sources/hope-return";
 import { tipsSource } from "./sources/tips";
 // ── P2 w6 ──
 import { kakaobankSohoSource } from "./sources/kakaobank-soho";
+// ── 2026-09-24 보증 상품 3곳 ──
+import { ksureSource } from "./sources/ksure";
+import { seoulshinboSource } from "./sources/seoulshinbo";
+import { gcgfSource } from "./sources/gcgf";
 
 export const PRODUCT_SOURCES: ProductSource[] = [
   kinfaSource,
@@ -42,6 +46,10 @@ export const PRODUCT_SOURCES: ProductSource[] = [
   tipsSource,
   // ── P2 w6 ──
   kakaobankSohoSource,
+  // ── 2026-09-24 보증 상품 3곳 ──
+  ksureSource,
+  seoulshinboSource,
+  gcgfSource,
 ];
 
 /**

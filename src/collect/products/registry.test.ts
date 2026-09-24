@@ -42,7 +42,7 @@ describe("상시 상품 수집원 명부", () => {
     expect(productSyncSources(deps).map((s) => s.name)).toEqual(PRODUCT_SOURCES.map((s) => s.id));
   });
 
-  it("★8개 어댑터가 전부 등록됐고, 전부 접두어 product- 다 — manual 은 회차에 안 넣는다(계획서 리뷰 대장 #4)", () => {
+  it("★11개 어댑터가 전부 등록됐고, 전부 접두어 product- 다 — manual 은 회차에 안 넣는다(계획서 리뷰 대장 #4)", () => {
     const ids = PRODUCT_SOURCES.map((s) => s.id).sort();
     expect(ids).toEqual(
       [
@@ -55,6 +55,10 @@ describe("상시 상품 수집원 명부", () => {
         "product-kosmes",
         "product-sbiz",
         "product-tips",
+        // 2026-09-24 보증 상품 3곳 — 경기신용보증재단·한국무역보험공사·서울신용보증재단
+        "product-gcgf",
+        "product-ksure",
+        "product-seoulshinbo",
       ].sort(),
     );
     expect(ids.every((id) => id.startsWith("product-"))).toBe(true);

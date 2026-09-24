@@ -57,6 +57,9 @@ const PRODUCT_SOURCE_LABEL: Record<string, string> = {
   "product-hope-return": "희망리턴패키지",
   "product-kosmes": "중소벤처기업진흥공단",
   "product-tips": "TIPS",
+  "product-ksure": "한국무역보험공사",
+  "product-seoulshinbo": "서울신용보증재단",
+  "product-gcgf": "경기신용보증재단",
   manual: "손 등록 명부",
 };
 

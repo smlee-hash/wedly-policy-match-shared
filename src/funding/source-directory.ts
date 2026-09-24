@@ -248,6 +248,9 @@ export const SOURCE_DIRECTORY: SourceDirectoryEntry[] = [
   // ★id 접두어 product- 는 파일 규칙(위 자금 조달 지도 섹션 주석 「계획서 리뷰 대장 #1 치명」)이 강제 —
   //  공고 수집원 이름과 절대 안 겹치게. 상시 상품 어댑터(products/)로 등록되므로 board 계열과 분리한다.
   { id: "product-kakaobank-soho", label: "카카오뱅크 사장님대출(상시)", url: "https://www.kakaobank.com", status: "candidate", note: "상시 상품 어댑터" },
+  { id: "product-ksure", label: "한국무역보험공사 수출신용보증", url: "https://www.ksure.or.kr", status: "candidate", note: "상시 상품 어댑터" },
+  { id: "product-seoulshinbo", label: "서울신용보증재단 보증상품", url: "https://www.seoulshinbo.co.kr", status: "candidate", note: "상시 상품 어댑터" },
+  { id: "product-gcgf", label: "경기신용보증재단 특례보증", url: "https://www.gcgf.or.kr", status: "candidate", note: "상시 상품 어댑터" },
 
   // ── P2 대상 아님(22) — 2026-09-06 실사이트 조사 12 + 설계서 부록 A(2026-08-25/26 원 조사) 10 ──
   { label: "창원시 고시공고", url: "https://www.changwon.go.kr", status: "excluded",
