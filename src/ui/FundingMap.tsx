@@ -1274,7 +1274,9 @@ export function FundingMapView({
             value={sort}
             onChange={(v) => onSortChange(v as FundingSort)}
             options={SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-            className="min-w-[8.5rem]"
+            // 12rem — 「추천순(마감 빠른 순)」이 펼친 목록에서 체크 표시와 함께 잘리지 않는 폭(9/24 운영 확인).
+            // 이미 쓰는 클래스라 카탈로그 CSS 를 다시 만들 일이 없다.
+            className="min-w-48"
             controlClassName="flex h-9 items-center py-0 text-wedly-sub"
           />
           {/* ★조작줄 안이라 여기서만 36px·13px — 상수를 키우면 조작줄 밖 단추까지 커진다(BTN_SM 주석).
