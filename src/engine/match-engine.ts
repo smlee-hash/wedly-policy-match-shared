@@ -906,7 +906,12 @@ export function strictFitBlock(ctx: StrictFitContext): string | null {
   const titleSigungu = subRegionNamesIn(title);
   const titleSidos = sidosInText(titleSigungu.reduce((t, n) => t.split(n).join(" "), title));
   if (titleSidos.length + titleSigungu.length > 0) {
-    if (/제외/.test(title)) return "제목에 제외 지역이 있음";
+    // 빼는 말은 모양이 많다(「서울 외 지역」·「수도권 아닌」) — 지역이 적힌 제목에 이런 글자가 있으면 막는다(26차 리뷰).
+    if (/제외|외|아닌|아니|밖/.test(title)) return "제목에 제외 지역이 있을 수 있음";
+    // 동명 시군구(중구·동구 …)는 제목에 시도가 함께 있어야 어느 곳인지 안다(26차 리뷰).
+    if (titleSigungu.some((n) => AMBIGUOUS_SIGUNGU.includes(n)) && titleSidos.length === 0) {
+      return "제목의 시군구가 여러 시도에 있음";
+    }
     if (titleSidos.length > 1 || titleSigungu.length > 1) return "제목에 여러 지역이 있음";
   }
   if (titleSidos.length === 1) {

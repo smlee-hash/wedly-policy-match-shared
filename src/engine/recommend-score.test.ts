@@ -376,6 +376,13 @@ describe("정밀 맞음 — 지역 원문은 허용된 말만(16차 리뷰)", ()
     const r = { condition: { key: "region", op: "in", value: ["서울 중구"], rawText: "중구 소재 기업", machineReadable: true }, verdict: "pass", note: "" } as never;
     expect(fitVerdictOf([r], { ...ctx, profile: { region: "서울", regionSigungu: "중구" } })).toBe("unverified");
   });
+  it.each(["중구 경영개선 지원사업", "서울 외 지역 기업 경영개선 지원사업"])(
+    "제목 「%s」 은 서울 중구 회사에 맞음이 아니다(26차 리뷰)",
+    (title) => {
+      const emp = { condition: { key: "employeeMax", op: "lte", value: 50, rawText: "상시근로자 50인 이하", machineReadable: true }, verdict: "pass", note: "" } as never;
+      expect(fitVerdictOf([emp], { ...ctx, title, profile: { region: "서울", regionSigungu: "중구", employeeCount: 5 } })).toBe("unverified");
+    },
+  );
   it("「수원시 소재 기업」 은 수원시 회사에 맞음", () => {
     expect(fitVerdictOf([reg("수원시 소재 기업")], ctx)).toBe("fit");
   });
