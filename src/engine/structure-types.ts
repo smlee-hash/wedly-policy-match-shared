@@ -110,6 +110,12 @@ export interface AnnouncementStructure {
    * all=업종 제한 없음, restricted=특정 업종·분야만, unknown=판단 못 함. 없으면(옛 정리분) 모름으로 본다.
    */
   industryScope?: IndustryScope;
+  /**
+   * 공고가 특정 지역만 대상으로 하는가 — AI 가 원문 전체를 읽고 답한다. all=전국(지역 제한 없음),
+   * restricted=특정 지역만(또는 특정 지역 제외), unknown=판단 못 함. 사전에 없는 지역 표현(「수도권 외」·약칭)을
+   * 글자 규칙으로 끝까지 못 읽어(27차 리뷰) AI 판단을 한 겹 더 요구한다. 없으면 모름.
+   */
+  regionScope?: IndustryScope;
 }
 
 export type IndustryScope = "all" | "restricted" | "unknown";

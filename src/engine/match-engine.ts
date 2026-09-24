@@ -694,6 +694,8 @@ export type StrictFitContext = {
   requireIndustryScope?: boolean;
   /** AI 가 답한 업종 범위(없으면 옛 정리분 — 모름). */
   industryScope?: IndustryScope;
+  /** AI 가 답한 지역 범위(없으면 모름). */
+  regionScope?: IndustryScope;
   /** 조건 대조 결과 — 업종 조건이 구체 분야로 맞았는지 본다. */
   checks?: ConditionCheck[];
 };
@@ -887,6 +889,21 @@ function wordStartIn(text: string, word: string): boolean {
   return false;
 }
 
+/**
+ * AI 지역 범위 판단 — all(전국)이면 통과, restricted 면 지역 조건이 있고 모두 맞음 수준(원문 대조 포함)으로 통과해야
+ * 한다. 그 밖(모름·답 없음)은 막는다(27차 리뷰: 「수도권 외」·약칭 「고성」처럼 사전 밖 지역 표현).
+ */
+function regionScopeBlock(ctx: StrictFitContext): string | null {
+  if (ctx.regionScope === "all") return null;
+  if (ctx.regionScope !== "restricted") return "지역 제한 여부를 아직 확인하지 못함";
+  const regionChecks = (ctx.checks ?? []).filter((c) => c.condition.key === "region");
+  if (regionChecks.length === 0) return "지역 제한 공고인데 지역 조건이 없음";
+  if (regionChecks.some((c) => c.verdict !== "pass" || !conditionPassIsFitGrade(c, ctx.profile))) {
+    return "지역 제한을 확인하지 못함";
+  }
+  return null;
+}
+
 /** 막을 이유(사람 말 한 줄) 또는 null. */
 export function strictFitBlock(ctx: StrictFitContext): string | null {
   if (ctx.humanCheckTexts) {
@@ -895,7 +912,7 @@ export function strictFitBlock(ctx: StrictFitContext): string | null {
   if ((ctx.humanCheck ?? 0) > 0) return "사람이 직접 확인할 조건이 있음";
   if (ctx.ruleOnly) return "조건이 아직 AI 로 정리되지 않음";
   if (ctx.requireIndustryScope) {
-    const block = industryScopeBlock(ctx);
+    const block = industryScopeBlock(ctx) ?? regionScopeBlock(ctx);
     if (block) return block;
   }
   const title = ctx.title ?? "";
@@ -989,7 +1006,7 @@ export function matchAnnouncement(
     && (checks.some((c) => c.blocksFit || !conditionPassIsFitGrade(c, p))
       || strictFitBlock({
         title: opts.title, profile: p, humanCheckTexts: s.humanCheck,
-        requireIndustryScope: true, industryScope: s.industryScope, checks,
+        requireIndustryScope: true, industryScope: s.industryScope, regionScope: s.regionScope, checks,
       }))
   ) {
     grade = "uncertain";
@@ -1087,6 +1104,9 @@ export function readStoredStructure(raw: unknown): AnnouncementStructure {
   s.verified = o.verified === true;
   if (o.industryScope === "all" || o.industryScope === "restricted" || o.industryScope === "unknown") {
     s.industryScope = o.industryScope;
+  }
+  if (o.regionScope === "all" || o.regionScope === "restricted" || o.regionScope === "unknown") {
+    s.regionScope = o.regionScope;
   }
 
   const human: string[] = Array.isArray(o.humanCheck)

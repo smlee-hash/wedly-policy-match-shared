@@ -312,7 +312,7 @@ describe("정밀 맞음 — AI 업종 범위(industryScope)", () => {
   const food = { region: "서울", industry: "식품 제조업" };
   const base = { title: "2026년 경영개선 지원사업", profile: food, requireIndustryScope: true };
   it("all 이면 통과", () => {
-    expect(fitVerdictOf([empPass], { ...base, industryScope: "all" })).toBe("fit");
+    expect(fitVerdictOf([empPass], { ...base, industryScope: "all", regionScope: "all" })).toBe("fit");
   });
   it("모름·없음이면 막는다", () => {
     expect(fitVerdictOf([empPass], { ...base, industryScope: "unknown" })).toBe("unverified");
@@ -324,10 +324,10 @@ describe("정밀 맞음 — AI 업종 범위(industryScope)", () => {
   });
   it("제목에서 붙은 분야 조건(targetSector)도 업종 제한으로 본다", () => {
     const ts = { condition: { key: "targetSector", op: "in", value: ["식품"], rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
-    expect(fitVerdictOf([empPass, ts], { ...base, industryScope: "all" })).toBe("unverified");
+    expect(fitVerdictOf([empPass, ts], { ...base, industryScope: "all", regionScope: "all" })).toBe("unverified");
   });
   it("all 인데 업종 조건이 있으면 AI 답이 어긋나 확인 필요", () => {
-    expect(fitVerdictOf([empPass, ind(["식품"])], { ...base, industryScope: "all" })).toBe("unverified");
+    expect(fitVerdictOf([empPass, ind(["식품"])], { ...base, industryScope: "all", regionScope: "all" })).toBe("unverified");
   });
   it("금융상품처럼 요구하지 않으면 영향 없다", () => {
     expect(fitVerdictOf([empPass], { title: "2026년 경영개선 지원사업", profile: food })).toBe("fit");
@@ -337,7 +337,7 @@ describe("정밀 맞음 — AI 업종 범위(industryScope)", () => {
 describe("정밀 맞음 — 지역 조건 원문의 제외(15차 리뷰)", () => {
   it("「경기도 소재 기업(수원시 제외)」 은 수원시 회사에 맞음이 아니다", () => {
     const reg = { condition: { key: "region", op: "in", value: ["경기"], rawText: "경기도 소재 기업(수원시 제외)", machineReadable: true }, verdict: "pass", note: "" } as never;
-    expect(fitVerdictOf([reg], { title: "경영개선 지원사업", profile: { region: "경기", regionSigungu: "수원시" }, requireIndustryScope: true, industryScope: "all" })).toBe("unverified");
+    expect(fitVerdictOf([reg], { title: "경영개선 지원사업", profile: { region: "경기", regionSigungu: "수원시" }, requireIndustryScope: true, industryScope: "all", regionScope: "all" })).toBe("unverified");
   });
 });
 
@@ -345,7 +345,7 @@ describe("정밀 맞음 — 지역 원문은 허용된 말만(16차 리뷰)", ()
   const reg = (rawText: string) =>
     ({ condition: { key: "region", op: "in", value: ["경기"], rawText, machineReadable: true }, verdict: "pass", note: "" }) as never;
   const suwon = { region: "경기", regionSigungu: "수원시" };
-  const ctx = { title: "경영개선 지원사업", profile: suwon, requireIndustryScope: true, industryScope: "all" as const };
+  const ctx = { title: "경영개선 지원사업", profile: suwon, requireIndustryScope: true, industryScope: "all" as const, regionScope: "all" as const };
   it.each(["경기도 내 수원시 외 지역 소재 기업", "수원시 소재 기업은 지원 대상이 아님", "경기도 소재 기업(수원시 제외)"])(
     "「%s」 는 수원시 회사에 맞음이 아니다",
     (raw) => {
@@ -391,14 +391,14 @@ describe("정밀 맞음 — 지역 원문은 허용된 말만(16차 리뷰)", ()
 describe("정밀 맞음 — 조건 원문의 규모·유형 말(18차 리뷰)", () => {
   it("「상시근로자 50인 이하 중소기업」 직원 조건만 통과해서는 맞음이 아니다", () => {
     const emp = { condition: { key: "employeeMax", op: "lte", value: 50, rawText: "상시근로자 50인 이하 중소기업", machineReadable: true }, verdict: "pass", note: "" } as never;
-    expect(fitVerdictOf([emp], { title: "경영개선 지원사업", profile: { region: "서울", companyScale: "중견기업" }, requireIndustryScope: true, industryScope: "all" })).toBe("unverified");
+    expect(fitVerdictOf([emp], { title: "경영개선 지원사업", profile: { region: "서울", companyScale: "중견기업" }, requireIndustryScope: true, industryScope: "all", regionScope: "all" })).toBe("unverified");
   });
 });
 
 describe("정밀 맞음 — 조건 원문은 조건으로 설명되는 말만(19차 리뷰)", () => {
   const c = (key: string, op: string, value: unknown, rawText: string) =>
     ({ condition: { key, op, value, rawText, machineReadable: true }, verdict: "pass", note: "" }) as never;
-  const ctx = { title: "경영개선 지원사업", profile: { region: "서울", companyScale: "중소기업", employeeCount: 5 }, requireIndustryScope: true, industryScope: "all" as const };
+  const ctx = { title: "경영개선 지원사업", profile: { region: "서울", companyScale: "중소기업", employeeCount: 5 }, requireIndustryScope: true, industryScope: "all" as const, regionScope: "all" as const };
   it.each([
     ["companyScale", "in", ["중소기업"], "법인 중소기업"],
     ["targetOrg", "in", ["사회적기업"], "중소기업에 해당하는 사회적기업"],
@@ -425,5 +425,24 @@ describe("정밀 맞음 — 조건 원문은 조건으로 설명되는 말만(19
   it("단위를 따져 같으면 맞음 근거다 — 「매출액 10억원 이하」", () => {
     const p = { ...ctx, profile: { ...ctx.profile, lastYearRevenueKrw: 500000000 } };
     expect(fitVerdictOf([c("revenueMaxKrw", "lte", 1000000000, "매출액 10억원 이하")], p)).toBe("fit");
+  });
+});
+
+describe("정밀 맞음 — AI 지역 범위(regionScope, 27차 리뷰)", () => {
+  const emp = { condition: { key: "employeeMax", op: "lte", value: 50, rawText: "상시근로자 50인 이하", machineReadable: true }, verdict: "pass", note: "" } as never;
+  const reg = { condition: { key: "region", op: "in", value: ["서울"], rawText: "서울 소재 기업", machineReadable: true }, verdict: "pass", note: "" } as never;
+  const base = { title: "경영개선 지원사업", profile: { region: "서울", employeeCount: 5 }, requireIndustryScope: true, industryScope: "all" as const };
+  it("지역 범위를 모르거나 답이 없으면 맞음이 아니다 — 「수도권 외」 처럼 사전 밖 표현도 AI 가 all 이라 해야 통과", () => {
+    expect(fitVerdictOf([emp], { ...base, title: "수도권 외 지역 기업 경영개선 지원사업" })).toBe("unverified");
+    expect(fitVerdictOf([emp], { ...base, regionScope: "unknown" })).toBe("unverified");
+  });
+  it("restricted 인데 지역 조건이 없으면 맞음이 아니다", () => {
+    expect(fitVerdictOf([emp], { ...base, regionScope: "restricted" })).toBe("unverified");
+  });
+  it("restricted 이고 지역 조건이 원문 대조까지 통과하면 맞음", () => {
+    expect(fitVerdictOf([emp, reg], { ...base, regionScope: "restricted" })).toBe("fit");
+  });
+  it("all 이면 지역 조건 없이도 맞음", () => {
+    expect(fitVerdictOf([emp], { ...base, regionScope: "all" })).toBe("fit");
   });
 });

@@ -1441,7 +1441,7 @@ describe("buildFundingMap — 정밀 맞음 배선", () => {
     return byId(data.groups, "a:a1")?.fitVerdict;
   };
   const aiDone = (humanCheck: string[] = [], industryScope: string | null = "all") => ({
-    structure: { ...rule(humanCheck), ...(industryScope ? { industryScope } : {}) }, structureStatus: "done",
+    structure: { ...rule(humanCheck), regionScope: "all", ...(industryScope ? { industryScope } : {}) }, structureStatus: "done",
   });
   it("AI 로 정리된 공고에서 막을 것이 없으면 맞음", async () => {
     expect(await verdictOf({ title: "2026년 소상공인 경영개선 지원", ...aiDone() })).toBe("fit");
