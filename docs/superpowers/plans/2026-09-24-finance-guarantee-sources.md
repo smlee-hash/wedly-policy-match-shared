@@ -19,7 +19,7 @@
 1. 값은 원문 그대로. 못 읽으면 빈 값/null — 지어내지 않는다(kinfa.ts 머리 주석과 같은 원칙).
 2. `fundingGroup: "guarantee"`, `institutionType: "guarantee"`, `productType: "guarantee"`, `deadlineText: "상시"`.
 3. **정확도 원칙:** 대상 글(지원대상/대상기업)은 기계 조건으로 풀지 않는다. 대상 글 전체를 `targetText` 에 두고, `targetRules.humanCheck = [대상 글.slice(0, 80)]` 로 넣어 판정이 「확인 필요」가 되게 한다(대상 글이 비면 humanCheck 없음). 지역만 기계 조건: 서울신보 `region: ["서울"]`, 경기신보 `region: ["경기"]`, 무역보험 지역 없음.
-4. 한도: `extractAmount(한도 원문)` 결과를 `limitMaxWon` 으로(금액 원문은 `limitText` 에 그대로). 금리: `extractRate(금리 원문)` 의 `rateMin` 만(`rateMax: null`). 보증료는 `feeText`, 기간은 `termText`, 신청방법·대출은행은 `channel`.
+4. 한도: 서울신보·경기신보는 `guarantee-limit.ts` `firstLimitWon`(글에 처음 나오는 금액 = 대표 한도)을 `limitMaxWon` 으로(금액 원문은 `limitText` 에 그대로). 공용 `extractAmount` 는 가장 큰 금액을 골라 「3천만원(기보증 포함 5천만원)」을 5천만원으로 적었다(2026-09-24 실사이트 대조). 금리: `extractRate(금리 원문)` 의 `rateMin` 만(`rateMax: null`). 보증료는 `feeText`, 기간은 `termText`, 신청방법·대출은행은 `channel`.
 5. `sourceId`: 상품 이름에서 공백·괄호를 지운 값(kinfa.ts `idPart` 와 같은 규칙).
 6. 같은 이름이 두 번 나오면 첫 것만(경기신보 고정본은 menu00·menu02 가 같은 상품).
 7. `raw` 에는 파싱에 쓴 원문 칸(라벨→값 사전)과 원천 주소만.
