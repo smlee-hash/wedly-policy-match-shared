@@ -486,10 +486,11 @@ function sidoWordsIn(raw: string): string[] {
  */
 const CONDITION_FILLER = new Set([
   // 「평균」·「합계」·「최근」·「직전」(계산 기준이 다름)과 「및」·「또는」(조건이 둘)은 넣지 않는다(20차 리뷰).
-  "상시", "상시근로자", "근로자", "종업원", "직원", "인원", "수", "매출", "매출액", "연매출", "연간",
+  // 「신청」·「인원」은 신청 인원 같은 다른 수를 말할 수 있어 넣지 않는다(23차 리뷰).
+  "상시", "상시근로자", "근로자", "종업원", "직원", "수", "매출", "매출액", "연매출", "연간",
   // 「사업장」·「보유」는 다른 것의 기간·수를 말할 수 있어 넣지 않는다(「사업장 1년 이상 보유」, 22차 리뷰).
   "기준", "업력", "창업", "설립", "개업", "후", "이내", "이하", "이상", "경과", "된", "한",
-  "인", "기업", "업체", "소재", "해당", "해당하는", "대상", "신청", "가능", "등",
+  "인", "기업", "업체", "소재", "해당", "해당하는", "대상", "가능", "등",
   "일", "현재", "기업으로", "기업만",
 ]);
 /** 숫자 조건 — 원문의 숫자가 하나이고, 단위를 따져 저장값과 같고, 비교 말이 저장된 방향과 같아야 한다(20차 리뷰). */
@@ -508,7 +509,7 @@ function numericRawTextMatches(check: ConditionCheck): boolean {
   const [, digits, mult, unit] = nums[0];
   // 무엇의 수치인지(주체 말)도 원문에 있어야 한다 — 숫자·단위가 맞아도 다른 것의 기간일 수 있다(22차 리뷰).
   const subjectOk = key.startsWith("businessAge") ? /업력|창업|설립|개업/.test(raw)
-    : key.startsWith("employee") ? /근로자|종업원|직원|인원/.test(raw)
+    : key.startsWith("employee") ? /근로자|종업원|직원/.test(raw) && !/신청|참여|교육|채용/.test(raw)
     : key.startsWith("revenue") ? /매출/.test(raw)
     : key.startsWith("creditScore") ? /신용/.test(raw)
     : false;
@@ -531,16 +532,17 @@ const JOSA_TAIL = /(?:으로|에서|에게|까지|부터|이며|이고|은|는|�
 const NUMBER_WORD = /^[0-9][0-9.,]*(?:명|인|억|억원|천만원|백만원|만원|원|년|개월|개|%|세|배|시간|일)?(?:이하|이상|미만|초과|이내)?$/;
 function rawTextExplained(check: ConditionCheck): boolean {
   const raw = check.condition.rawText ?? "";
-  if (!raw.trim()) return true;
+  // 원문이 없으면 무엇을 확인했는지 대조할 근거가 없다(23차 리뷰 뒤 정리).
+  if (!raw.trim()) return false;
   const v: unknown = check.condition.value;
   // 글자 값만 지운다 — 숫자 값(3)을 지우면 「3년」이 「년」만 남는다. 숫자는 NUMBER_WORD 가 본다.
   const values = (Array.isArray(v) ? v : [v])
     .filter((x) => typeof x === "string")
     .map((x) => String(x))
     .filter((x) => x.length > 0);
-  // 원문에 값이 둘 이상 나오면 「둘 다」인지 「둘 중 하나」인지 모른다 — 대조는 하나만 맞아도 통과라 막는다
-  // (「사회적기업인 협동조합」, 22차 리뷰).
-  if (values.filter((val) => raw.includes(val)).length > 1) return false;
+  // 목록 값 조건은 저장값이 **하나**이고 원문에 그대로 있어야 한다 — 값이 둘이면 「둘 다」인지 「하나」인지 모르고
+  // (「사회적기업인 협동조합」, 22차), 원문에 없는 값이 섞이면 저장이 원문보다 넓다(「중소기업」→[중소·중견], 23차).
+  if (Array.isArray(v) && (values.length !== 1 || !raw.includes(values[0]))) return false;
   let t = raw;
   for (const val of [...values].sort((x, y) => y.length - x.length)) t = t.split(val).join(" ");
   const words = t.split(/[\s,·ㆍ()（）\[\]/:："'「」~\-]+/).filter((w) => w.length > 0);
