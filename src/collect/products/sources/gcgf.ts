@@ -17,6 +17,7 @@
 import { HTMLElement, parse } from "node-html-parser";
 import { extractRate } from "../../../funding/amount-rate-extract";
 import { firstLimitWon } from "./guarantee-limit";
+import { guaranteeTargetRules } from "./guarantee-target";
 import { fetchProductText } from "../fetch";
 import type { NormalizedProduct, ProductSource } from "../types";
 
@@ -30,10 +31,6 @@ const INSTITUTION = "경기신용보증재단";
 const DEFAULT_CHANNEL = "경기신용보증재단 지점";
 /** 고정본 기준 7개 — 5개 미만이면 반쪽 응답이거나 표 모양이 바뀐 것이다(설계 공통 규칙 8). */
 const MIN_ITEMS = 5;
-/** 대상 글 최대 길이(설계 결정). */
-const TARGET_TEXT_CHARS = 600;
-/** humanCheck 한 항목 길이(설계 공통 규칙 3). */
-const HUMAN_CHECK_CHARS = 80;
 const FETCH_SOURCE = { id: SOURCE_ID, baseUrl: BASE_URL };
 /** 고정본이 189KB — 넉넉히 잡되 끝은 둔다. */
 const FETCH_LIMITS = { timeoutMs: 30_000, maxBytes: 1_000_000 };
@@ -106,7 +103,8 @@ function fieldsOf(table: HTMLElement): Record<string, string> {
  * 기계 조건은 지역만 — 대상 글만으로 「맞음」이 나오지 않는다(설계 공통 규칙 3).
  */
 function productOf(name: string, f: Record<string, string>, detailUrl: string): NormalizedProduct {
-  const targetText = (f["지원대상"] ?? "").slice(0, TARGET_TEXT_CHARS);
+  // 자르지 않는다 — 600자에서 끊으면 재도전 특례보증의 채무·재창업 요건이 사라졌다(공용 리뷰 P2)
+  const targetText = f["지원대상"] ?? "";
   const limitText = f["지원한도"] ?? "";
   // 금리 줄 이름이 「융자금리」인 표도 있다(고정본 시군(추천)·시군추천 소상공인 특례보증)
   const rateText = f["대출금리"] || f["융자금리"] || "";
@@ -123,9 +121,7 @@ function productOf(name: string, f: Record<string, string>, detailUrl: string): 
     name,
     productType: "guarantee",
     targetText,
-    targetRules: targetText
-      ? { region: ["경기"], humanCheck: [targetText.slice(0, HUMAN_CHECK_CHARS)] }
-      : { region: ["경기"] },
+    targetRules: guaranteeTargetRules(targetText, ["경기"]),
     limitText,
     limitMaxWon: firstLimitWon(limitText), // 맨 앞 대표 한도(guarantee-limit.ts)
     rateText,
@@ -138,6 +134,8 @@ function productOf(name: string, f: Record<string, string>, detailUrl: string): 
     detailUrl,
     deadlineText: "상시",
     raw: { url: detailUrl, fields: { 상품명: name, ...f } },
+    // 대상 글을 못 읽었다(표 본문 누락 등) — 저장소가 기존 행 값을 빈 값으로 덮지 않게(types.ts keepExisting)
+    ...(targetText ? {} : { keepExisting: true as const }),
   };
 }
 

@@ -60,9 +60,9 @@ describe("parseKsureDetail — 제도개요 본문(실사이트 고정본 i-165)
     expect(text).not.toContain("본 안내는 무역보험");
   });
 
-  it("공백은 한 칸, 길이는 최대 600자", () => {
+  it("공백은 한 칸, 자르지 않는다(대상 글 전체 — 공용 리뷰 P2)", () => {
     expect(text.length).toBeGreaterThan(0);
-    expect(text.length).toBeLessThanOrEqual(600);
+    expect(text).toContain("무역기금"); // 고정본 본문 끝 문장
     expect(text).not.toMatch(/\s{2}|[\t\n\r]/);
     expect(text).toBe(text.trim());
   });
@@ -147,7 +147,8 @@ describe("fetchKsureAll — 첫 화면 한 번 + 상세 한 건씩(fetch 모의)
       targetText: "",
       detailUrl: "https://www.ksure.or.kr/rh-kr/cntnts/i-169/dir.do",
     });
-    expect(failed?.targetRules).toEqual({});
+    // ★대상 글을 못 읽었어도 「맞음」이 나오면 안 된다 — 빈 조건은 판정기에서 맞음이 된다(공용 리뷰 P1)
+    expect(failed?.targetRules.humanCheck?.[0]).toContain("읽지 못");
     expect(rows.filter((p) => p.keepExisting)).toHaveLength(1);
     expect(rows.filter((p) => !p.keepExisting).every((p) => p.targetText.includes("연대보증"))).toBe(true);
   });

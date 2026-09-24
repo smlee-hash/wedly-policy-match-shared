@@ -16,6 +16,7 @@
 import { HTMLElement, parse } from "node-html-parser";
 import { fetchProductText } from "../fetch";
 import type { NormalizedProduct, ProductSource } from "../types";
+import { guaranteeTargetRules } from "./guarantee-target";
 
 /** 명부 id·FinanceProduct.source 공통 계약 — 접두어 `product-`(kinfa.ts 와 동일). */
 const SOURCE_ID = "product-ksure";
@@ -28,8 +29,6 @@ const CHANNEL = "K-SURE 영업점·K-SURE ON";
 const GROUP_LABEL = "신용보증";
 /** 고정본 기준 신용보증 하위 5개 — 이보다 적으면 반쪽 응답이거나 메뉴 모양이 바뀐 것이다. */
 const MIN_ITEMS = 5;
-/** 대상 글 최대 길이(설계 §A). */
-const MAX_TARGET_CHARS = 600;
 const FETCH_SOURCE = { id: SOURCE_ID, baseUrl: BASE_URL };
 /** 첫 화면·상세 공통 — 고정본이 162KB·98KB 라 넉넉히 잡되 끝은 둔다. */
 const FETCH_LIMITS = { timeoutMs: 30_000, maxBytes: 2_000_000 };
@@ -92,7 +91,7 @@ function collectUntil(el: HTMLElement, stop: HTMLElement | null, out: string[]):
 
 /**
  * 상세(제도개요) HTML → 대상 글: `div.ctn` 글자를 `notice_box` 앞까지 모아 공백 한 칸으로 줄이고,
- * 머리 제목 「제도개요」를 한 번 떼어 최대 600자. 본문을 못 찾으면 빈 값(지어내지 않는다).
+ * 머리 제목 「제도개요」를 한 번 뗀다(자르지 않는다 — 공용 리뷰 P2). 본문을 못 찾으면 빈 값(지어내지 않는다).
  */
 export function parseKsureDetail(html: string): string {
   // ★원문 글자에서 본문 구간을 먼저 잘라 그 조각만 해석한다 — 닫히지 않은 <span> 이 있는 쪽(i-175 매입·i-180
@@ -103,14 +102,14 @@ export function parseKsureDetail(html: string): string {
     const end = rest.search(/<div\s+class="notice_box"/);
     const parts: string[] = [];
     collectUntil(parse(end >= 0 ? rest.slice(0, end) : rest), null, parts);
-    const text = normalize(parts.join("")).replace(/^제도개요\s*/, "").slice(0, MAX_TARGET_CHARS).trim();
+    const text = normalize(parts.join("")).replace(/^제도개요\s*/, "").trim();
     if (text) return text;
   }
   const ctn = parse(html).querySelector("div.ctn");
   if (!ctn) return "";
   const parts: string[] = [];
   collectUntil(ctn, ctn.querySelector(".notice_box"), parts);
-  return normalize(parts.join("")).replace(/^제도개요\s*/, "").slice(0, MAX_TARGET_CHARS).trim();
+  return normalize(parts.join("")).replace(/^제도개요\s*/, "").trim();
 }
 
 /**
@@ -128,7 +127,7 @@ function productOf(item: KsureListItem, targetText: string): NormalizedProduct {
     name: item.name,
     productType: "guarantee",
     targetText,
-    targetRules: targetText ? { humanCheck: [targetText.slice(0, 80)] } : {},
+    targetRules: guaranteeTargetRules(targetText),
     limitText: "",
     limitMaxWon: null,
     rateText: "",

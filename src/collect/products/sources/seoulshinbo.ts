@@ -16,6 +16,7 @@
 import { HTMLElement, parse } from "node-html-parser";
 import { extractRate } from "../../../funding/amount-rate-extract";
 import { firstLimitWon } from "./guarantee-limit";
+import { guaranteeTargetRules } from "./guarantee-target";
 import { fetchProductText } from "../fetch";
 import type { NormalizedProduct, ProductSource } from "../types";
 
@@ -29,8 +30,6 @@ const INSTITUTION = "서울신용보증재단";
 const DEFAULT_CHANNEL = "서울신용보증재단 지점·모바일 앱";
 /** 고정본 기준 9개 — 6개 미만이면 반쪽 응답이거나 표 모양이 바뀐 것이다(설계 공통 규칙 8). */
 const MIN_ITEMS = 6;
-/** humanCheck 한 항목 길이(설계 공통 규칙 3). */
-const HUMAN_CHECK_CHARS = 80;
 const FETCH_SOURCE = { id: SOURCE_ID, baseUrl: BASE_URL };
 /** 탭 공통 — 고정본이 탭마다 70KB 안팎이라 넉넉히 잡되 끝은 둔다. */
 const FETCH_LIMITS = { timeoutMs: 30_000, maxBytes: 1_000_000 };
@@ -158,9 +157,7 @@ function productOf(col: Column, detailUrl: string): NormalizedProduct {
     name: col.name,
     productType: "guarantee",
     targetText,
-    targetRules: targetText
-      ? { region: ["서울"], humanCheck: [targetText.slice(0, HUMAN_CHECK_CHARS)] }
-      : { region: ["서울"] },
+    targetRules: guaranteeTargetRules(targetText, ["서울"]),
     limitText,
     limitMaxWon: firstLimitWon(limitText), // 맨 앞 대표 한도(guarantee-limit.ts)
     rateText,
@@ -173,6 +170,8 @@ function productOf(col: Column, detailUrl: string): NormalizedProduct {
     detailUrl,
     deadlineText: "상시",
     raw: { url: detailUrl, fields: { 상품명: col.name, ...f } },
+    // 대상 글을 못 읽었다(표 본문 누락 등) — 저장소가 기존 행 값을 빈 값으로 덮지 않게(types.ts keepExisting)
+    ...(targetText ? {} : { keepExisting: true as const }),
   };
 }
 

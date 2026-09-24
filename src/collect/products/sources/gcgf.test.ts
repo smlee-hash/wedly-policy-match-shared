@@ -140,7 +140,7 @@ describe("parseGcgf — 특례보증 한 쪽(실사이트 고정본)", () => {
         rateMax: null,
       });
       expect(p.targetText).not.toBe("");
-      expect(p.targetText.length).toBeLessThanOrEqual(600);
+      expect(p.targetText).toBe((p.raw as { fields: Record<string, string> }).fields["지원대상"]); // 자르지 않는다(공용 리뷰 P2)
       expect(p.targetRules).toEqual({ region: ["경기"], humanCheck: [p.targetText.slice(0, 80)] });
       expect(p.rateMin).toBe(extractRate(p.rateText).rateMin);
       expect(p.feeText).not.toBe("");
@@ -159,7 +159,7 @@ describe("parseGcgf — 특례보증 한 쪽(실사이트 고정본)", () => {
     expect(parseGcgf(html)).toEqual([]);
   });
 
-  it("신청방법·대출은행 줄이 둘 다 없으면 창구는 「경기신용보증재단 지점」, 지원대상이 비면 humanCheck 없음, 칸 이름 공백은 지워 맞춘다", () => {
+  it("신청방법·대출은행 줄이 둘 다 없으면 창구는 「경기신용보증재단 지점」, 지원대상이 비면 「읽지 못함」 확인 항목, 칸 이름 공백은 지워 맞춘다", () => {
     const html = `<div class="menuBox" id="menu04"><h3 class="tit1">가상 특례보증</h3>
       <table><thead><tr><th>구분</th><th>내용</th></tr></thead>
       <tbody><tr><th>지원 한도</th><td>업체당 2억원 이내</td></tr></tbody></table></div>`;
@@ -172,7 +172,29 @@ describe("parseGcgf — 특례보증 한 쪽(실사이트 고정본)", () => {
       channel: "경기신용보증재단 지점",
       detailUrl: `${GCGF_URL}#menu04`,
     });
-    expect(p?.targetRules).toEqual({ region: ["경기"] });
+    // 대상 글을 못 읽으면 지역만 남아 「맞음」이 되던 것을 막는다(공용 리뷰 P1)
+    expect(p?.targetRules.region).toEqual(["경기"]);
+    expect(p?.targetRules.humanCheck?.[0]).toContain("읽지 못");
+  });
+});
+
+describe("★대상 글 — 자르지 않고, 못 읽으면 「맞음」이 안 나오게(공용 리뷰 P1·P2)", () => {
+  it("창업실패자 재도전 — 600자 뒤의 채무·재창업 요건까지 대상 글에 남는다", () => {
+    const t = byName("창업실패자 재도전 희망특례보증").targetText;
+    expect(t.length).toBeGreaterThan(600);
+    expect(t).toContain("재창업");
+  });
+
+  it("menu09 첫 표의 tbody 가 빠지면 그 상품은 humanCheck 「읽지 못함」 + keepExisting", () => {
+    const i = HTML.indexOf('id="menu09"');
+    const j = HTML.indexOf("<tbody>", i);
+    const k = HTML.indexOf("</tbody>", j) + "</tbody>".length;
+    const broken = HTML.slice(0, j) + HTML.slice(k);
+    const p = parseGcgf(broken).find((q) => q.name === "경기도 사회적경제기업 특례보증");
+    expect(p).toBeDefined();
+    expect(p?.targetText).toBe("");
+    expect(p?.targetRules.humanCheck?.[0]).toContain("읽지 못");
+    expect(p?.keepExisting).toBe(true);
   });
 });
 

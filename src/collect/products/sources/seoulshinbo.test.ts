@@ -138,6 +138,19 @@ describe("한도 숫자 — 맨 앞 대표 한도만(괄호·※·단서의 조�
   });
 });
 
+describe("★대상 글을 못 읽은 상품 — 지역만으로 「맞음」이 나오지 않게(공용 리뷰 P1)", () => {
+  it("PC 표에서 tbody 가 빠진 탭(BUSI5389)은 humanCheck 「읽지 못함」 + keepExisting", () => {
+    const broken = page("BUSI5389").replace(/<tbody>[\s\S]*?<\/tbody>/, "");
+    const rows = parseSeoulshinbo(broken, "BUSI5389");
+    expect(rows.length).toBeGreaterThan(0);
+    for (const p of rows) {
+      expect(p.targetText).toBe("");
+      expect(p.targetRules.humanCheck?.[0]).toContain("읽지 못");
+      expect(p.keepExisting).toBe(true);
+    }
+  });
+});
+
 describe("fetchSeoulshinboAll — 탭 6개를 순서대로, 반쪽 응답은 던진다", () => {
   it("6탭을 순서대로 GET 해 9건 — 이름 중복 없고 전부 지역 서울", async () => {
     serve(page);
