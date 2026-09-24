@@ -45,8 +45,9 @@
 - 한 쪽 GET. `div.menuBox` 마다 `h3.tit1` 이 상품 이름, 그 안 첫 표의 `tr > th` 가 칸 이름, 같은 줄 `td` 가 값.
 - 칸 대응: 지원대상→targetText/humanCheck, 지원한도→limit, 대출기간→termText, 보증료율→feeText, 대출금리 또는 융자금리→rate, 신청방법+대출은행→channel(「신청: … / 은행: …」).
 - 지원대상 칸 안에 들어 있는 부속 표 글(「…정보를 포함한 표입니다」 같은 caption)은 targetText 에서 지운다(caption 요소 제외).
-- 표가 없거나 칸이 하나도 안 잡히는 menuBox(고정본 menu05 「경기도 소상공인지원자금」)는 이름·detailUrl 만으로 내고 나머지 빈 값.
-- 이름 중복 제거 뒤 고정본 기준 상품 8개. detailUrl 은 목록 주소 + `#menuNN`.
+- 표가 없는 menuBox 는 상품으로 내지 않는다 — 고정본 menu05 「경기도 소상공인지원자금」은 다른 쪽(mi=1079)으로 가는 단추뿐이다(그 쪽 연결은 후속).
+- 표는 menuBox 의 **첫 표의 바깥 tbody 직계 tr** 만 읽는다(지원대상 칸 안의 부속 표·뒤따르는 세부 요건 표는 줄로 읽지 않는다).
+- 이름 중복 제거 뒤 고정본 기준 상품 7개. detailUrl 은 목록 주소 + `#menuNN`.
 
 ## §D 등록 (마지막 묶음)
 - `registry.ts` `PRODUCT_SOURCES` 에 세 어댑터 추가, `registry.test.ts` 목록 갱신(11개).
@@ -56,6 +57,6 @@
 
 ## 완료 기준
 1. 세 어댑터와 시험 파일 존재, `npx vitest run src/collect/products` 전부 통과, `npx tsc --noEmit` 0.
-2. 시험이 고정본으로 확인: ksure 5건·이름 5개 정확, 보험 상품 0건, 상세 targetText 에 「연대보증」 포함; 서울신보 9건, 창업자금 특별보증 limitText 에 「5천만원」 포함·「3천만」 없음, 전 상품 region ["서울"]; 경기신보 8건·이름 중복 없음, 기후위기 특별보증 feeText 「연 0.8%」, 전 상품 region ["경기"].
+2. 시험이 고정본으로 확인: ksure 5건·이름 5개 정확, 보험 상품 0건, 상세 targetText 에 「연대보증」 포함; 서울신보 9건, 창업자금 특별보증 limitText 에 「5천만원」 포함·「3천만」 없음, 전 상품 region ["서울"]; 경기신보 7건·이름 중복 없음·「경기도 소상공인지원자금」 없음, 기후위기 특별보증 feeText 「연 0.8%」, 전 상품 region ["경기"].
 3. 최소 개수 미만이면 fetchXxxAll 이 던진다(시험 있음). ksure 상세 한 건 실패 시 그 상품만 keepExisting(시험 있음).
 4. 모든 상품 humanCheck 1개 이상(대상 글이 있는 경우) — 대상 글만으로 「맞음」이 나오지 않는다.
