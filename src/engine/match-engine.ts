@@ -620,6 +620,9 @@ export function conditionPassIsFitGrade(check: ConditionCheck, p: BusinessProfil
   // 원문이 지역 이름과 허용된 말(소재·관내·기업 …)로만 이뤄져야 한다 — 「수원시 제외」·「수원시 외 지역」·「지원
   // 대상이 아님」처럼 빼는 말은 모양이 끝없이 많아 금지 목록으로는 못 막았다(15·16차 리뷰).
   if (!regionRawTextIsPlain(check.condition.rawText ?? "")) return false;
+  // 「광주」 약칭은 광주광역시·경기 광주시 둘 다일 수 있다 — 「광주광역시」로 적힌 게 아니면 맞음 근거가 아니다(29차 리뷰).
+  const regionTexts = [check.condition.rawText ?? "", ...((Array.isArray(check.condition.value) ? check.condition.value : []) as unknown[]).map(String)];
+  if (regionTexts.some((t) => /(?<!경기도?\s*)광주(?!광역시)/.test(t))) return false;
   // 저장된 지역값은 모두 원문에 나와야 한다 — 「관내 소재 기업」을 [서울, 경기]로 넓혀 저장하면 원문에 없는 서울이
   // 맞음 근거가 된다(24차 리뷰). 원문에 지역이 하나도 없으면 무엇을 확인했는지 모른다.
   if (!regionValuesInRawText(check)) return false;
@@ -899,7 +902,14 @@ function regionScopeBlock(ctx: StrictFitContext): string | null {
   const regionChecks = (ctx.checks ?? []).filter((c) => c.condition.key === "region");
   // 제목·출처 지역 칸에서 보탠 조건은 근거로 치지 않는다 — AI 가 「수원시 전용」을 빠뜨려도 출처 칸 「경기」가 그 자리를
   // 메워 성남 회사에 맞음이 됐다(28차 리뷰). AI 가 원문에서 뽑은 지역 조건이 있어야 한다.
-  if (!regionChecks.some((c) => c.condition.origin !== "augmented")) return "지역 제한 공고인데 원문 지역 조건이 없음";
+  const aiRegion = regionChecks.filter((c) => c.condition.origin !== "augmented");
+  if (aiRegion.length === 0) return "지역 제한 공고인데 원문 지역 조건이 없음";
+  // 「제한 있음」인데 지역 조건이 「전국」이면 AI 답이 서로 어긋난다(29차 리뷰).
+  const valuesOf = (c: ConditionCheck) => {
+    const v: unknown = c.condition.value;
+    return (Array.isArray(v) ? v : [v]).map((x) => String(x));
+  };
+  if (aiRegion.some((c) => valuesOf(c).some((x) => x.includes("전국")))) return "지역 제한 답과 지역 조건이 어긋남";
   if (regionChecks.some((c) => c.verdict !== "pass" || !conditionPassIsFitGrade(c, ctx.profile))) {
     return "지역 제한을 확인하지 못함";
   }

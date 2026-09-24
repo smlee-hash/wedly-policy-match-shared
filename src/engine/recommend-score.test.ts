@@ -446,6 +446,14 @@ describe("정밀 맞음 — AI 지역 범위(regionScope, 27차 리뷰)", () => 
     const synth = { condition: { key: "region", op: "in", value: ["경기"], rawText: "[공고 지역 칸] 경기", machineReadable: true, origin: "augmented" }, verdict: "pass", note: "" } as never;
     expect(fitVerdictOf([emp, synth], { ...base, profile: { region: "경기", employeeCount: 5 }, regionScope: "restricted" })).toBe("unverified");
   });
+  it("restricted 인데 원문 지역 조건이 「전국」 이면 맞음이 아니다(29차 리뷰)", () => {
+    const nat = { condition: { key: "region", op: "in", value: ["전국"], rawText: "전국 소재 기업", machineReadable: true }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([emp, nat], { ...base, regionScope: "restricted" })).toBe("unverified");
+  });
+  it("「광주」 약칭은 광주광역시 회사에 맞음 근거가 아니다(경기 광주시일 수 있음, 29차 리뷰)", () => {
+    const gj = { condition: { key: "region", op: "in", value: ["광주"], rawText: "광주 소재 기업", machineReadable: true }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([emp, gj], { ...base, profile: { region: "광주", regionSigungu: "북구", employeeCount: 5 }, regionScope: "restricted" })).toBe("unverified");
+  });
   it("all 이면 지역 조건 없이도 맞음", () => {
     expect(fitVerdictOf([emp], { ...base, regionScope: "all" })).toBe("fit");
   });
