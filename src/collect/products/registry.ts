@@ -35,6 +35,10 @@ import { kakaobankSohoSource } from "./sources/kakaobank-soho";
 import { ksureSource } from "./sources/ksure";
 import { seoulshinboSource } from "./sources/seoulshinbo";
 import { gcgfSource } from "./sources/gcgf";
+// ── 2026-09-25 금융 2차 ──
+import { kiboSource } from "./sources/kibo";
+import { cuSource } from "./sources/cu";
+import { kfccSource } from "./sources/kfcc";
 
 export const PRODUCT_SOURCES: ProductSource[] = [
   kinfaSource,
@@ -50,6 +54,10 @@ export const PRODUCT_SOURCES: ProductSource[] = [
   ksureSource,
   seoulshinboSource,
   gcgfSource,
+  // ── 2026-09-25 금융 2차 ──
+  kiboSource,
+  cuSource,
+  kfccSource,
 ];
 
 /**

@@ -60,6 +60,9 @@ const PRODUCT_SOURCE_LABEL: Record<string, string> = {
   "product-ksure": "한국무역보험공사",
   "product-seoulshinbo": "서울신용보증재단",
   "product-gcgf": "경기신용보증재단",
+  "product-kibo": "기술보증기금",
+  "product-cu": "신협",
+  "product-kfcc": "새마을금고",
   manual: "손 등록 명부",
 };
 

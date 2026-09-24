@@ -251,6 +251,9 @@ export const SOURCE_DIRECTORY: SourceDirectoryEntry[] = [
   { id: "product-ksure", label: "한국무역보험공사 수출신용보증", url: "https://www.ksure.or.kr", status: "candidate", note: "상시 상품 어댑터" },
   { id: "product-seoulshinbo", label: "서울신용보증재단 보증상품", url: "https://www.seoulshinbo.co.kr", status: "candidate", note: "상시 상품 어댑터" },
   { id: "product-gcgf", label: "경기신용보증재단 특례보증", url: "https://www.gcgf.or.kr", status: "candidate", note: "상시 상품 어댑터" },
+  { id: "product-kibo", label: "기술보증기금 보증상품", url: "https://www.kibo.or.kr", status: "candidate", note: "상시 상품 어댑터" },
+  { id: "product-cu", label: "신협 사업자대출", url: "https://www.cu.co.kr", status: "candidate", note: "상시 상품 어댑터" },
+  { id: "product-kfcc", label: "새마을금고 사업자대출", url: "https://www.kfcc.co.kr", status: "candidate", note: "상시 상품 어댑터" },
 
   // ── P2 대상 아님(22) — 2026-09-06 실사이트 조사 12 + 설계서 부록 A(2026-08-25/26 원 조사) 10 ──
   { label: "창원시 고시공고", url: "https://www.changwon.go.kr", status: "excluded",
