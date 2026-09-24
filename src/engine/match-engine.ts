@@ -462,19 +462,41 @@ function companySigunguName(p: BusinessProfile | undefined): string | null {
 /** 지역 원문에 남아도 되는 말(지역 이름을 지운 뒤). */
 const REGION_FILLER = new Set([
   // 「소상공인」·「중소기업」·「사업자」는 규모·유형 자격이라 넣지 않는다(17차 리뷰).
-  "소재", "소재한", "소재지", "위치한", "관내", "내", "지역", "지역의", "기업", "업체", "사업장", "본사", "주소지", "주사무소",
-  "에", "의", "을", "를", "이", "가", "은", "는", "둔", "있는", "두고", "및", "또는", "등",
+  // 「본사」·「사업장」·「및」은 여러 장소 요건(「본사 및 사업장 소재」)이라 넣지 않는다(24차 리뷰).
+  "소재", "소재한", "소재지", "위치한", "관내", "내", "지역", "지역의", "기업", "업체", "주소지",
+  "에", "의", "을", "를", "이", "가", "은", "는", "둔", "있는", "두고", "등",
   "전국", "도", "시", "군", "구", "특별시", "광역시", "특별자치시", "특별자치도",
 ]);
 function regionRawTextIsPlain(raw: string): boolean {
   if (!raw.trim()) return true;
-  let t = raw;
+  // 출처 지역 칸으로 만든 조건의 머리말은 설명이 필요 없다(region-augment.synthesizedRegionCondition).
+  let t = raw.replace(/^\[공고 지역 칸\]/, " ");
   // 시군구는 약칭(「구미」)으로도 적히므로 끝 글자(시·군·구)를 뗀 어간도 지운다.
   const names = subRegionNamesIn(raw).flatMap((n) => [n, n.replace(/[시군구]$/, "")]).filter((n) => n.length >= 2);
   for (const n of [...names, ...sidoWordsIn(raw)].sort((x, y) => y.length - x.length)) t = t.split(n).join(" ");
   const words = t.split(/[\s,·ㆍ()（）\[\]/:："'「」]+/).filter((w) => w.length > 0);
   return words.every((w) => REGION_FILLER.has(w));
 }
+function regionValuesInRawText(check: ConditionCheck): boolean {
+  const raw = check.condition.rawText ?? "";
+  const v: unknown = check.condition.value;
+  const values = (Array.isArray(v) ? v : [v]).map((x) => String(x)).filter((x) => x.length > 0);
+  if (values.length === 0) return false;
+  const rawSubs = subRegionNamesIn(raw);
+  // 원문의 시군구는 그 시도도 적은 것으로 본다(「수원시 소재 기업」 → 경기).
+  const rawSidos = new Set([
+    ...sidoWordsIn(rawSubs.reduce((t, n) => t.split(n).join(" "), raw)).map((w) => canonicalRegion(w)),
+    ...rawSubs.map((n) => sigunguSido(n)?.sido ?? null),
+  ].filter(Boolean));
+  return values.every((val) => {
+    if (val === "전국") return /전국/.test(raw);
+    const sg = subRegionNamesIn(val);
+    if (sg.length > 0) return sg.every((n) => rawSubs.includes(n));
+    const c = canonicalRegion(val);
+    return !!c && rawSidos.has(c);
+  });
+}
+
 function sidoWordsIn(raw: string): string[] {
   return (raw.match(/(?:서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청북|충청남|충북|충남|전라북|전라남|전북|전남|경상북|경상남|경북|경남|제주)(?:특별자치도|특별자치시|특별시|광역시|도)?/g) ?? []);
 }
@@ -487,12 +509,26 @@ function sidoWordsIn(raw: string): string[] {
 const CONDITION_FILLER = new Set([
   // 「평균」·「합계」·「최근」·「직전」(계산 기준이 다름)과 「및」·「또는」(조건이 둘)은 넣지 않는다(20차 리뷰).
   // 「신청」·「인원」은 신청 인원 같은 다른 수를 말할 수 있어 넣지 않는다(23차 리뷰).
-  "상시", "상시근로자", "근로자", "종업원", "직원", "수", "매출", "매출액", "연매출", "연간",
   // 「사업장」·「보유」는 다른 것의 기간·수를 말할 수 있어 넣지 않는다(「사업장 1년 이상 보유」, 22차 리뷰).
-  "기준", "업력", "창업", "설립", "개업", "후", "이내", "이하", "이상", "경과", "된", "한",
+  // 조건 종류에 딸린 말(업력·근로자·매출 …)은 KEY_FILLER 가 그 조건에서만 허용한다(24차 리뷰).
+  "수", "기준", "후", "이내", "이하", "이상", "경과", "된", "한",
   "인", "기업", "업체", "소재", "해당", "해당하는", "대상", "가능", "등",
   "일", "현재", "기업으로", "기업만",
 ]);
+/**
+ * 조건 종류마다 더 허용하는 말 — 「창업」은 업력 조건에서만 설명된다(규모 조건 「창업 중소기업」의 창업은 따로
+ * 확인하지 않은 자격이다, 24차 리뷰).
+ */
+const KEY_FILLER: Record<string, readonly string[]> = {
+  businessAgeMaxYears: ["업력", "창업", "설립", "개업"],
+  businessAgeMinYears: ["업력", "창업", "설립", "개업"],
+  employeeMax: ["상시", "상시근로자", "근로자", "종업원", "직원"],
+  employeeMin: ["상시", "상시근로자", "근로자", "종업원", "직원"],
+  revenueMaxKrw: ["매출", "매출액", "연매출", "연간"],
+  revenueMinKrw: ["매출", "매출액", "연매출", "연간"],
+  creditScoreMin: ["신용", "신용점수", "신용평점", "점수", "평점"],
+  creditScoreMax: ["신용", "신용점수", "신용평점", "점수", "평점"],
+};
 /** 숫자 조건 — 원문의 숫자가 하나이고, 단위를 따져 저장값과 같고, 비교 말이 저장된 방향과 같아야 한다(20차 리뷰). */
 const NUMERIC_MAX_KEYS = new Set(["businessAgeMaxYears", "revenueMaxKrw", "employeeMax", "creditScoreMax"]);
 const NUMERIC_MIN_KEYS = new Set(["businessAgeMinYears", "revenueMinKrw", "employeeMin", "creditScoreMin"]);
@@ -546,10 +582,12 @@ function rawTextExplained(check: ConditionCheck): boolean {
   let t = raw;
   for (const val of [...values].sort((x, y) => y.length - x.length)) t = t.split(val).join(" ");
   const words = t.split(/[\s,·ㆍ()（）\[\]/:："'「」~\-]+/).filter((w) => w.length > 0);
+  const extra = new Set(KEY_FILLER[check.condition.key] ?? []);
+  const ok = (w: string) => CONDITION_FILLER.has(w) || extra.has(w) || NUMBER_WORD.test(w);
   return words.every((w) => {
-    if (NUMBER_WORD.test(w) || CONDITION_FILLER.has(w)) return true;
+    if (ok(w)) return true;
     const stem = w.replace(JOSA_TAIL, "");
-    return stem.length > 0 && (CONDITION_FILLER.has(stem) || NUMBER_WORD.test(stem));
+    return stem.length > 0 && ok(stem);
   });
 }
 
@@ -574,6 +612,9 @@ export function conditionPassIsFitGrade(check: ConditionCheck, p: BusinessProfil
   // 원문이 지역 이름과 허용된 말(소재·관내·기업 …)로만 이뤄져야 한다 — 「수원시 제외」·「수원시 외 지역」·「지원
   // 대상이 아님」처럼 빼는 말은 모양이 끝없이 많아 금지 목록으로는 못 막았다(15·16차 리뷰).
   if (!regionRawTextIsPlain(check.condition.rawText ?? "")) return false;
+  // 저장된 지역값은 모두 원문에 나와야 한다 — 「관내 소재 기업」을 [서울, 경기]로 넓혀 저장하면 원문에 없는 서울이
+  // 맞음 근거가 된다(24차 리뷰). 원문에 지역이 하나도 없으면 무엇을 확인했는지 모른다.
+  if (!regionValuesInRawText(check)) return false;
   // 원문에 적힌 시도는 모두 회사 시도여야 한다 — 값이 「전국」으로 뭉개져도 원문 「서울특별시 중구」가 부산 중구를
   // 통과시키지 않게(17차 리뷰).
   // 시군구 이름을 먼저 지운 뒤 읽는다 — 「경기도 광주시」의 「광주」가 광주광역시로 읽히지 않게.

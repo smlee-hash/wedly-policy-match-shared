@@ -146,7 +146,7 @@ describe("맞음 판정 — 시군구 blocksFit", () => {
  * 2024년 설립 회사에 「맞음」으로 떴다. 공고 쪽 조건이 비어 있어도 제목이 가르는 경우를 막는다.
  */
 describe("정밀 맞음 — 공고 단위 안전장치(strictFitBlock)", () => {
-  const seoulPass = { condition: { key: "region", op: "in", value: ["서울"], rawText: "", machineReadable: true }, verdict: "pass", note: "" } as never;
+  const seoulPass = { condition: { key: "region", op: "in", value: ["서울"], rawText: "서울 소재 기업", machineReadable: true }, verdict: "pass", note: "" } as never;
   it("사람이 직접 확인할 조건이 있으면 fit 이 아니다", () => {
     expect(fitVerdictOf([seoulPass], { humanCheck: 1 })).toBe("unverified");
   });
@@ -360,6 +360,18 @@ describe("정밀 맞음 — 지역 원문은 허용된 말만(16차 리뷰)", ()
     const r = { condition: { key: "region", op: "in", value: ["전국"], rawText: "서울특별시 중구 소재 기업", machineReadable: true }, verdict: "pass", note: "" } as never;
     expect(fitVerdictOf([r], { ...ctx, profile: { region: "부산", regionSigungu: "중구" } })).toBe("unverified");
   });
+  it("원문에 없는 지역값이 저장돼 있으면 맞음이 아니다 — 「관내 소재 기업」 을 [서울, 경기]", () => {
+    const r = { condition: { key: "region", op: "in", value: ["서울", "경기"], rawText: "관내 소재 기업", machineReadable: true }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([r], { ...ctx, profile: { region: "서울" } })).toBe("unverified");
+  });
+  it("「서울에 본사 및 사업장 소재」 는 맞음이 아니다(장소 둘)", () => {
+    const r = { condition: { key: "region", op: "in", value: ["서울"], rawText: "서울에 본사 및 사업장 소재", machineReadable: true }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([r], { ...ctx, profile: { region: "서울" } })).toBe("unverified");
+  });
+  it("출처 지역 칸으로 만든 조건(「[공고 지역 칸] 경기」)은 맞음 근거다", () => {
+    const r = { condition: { key: "region", op: "in", value: ["경기"], rawText: "[공고 지역 칸] 경기", machineReadable: true }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([r], ctx)).toBe("fit");
+  });
   it("「수원시 소재 기업」 은 수원시 회사에 맞음", () => {
     expect(fitVerdictOf([reg("수원시 소재 기업")], ctx)).toBe("fit");
   });
@@ -392,6 +404,7 @@ describe("정밀 맞음 — 조건 원문은 조건으로 설명되는 말만(19
     ["targetOrg", "in", ["사회적기업", "협동조합"], "사회적기업인 협동조합"],
     ["employeeMin", "gte", 5, "신청 근로자 수 5명 이상"],
     ["companyScale", "in", ["중소기업", "중견기업"], "중소기업"],
+    ["companyScale", "in", ["중소기업"], "창업 중소기업"],
   ])("%s 원문 「%s」 는 맞음 근거가 아니다", (key, op, value, raw) => {
     expect(fitVerdictOf([c(key as string, op as string, value, raw as string)], ctx)).toBe("unverified");
   });
