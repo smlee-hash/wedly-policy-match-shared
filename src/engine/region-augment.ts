@@ -40,6 +40,11 @@ export function synthesizedRegionCondition(regionText: string): StructuredCondit
   return { key: "region", op: "in", value: sidos, rawText: `[공고 지역 칸] ${regionText}`, machineReadable: true };
 }
 
+/** 우리가 보탠 조건 표시 — 지역 제한 판단의 근거로는 치지 않는다(structure-types.StructuredCondition.origin). */
+function augmented(c: StructuredCondition): StructuredCondition {
+  return { ...c, origin: "augmented" };
+}
+
 export interface RegionSource {
   title: string;
   agency: string;
@@ -92,21 +97,21 @@ export function withRegionConditions(
       // 사전 시군구만 든 조건을 거른다 — 「제주시」·「부산진구」는 시도 별칭을 품어 sidosInText 로는 시도로 오인된다(5차 지적 1).
       .filter((c) => !hasNationwide || !(Array.isArray(c.value) ? c.value : []).every((v) => sigunguSido(String(v)) != null));
     if (fromTitle.length > 0) {
-      out = { ...s, conditions: [...s.conditions, ...fromTitle] };
+      out = { ...s, conditions: [...s.conditions, ...fromTitle.map(augmented)] };
     } else if (opts.regionFieldFallback && regionConds.length === 0) {
       // ② 지역 칸은 켠 곳에서만, 그것도 지역 조건이 하나도 없을 때만.
       const synth = synthesizedRegionCondition((row.region ?? "").trim());
-      if (synth) out = { ...s, conditions: [...s.conditions, synth] };
+      if (synth) out = { ...s, conditions: [...s.conditions, augmented(synth)] };
     }
   }
 
   if (!out.conditions.some((c) => c.key === "targetSector")) {
     const sector = titleSectorCondition(row.title ?? "");
-    if (sector) out = { ...out, conditions: [...out.conditions, sector] };
+    if (sector) out = { ...out, conditions: [...out.conditions, augmented(sector)] };
   }
   if (!out.conditions.some((c) => c.key === "targetOrg")) {
     const org = titleTargetOrgCondition(row.title ?? "");
-    if (org) out = { ...out, conditions: [...out.conditions, org] };
+    if (org) out = { ...out, conditions: [...out.conditions, augmented(org)] };
   }
   return out;
 }

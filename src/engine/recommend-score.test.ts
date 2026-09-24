@@ -442,6 +442,10 @@ describe("정밀 맞음 — AI 지역 범위(regionScope, 27차 리뷰)", () => 
   it("restricted 이고 지역 조건이 원문 대조까지 통과하면 맞음", () => {
     expect(fitVerdictOf([emp, reg], { ...base, regionScope: "restricted" })).toBe("fit");
   });
+  it("restricted 인데 지역 조건이 우리가 보탠 것(출처 지역 칸)뿐이면 맞음이 아니다(28차 리뷰)", () => {
+    const synth = { condition: { key: "region", op: "in", value: ["경기"], rawText: "[공고 지역 칸] 경기", machineReadable: true, origin: "augmented" }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([emp, synth], { ...base, profile: { region: "경기", employeeCount: 5 }, regionScope: "restricted" })).toBe("unverified");
+  });
   it("all 이면 지역 조건 없이도 맞음", () => {
     expect(fitVerdictOf([emp], { ...base, regionScope: "all" })).toBe("fit");
   });

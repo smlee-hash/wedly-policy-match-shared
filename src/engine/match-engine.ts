@@ -897,7 +897,9 @@ function regionScopeBlock(ctx: StrictFitContext): string | null {
   if (ctx.regionScope === "all") return null;
   if (ctx.regionScope !== "restricted") return "지역 제한 여부를 아직 확인하지 못함";
   const regionChecks = (ctx.checks ?? []).filter((c) => c.condition.key === "region");
-  if (regionChecks.length === 0) return "지역 제한 공고인데 지역 조건이 없음";
+  // 제목·출처 지역 칸에서 보탠 조건은 근거로 치지 않는다 — AI 가 「수원시 전용」을 빠뜨려도 출처 칸 「경기」가 그 자리를
+  // 메워 성남 회사에 맞음이 됐다(28차 리뷰). AI 가 원문에서 뽑은 지역 조건이 있어야 한다.
+  if (!regionChecks.some((c) => c.condition.origin !== "augmented")) return "지역 제한 공고인데 원문 지역 조건이 없음";
   if (regionChecks.some((c) => c.verdict !== "pass" || !conditionPassIsFitGrade(c, ctx.profile))) {
     return "지역 제한을 확인하지 못함";
   }

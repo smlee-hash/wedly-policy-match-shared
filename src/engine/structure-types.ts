@@ -95,6 +95,11 @@ export interface StructuredCondition {
   value: string[] | number | boolean;
   rawText: string;               // ★원문 문장 그대로 — 절대 비우지 않는다
   machineReadable: boolean;      // false 면 대조에서 「확인 필요」로만 쓰인다
+  /**
+   * 우리가 제목·출처 지역 칸에서 **보탠** 조건이면 "augmented". AI 가 원문에서 뽑은 조건엔 없다(AI 출력 형식은
+   * 추가 칸을 막는다). 지역 제한 판단(regionScope)의 근거로는 AI 가 원문에서 뽑은 지역 조건만 친다(28차 리뷰).
+   */
+  origin?: "augmented";
 }
 
 export interface AnnouncementStructure {
