@@ -372,6 +372,10 @@ describe("정밀 맞음 — 지역 원문은 허용된 말만(16차 리뷰)", ()
     const r = { condition: { key: "region", op: "in", value: ["경기"], rawText: "[공고 지역 칸] 경기", machineReadable: true }, verdict: "pass", note: "" } as never;
     expect(fitVerdictOf([r], ctx)).toBe("fit");
   });
+  it("원문 「중구」 를 「서울 중구」 로 저장하면 맞음이 아니다(25차 리뷰)", () => {
+    const r = { condition: { key: "region", op: "in", value: ["서울 중구"], rawText: "중구 소재 기업", machineReadable: true }, verdict: "pass", note: "" } as never;
+    expect(fitVerdictOf([r], { ...ctx, profile: { region: "서울", regionSigungu: "중구" } })).toBe("unverified");
+  });
   it("「수원시 소재 기업」 은 수원시 회사에 맞음", () => {
     expect(fitVerdictOf([reg("수원시 소재 기업")], ctx)).toBe("fit");
   });

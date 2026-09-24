@@ -491,7 +491,15 @@ function regionValuesInRawText(check: ConditionCheck): boolean {
   return values.every((val) => {
     if (val === "전국") return /전국/.test(raw);
     const sg = subRegionNamesIn(val);
-    if (sg.length > 0) return sg.every((n) => rawSubs.includes(n));
+    if (sg.length > 0) {
+      if (!sg.every((n) => rawSubs.includes(n))) return false;
+      // 저장값이 적은 시도도 원문에 있어야 한다 — 원문 「중구」를 「서울 중구」로 저장하면 대구 중구 공고가 서울 중구
+      // 회사에 맞음이 된다(25차 리뷰). 동명 시군구(중구·동구 …)는 원문에 시도가 함께 있어야 한다.
+      const valSidos = sidoWordsIn(sg.reduce((t, n) => t.split(n).join(" "), val)).map((w) => canonicalRegion(w));
+      if (valSidos.some((c) => !c || !rawSidos.has(c))) return false;
+      if (sg.some((n) => AMBIGUOUS_SIGUNGU.includes(n)) && rawSidos.size === 0) return false;
+      return true;
+    }
     const c = canonicalRegion(val);
     return !!c && rawSidos.has(c);
   });
