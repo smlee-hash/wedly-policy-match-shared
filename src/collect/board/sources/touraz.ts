@@ -132,6 +132,14 @@ export const tourazConfig: BoardConfig = {
   detailContentSelector: "div.view-content:not(.hidden)",
   attachmentsScopeSelector: "div.trend-file-list-wrap",
   dropUrlParams: ["tabMode", "cntPerPage"],
+  /**
+   * ★휴리스틱(추측) 추출로 넘어가지 않는다(2026-09-25 독립 리뷰 P2). 휴리스틱 줄은 sourceId 를 못 줘 요청마다 바뀌는
+   * 상세 주소가 다시 열쇠가 된다 — 수집마다 같은 공고가 새 줄로 쌓이던 그 버그로 되돌아간다. 구조가 바뀌어 customParse 가
+   * 실패하면 이 출처는 실패로 남아 연속 실패 경보(board-alert)가 울리는 편이 중복 수백 줄보다 낫다.
+   * 이 값이 설정 서명(collection-baseline)에 들어가 **주소 열쇠 시절의 부풀려진 기준 건수(240)가 무효가 된다** —
+   * 안 그러면 새 열쇠로 줄인 건수(수십)가 「급락」으로 보여 휴리스틱으로 떨어졌다.
+   */
+  skipHeuristic: true,
   // 한 쪽 12건. 거르개를 지나도 절반 미만이면 서식이 바뀐 것이다.
   expectMinRows: 6,
 };

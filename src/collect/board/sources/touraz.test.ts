@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { fetchBoardAll, pagingParamsOf } from "../engine";
+import { collectionBaselineSignature } from "../collection-baseline";
 import { isTourazDropTitle, parseTourazList, tourazConfig } from "./touraz";
 
 /**
@@ -155,6 +156,37 @@ describe("★열쇠(sourceId)는 요청마다 바뀌는 pssrpSeqEnc 와 무관�
     expect(out[0].url).toBe(
       "https://touraz.kr/announcementList/pssrpView?pssrpSeqEnc=R1gceHXEN*FRnXmIAn6LDZGA==",
     );
+  });
+});
+
+describe("★주소 열쇠 시절의 부풀려진 기준 건수로 되돌아가지 않는다(2026-09-25 독립 리뷰 P2)", () => {
+  it("설정 서명이 바뀌어 옛 기준 건수(주소 열쇠로 센 240건)는 무효가 된다", () => {
+    const { skipHeuristic: _skip, ...oldCfg } = tourazConfig; // 주소 열쇠 시절 설정(휴리스틱 허용)
+    expect(collectionBaselineSignature(tourazConfig)).not.toBe(collectionBaselineSignature(oldCfg));
+  });
+
+  it("옛 기준 건수가 그대로 들어와도 휴리스틱(주소 열쇠)으로 떨어지지 않는다 — 안정 열쇠로 내거나 실패한다", async () => {
+    let round = 0;
+    const onAllFailed = vi.fn();
+    const out = await fetchBoardAll(
+      { ...tourazConfig, list: { ...tourazConfig.list, maxPages: 3 } },
+      {
+        fetchText: async (url) => {
+          round += 1;
+          const page = new URL(url).searchParams.get("curPage");
+          return rotateEnc(page === "2" ? listP2Html : listHtml, round);
+        },
+        prevOpenCount: 240,
+        askModel: async () => "{}",
+        onAllFailed,
+      },
+    ).catch(() => []);
+    // 주소가 열쇠인 줄(https://…)은 하나도 없어야 한다
+    expect(out.filter((a) => !a.sourceId.startsWith("touraz:"))).toEqual([]);
+  });
+
+  it("설정: skipHeuristic", () => {
+    expect(tourazConfig.skipHeuristic).toBe(true);
   });
 });
 
