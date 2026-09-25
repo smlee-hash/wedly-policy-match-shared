@@ -45,6 +45,12 @@ export interface BoardRow {
   title: string;
   detailUrl: string;   // 절대 주소로 정규화된 상세 링크
   dateText: string;    // 게시일/마감일 원문(파싱은 정규화 때)
+  /**
+   * 상세 주소가 **요청마다 바뀌는** 게시판이 안정된 열쇠를 줄 때(touraz `pssrpSeqEnc`).
+   * 있으면 이 값이 `sourceId`(중복 판정 열쇠)가 되고 엔진의 쪽 간 중복 제거도 이 값으로 한다.
+   * 없으면 지금처럼 상세 주소가 열쇠다.
+   */
+  sourceId?: string;
   category?: string;
   agency?: string;     // 행마다 수행기관이 다를 때(E4). 없으면 cfg.agency
   /**

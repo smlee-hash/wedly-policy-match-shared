@@ -13,6 +13,9 @@ import type { BoardConfig, BoardRow } from "../types";
  * pssrpSeqEnc 는 쿠키 없이 열리지만 **요청마다 값이 바뀐다**(실측: 연속 2회 목록의 같은 글
  * enc 가 달랐고, 몇 시간 전 값도 seq 1707 같은 글로 열림). 목록 HTML 에 숫자 번호가 없어
  * 이 값을 상세 주소로 쓴다. `*`·`^` 는 이스케이프 없이 그대로 둔다.
+ * ★그래서 중복 판정 열쇠(sourceId)는 상세 주소가 아니라 `touraz:{등록일}:{제목}` 이다(BoardRow.sourceId).
+ *  2026-09-25 운영 실측: 주소를 열쇠로 쓰자 수집마다 같은 공고가 새 줄로 쌓여 13,374줄 중 서로 다른
+ *  제목이 928개였다(모집 중 285줄이 실제 9개, 하루 480줄씩 증가).
  * 쪽넘김은 GET `curPage` + `cntPerPage=12` + `tabMode=ktoip`. 한 쪽 12건 · 전체 약 77쪽.
  * **신청기간을 목록에서 시작·끝 둘 다 준다** — dt 텍스트로 칸을 고른다(담당부서 dl 이 빠진
  * 카드가 있어 인덱스로 고정하면 안 된다). 신청기간이 없으면 등록일을 「등록일 ~」 개시형으로.
@@ -59,6 +62,12 @@ function dateTextOf(inner: Parameters<typeof ddByDt>[0]): string {
   return registered[0] ? `${registered[0]} ~` : "";
 }
 
+/** 등록일(첫 날짜)이 비면(모집 대기 글) dateText 로 대신한다. 상세 주소는 요청마다 바뀌어 열쇠로 못 쓴다. */
+function sourceIdOf(inner: Parameters<typeof ddByDt>[0], title: string, dateText: string): string {
+  const registered = ymds(ddByDt(inner, "등록일"))[0];
+  return `touraz:${registered || dateText}:${title}`;
+}
+
 function detailUrlOf(href: string): string {
   const enc = href.replace(/&amp;/g, "&").match(ENC)?.[1] ?? "";
   return enc ? `${BASE}${VIEW}?pssrpSeqEnc=${enc}` : "";
@@ -79,14 +88,18 @@ export function parseTourazList(html: string, _page = 1): BoardRow[] {
     const a = inner.querySelector(".card-body .subject > a");
     const href = (a?.getAttribute("href") ?? "").trim();
     const detailUrl = detailUrlOf(href);
-    if (!detailUrl || seen.has(detailUrl)) continue;
+    if (!detailUrl) continue;
     const title = (a?.text ?? "").replace(/\s+/g, " ").trim();
     if (!title || DROP.test(title)) continue;
-    seen.add(detailUrl);
+    const dateText = dateTextOf(inner);
+    const sourceId = sourceIdOf(inner, title, dateText);
+    if (seen.has(sourceId)) continue;
+    seen.add(sourceId);
     out.push({
       title,
       detailUrl,
-      dateText: dateTextOf(inner),
+      sourceId,
+      dateText,
       category: (inner.querySelector(".cate .category")?.text ?? "").replace(/\s+/g, " ").trim(),
       agency: agencyOf(inner),
     });

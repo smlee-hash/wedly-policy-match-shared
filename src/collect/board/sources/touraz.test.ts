@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
-import { pagingParamsOf } from "../engine";
+import { describe, expect, it, vi } from "vitest";
+import { fetchBoardAll, pagingParamsOf } from "../engine";
 import { isTourazDropTitle, parseTourazList, tourazConfig } from "./touraz";
 
 /**
@@ -97,6 +97,64 @@ describe("한국관광공사 관광기업지원(touraz) 목록 읽기 — 실사
         "https://touraz.kr/announcementList/pssrpView?pssrpSeqEnc=IaZIIQ8SY^YV26xMghY*bA==",
       dateText: "2026-08-03 ~ 2026-08-24",
     });
+  });
+});
+
+/** 「다음 요청」 — pssrpSeqEnc 는 요청마다 바뀐다(머리 주석). 고정본의 enc 를 전부 다른 값으로 바꿔 흉내 낸다. */
+function rotateEnc(html: string, round: number): string {
+  return html.replace(/pssrpSeqEnc=([^&"]+)/g, (_m, enc: string) => `pssrpSeqEnc=R${round}${enc}`);
+}
+
+/**
+ * ★2026-09-25 운영 실측: 상세 주소를 열쇠로 쓰자 수집마다 같은 공고가 새 줄로 쌓였다
+ * (13,374줄 중 서로 다른 제목 928개). 열쇠는 등록일+제목, 주소는 그 요청의 값을 따른다.
+ */
+describe("★열쇠(sourceId)는 요청마다 바뀌는 pssrpSeqEnc 와 무관하다", () => {
+  const rotated = parseTourazList(rotateEnc(listHtml, 1));
+
+  it("enc 를 전부 바꾼 두 번째 목록을 읽어도 sourceId 목록이 같다", () => {
+    expect(rotated).toHaveLength(12);
+    expect(rotated.map((r) => r.sourceId)).toEqual(rows.map((r) => r.sourceId));
+    expect(rows[0].sourceId).toBe("touraz:2026-08-24:2026 중국국제여유교역회(CITM) 참가기관 모집 안내");
+    expect(new Set(combined.map((r) => r.sourceId)).size).toBe(24);
+  });
+
+  it("상세 주소는 바뀐 값을 따른다 — 열 때는 그 요청의 enc 를 쓴다", () => {
+    expect(rotated.map((r) => r.detailUrl)).toEqual(
+      rows.map((r) => r.detailUrl.replace("pssrpSeqEnc=", "pssrpSeqEnc=R1")),
+    );
+    expect(rotated.every((r, i) => r.detailUrl !== rows[i].detailUrl)).toBe(true);
+  });
+
+  it("등록일이 비면(모집 대기 글) dateText 로 열쇠를 만든다", () => {
+    const emptyReg = parseTourazList(
+      listHtml.replace(/<dt>등록일 <\/dt>\s*<dd>\s*2026-08-24<\/dd>/, "<dt>등록일 </dt><dd></dd>"),
+    );
+    expect(emptyReg[0].sourceId).toBe(
+      "touraz:2026-08-24 ~ 2026-09-03:2026 중국국제여유교역회(CITM) 참가기관 모집 안내",
+    );
+  });
+
+  it("엔진을 거쳐도 sourceId 는 행의 값이고, 되풀이된 쪽은 주소가 바뀌어도 한 줄이다", async () => {
+    let round = 0;
+    const out = await fetchBoardAll(
+      { ...tourazConfig, list: { ...tourazConfig.list, maxPages: 3 } },
+      {
+        // 3쪽은 1쪽이 다시 온 것 — enc 는 요청마다 새 값이라 주소로 가르면 12줄이 또 쌓인다.
+        fetchText: async (url) => {
+          round += 1;
+          const page = new URL(url).searchParams.get("curPage");
+          return rotateEnc(page === "2" ? listP2Html : listHtml, round);
+        },
+        prevOpenCount: 0,
+        askModel: async () => "{}",
+        onAllFailed: vi.fn(),
+      },
+    );
+    expect(out.map((a) => a.sourceId)).toEqual([...rows, ...p2].map((r) => r.sourceId));
+    expect(out[0].url).toBe(
+      "https://touraz.kr/announcementList/pssrpView?pssrpSeqEnc=R1gceHXEN*FRnXmIAn6LDZGA==",
+    );
   });
 });
 

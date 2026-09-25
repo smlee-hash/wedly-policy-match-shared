@@ -877,6 +877,59 @@ describe("onCollectionComplete", () => {
   });
 });
 
+/**
+ * 상세 주소가 요청마다 바뀌는 게시판(touraz `pssrpSeqEnc`)은 행이 안정 열쇠(BoardRow.sourceId)를 준다.
+ * 2026-09-25 운영 실측: 주소를 열쇠로 쓰자 touraz 13,374줄 중 서로 다른 제목이 928개였다.
+ */
+describe("행이 준 sourceId", () => {
+  /** 쪽마다 같은 공고 1·2·3 을 되풀이한다. 상세 주소의 enc 는 요청마다 바뀌고 쪽 번호(p)가 묻어 온다. */
+  function rotating(): BoardConfig {
+    let call = 0;
+    return {
+      ...cfg,
+      list: { ...cfg.list, url: (p) => `https://x.kr/b/list?p=${p}`, maxPages: 5 },
+      customParse: (_html, page) => {
+        call += 1;
+        return [1, 2, 3].map((id) => ({
+          title: `2026 지원사업 공고 ${id}번`,
+          detailUrl: `https://x.kr/v?enc=r${call}-${id}&p=${page}`,
+          sourceId: `tp-x:${id}`,
+          dateText: "2026-08-01",
+        }));
+      },
+    };
+  }
+
+  it("정규화 결과 sourceId 는 행의 값 — 쪽 번호를 지워도 덮이지 않고, url 은 그 요청의 주소다", async () => {
+    const out = await fetchBoardAll(rotating(), deps());
+    expect(out.map((a) => a.sourceId)).toEqual(["tp-x:1", "tp-x:2", "tp-x:3"]);
+    expect(out.map((a) => a.url)).toEqual([
+      "https://x.kr/v?enc=r1-1",
+      "https://x.kr/v?enc=r1-2",
+      "https://x.kr/v?enc=r1-3",
+    ]);
+  });
+
+  it("쪽 사이 중복 제거도 sourceId 로 한다 — 주소가 바뀌어도 되풀이된 쪽 둘이면 멈춘다", async () => {
+    const fetched: string[] = [];
+    const out = await fetchBoardAll(rotating(), deps({
+      fetchText: async (url) => { fetched.push(url); return LIST; },
+    }));
+    // 주소로 가르면 5쪽 전부 「새 줄」 3개씩이라 15줄·5요청이 됐다.
+    expect(out).toHaveLength(3);
+    expect(fetched).toHaveLength(3);
+  });
+
+  it("행이 sourceId 를 안 주면 예전대로 상세 주소가 sourceId 다", async () => {
+    const out = await fetchBoardAll(cfg, deps());
+    expect(out.map((a) => a.sourceId)).toEqual([
+      "https://x.kr/v?id=1",
+      "https://x.kr/v?id=2",
+      "https://x.kr/v?id=3",
+    ]);
+  });
+});
+
 describe("fetchBoardDetail", () => {
   it("detailContentSelector 매칭 전부 텍스트를 줄바꿈으로 이어 붙인다", async () => {
     const html = `<div>

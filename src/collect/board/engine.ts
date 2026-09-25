@@ -101,7 +101,8 @@ function toNormalized(rows: BoardRow[], cfg: BoardConfig): NormalizedAnnouncemen
     }
     return {
       source: cfg.id,
-      sourceId: r.detailUrl || `${cfg.id}:${r.title}`,
+      // 행이 준 안정 열쇠가 먼저(touraz — 상세 주소가 요청마다 바뀐다). 없으면 예전대로 상세 주소.
+      sourceId: r.sourceId || r.detailUrl || `${cfg.id}:${r.title}`,
       title: r.title,
       agency: r.agency ?? cfg.agency,
       category: r.category ?? "",
@@ -263,6 +264,7 @@ function dropUntrusted(rows: BoardRow[], cfg: BoardConfig): BoardRow[] {
     const trimmed = detailUrl.trim();
     if (trimmed && !/^https?:\/\//i.test(trimmed)) continue;
     if (!isAllowedHttpUrl(detailUrl, allowed)) continue;
+    // 행이 준 sourceId 는 주소가 아니라 손대지 않는다 — 펼쳐 옮길 뿐이다.
     out.push(detailUrl === r.detailUrl ? r : { ...r, detailUrl });
   }
   return out;
@@ -332,7 +334,16 @@ export function pagelessSource(cfg: BoardConfig): boolean {
   }
 }
 
-/** 1페이지는 이미 채택됨. 2..maxPages 는 오류·행0·검증실패·이미 본 detailUrl 뿐이면 중단하고 그까지 유지. */
+/**
+ * 쪽 사이 중복 제거 열쇠 — `toNormalized` 의 sourceId 와 같은 값(제목 대체만 뺀다: 빈 열쇠 행은 예전처럼 매번 싣는다).
+ * 행이 sourceId 를 안 주면 상세 주소 그대로라 다른 게시판 동작은 같다. touraz 는 상세 주소가 요청마다
+ * 바뀌어(2026-09-25 운영 실측) 주소로 가르면 되풀이된 줄도 「새 줄」로 세어 연속 빈 쪽 멈춤이 안 걸린다.
+ */
+function rowKey(r: BoardRow): string {
+  return r.sourceId || r.detailUrl;
+}
+
+/** 1페이지는 이미 채택됨. 2..maxPages 는 오류·행0·검증실패·이미 본 열쇠(rowKey)뿐이면 중단하고 그까지 유지. */
 async function collectLaterPages(
   extract: PageExtract,
   page1: BoardRow[],
@@ -342,11 +353,11 @@ async function collectLaterPages(
 ): Promise<CollectedPages> {
   const cap = Math.min(Math.max(0, maxPages), PAGE_HARD_CAP);
   const collected = [...page1];
-  const seen = new Set(page1.map((r) => r.detailUrl).filter((u) => u.length > 0));
-  const seenRaw = new Set((page1Evidence ?? []).map((r) => r.detailUrl).filter((u) => u.length > 0));
+  const seen = new Set(page1.map(rowKey).filter((k) => k.length > 0));
+  const seenRaw = new Set((page1Evidence ?? []).map(rowKey).filter((k) => k.length > 0));
   if (cap < 2) {
     const capRows = page1Evidence ?? page1;
-    const lastPageNew = cap === 1 ? capRows.filter((r) => r.detailUrl.length > 0).length : 0;
+    const lastPageNew = cap === 1 ? capRows.filter((r) => rowKey(r).length > 0).length : 0;
     /**
      * ★**쪽 개념이 아예 없는 출처**는 「상한 도달」이 아니다(2026-09-06 독립 리뷰 3번).
      *
@@ -390,14 +401,16 @@ async function collectLaterPages(
         lastPageOk = true;
         let addedRaw = 0;
         for (const r of trusted.evidence) {
-          if (!r.detailUrl || seenRaw.has(r.detailUrl)) continue;
-          seenRaw.add(r.detailUrl);
+          const key = rowKey(r);
+          if (!key || seenRaw.has(key)) continue;
+          seenRaw.add(key);
           addedRaw += 1;
         }
         for (const r of trusted.rows) {
-          if (r.detailUrl && seen.has(r.detailUrl)) continue;
+          const key = rowKey(r);
+          if (key && seen.has(key)) continue;
           collected.push(r);
-          if (r.detailUrl) seen.add(r.detailUrl);
+          if (key) seen.add(key);
         }
         if (p === cap) { reachedCap = true; lastPageNew = addedRaw; }
         emptyStreak = addedRaw === 0 ? emptyStreak + 1 : 0;
@@ -422,12 +435,13 @@ async function collectLaterPages(
       lastPageOk = true;
       let added = 0;
       for (const r of rows) {
-        if (r.detailUrl && seen.has(r.detailUrl)) continue;
+        const key = rowKey(r);
+        if (key && seen.has(key)) continue;
         collected.push(r);
-        // lastPageNew 는 실제 상세 주소가 있는 행만. 빈 URL 은 seen 에 안 들어가
+        // lastPageNew 는 실제 열쇠(sourceId·상세 주소)가 있는 행만. 빈 URL 은 seen 에 안 들어가
         // 쪽마다 새 건으로 잡혀 거짓 상한이 됐다.
-        if (r.detailUrl) {
-          seen.add(r.detailUrl);
+        if (key) {
+          seen.add(key);
           added += 1;
         }
       }
