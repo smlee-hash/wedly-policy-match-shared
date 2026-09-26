@@ -260,6 +260,22 @@ export type RunVerdictResult =
   | { status: "limit"; message: string }
   | { status: "ai_failed"; message: string };
 
+/** 「가능」을 내렸을 때 설명 끝에 붙이는 이유. */
+export const AWAITING_OPUS_REASON = "이 공고는 AI 가 다시 읽기 전이라 「가능」으로 올리지 않았습니다.";
+
+/**
+ * Opus 가 다시 읽기를 기다리는 공고(ERP 가 옛 정리분을 내린 줄: structure._awaitingOpus)는
+ * 정밀 판정의 「가능」도 「확인 필요」로 내린다 — 목록 진단(diagnose)이 needs_review 의 「가능」을 막는 것과 같은 약속이다.
+ * 내리기는 structuredAt 을 보존하므로 예전 「가능」 캐시가 같은 열쇠로 되살아난다(2026-09-26 디자인 리뷰 P1).
+ * 캐시에는 AI 답을 그대로 두고 보여 줄 때만 내린다 — Opus 가 읽으면 structuredAt 이 바뀌어 열쇠도 바뀐다.
+ */
+function applyAwaitingOpusGuard<T extends VerdictResultLike>(verdict: T, structure: unknown): T {
+  const awaiting =
+    !!structure && typeof structure === "object" && (structure as { _awaitingOpus?: unknown })._awaitingOpus === true;
+  if (!awaiting || verdict.grade !== "possible") return verdict;
+  return { ...verdict, grade: "uncertain", explanation: `${verdict.explanation} ${AWAITING_OPUS_REASON}`.trim() };
+}
+
 export async function runVerdict(
   input: RunVerdictInput,
   deps: RunVerdictDeps,
@@ -288,7 +304,7 @@ export async function runVerdict(
   );
   const cached = await readCache(deps, key);
   if (cached) {
-    const guarded = applyIncompleteEvidenceGuard(cached, customerEvidence);
+    const guarded = applyAwaitingOpusGuard(applyIncompleteEvidenceGuard(cached, customerEvidence), row.structure);
     return { status: "ok", data: { ...guarded, cached: true } };
   }
 
@@ -370,7 +386,7 @@ export async function runVerdict(
   }
 
   await writeCache(deps, key, verdict);
-  return { status: "ok", data: { ...verdict, cached: false } };
+  return { status: "ok", data: { ...applyAwaitingOpusGuard(verdict, row.structure), cached: false } };
 }
 
 async function readCache(deps: RunVerdictDeps, key: string): Promise<VerdictResultLike | null> {

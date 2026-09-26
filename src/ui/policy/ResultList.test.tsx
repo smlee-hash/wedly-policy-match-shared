@@ -39,9 +39,10 @@ const browse: BrowseBundle = {
 /** 목록 통로 — 진단 묶음(「외 N건」) 구성원을 받아 올 주소. */
 const ANNOUNCEMENTS = "/api/policy-match/announcements";
 
-function renderDiagnosed(diagnosis: Diagnosis): string {
+function renderDiagnosed(diagnosis: Diagnosis, serverStructurizes?: boolean): string {
   return renderToStaticMarkup(
     <ResultList
+      serverStructurizes={serverStructurizes}
       mode="diagnosed"
       onModeChange={() => {}}
       diagnosis={diagnosis}
@@ -94,6 +95,21 @@ describe("ResultList — 미분석 표시", () => {
     });
     expect(html).toContain("후보 3건 중 0건은 AI 가 읽었습니다 — 나머지는 간이 판정이며, 공고를 열면 그 자리서 읽습니다");
     expect(html).not.toContain("나머지는 공고를 열면 분석됩니다");
+  });
+
+  it("서버가 열람 때 정리하지 않으면(API 정리 끔) 「열면 그 자리서 읽습니다」를 약속하지 않는다", () => {
+    const d: Diagnosis = {
+      possible: [],
+      uncertain: [item({ unanalyzed: true })],
+      impossible: [],
+      structureProgress: emptyProgress,
+      analyzedCount: 0,
+      candidateCount: 3,
+    };
+    const html = renderDiagnosed(d, false);
+    expect(html).toContain("후보 3건 중 0건은 AI 가 읽었습니다 — 나머지는 간이 판정이며, AI 가 차례로 읽고 나면 다시 진단할 때 반영됩니다");
+    expect(html).not.toContain("그 자리서 읽습니다");
+    expect(renderDiagnosed(d, true)).toContain("공고를 열면 그 자리서 읽습니다");
   });
 });
 

@@ -184,6 +184,11 @@ interface Props {
   verdictFeedback?: (ctx: VerdictFeedbackContext) => ReactNode;
   /** 위 조각에 함께 넘길 이번 회차 사업자 정보. */
   profile?: BusinessProfile | null;
+  /**
+   * 서버가 공고를 열 때 그 자리서 정리하는가(기본 true). ERP 가 API 정리를 끄고 Opus 작업기로 넘기면 false —
+   * 그때는 「열면 그 자리서 읽습니다」가 거짓 약속이 된다(2026-09-26 디자인 리뷰 P2).
+   */
+  serverStructurizes?: boolean;
 }
 
 /** 목록 행 — 안쪽 여백 16(상하좌우), 모서리 12. 행 사이는 8(space-y-2). */
@@ -231,7 +236,7 @@ export function GroupMembers({ repId, members, selectedId, onSelect }: {
 
 export default function ResultList({
   mode, onModeChange, diagnosis, selectedId, onSelect, browse, announcementsEndpoint,
-  onManualSync, verdictFeedback, profile,
+  onManualSync, verdictFeedback, profile, serverStructurizes = true,
 }: Props) {
   // 고른 묶음은 「어느 진단 결과에서 골랐는지」와 함께 기억한다.
   // 진단을 새로 돌리면 저절로 아래 기본값(결과가 들어 있는 첫 묶음)으로 돌아간다 — 빈 탭을 보여 주지 않는다.
@@ -344,7 +349,7 @@ export default function ResultList({
               {showAnalyzeBanner && (
                 /* 「잠시 뒤 다시 진단하면 반영」은 이제 거짓이다 — 뒤에서 읽어 주던 시계를 없앴다
                    (2026-08-25 비용 구조 전환). 오지 않을 반영을 기다리게 하지 않는다. */
-                <>후보 {candidateCount}건 중 {analyzedCount}건은 AI 가 읽었습니다 — 나머지는 간이 판정이며, 공고를 열면 그 자리서 읽습니다</>
+                <>후보 {candidateCount}건 중 {analyzedCount}건은 AI 가 읽었습니다 — 나머지는 간이 판정이며, {serverStructurizes ? "공고를 열면 그 자리서 읽습니다" : "AI 가 차례로 읽고 나면 다시 진단할 때 반영됩니다"}</>
               )}
               {/* 지역이 안 맞아 빠진 수 — 「왜 그 공고가 안 보이냐」에 답할 유일한 숫자다. */}
               {showDroppedBanner && (

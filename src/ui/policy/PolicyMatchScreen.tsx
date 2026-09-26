@@ -614,6 +614,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
               onManualSync={endpoints.sync ? refresh : undefined}
               verdictFeedback={verdictFeedback}
               profile={profile}
+              serverStructurizes={features?.serverStructurizes ?? true}
             />
           </div>
           <div className="lg:col-span-7" ref={detailRef}>

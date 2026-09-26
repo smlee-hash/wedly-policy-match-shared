@@ -20,6 +20,7 @@ import {
   runVerdict,
   structureNeedsRawText,
   type RunVerdictDeps,
+  AWAITING_OPUS_REASON,
 } from "./verdict";
 import { CURRENT_STRUCTURE_VERSION } from "./structure-status";
 import type { VerdictPromptModule } from "./types";
@@ -283,6 +284,39 @@ describe("runVerdict — 흐름", () => {
     expect(res).toEqual({ status: "ok", data: { ...cached, cached: true } });
     expect(callModel).not.toHaveBeenCalled();
     expect(reserve).not.toHaveBeenCalled();
+  });
+
+  it("★Opus 를 기다리는 공고(_awaitingOpus)는 저장된 「가능」 판정도 「확인 필요」로 내려 보여 준다", async () => {
+    const cached = { grade: "possible", explanation: "저장본", checklist: [] };
+    const awaiting = row({ structureStatus: "needs_review", structure: { conditions: [], _awaitingOpus: true } });
+    const { d, callModel } = deps({}, awaiting, cached);
+    const res = await runVerdict({ announcementId: "a1", profile: {} }, d);
+    expect(res.status).toBe("ok");
+    if (res.status !== "ok") return;
+    expect(res.data.grade).toBe("uncertain");
+    expect(res.data.cached).toBe(true);
+    expect(res.data.explanation).toContain(AWAITING_OPUS_REASON);
+    expect(callModel).not.toHaveBeenCalled();
+  });
+
+  it("★Opus 를 기다리는 공고는 새로 받은 「가능」도 내려 보여 주되, 캐시에는 AI 답을 그대로 둔다", async () => {
+    const awaiting = row({ structureStatus: "needs_review", structure: { conditions: [], _awaitingOpus: true } });
+    const { d, cacheSet } = deps({}, awaiting);
+    const res = await runVerdict({ announcementId: "a1", profile: {} }, d);
+    expect(res.status).toBe("ok");
+    if (res.status !== "ok") return;
+    expect(res.data.grade).toBe("uncertain");
+    expect(res.data.cached).toBe(false);
+    expect((cacheSet.mock.calls[0][1] as { grade: string }).grade).toBe("possible");
+  });
+
+  it("Opus 표식이 없거나 「불가」·「확인 필요」면 그대로다", async () => {
+    const plainReview = row({ structureStatus: "needs_review", structure: { conditions: [] } });
+    const r1 = await runVerdict({ announcementId: "a1", profile: {} }, deps({}, plainReview, { grade: "possible", explanation: "x", checklist: [] }).d);
+    expect(r1.status === "ok" && r1.data.grade).toBe("possible");
+    const awaiting = row({ structureStatus: "needs_review", structure: { conditions: [], _awaitingOpus: true } });
+    const r2 = await runVerdict({ announcementId: "a1", profile: {} }, deps({}, awaiting, { grade: "impossible", explanation: "x", checklist: [] }).d);
+    expect(r2.status === "ok" && r2.data).toEqual({ grade: "impossible", explanation: "x", checklist: [], cached: true });
   });
 
   it("읽는 칸에 region 이 들어 있다 — 지역 조건 보태기가 화면과 같아야 한다", () => {
