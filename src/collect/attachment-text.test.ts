@@ -850,19 +850,29 @@ describe("fetchAttachmentTexts — POST 로만 주는 첨부", () => {
     expect(r.readFiles).toEqual(["공고문.pdf"]);
   });
 
-  it("★GET 첨부는 무변화 — method·body·content-type 이 하나도 안 붙는다", async () => {
+  /**
+   * 2026-10-01 바뀐 약속: 행정안전부·화성산업진흥원이 비브라우저 접속을 끊어서 GET 첨부에도
+   * 목록 수집과 같은 UA·`Accept-Language: ko` 를 싣는다. 방법·본문·형식은 여전히 안 붙는다.
+   * 머리글은 평범한 객체로 넘긴다(경유 통로·감싸개가 객체로 읽는다).
+   */
+  it("★GET 첨부는 방법·본문·형식 없이 브라우저 신원(UA·언어)만 싣는다", async () => {
+    const { BROWSER_UA } = await import("./board/fetch-identity");
     const pdf = await makePdf("PLAIN_GET");
     const inits: Array<RequestInit | undefined> = [];
     const injected = vi.fn(async (_url: string, init?: RequestInit) => {
       inits.push(init);
       return okResponse(pdf);
     });
-    const r = await fetchAttachmentTexts([att({ name: "공고.pdf", url: `${B}a.pdf`, kind: "pdf" })], { extractHwpx: () => "", 
+    const r = await fetchAttachmentTexts([att({ name: "공고.pdf", url: `${B}a.pdf`, kind: "pdf" })], { extractHwpx: () => "",
       fetch: injected,
     });
     expect(inits[0]?.method).toBeUndefined();
     expect(inits[0]?.body).toBeUndefined();
-    expect(inits[0]?.headers).toBeUndefined();
+    expect(Object.getPrototypeOf(inits[0]?.headers)).toBe(Object.prototype);
+    const sent = new Headers(inits[0]?.headers);
+    expect([...sent.keys()].sort()).toEqual(["accept-language", "user-agent"]);
+    expect(sent.get("user-agent")).toBe(BROWSER_UA);
+    expect(sent.get("accept-language")).toBe("ko");
     expect(inits[0]?.redirect).toBe("manual");
     expect(r.readFiles).toEqual(["공고.pdf"]);
   });
