@@ -38,7 +38,7 @@ import type { BoardConfig, BoardRow } from "../types";
  *   그대로 흘리면 뒷단계 날짜 파서가 못 읽어 「기간 없음」이 되므로 여기서 `YYYY-MM-DD` 로
  *   맞춘다. 목록은 **등록일만** 주므로 pipa·geri 와 같이 「등록일 ~」 개시형으로 넘긴다.
  *
- * ★브라우저 UA 는 엔진이 이미 붙인다(registry `FETCH_UA`) — 여기서 따로 할 일이 없다.
+ * ★브라우저 UA 는 엔진이 이미 붙인다(`fetch-identity` 의 `BROWSER_UA`) — 여기서 따로 할 일이 없다.
  */
 const BASE = "https://www.at.or.kr";
 /** 읽을 게시판 넷. 순서가 곧 도는 순서다(앞이 자주 갱신되는 곳). */
@@ -236,6 +236,8 @@ export const atkoreaConfig: BoardConfig = {
    * 중 첨부 상자 2,660바이트에서 공고문 PDF·신청서 HWP 두 개만 정확히 걷혔다.
    */
   attachmentsScopeSelector: "div.board-file-box",
+  // 2026-10-01 실측: 상세 주소를 Referer 로 실으면 파일을 준다(세션 데우기는 필요 없다).
+  attachmentSession: { referer: "detail" },
   /**
    * ★낮게 둔다(3). 이 값은 **첫 쪽(식품사업 1쪽) 하나로 출처 전체의 채택 여부**를 가른다 —
    * 그 쪽에 결과 발표 글이 몰린 날 게시판 넷이 통째로 실패한다(2026-09-03 적대 리뷰 지적 ⑥).

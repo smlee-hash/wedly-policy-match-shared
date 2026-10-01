@@ -108,6 +108,11 @@ export type BoardAttachmentSession = {
    */
   warmup?: "detail";
   /**
+   * 첨부를 받기 **직전마다** GET 할 주소(없으면 null). 부산TP 처럼 서버가 받을 파일을 사전 호출로 기억하고
+   * 세션 쿠키를 주는 게시판용이다. 실패는 통로 탓이다(첨부는 부르지 않는다).
+   */
+  precall?: (attachmentUrl: string) => string | null;
+  /**
    * 데우기로 받은 **상세 HTML 에서 1회용 CSRF 토큰을 뽑아** POST 첨부 본문 끝에 붙인다.
    * `warmup: "detail"` 과 **함께**일 때만 돈다(토큰과 쿠키가 한 세션에서 나와야 짝이 맞는다).
    *

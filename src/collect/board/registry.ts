@@ -8,11 +8,10 @@ import { boardCapKey, notePageCap, parseBoardCap, type BoardCapRecord } from "./
 import { BOARD_SOURCES } from "./source-list";
 import { proxyDispatcher, boardFetch, boardProxyUrl } from "./proxy";
 import { readCollectionBaselineCount, saveCollectionBaseline } from "./collection-baseline";
+import { BROWSER_ACCEPT_LANGUAGE, BROWSER_UA } from "./fetch-identity";
 
 export { BOARD_SOURCES } from "./source-list";
 
-const FETCH_UA =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 // 목록 페이지(표 몇 줄)는 그대로 좁게 — 이 값을 상세에도 같이 올리면 게시판 30여 곳
 // 전부의 모든 요청이 느려져, 회차 최악 시간이 자물쇠 상한(2시간)에 다가간다(fable 리뷰 중요3).
 const FETCH_TIMEOUT_MS = 15_000;
@@ -339,8 +338,8 @@ export async function fetchBoardText(
     const jar: CookieJar = new Map();
     for (let hop = 0; hop <= 3; hop++) {
       const configHeaders: Record<string, string> = {
-        "User-Agent": FETCH_UA,
-        "Accept-Language": "ko",
+        "User-Agent": BROWSER_UA,
+        "Accept-Language": BROWSER_ACCEPT_LANGUAGE,
         ...(init?.headers ?? {}),
       };
       const cookie = mergeCookieHeader(configHeaders.Cookie, cookieHeaderFor(jar, current));
@@ -410,8 +409,8 @@ export async function fetchBoardTextWithCookies(
   const timer = setTimeout(() => ac.abort(), timeoutMs);
   try {
     const headers: Record<string, string> = {
-      "User-Agent": FETCH_UA,
-      "Accept-Language": "ko",
+      "User-Agent": BROWSER_UA,
+      "Accept-Language": BROWSER_ACCEPT_LANGUAGE,
       ...(init?.headers ?? {}),
     };
     const res = await boardFetchWithNetworkRetry(

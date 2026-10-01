@@ -12,6 +12,8 @@ import { BOARD_SOURCES } from "./board/source-list";
 import type { PolicyAttachmentRequest } from "./board/types";
 import { allowedHostsOf } from "./board/engine";
 import { isProxyTransportError } from "./board/proxy";
+import { withBrowserIdentity } from "./board/fetch-identity";
+import { cookieHeaderFor, cookieJarAbsorb, mergeCookieHeader, setCookieValuesOf, type CookieJar } from "./board/registry";
 import { extractHwpText } from "./hwp-text";
 import {
   renderAttachmentBlocks,
@@ -90,6 +92,35 @@ const PDF_SIG = [0x25, 0x50, 0x44, 0x46, 0x2d]; // %PDF-
 const OLE_SIG = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
 const ZIP_SIG = [0x50, 0x4b, 0x03, 0x04];
 
+/** 파일 하나의 결과에 붙는 이유 한 마디 — 못 받은 곳(내려받기·형식·글자)과 덜 읽힌 곳(미리보기·잘림·개수 상한). */
+export type AttachmentFileReason =
+  | "blocked_url"
+  | "blocked_host"
+  | "not_found"
+  | "http_error"
+  | "redirect_limit"
+  | "too_big"
+  | "empty"
+  | "timeout"
+  | "aborted"
+  | "network"
+  | "transport"
+  | "unknown_format"
+  | "no_text"
+  | "preview_only"
+  | "over_limit"
+  | "truncated";
+
+export type AttachmentFileOutcome = {
+  name: string;
+  result: "read" | "failed" | "skipped" | "duplicate" | "ignored";
+  reason?: AttachmentFileReason;
+  /** 읽었을 때: 자르기 전 본문 글자 수. */
+  chars?: number;
+  /** 글자를 실제로 뽑은 형식(pdf·hwp·hwpx). */
+  kind?: string;
+};
+
 export type AttachmentTextResult = {
   text: string;
   readFiles: string[];
@@ -111,6 +142,8 @@ export type AttachmentTextResult = {
    * 머리글·경고·잘림·미확인 표식·미리보기·상한으로 사라진 본문은 넣지 않는다.
    */
   bodyTextChars?: number;
+  /** 파일마다 결과·못 읽은 이유(처리 순서). 표시 글자(text)와 별개다 — AI 에게 가는 글자는 이걸로 바뀌지 않는다. */
+  files?: AttachmentFileOutcome[];
 };
 
 /**
@@ -332,9 +365,14 @@ function contentBlock(name: string, extra: TextPiece[]): RenderBlock {
   return { name, pieces: [{ kind: "heading", text: headingOf(name) }, ...extra] };
 }
 
+type DownloadResult =
+  | { ok: true; buf: Buffer }
+  | { ok: false; reason: "blocked_host" | "not_found" | "http_error" | "redirect_limit" | "too_big" | "empty" };
+
 /**
  * 응답을 통째로 메모리에 올리지 않고 흘려 읽으며 상한을 넘는 순간 끊는다.
  * content-length 는 참고도 하지 않는다 — 거짓으로 적어 보내면 그대로 속아 큰 본문을 다 받게 된다.
+ * 못 받은 이유는 값으로 돌려주고, 전송 오류(fetch 가 던짐·본문 읽다 던짐)는 던진다.
  */
 async function downloadBytes(
   url: string,
@@ -345,52 +383,66 @@ async function downloadBytes(
   outer?: AbortSignal,
   /** POST 로만 주는 첨부의 요청 방법(`method`·`body`·`headers`). 없으면 예전대로 맨 GET 이다. */
   req?: Pick<PolicyAttachmentRequest, "method" | "body" | "headers">,
-): Promise<Buffer | null> {
+): Promise<DownloadResult> {
   // 리다이렉트는 손으로 따라간다 — 자동 추적은 허용 호스트 검사를 통과한 「뒤에」
   // 내부망 주소로 302 시켜 검사를 우회하는 길이 된다(적대 리뷰 치명 지적). 매 홉을 다시 검사한다.
-  let target: string | null = url;
+  let target: string = url;
   let res: Response | null = null;
   // 한 번의 내려받기 = 한 번의 시간 상한. 홉마다 timeout 을 새로 만들면 리다이렉트 3번에 상한이 4배가 된다.
   const own = AbortSignal.timeout(timeoutMs);
   const signal = outer ? AbortSignal.any([own, outer]) : own;
+  // 쿠키 항아리도 내려받기 한 번 동안만 산다 — 국토부·수출입은행처럼 쿠키를 주며 같은 주소로 되돌리는 곳이 있다(2026-10-01 실측).
+  const jar: CookieJar = new Map();
   for (let hop = 0; hop <= 3; hop++) {
-    if (!target) return null;
     // ★POST 는 **첫 요청에만** 싣는다. 302 를 따라갈 때 본문을 다시 보내면 같은 내려받기가 두 번
     //  일어나거나(1회용 열쇠 소모) 엉뚱한 주소로 본문이 새 나간다 — 브라우저도 303·302 뒤에는 GET 이다.
     const init: RequestInit = { signal, redirect: "manual" };
+    // 수집기가 적은 머리글도 첫 요청에만 싣는다(같은 이유).
+    const base: Record<string, string> = hop === 0 ? { ...req?.headers } : {};
     if (hop === 0 && req?.method === "POST") {
       init.method = "POST";
       if (req.body !== undefined) init.body = req.body;
       // 게시판들이 쓰는 것은 전부 form 제출이다 — 수집기가 따로 안 적으면 그 형식을 기본으로 붙인다.
-      const given = req.headers ?? {};
-      const hasType = Object.keys(given).some((k) => k.toLowerCase() === "content-type");
-      init.headers = hasType ? { ...given } : { ...given, "Content-Type": FORM_CONTENT_TYPE };
-    } else if (hop === 0 && req?.headers) {
-      init.headers = { ...req.headers };
+      const hasType = Object.keys(base).some((k) => k.toLowerCase() === "content-type");
+      if (!hasType) base["Content-Type"] = FORM_CONTENT_TYPE;
     }
+    // 받아 둔 쿠키는 그 홉 주소에 맞는 것만 싣고, 수집기가 적은 Cookie 는 버리지 않고 합친다.
+    const jarCookie = cookieHeaderFor(jar, target);
+    if (jarCookie) {
+      const cookieKey = Object.keys(base).find((k) => k.toLowerCase() === "cookie") ?? "Cookie";
+      const merged = mergeCookieHeader(base[cookieKey], jarCookie);
+      if (merged) base[cookieKey] = merged;
+    }
+    // 머리글은 늘 평범한 객체다 — 경유 층·감싸개가 객체 키로 읽는다.
+    init.headers = withBrowserIdentity(base);
     const r = await fetchImpl(target, init);
+    // 머리글 객체가 없는 응답 모양(시험용 가짜)이어도 깨지지 않게 있을 때만 읽는다.
+    if (r.headers) cookieJarAbsorb(jar, target, setCookieValuesOf(r.headers));
     if (r.status >= 300 && r.status < 400) {
-      const loc = r.headers.get("location");
+      const loc = r.headers?.get("location");
       await r.body?.cancel().catch(() => {});
-      if (!loc || hop === 3) return null;
+      if (!loc) return { ok: false, reason: "http_error" };
+      if (hop === 3) return { ok: false, reason: "redirect_limit" };
       let next: string;
       try {
         next = new URL(loc, target).toString();
       } catch {
-        return null;
+        return { ok: false, reason: "http_error" };
       }
-      target = safeAttachmentUrl(next);
+      const safe = safeAttachmentUrl(next);
+      if (!safe) return { ok: false, reason: "blocked_host" };
+      target = safe;
       continue;
     }
     res = r;
     break;
   }
-  if (!res) return null;
+  if (!res) return { ok: false, reason: "redirect_limit" };
   if (!res.ok) {
     await res.body?.cancel().catch(() => {});
-    return null;
+    return { ok: false, reason: res.status === 404 || res.status === 410 ? "not_found" : "http_error" };
   }
-  if (!res.body) return null;
+  if (!res.body) return { ok: false, reason: "empty" };
   const reader = res.body.getReader();
   let chunks: Uint8Array[] = [];
   let total = 0;
@@ -403,7 +455,7 @@ async function downloadBytes(
       if (total > maxBytes) {
         chunks = []; // 읽던 것은 버린다 — 상한을 넘은 파일은 쓰지 않는다
         await reader.cancel().catch(() => {});
-        return null;
+        return { ok: false, reason: "too_big" };
       }
       chunks.push(value);
     }
@@ -414,7 +466,16 @@ async function downloadBytes(
       /* 이미 풀렸으면 그만 */
     }
   }
-  return Buffer.concat(chunks, total);
+  if (total === 0) return { ok: false, reason: "empty" };
+  return { ok: true, buf: Buffer.concat(chunks, total) };
+}
+
+/** 전송 중 던져진 오류의 이유 한 마디(통로 탓 표식은 부르는 쪽이 먼저 가른다). */
+function thrownReasonOf(e: unknown): AttachmentFileReason {
+  const name = (e as { name?: unknown } | null)?.name;
+  if (name === "TimeoutError") return "timeout";
+  if (name === "AbortError") return "aborted";
+  return "network";
 }
 
 export type FetchAttachmentTextsFn = (
@@ -450,6 +511,8 @@ export async function fetchAttachmentTexts(
   const skippedFiles: string[] = [];
   const previewOnlyFiles: string[] = [];
   const blocks: RenderBlock[] = [];
+  // 파일마다 결과·이유. 표시 글자와 별개이고, 처리 순서(읽은 것 → 개수 상한으로 안 읽은 것)를 지킨다.
+  const files: AttachmentFileOutcome[] = [];
   // 경유 통로 탓으로 죽은 첨부 수. 하나라도 있으면 이번 결과는 사이트가 아니라 우리 통로 탓이다.
   let proxyFailures = 0;
 
@@ -460,15 +523,18 @@ export async function fetchAttachmentTexts(
       // 허용하지 않은 주소는 부르지 않는다. 존재는 남겨 사람이 원문을 확인하게 한다.
       failedFiles.push(name);
       blocks.push(noticeBlock(name, "blocked", blockedBlock(name)));
+      files.push({ name, result: "failed", reason: "blocked_url" });
       continue;
     }
     try {
-      const buf = await downloadBytes(url, fetchImpl, timeoutMs, maxBytes, opts.signal, a);
-      if (!buf) {
+      const got = await downloadBytes(url, fetchImpl, timeoutMs, maxBytes, opts.signal, a);
+      if (!got.ok) {
         failedFiles.push(name);
         blocks.push(noticeBlock(name, "fail", failBlock(name)));
+        files.push({ name, result: "failed", reason: got.reason });
         continue;
       }
+      const buf = got.buf;
       // 첫 바이트 냄새를 이름/주소 kind 보다 먼저. cover.pdf 인데 실제는 OLE(hwp)면
       // pdf 파서가 미끼 글자를 남길 수 있다. declaredKind 가 etc 이고 냄새도 없으면 실패.
       const declaredKind: ExtractableKind | null = isExtractable(a.kind) ? a.kind : null;
@@ -476,8 +542,10 @@ export async function fetchAttachmentTexts(
       if (!primary) {
         failedFiles.push(name);
         blocks.push(noticeBlock(name, "fail", failBlock(name)));
+        files.push({ name, result: "failed", reason: "unknown_format" });
         continue;
       }
+      let usedKind: ExtractableKind = primary;
       let extracted = { text: "", incomplete: false };
       try {
         extracted = await extractByKind(primary, buf, extractHwpx);
@@ -486,6 +554,7 @@ export async function fetchAttachmentTexts(
       }
       // 비거나 파서가 던지면 primary 와 다른 declaredKind 로 한 번 더 뽑는다.
       if (!extracted.text.trim() && declaredKind && declaredKind !== primary) {
+        usedKind = declaredKind;
         try {
           extracted = await extractByKind(declaredKind, buf, extractHwpx);
         } catch {
@@ -496,6 +565,7 @@ export async function fetchAttachmentTexts(
       if (!body) {
         failedFiles.push(name);
         blocks.push(noticeBlock(name, "fail", failBlock(name)));
+        files.push({ name, result: "failed", reason: "no_text" });
         continue;
       }
       if (extracted.incomplete && opts.includeHwpPreview === false) {
@@ -503,9 +573,17 @@ export async function fetchAttachmentTexts(
         skippedFiles.push(name);
         // 미리보기 글자는 빼고 미확인 표식만 남긴다. 정상 형제 첨부의 본문은 보존한다.
         blocks.push(contentBlock(name, [{ kind: "unverified", text: skippedBlock(name) }]));
+        files.push({ name, result: "skipped", reason: "preview_only", kind: usedKind });
         continue;
       }
       readFiles.push(name);
+      files.push({
+        name,
+        result: "read",
+        chars: body.length,
+        kind: usedKind,
+        ...(extracted.incomplete ? { reason: "preview_only" as const } : {}),
+      });
       if (extracted.incomplete) previewOnlyFiles.push(name);
       // 미확인 표식은 본문 앞에 둔다. 출처를 조각으로 남겨 뒤 표식이 앞 본문을 밀면 앞 파일도 잘림으로 적는다.
       const extra: TextPiece[] = extracted.incomplete
@@ -518,9 +596,11 @@ export async function fetchAttachmentTexts(
       if (extracted.incomplete) skippedFiles.push(name);
     } catch (e) {
       // 경유 통로가 죽어서 못 물어본 것이면 따로 센다 — 사이트가 준 404 와 재시도 값어치가 다르다.
-      if (isProxyTransportError(e)) proxyFailures += 1;
+      const transport = isProxyTransportError(e);
+      if (transport) proxyFailures += 1;
       failedFiles.push(name);
       blocks.push(noticeBlock(name, "fail", failBlock(name)));
+      files.push({ name, result: "failed", reason: transport ? "transport" : thrownReasonOf(e) });
     }
   }
 
@@ -529,11 +609,17 @@ export async function fetchAttachmentTexts(
     const name = a.name || a.url;
     skippedFiles.push(name);
     blocks.push(noticeBlock(name, "skipped", skippedBlock(name)));
+    files.push({ name, result: "skipped", reason: "over_limit" });
   }
 
   const rendered = renderAttachmentBlocks(blocks, totalCharCap);
   for (const name of rendered.truncatedNames) {
     if (!skippedFiles.includes(name)) skippedFiles.push(name);
+  }
+  // 글자 상한에 잘린 읽은 파일은 이유를 「잘림」으로 — 미리보기보다 우선한다. 다른 결과는 그대로 둔다.
+  const truncated = new Set(rendered.truncatedNames);
+  for (const f of files) {
+    if (f.result === "read" && truncated.has(f.name)) f.reason = "truncated";
   }
   // 본문 글자 수는 걸러낸 뒤의 실제 본문 조각 합. 완성 문자열을 정규식으로 추측하지 않는다.
   let bodyTextChars = 0;
@@ -553,5 +639,6 @@ export async function fetchAttachmentTexts(
     //  도장이 무기한 유예가 아니라 1시간짜리로 바뀌었으니 좁힐 이유가 없다.
     proxyFailed: proxyFailures > 0,
     ...(opts.includeHwpPreview === false ? { bodyTextChars } : {}),
+    files,
   };
 }

@@ -112,6 +112,8 @@ export const cbsinboConfig: BoardConfig = {
    * 선택자를 비워 첨부 길을 열어 둔다. 첨부는 본문과 다른 상자 `div.t_file`.
    */
   attachmentsScopeSelector: "div.t_file",
+  // 2026-10-01 실측: 상세 주소를 Referer 로 실으면 파일을 준다(세션 데우기는 필요 없다).
+  attachmentSession: { referer: "detail" },
   /**
    * 한 쪽 15건의 절반은 7. DROP 뒤 1쪽 실측이 10건이라 7 이어도 서식 변경이 아닌데도
    * 관문이 실패하지는 않는다. 0행이면 서식 변경.
