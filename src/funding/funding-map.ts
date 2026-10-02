@@ -208,7 +208,7 @@ function kstYmd(d: Date): string {
  * 남은 날짜 = 한국 달력 날짜의 차이. 시각으로 빼면 「오늘 23:59 마감」이 오전엔 D-0, 저녁엔 D-0.02 처럼
  * 흔들려 딱지가 시간대에 따라 바뀐다(마감일은 KST 23:59:59 로 저장된다).
  */
-function dDayOf(end: Date, now: Date): number {
+export function dDayOf(end: Date, now: Date): number {
   return Math.round((kstDayStart(end) - kstDayStart(now)) / DAY_MS);
 }
 

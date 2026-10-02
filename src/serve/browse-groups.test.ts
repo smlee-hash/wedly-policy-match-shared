@@ -81,13 +81,18 @@ function fakeDb() {
   return { db, captured, findMany };
 }
 
-/** ERP `services/policy-match/browse-groups.ts` 원문과 **글자 단위로 같은** 목록 문장. */
+/**
+ * 목록 문장 원문. ERP·컨설턴트 앱이 모두 이 코어를 쓴다.
+ * ★묶음 키에 `COLLATE "C"` 가 붙는다(2026-10-02) — 운영 DB 기본 정렬 규칙(en_US.utf8)으로 한글 키
+ *  12,546줄을 정렬하면 한 번에 10.7초가 걸려(두 번 정렬) 첫 화면 목록이 23초였다. "C" 로는 43ms.
+ *  묶음 키는 「같은 값끼리 모으는」 데만 쓰고 화면 순서(마감일·수집 시각·id)에는 들어가지 않으므로 결과는 같다.
+ */
 const EXPECTED_LIST_SQL = `
       WITH filtered AS (
         SELECT id, source, title, agency, category, region, summary,
                "targetText", "applyStart", "applyEnd", "applyPeriodText", url, status,
                "dedupKey", "firstSeenAt", "lastSeenAt",
-               COALESCE(NULLIF("dedupKey", ''), id) AS grp
+               COALESCE(NULLIF("dedupKey", ''), id) COLLATE "C" AS grp
         FROM "PolicyAnnouncement"
         WHERE "status" = $1
       ),
@@ -112,7 +117,7 @@ const EXPECTED_LIST_SQL = `
 
 const EXPECTED_TOTAL_SQL = `
       SELECT COUNT(*)::int AS n FROM (
-        SELECT DISTINCT COALESCE(NULLIF("dedupKey", ''), id)
+        SELECT DISTINCT COALESCE(NULLIF("dedupKey", ''), id) COLLATE "C"
         FROM "PolicyAnnouncement"
         WHERE "status" = $1
       ) g

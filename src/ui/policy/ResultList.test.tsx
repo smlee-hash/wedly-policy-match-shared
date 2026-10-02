@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import ResultList, { deadlineMetricLabel, GroupMembers, type BrowseBundle } from "./ResultList";
+import ResultList, { daysLeft, ddayBadge, deadlineMetricLabel, GroupMembers, type BrowseBundle } from "./ResultList";
 import type { DiagnoseItem, Diagnosis, Row } from "./PolicyMatchScreen";
 
 function item(over: Partial<DiagnoseItem> = {}): DiagnoseItem {
@@ -295,5 +295,31 @@ describe("deadlineMetricLabel — 마감 상태·모름 구분(독립 검사 5�
   it("마감 칸 값은 알약을 쓰지 않는다(상자 배경과 같은 색이라 안 보이고 8px 밀린다)", () => {
     expect(deadlineMetricLabel(null, "", "closed").className).not.toContain("rounded-full");
     expect(deadlineMetricLabel(null, "", "closed").className).not.toContain("px-2");
+  });
+});
+
+describe("daysLeft·ddayBadge — 남은 날은 한국 달력 날짜로 센다(2026-10-02 운영 실측: 오늘 마감이 「D-1」, 어제 마감이 「D-DAY」로 보였다)", () => {
+  // 마감일은 한국시간 23:59:59 로 저장된다. 시각 차이를 올림하면 낮에는 하루가 더 남은 것처럼 보인다.
+  const NOW = new Date("2026-10-02T12:50:00+09:00");
+  beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(NOW); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  it("오늘 밤 마감이면 0일 — 「D-DAY」", () => {
+    expect(daysLeft("2026-10-02T14:59:59.000Z")).toBe(0);
+    expect(ddayBadge("2026-10-02T14:59:59.000Z", "").label).toBe("D-DAY");
+  });
+  it("어제 밤에 마감된 것은 -1일 — 「마감」(「D-DAY」가 아니다)", () => {
+    expect(daysLeft("2026-10-01T14:59:59.000Z")).toBe(-1);
+    expect(ddayBadge("2026-10-01T14:59:59.000Z", "").label).toBe("마감");
+  });
+  it("내일 밤 마감이면 「D-1」", () => {
+    expect(daysLeft("2026-10-03T14:59:59.000Z")).toBe(1);
+    expect(ddayBadge("2026-10-03T14:59:59.000Z", "").label).toBe("D-1");
+  });
+  it("자정 직후에도 같은 날 마감은 0일(시각에 따라 딱지가 흔들리지 않는다)", () => {
+    vi.setSystemTime(new Date("2026-10-02T00:00:30+09:00"));
+    expect(daysLeft("2026-10-02T14:59:59.000Z")).toBe(0);
+    vi.setSystemTime(new Date("2026-10-02T23:59:00+09:00"));
+    expect(daysLeft("2026-10-02T14:59:59.000Z")).toBe(0);
   });
 });

@@ -4,6 +4,7 @@
 // 어느 쪽이든 「고르면 오른쪽 상세가 바뀐다」 — 목록에서 바로 원문으로 나가지 않는다.
 import { useEffect, useState, type ReactNode } from "react";
 import { formatPolicyDate } from "../../engine/types";
+import { dDayOf } from "../../funding/funding-map";
 import type { BusinessProfile } from "../../engine/match-engine";
 import type { VerdictFeedbackContext } from "./endpoints";
 import type { DiagnoseItem, Diagnosis, GradeKey, ListMode, Row } from "./PolicyMatchScreen";
@@ -39,7 +40,6 @@ const SOURCE_LABEL: Record<string, string> = {
 };
 
 const NEW_MS = 72 * 60 * 60 * 1000;
-const DAY_MS = 86_400_000;
 const PAGE_SIZE = 50;
 
 // ── 화면 계약(DESIGN.md) ────────────────────────────────────────────────
@@ -94,12 +94,16 @@ export function clipRegion(region: string): string {
   return t.length > 60 ? `${t.slice(0, 60)}…` : t;
 }
 
-/** 마감까지 남은 날. 마감일이 없거나 못 읽으면 null. */
+/**
+ * 마감까지 남은 날 — **한국 달력 날짜의 차이**(오늘 마감 0, 지났으면 음수). 마감일이 없거나 못 읽으면 null.
+ * 시각 차이를 올림하면 「오늘 23:59 마감」이 낮에는 D-1, 어제 마감이 D-DAY 로 보인다(2026-10-02 운영 실측).
+ * 지도(`funding-map`)와 같은 셈을 쓴다 — 같은 공고가 지도에선 「오늘 마감」, 목록에선 「D-1」이면 안 된다.
+ */
 export function daysLeft(applyEnd: string | null): number | null {
   if (!applyEnd) return null;
-  const end = new Date(applyEnd).getTime();
-  if (Number.isNaN(end)) return null;
-  return Math.ceil((end - Date.now()) / DAY_MS);
+  const end = new Date(applyEnd);
+  if (Number.isNaN(end.getTime())) return null;
+  return dDayOf(end, new Date());
 }
 
 /**

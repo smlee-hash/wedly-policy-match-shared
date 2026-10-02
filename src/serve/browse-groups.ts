@@ -1,7 +1,11 @@
 /**
  * 공고 목록(browse) — 묶음(dedupKey) 단위 쪽나눔.
- * SQL 문장은 ERP 원문과 **글자 단위로 같다**(DISTINCT ON·동률 깨기 id ASC 포함).
- * 바뀐 것은 `Prisma.sql` → `q.sql` 처럼 **주입받은 창구를 쓰는 것뿐**이다.
+ * SQL 문장은 ERP 에서 옮겨 온 그대로다(DISTINCT ON·동률 깨기 id ASC 포함) — 창구만 주입받는다.
+ *
+ * ★묶음 키(grp)는 `COLLATE "C"` 로 견준다(2026-10-02). 운영 DB 기본 정렬 규칙(en_US.utf8)은 한글 글자열
+ *  견주기가 매우 느려, 접수중 12,546줄을 묶음 키로 정렬하는 데 한 번에 10.7초(대표 고르기·묶음 세기 두 번
+ *  = 첫 화면 목록 23초)가 걸렸다. "C" 로는 43ms. 묶음 키는 같은 값끼리 모으는 데만 쓰고 화면 순서
+ *  (마감일·수집 시각·id)에는 들어가지 않으므로 대표·건수·쪽 경계는 그대로다.
  */
 import type { ServeQuery } from "./types";
 
@@ -66,7 +70,7 @@ export async function listBrowseGroups(
         SELECT id, source, title, agency, category, region, summary,
                "targetText", "applyStart", "applyEnd", "applyPeriodText", url, status,
                "dedupKey", "firstSeenAt", "lastSeenAt",
-               COALESCE(NULLIF("dedupKey", ''), id) AS grp
+               COALESCE(NULLIF("dedupKey", ''), id) COLLATE "C" AS grp
         FROM "PolicyAnnouncement"
         WHERE ${where}
       ),
@@ -90,7 +94,7 @@ export async function listBrowseGroups(
     `),
     db.queryRaw<{ n: number }>(db.sql`
       SELECT COUNT(*)::int AS n FROM (
-        SELECT DISTINCT COALESCE(NULLIF("dedupKey", ''), id)
+        SELECT DISTINCT COALESCE(NULLIF("dedupKey", ''), id) COLLATE "C"
         FROM "PolicyAnnouncement"
         WHERE ${where}
       ) g
