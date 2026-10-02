@@ -125,8 +125,8 @@ const EXPECTED_TOTAL_SQL = `
 
 const P = { q: "", category: "", region: "", status: "open", page: 1 };
 
-describe("listBrowseGroups — 문장이 원문 그대로인가", () => {
-  it("목록 문장·묶음 수 문장이 ERP 원문과 글자 단위로 같다", async () => {
+describe("listBrowseGroups — 문장이 고정한 글자 그대로인가", () => {
+  it("목록 문장·묶음 수 문장이 고정한 문장과 글자 단위로 같다(ERP 원문 + 묶음 키 COLLATE \"C\")", async () => {
     const { db, captured } = fakeDb();
     await listBrowseGroups(db, P);
     expect(captured).toHaveLength(2);
