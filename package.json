@@ -75,6 +75,10 @@
       "types": "./src/engine/profile-summary.ts",
       "default": "./src/engine/profile-summary.ts"
     },
+    "./profile-derive": {
+      "types": "./src/engine/profile-derive.ts",
+      "default": "./src/engine/profile-derive.ts"
+    },
     "./funding-group": {
       "types": "./src/funding/funding-group.ts",
       "default": "./src/funding/funding-group.ts"

@@ -14,6 +14,7 @@
  *   region-augment             ← match-engine · rule-extract · structure-types
  *   recommend-score            ← structure-types
  *   profile-summary            ← match-engine
+ *   profile-derive             ← match-engine · sigungu
  *   wedly-category · types     ← 아무것도 안 부른다
  *
  * ★이름 충돌: RULE_SOURCE_PREFIX 만 structure-types·rule-extract 가 같이 내보낸다
@@ -34,5 +35,6 @@ export * from "./rule-extract";
 export * from "./region-augment";
 export * from "./recommend-score";
 export * from "./profile-summary";
+export * from "./profile-derive";
 export * from "./wedly-category";
 export * from "./types";

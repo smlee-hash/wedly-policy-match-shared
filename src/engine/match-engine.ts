@@ -31,6 +31,15 @@ export interface BusinessProfile {
   // ── 자금 조달 지도(2026-09-03) — 상시 상품 판정에만 쓰는 두 칸.
   creditScore?: number;       // 개인 신용점수(NICE/KCB 300~1000). 사람이 입력한다 — 자동 조회하지 않는다
   hasExistingLoan?: boolean;  // 기존 사업자대출 유무. 대환 상품이 「있어야」를 요구한다
+  // ── 서류 올려 채우기(2026-10-05) — 아래 칸은 판정이 직접 읽지 않는다. profile-derive.ts 의
+  // deriveProfileFlags 가 위 칸(hasCert·hasPatent·hasExistingLoan·creditScore·region 등)으로 옮겨 준다.
+  businessAddress?: string;   // 사업장 소재지 — 시도+시군구까지만(예: 「경기 화성시」). 도로명·번지는 담지 않는다
+  certTypes?: string[];       // 벤처·이노비즈·메인비즈·ISO·여성기업·사회적기업·기타·없음
+  patentCount?: number;       // 특허 건수(등록+출원)
+  existingLoanBalanceManwon?: number; // 기존 대출 잔액(만원)
+  creditScoreNice?: number;   // NICE 점수(300~1000)
+  creditScoreKcb?: number;    // KCB 점수(300~1000)
+  isCorporation?: boolean;    // 법인 여부 — 사업자번호로 못 가릴 때만 쓴다(corporationOf)
 }
 
 /* ───────── 법인/개인 판정 ─────────
@@ -45,6 +54,13 @@ export function isCorporationByBizno(bizno: string | undefined): boolean | null 
   if (middle >= 81 && middle <= 88) return true;
   if (middle >= 1 && middle <= 79) return false;
   return null;
+}
+
+/** 법인 여부 — 사업자번호가 가르면 그것이 이긴다. 번호로 못 가릴 때(없음·89·90 …)만 프로필의 isCorporation 을 쓴다. */
+export function corporationOf(p: BusinessProfile): boolean | null {
+  const byBizno = isCorporationByBizno(p.bizno);
+  if (byBizno !== null) return byBizno;
+  return typeof p.isCorporation === "boolean" ? p.isCorporation : null;
 }
 
 /* ───────── 지역 표기 사전 ─────────
@@ -386,7 +402,7 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
         : fail(c.value ? "기존 대출이 있어야 함(대환)" : "기존 대출 없는 사업자만");
     }
     case "isCorporation": {
-      const mine = isCorporationByBizno(p.bizno);
+      const mine = corporationOf(p);
       if (mine === null) return unknown("사업자번호로 법인 여부를 알 수 없음");
       return mine === (c.value as boolean) ? pass() : fail(c.value ? "법인만" : "개인사업자만");
     }

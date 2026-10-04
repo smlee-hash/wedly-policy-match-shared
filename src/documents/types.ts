@@ -4,19 +4,30 @@
  */
 import type { BusinessProfile } from "../engine/match-engine";
 
-/** 서류에서 채울 수 있는 칸. BusinessProfile 칸 이름을 그대로 쓴다. 신용점수·기존 대출·상호는 서류로 채우지 않는다. */
+/**
+ * 서류에서 채울 수 있는 칸. BusinessProfile 칸 이름을 그대로 쓴다. 신용점수·기존 대출·상호는 서류로 채우지 않는다.
+ * - hasCert·hasPatent 는 서류가 「없음」을 분명히 말할 때만 채운다(있는 쪽은 certTypes·patentCount 가 알려 준다).
+ * - businessAddress 는 **시도 + 시군구까지만**(예: 「경기 화성시」). 도로명·번지·건물명은 결과에 담지 않는다.
+ */
 export type DocumentFieldKey =
   | "bizno"
   | "industry"
   | "region"
   | "regionSigungu"
+  | "businessAddress"
   | "foundedDate"
   | "lastYearRevenueKrw"
   | "employeeCount"
   | "companyScale"
+  | "isCorporation"
   | "taxDelinquent"
   | "hasCert"
-  | "hasPatent";
+  | "certTypes"
+  | "hasPatent"
+  | "patentCount";
+
+/** 서류에서 읽은 칸 값 묶음. */
+export type DocumentFields = Partial<Pick<BusinessProfile, DocumentFieldKey>>;
 
 /** 읽을 수 있는 서류 종류. unknown = 어떤 서류인지 못 가림. */
 export type DocumentType =
@@ -86,7 +97,7 @@ export interface DocumentFieldConflict<K extends DocumentFieldKey = DocumentFiel
 /** 서버 응답 data 모양: POST {documentPrefill} → { success: true, data: DocumentPrefillResult } */
 export interface DocumentPrefillResult {
   /** 충돌 없는 칸은 값, 충돌 칸은 recommended 값 */
-  fields: Partial<Pick<BusinessProfile, DocumentFieldKey>>;
+  fields: DocumentFields;
   sources: Partial<Record<DocumentFieldKey, DocumentFieldSource>>;
   conflicts: DocumentFieldConflict[];
   files: DocumentFileResult[];

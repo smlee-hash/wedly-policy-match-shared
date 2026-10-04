@@ -5,7 +5,7 @@
  * 두 화면이 같은 회사에 다른 근거를 적으면 어느 쪽을 믿어야 할지 알 수 없다(적대 리뷰 중요10).
  * 프로필 통째는 응답에 싣지 않는다(노출면 축소) — 대조에 쓴 칸의 요약만 나간다.
  */
-import { isCorporationByBizno, type BusinessProfile } from "./match-engine";
+import { corporationOf, type BusinessProfile } from "./match-engine";
 
 export function usedProfileSummary(p: BusinessProfile): string[] {
   const out: string[] = [];
@@ -23,8 +23,8 @@ export function usedProfileSummary(p: BusinessProfile): string[] {
   if (typeof p.taxDelinquent === "boolean") out.push(`체납 ${p.taxDelinquent ? "있음" : "없음"}`);
   // ── 자금 조달 지도(2026-09-03) — 상시 상품 판정에만 쓰는 세 칸도 근거에 반영한다(코덱스 지적:
   // 대조엔 쓰면서 「왜 이 결과인지」요약엔 안 보이면 화면을 믿을 수 없다). 값이 있을 때만 붙인다 —
-  // 사업자번호 가운데 자리가 법인·개인 어디에도 안 걸리면(모름) 지어내지 않고 아예 안 붙인다.
-  const isCorp = isCorporationByBizno(p.bizno);
+  // 사업자번호 가운데 자리가 법인·개인 어디에도 안 걸리고 프로필의 isCorporation 도 없으면(모름) 지어내지 않고 아예 안 붙인다.
+  const isCorp = corporationOf(p);
   if (isCorp !== null) out.push(`법인 여부 ${isCorp ? "법인" : "개인"}`);
   if (typeof p.creditScore === "number") out.push(`신용점수 ${p.creditScore}`);
   if (typeof p.hasExistingLoan === "boolean") out.push(`기존 대출 ${p.hasExistingLoan ? "있음" : "없음"}`);
