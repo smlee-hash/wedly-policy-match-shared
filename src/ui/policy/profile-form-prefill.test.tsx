@@ -194,6 +194,49 @@ describe("① 기존 고객 검색 — 접었다 펴도 적어 둔 검색어와 
     expect(글자(tree), "접었다 펴니 안내가 지워졌다").toContain("사업자번호 또는 상호를 입력하세요");
   });
 
+  it("새 칸 형식으로 넣은 값(사업자번호 마스크·주소·매출)도 접었다 펴면 그대로 남는다", () => {
+    const 화면 = new 손React();
+    화면.render(폼("/api/policy-match/prefill"));
+
+    적기(화면, "000-00-00000", "1238145678");
+    적기(화면, "예: 경기 화성시", "경기 화성시 동탄대로 000");
+    적기(화면, "예: 120,000", "124500");
+
+    누르기(화면, "접기");
+    const tree = 누르기(화면, "조건 수정");
+    expect(칸찾기(tree, "000-00-00000")?.props.value, "접었다 펴니 사업자번호가 지워졌다").toBe("123-81-45678");
+    expect(칸찾기(tree, "예: 경기 화성시")?.props.value, "접었다 펴니 주소가 지워졌다").toBe("경기 화성시 동탄대로 000");
+    expect(칸찾기(tree, "예: 120,000")?.props.value, "접었다 펴니 매출이 지워졌다").toBe("124,500");
+    expect(글자(tree)).toContain("지역 조건: 경기 · 화성시");
+    expect(글자(tree)).toContain("= 12억 4,500만원");
+  });
+
+  it("접힌 요약에 상호·지역·업종이 한 줄로 보이고, 다시 진단이 값을 넘긴다", async () => {
+    const 받은: unknown[] = [];
+    const 화면 = new 손React();
+    화면.render(
+      <ProfileForm
+        onDiagnose={async (p) => {
+          받은.push(p);
+          return true;
+        }}
+        diagnosing={false}
+      />,
+    );
+    적기(화면, "예: 가상테크", "가상테크");
+    적기(화면, "예: 경기 화성시", "경기 화성시");
+    적기(화면, "예: 전자부품", "전자부품 제조업");
+    누르기(화면, "매칭 진단");
+    await Promise.resolve();
+    await Promise.resolve();
+    const tree = 화면.다시그리기();
+    expect(글자(tree)).toContain("가상테크 · 경기 화성시 · 전자부품 제조업");
+    expect(글자(tree)).toContain("다시 진단");
+    누르기(화면, "다시 진단");
+    expect(받은).toHaveLength(2);
+    expect(받은[1]).toMatchObject({ companyName: "가상테크", region: "경기", businessAddress: "경기 화성시" });
+  });
+
   it("통로를 안 넘긴 앱에는 검색 줄이 아예 없고, 접었다 펴도 탈이 없다", () => {
     const 화면 = new 손React();
     let tree = 화면.render(폼());

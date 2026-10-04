@@ -4,7 +4,8 @@ import ProfileForm from "./ProfileForm";
 import type { BusinessProfile } from "../../engine/match-engine";
 
 /**
- * 시군구 통과(리뷰 F1) — 칸은 만들지 않고, 프리필 값이 buildProfile 로 다시 실리는지 잰다.
+ * 사업자 정보 칸 형식 — 시군구 통과(리뷰 F1)·옛 응답 → 새 칸 옮기기·칸 형식(마스크·칩·두 점수)을 잰다.
+ * 칸 덩어리는 `data-k`(칸 열쇠)로 찾는다.
  *
  * 이 저장소엔 jsdom·@testing-library/react 가 없다. 상태가 바뀌는 이야기는
  * `profile-form-prefill.test.tsx` 와 같은 손React 로 그린 나무를 다시 그려 잰다.
@@ -157,26 +158,57 @@ function 적기(화면: 손React, 안내문접두: string, 값: string): 그림 
   return 화면.다시그리기();
 }
 
-function 선택칸찾기(tree: 그림, 이름: string): 마디 | null {
+// ── 칸 단위 도우미 — 각 칸 덩어리는 data-k(칸 열쇠)를 달고 있다 ──────────────
+// 열쇠: name · bizno · corp · industry · address · founded · revenue · employees · scale ·
+//       tax · cert · patent · loan · nice · kcb  (모두 15칸)
+function 칸덩어리(tree: 그림, 열쇠: string): 마디 {
   for (const m of 모든마디(tree)) {
-    if (m.type !== "label") continue;
-    const kids = m.props.children as 그림;
-    let 표기 = "";
-    let select: 마디 | null = null;
-    for (const c of 모든마디(kids)) {
-      if (c.type === "span" && 표기 === "") 표기 = 글자(c).trim();
-      if (c.type === "select") select = c;
-    }
-    if (표기 === 이름 && select) return select;
+    if (m.props["data-k"] === 열쇠) return m;
   }
-  return null;
+  throw new Error(`「${열쇠}」 칸이 화면에 없다`);
 }
 
-function 고르기(화면: 손React, 이름: string, 값: string): 그림 {
-  const s = 선택칸찾기(화면.tree, 이름);
-  if (!s) throw new Error(`「${이름}」 선택칸이 화면에 없다`);
-  (s.props.onChange as (e: { target: { value: string } }) => void)({ target: { value: 값 } });
+function 칸입력(tree: 그림, 열쇠: string): 마디 {
+  for (const m of 모든마디(칸덩어리(tree, 열쇠).props.children as 그림)) {
+    if (m.type === "input") return m;
+  }
+  throw new Error(`「${열쇠}」 칸에 입력 칸이 없다`);
+}
+
+function 칸값(tree: 그림, 열쇠: string): unknown {
+  return 칸입력(tree, 열쇠).props.value;
+}
+
+function 칸글자(tree: 그림, 열쇠: string): string {
+  return 글자(칸덩어리(tree, 열쇠));
+}
+
+function 칸적기(화면: 손React, 열쇠: string, 값: string): 그림 {
+  (칸입력(화면.tree, 열쇠).props.onChange as (e: { target: { value: string } }) => void)({ target: { value: 값 } });
   return 화면.다시그리기();
+}
+
+/** 그 칸에서 눌린(aria-pressed=true) 단추 글자들 — 단추·칩 칸의 현재 값. */
+function 눌린단추들(tree: 그림, 열쇠: string): string[] {
+  const out: string[] = [];
+  for (const m of 모든마디(칸덩어리(tree, 열쇠).props.children as 그림)) {
+    if (m.type === "button" && m.props["aria-pressed"] === true) out.push(글자(m.props.children as 그림).trim());
+  }
+  return out;
+}
+
+function 칸단추누르기(화면: 손React, 열쇠: string, 이름: string): 그림 {
+  for (const m of 모든마디(칸덩어리(화면.tree, 열쇠).props.children as 그림)) {
+    if (m.type === "button" && 글자(m.props.children as 그림).trim() === 이름) {
+      (m.props.onClick as () => void)();
+      return 화면.다시그리기();
+    }
+  }
+  throw new Error(`「${열쇠}」 칸에 「${이름}」 단추가 없다`);
+}
+
+function 칸단추들(tree: 그림, 열쇠: string): 마디[] {
+  return [...모든마디(칸덩어리(tree, 열쇠).props.children as 그림)].filter((m) => m.type === "button");
 }
 
 const 검색안내 = "기존 고객 검색";
@@ -333,7 +365,7 @@ describe("ProfileForm — 시군구는 칸 없이 통과시킨다(리뷰 F1)", (
     expect("regionSigungu" in p).toBe(false);
   });
 
-  it("사람이 소재지를 바꾸면 시군구가 비워진다", async () => {
+  it("사람이 사업장 주소를 고치면 앞에서 불러온 시군구가 남지 않는다", async () => {
     const { 받은, 화면 } = 진단받기();
     await 고객불러오기(화면, {
       companyName: "위들리테크",
@@ -341,38 +373,143 @@ describe("ProfileForm — 시군구는 칸 없이 통과시킨다(리뷰 F1)", (
       regionSigungu: "안양시",
     }, "위들리테크");
 
-    고르기(화면, "소재지", "서울");
+    // 주소 칸은 비어 있어도 불러온 소재지는 「지역 조건」에 보인다(칸 없이 값만 통과하는 것이 아니다).
+    expect(칸글자(화면.tree, "address")).toContain("지역 조건: 경기 · 안양시");
+
+    칸적기(화면, "address", "서울 중구 세종대로 110");
     const p = 진단하기(화면, 받은);
     expect(p.region).toBe("서울");
-    expect(p.regionSigungu).toBeUndefined();
+    expect(p.regionSigungu).not.toBe("안양시");
+    expect("regionSigungu" in p).toBe(false); // 중구는 여러 시도에 있어 사전이 비운다
+  });
+
+  it("주소를 읽을 수 없는 글자로 고치면 앞 고객의 소재지도 함께 비워진다", async () => {
+    const { 받은, 화면 } = 진단받기();
+    await 고객불러오기(화면, {
+      companyName: "위들리테크",
+      region: "경기",
+      regionSigungu: "안양시",
+    }, "위들리테크");
+
+    칸적기(화면, "address", "아직 모르겠어요");
+    const p = 진단하기(화면, 받은);
+    expect("region" in p).toBe(false);
     expect("regionSigungu" in p).toBe(false);
+    expect("businessAddress" in p).toBe(false);
   });
 });
 
-describe("ProfileForm — 기존 고객의 판정 조건을 빠짐없이 채운다", () => {
-  it("기업 규모·인증·특허·신용점수·기존 대출을 화면과 진단 입력에 보존한다", async () => {
+describe("ProfileForm — 기존 고객의 판정 조건을 빠짐없이 채운다(옛 응답 → 새 칸)", () => {
+  it("옛 응답의 아니오 값은 새 칸으로 옮겨 채우고, 진단 입력에도 같은 값이 간다", async () => {
     const { 받은, 화면 } = 진단받기();
     await 고객불러오기(화면, {
       companyName: "위들리테크",
       companyScale: "중소기업",
       hasCert: false,
-      hasPatent: true,
+      hasPatent: false,
       creditScore: 780,
       hasExistingLoan: false,
     }, "위들리테크");
 
-    expect(선택칸찾기(화면.tree, "기업 규모")?.props.value).toBe("중소기업");
-    expect(선택칸찾기(화면.tree, "기업인증 보유")?.props.value).toBe("no");
-    expect(선택칸찾기(화면.tree, "특허 보유")?.props.value).toBe("yes");
-    expect(칸찾기(화면.tree, "300~1000")?.props.value).toBe("780");
-    expect(선택칸찾기(화면.tree, "기존 대출")?.props.value).toBe("no");
+    expect(눌린단추들(화면.tree, "scale")).toEqual(["중소기업"]);
+    expect(눌린단추들(화면.tree, "cert")).toEqual(["없음"]); // 인증 없음 → 「없음」 칩
+    expect(칸값(화면.tree, "patent")).toBe("0"); // 특허 없음 → 0건
+    expect(칸값(화면.tree, "nice")).toBe("780"); // 점수 하나만 오면 NICE 칸
+    expect(칸값(화면.tree, "kcb")).toBe("");
+    expect(칸값(화면.tree, "loan")).toBe("0"); // 대출 없음 → 잔액 0
     expect(진단하기(화면, 받은)).toMatchObject({
       companyScale: "중소기업",
       hasCert: false,
-      hasPatent: true,
+      hasPatent: false,
       creditScore: 780,
       hasExistingLoan: false,
     });
+  });
+
+  it("옛 응답에 인증·특허·대출이 「있음」만 오면 칸은 비우고 안내 문구를 보이되, 진단에는 옛 값이 그대로 들어간다", async () => {
+    const { 받은, 화면 } = 진단받기();
+    await 고객불러오기(화면, {
+      companyName: "위들리테크",
+      hasCert: true,
+      hasPatent: true,
+      hasExistingLoan: true,
+    }, "위들리테크");
+
+    expect(눌린단추들(화면.tree, "cert")).toEqual([]);
+    expect(칸글자(화면.tree, "cert")).toContain("인증 있음(종류 모름)");
+    expect(칸값(화면.tree, "patent")).toBe("");
+    expect(칸글자(화면.tree, "patent")).toContain("특허 있음(건수 모름)");
+    expect(칸값(화면.tree, "loan")).toBe("");
+    expect(칸글자(화면.tree, "loan")).toContain("대출 있음(잔액 모름)");
+
+    const p = 진단하기(화면, 받은);
+    expect(p).toMatchObject({ hasCert: true, hasPatent: true, hasExistingLoan: true });
+    expect("certTypes" in p).toBe(false);
+    expect("patentCount" in p).toBe(false);
+    expect("existingLoanBalanceManwon" in p).toBe(false);
+  });
+
+  it("안내 문구는 사람이 그 칸을 직접 채우면 사라진다", async () => {
+    const { 받은, 화면 } = 진단받기();
+    await 고객불러오기(화면, { companyName: "위들리테크", hasCert: true, hasPatent: true, hasExistingLoan: true }, "위들리테크");
+
+    칸단추누르기(화면, "cert", "벤처");
+    칸적기(화면, "patent", "3");
+    칸적기(화면, "loan", "5000");
+    expect(칸글자(화면.tree, "cert")).not.toContain("인증 있음(종류 모름)");
+    expect(칸글자(화면.tree, "patent")).not.toContain("특허 있음(건수 모름)");
+    expect(칸글자(화면.tree, "loan")).not.toContain("대출 있음(잔액 모름)");
+    expect(진단하기(화면, 받은)).toMatchObject({
+      certTypes: ["벤처"], hasCert: true, patentCount: 3, hasPatent: true,
+      existingLoanBalanceManwon: 5000, hasExistingLoan: true,
+    });
+  });
+
+  it("새 칸(주소·인증 종류·특허 건수·대출 잔액·두 신용점수·법인 여부)이 응답에 있으면 그대로 채운다", async () => {
+    const { 받은, 화면 } = 진단받기();
+    await 고객불러오기(화면, {
+      companyName: "위들리테크",
+      businessAddress: "경기 화성시",
+      certTypes: ["벤처", "ISO"],
+      patentCount: 2,
+      existingLoanBalanceManwon: 5000,
+      creditScoreNice: 780,
+      creditScoreKcb: 720,
+      isCorporation: true,
+    }, "위들리테크");
+
+    expect(칸값(화면.tree, "address")).toBe("경기 화성시");
+    expect(칸글자(화면.tree, "address")).toContain("지역 조건: 경기 · 화성시");
+    expect(눌린단추들(화면.tree, "cert")).toEqual(["벤처", "ISO"]);
+    expect(칸값(화면.tree, "patent")).toBe("2");
+    expect(칸값(화면.tree, "loan")).toBe("5,000");
+    expect(칸값(화면.tree, "nice")).toBe("780");
+    expect(칸값(화면.tree, "kcb")).toBe("720");
+    expect(눌린단추들(화면.tree, "corp")).toEqual(["법인"]);
+
+    expect(진단하기(화면, 받은)).toMatchObject({
+      businessAddress: "경기 화성시",
+      region: "경기",
+      regionSigungu: "화성시",
+      certTypes: ["벤처", "ISO"],
+      hasCert: true,
+      patentCount: 2,
+      hasPatent: true,
+      existingLoanBalanceManwon: 5000,
+      hasExistingLoan: true,
+      creditScoreNice: 780,
+      creditScoreKcb: 720,
+      creditScore: 720, // 두 점수 중 낮은 값
+      isCorporation: true,
+    });
+  });
+
+  it("옛 신용점수 하나가 오고 새 두 칸이 있으면 새 칸이 이긴다", async () => {
+    const { 받은, 화면 } = 진단받기();
+    await 고객불러오기(화면, { companyName: "위들리테크", creditScore: 500, creditScoreKcb: 710 }, "위들리테크");
+    expect(칸값(화면.tree, "nice")).toBe("");
+    expect(칸값(화면.tree, "kcb")).toBe("710");
+    expect(진단하기(화면, 받은).creditScore).toBe(710);
   });
 
   it("숫자 0도 화면에 그대로 채우고, 다음 고객에게 없는 값은 모두 모름으로 비운다", async () => {
@@ -384,24 +521,323 @@ describe("ProfileForm — 기존 고객의 판정 조건을 빠짐없이 채운�
       hasPatent: false,
       creditScore: 0,
       hasExistingLoan: true,
+      bizno: "123-81-45678",
+      isCorporation: true,
+      businessAddress: "경기 화성시",
+      certTypes: ["벤처"],
     }, "첫회사");
 
-    expect(선택칸찾기(화면.tree, "기업 규모")?.props.value).toBe("소상공인");
-    expect(선택칸찾기(화면.tree, "기업인증 보유")?.props.value).toBe("yes");
-    expect(선택칸찾기(화면.tree, "특허 보유")?.props.value).toBe("no");
-    expect(칸찾기(화면.tree, "300~1000")?.props.value).toBe("0");
-    expect(선택칸찾기(화면.tree, "기존 대출")?.props.value).toBe("yes");
+    expect(눌린단추들(화면.tree, "scale")).toEqual(["소상공인"]);
+    expect(칸값(화면.tree, "patent")).toBe("0");
+    expect(칸값(화면.tree, "nice")).toBe("0");
+    expect(칸글자(화면.tree, "nice")).toContain("300~1000 사이로 넣어 주세요");
+    expect(칸값(화면.tree, "bizno")).toBe("123-81-45678");
 
     await 고객불러오기(화면, { companyName: "다음회사" }, "다음회사");
-    expect(선택칸찾기(화면.tree, "기업 규모")?.props.value).toBe("");
-    expect(선택칸찾기(화면.tree, "기업인증 보유")?.props.value).toBe("");
-    expect(선택칸찾기(화면.tree, "특허 보유")?.props.value).toBe("");
-    expect(칸찾기(화면.tree, "300~1000")?.props.value).toBe("");
-    expect(선택칸찾기(화면.tree, "기존 대출")?.props.value).toBe("");
+    expect(눌린단추들(화면.tree, "scale")).toEqual(["모름"]);
+    expect(눌린단추들(화면.tree, "corp")).toEqual(["모름"]);
+    expect(눌린단추들(화면.tree, "tax")).toEqual(["모름"]);
+    expect(눌린단추들(화면.tree, "cert")).toEqual([]);
+    expect(칸글자(화면.tree, "cert")).not.toContain("인증 있음(종류 모름)");
+    for (const 열쇠 of ["bizno", "address", "patent", "loan", "nice", "kcb"]) {
+      expect(칸값(화면.tree, 열쇠), `${열쇠} 칸이 앞 고객에서 남았다`).toBe("");
+    }
+    expect(칸글자(화면.tree, "loan")).not.toContain("대출 있음(잔액 모름)");
     const p = 진단하기(화면, 받은);
-    for (const key of ["companyScale", "hasCert", "hasPatent", "creditScore", "hasExistingLoan"]) {
+    for (const key of [
+      "companyScale", "hasCert", "hasPatent", "creditScore", "hasExistingLoan",
+      "certTypes", "patentCount", "existingLoanBalanceManwon", "creditScoreNice", "creditScoreKcb",
+      "isCorporation", "businessAddress", "bizno", "region", "regionSigungu",
+    ]) {
       expect(key in p, `${key}가 앞 고객에서 남았다`).toBe(false);
     }
+  });
+});
+
+describe("ProfileForm — 칸 형식(값 모양에 맞는 입력)", () => {
+  it("셀렉트(드롭다운)가 한 칸도 없고, 단추·칩은 키보드로 고를 수 있는 button 이다", () => {
+    const { 화면 } = 진단받기();
+    const 모두 = [...모든마디(화면.tree)];
+    expect(모두.filter((m) => m.type === "select")).toEqual([]);
+    for (const 열쇠 of ["corp", "scale", "tax", "cert"]) {
+      const 단추들 = 칸단추들(화면.tree, 열쇠);
+      expect(단추들.length, `${열쇠} 칸에 단추가 없다`).toBeGreaterThan(0);
+      for (const b of 단추들) {
+        expect(b.props.type).toBe("button");
+        expect(typeof b.props["aria-pressed"]).toBe("boolean");
+      }
+    }
+  });
+
+  it("단추 칸의 선택지가 계획서 그대로다", () => {
+    const { 화면 } = 진단받기();
+    const 이름들 = (열쇠: string) => 칸단추들(화면.tree, 열쇠).map((b) => 글자(b.props.children as 그림).trim());
+    expect(이름들("corp")).toEqual(["모름", "법인", "개인"]);
+    expect(이름들("scale")).toEqual(["모름", "소상공인", "중소기업", "중견기업", "예비창업자"]);
+    expect(이름들("tax")).toEqual(["모름", "없음", "있음"]);
+    expect(이름들("cert")).toEqual(["벤처", "이노비즈", "메인비즈", "ISO", "여성기업", "사회적기업", "기타", "없음"]);
+  });
+
+  it("법인·개인, 기업 규모, 체납은 단추로 고르고 진단 입력에 실린다", () => {
+    const { 받은, 화면 } = 진단받기();
+    expect(눌린단추들(화면.tree, "corp")).toEqual(["모름"]);
+    칸단추누르기(화면, "corp", "개인");
+    칸단추누르기(화면, "scale", "소상공인");
+    칸단추누르기(화면, "tax", "없음");
+    expect(눌린단추들(화면.tree, "corp")).toEqual(["개인"]);
+    expect(진단하기(화면, 받은)).toMatchObject({ isCorporation: false, companyScale: "소상공인", taxDelinquent: false });
+
+    칸단추누르기(화면, "corp", "모름");
+    칸단추누르기(화면, "scale", "모름");
+    칸단추누르기(화면, "tax", "있음");
+    const p = 진단하기(화면, 받은);
+    expect("isCorporation" in p).toBe(false);
+    expect("companyScale" in p).toBe(false);
+    expect(p.taxDelinquent).toBe(true);
+  });
+
+  it("글자 칸(상호·주업종)과 설립일이 진단 입력에 실린다", () => {
+    const { 받은, 화면 } = 진단받기();
+    칸적기(화면, "name", "가상테크");
+    칸적기(화면, "industry", "전자부품 제조업");
+    칸적기(화면, "founded", "2019-03-20");
+    expect(칸입력(화면.tree, "founded").props.type).toBe("date");
+    expect(진단하기(화면, 받은)).toMatchObject({ companyName: "가상테크", industry: "전자부품 제조업", foundedDate: "2019-03-20" });
+  });
+
+  it("직원 수는 숫자만 받아 명 단위로 넘기고, 특허·대출 칸은 모름 안내와 도움말을 단다", () => {
+    const { 받은, 화면 } = 진단받기();
+    expect(칸입력(화면.tree, "patent").props.placeholder).toBe("모름");
+    expect(칸입력(화면.tree, "loan").props.placeholder).toBe("모름");
+    expect(칸글자(화면.tree, "employees")).toContain("4대보험 가입 인원");
+    expect(칸글자(화면.tree, "employees")).toContain("명");
+    expect(칸글자(화면.tree, "patent")).toContain("없으면 0");
+    expect(칸글자(화면.tree, "patent")).toContain("건");
+    expect(칸글자(화면.tree, "loan")).toContain("정책자금·기업대출 합계 · 없으면 0");
+    expect(칸글자(화면.tree, "loan")).toContain("만원");
+
+    칸적기(화면, "employees", "12명");
+    칸적기(화면, "patent", "0");
+    칸적기(화면, "loan", "0");
+    expect(칸값(화면.tree, "employees")).toBe("12");
+    const p = 진단하기(화면, 받은);
+    // 0 은 「없음」이다 — 모름(빈 칸)과 다르다. 판정 칸도 deriveProfileFlags 가 채운다.
+    expect(p).toMatchObject({ employeeCount: 12, patentCount: 0, hasPatent: false, existingLoanBalanceManwon: 0, hasExistingLoan: false });
+  });
+});
+
+describe("ProfileForm — 사업자번호 마스크·법인 자동", () => {
+  it("숫자만 받아 000-00-00000 으로 하이픈을 넣고 10자리를 넘기지 않는다", () => {
+    const { 화면 } = 진단받기();
+    expect(칸입력(화면.tree, "bizno").props.placeholder).toBe("000-00-00000");
+    칸적기(화면, "bizno", "12345");
+    expect(칸값(화면.tree, "bizno")).toBe("123-45");
+    칸적기(화면, "bizno", "abc1238145678999");
+    expect(칸값(화면.tree, "bizno")).toBe("123-81-45678");
+  });
+
+  it("10자리가 되면 가운데 두 자리로 법인·개인 단추를 맞춘다", () => {
+    const { 받은, 화면 } = 진단받기();
+    칸적기(화면, "bizno", "1238145678"); // 81 = 법인
+    expect(눌린단추들(화면.tree, "corp")).toEqual(["법인"]);
+    칸적기(화면, "bizno", "1234512345"); // 45 = 개인
+    expect(눌린단추들(화면.tree, "corp")).toEqual(["개인"]);
+    칸적기(화면, "bizno", "1239012345"); // 90 = 번호로는 못 가림 → 모름
+    expect(눌린단추들(화면.tree, "corp")).toEqual(["모름"]);
+
+    칸적기(화면, "bizno", "1238145678");
+    expect(진단하기(화면, 받은)).toMatchObject({ bizno: "123-81-45678", isCorporation: true });
+  });
+
+  it("10자리가 안 되면 법인·개인을 건드리지 않고, 진단에는 번호를 싣지 않고 안내한다", () => {
+    const { 받은, 화면 } = 진단받기();
+    칸단추누르기(화면, "corp", "법인");
+    칸적기(화면, "bizno", "12345");
+    expect(눌린단추들(화면.tree, "corp")).toEqual(["법인"]);
+    expect(칸글자(화면.tree, "bizno")).toContain("10자리를 모두 넣어 주세요");
+    const p = 진단하기(화면, 받은);
+    expect("bizno" in p).toBe(false);
+    expect(p.isCorporation).toBe(true);
+  });
+
+  it("상호를 고치면 사업자번호가 비워진다(앞 고객 번호가 실려 나가지 않게 — 기존 동작)", () => {
+    const { 받은, 화면 } = 진단받기();
+    칸적기(화면, "bizno", "1238145678");
+    칸적기(화면, "name", "다른회사");
+    expect(칸값(화면.tree, "bizno")).toBe("");
+    expect("bizno" in 진단하기(화면, 받은)).toBe(false);
+  });
+});
+
+describe("ProfileForm — 작년 연매출은 쉼표·만원·「= N억 M만원」", () => {
+  it("숫자만 받아 쉼표를 넣고 아래에 읽은 금액을 보인다", () => {
+    const { 화면 } = 진단받기();
+    expect(칸글자(화면.tree, "revenue")).toContain("만원");
+    expect(칸글자(화면.tree, "revenue")).toContain("세금 신고 매출 기준");
+
+    칸적기(화면, "revenue", "124500");
+    expect(칸값(화면.tree, "revenue")).toBe("124,500");
+    expect(칸글자(화면.tree, "revenue")).toContain("= 12억 4,500만원");
+
+    칸적기(화면, "revenue", "50000");
+    expect(칸글자(화면.tree, "revenue")).toContain("= 5억원");
+
+    칸적기(화면, "revenue", "3000");
+    expect(칸글자(화면.tree, "revenue")).toContain("= 3,000만원");
+
+    칸적기(화면, "revenue", "");
+    expect(칸글자(화면.tree, "revenue")).toContain("세금 신고 매출 기준");
+    expect(칸글자(화면.tree, "revenue")).not.toContain("=");
+  });
+
+  it("진단에는 만원 × 10,000 을 원으로 싣는다", () => {
+    const { 받은, 화면 } = 진단받기();
+    칸적기(화면, "revenue", "124,500");
+    expect(진단하기(화면, 받은).lastYearRevenueKrw).toBe(1_245_000_000);
+    칸적기(화면, "revenue", "0");
+    expect(진단하기(화면, 받은).lastYearRevenueKrw).toBe(0);
+    칸적기(화면, "revenue", "");
+    expect("lastYearRevenueKrw" in 진단하기(화면, 받은)).toBe(false);
+  });
+});
+
+describe("ProfileForm — 사업장 주소 → 지역 조건", () => {
+  it("주소를 넣으면 아래에 「지역 조건: 시도 · 시군구」를 보인다", () => {
+    const { 화면 } = 진단받기();
+    expect(칸글자(화면.tree, "address")).toContain("주소를 넣으면 시도·시군구를 읽어 지역 조건에 씁니다");
+    칸적기(화면, "address", "경기 화성시 동탄대로 000");
+    expect(칸글자(화면.tree, "address")).toContain("지역 조건: 경기 · 화성시");
+    칸적기(화면, "address", "서울특별시 강남구 테헤란로 1");
+    expect(칸글자(화면.tree, "address")).toContain("지역 조건: 서울 · 강남구");
+  });
+
+  it("못 읽는 글자면 기본 도움말로 돌아간다", () => {
+    const { 화면 } = 진단받기();
+    칸적기(화면, "address", "경기 화성시");
+    칸적기(화면, "address", "주소 미정");
+    expect(칸글자(화면.tree, "address")).toContain("주소를 넣으면 시도·시군구를 읽어 지역 조건에 씁니다");
+    expect(칸글자(화면.tree, "address")).not.toContain("지역 조건:");
+  });
+
+  it("진단에는 시도·시군구까지만 싣고(도로명·번지는 뺀다) 지역 칸은 deriveProfileFlags 가 채운다", () => {
+    const { 받은, 화면 } = 진단받기();
+    칸적기(화면, "address", "경기 화성시 동탄대로 000");
+    const p = 진단하기(화면, 받은);
+    expect(p.businessAddress).toBe("경기 화성시");
+    expect(p.region).toBe("경기");
+    expect(p.regionSigungu).toBe("화성시");
+  });
+});
+
+describe("ProfileForm — 보유 인증 칩(여러 개 · 「없음」은 배타)", () => {
+  it("여러 개를 고를 수 있다", () => {
+    const { 화면 } = 진단받기();
+    칸단추누르기(화면, "cert", "벤처");
+    칸단추누르기(화면, "cert", "ISO");
+    expect(눌린단추들(화면.tree, "cert")).toEqual(["벤처", "ISO"]);
+    칸단추누르기(화면, "cert", "벤처"); // 다시 누르면 끈다
+    expect(눌린단추들(화면.tree, "cert")).toEqual(["ISO"]);
+  });
+
+  it("「없음」을 누르면 나머지가 꺼지고, 다른 칩을 누르면 「없음」이 꺼진다", () => {
+    const { 받은, 화면 } = 진단받기();
+    칸단추누르기(화면, "cert", "벤처");
+    칸단추누르기(화면, "cert", "이노비즈");
+    칸단추누르기(화면, "cert", "없음");
+    expect(눌린단추들(화면.tree, "cert")).toEqual(["없음"]);
+    expect(진단하기(화면, 받은)).toMatchObject({ certTypes: ["없음"], hasCert: false });
+
+    칸단추누르기(화면, "cert", "여성기업");
+    expect(눌린단추들(화면.tree, "cert")).toEqual(["여성기업"]);
+    const p = 진단하기(화면, 받은);
+    expect(p).toMatchObject({ certTypes: ["여성기업"], hasCert: true });
+    expect(p.orgTypes).toContain("여성기업"); // deriveProfileFlags 가 기업 형태로도 옮긴다
+
+    칸단추누르기(화면, "cert", "없음");
+    칸단추누르기(화면, "cert", "없음"); // 다시 누르면 꺼져 모름으로 돌아간다
+    expect(눌린단추들(화면.tree, "cert")).toEqual([]);
+    expect("certTypes" in 진단하기(화면, 받은)).toBe(false);
+  });
+});
+
+describe("ProfileForm — 신용점수 NICE / KCB 두 칸", () => {
+  it("두 칸 모두 300~1000 점 칸이고 4자리까지 받는다", () => {
+    const { 화면 } = 진단받기();
+    for (const 열쇠 of ["nice", "kcb"]) {
+      expect(칸입력(화면.tree, 열쇠).props.placeholder).toBe("300~1000");
+      expect(칸입력(화면.tree, 열쇠).props.maxLength).toBe(4);
+      expect(칸글자(화면.tree, 열쇠)).toContain("점");
+    }
+    expect(칸글자(화면.tree, "nice")).toContain("NICE");
+    expect(칸글자(화면.tree, "kcb")).toContain("KCB");
+  });
+
+  it("두 점수를 넣으면 낮은 값으로 진단을 요청한다", () => {
+    const { 받은, 화면 } = 진단받기();
+    칸적기(화면, "nice", "780");
+    칸적기(화면, "kcb", "720");
+    expect(진단하기(화면, 받은)).toMatchObject({ creditScoreNice: 780, creditScoreKcb: 720, creditScore: 720 });
+    칸적기(화면, "nice", "650");
+    expect(진단하기(화면, 받은)).toMatchObject({ creditScoreNice: 650, creditScoreKcb: 720, creditScore: 650 });
+  });
+
+  it("한 칸만 넣으면 그 값이 진단 점수가 된다", () => {
+    const { 받은, 화면 } = 진단받기();
+    칸적기(화면, "kcb", "800");
+    const p = 진단하기(화면, 받은);
+    expect(p).toMatchObject({ creditScoreKcb: 800, creditScore: 800 });
+    expect("creditScoreNice" in p).toBe(false);
+  });
+
+  it("300~1000 밖의 값은 진단에 싣지 않고 그 자리에서 알린다", () => {
+    const { 받은, 화면 } = 진단받기();
+    칸적기(화면, "nice", "1200");
+    칸적기(화면, "kcb", "250");
+    expect(칸글자(화면.tree, "nice")).toContain("300~1000 사이로 넣어 주세요 — 지금은 모름으로 처리됩니다");
+    expect(칸글자(화면.tree, "kcb")).toContain("300~1000 사이로 넣어 주세요 — 지금은 모름으로 처리됩니다");
+    const p = 진단하기(화면, 받은);
+    for (const key of ["creditScoreNice", "creditScoreKcb", "creditScore"]) {
+      expect(key in p, `${key}가 범위 밖인데 실렸다`).toBe(false);
+    }
+  });
+});
+
+describe("ProfileForm — 채운 칸 세기·모름 안내·흐리게(unk) 표시", () => {
+  it("처음엔 15칸 모두 모름이다", () => {
+    const { 화면 } = 진단받기();
+    expect(글자(화면.tree)).toContain("채운 칸 0 / 15");
+    expect(글자(화면.tree)).toContain("모름 15칸");
+  });
+
+  it("칸을 채울수록 세는 수가 바뀐다 — 단추·칩·0 도 채운 것으로 센다", () => {
+    const { 화면 } = 진단받기();
+    칸적기(화면, "name", "가상테크");
+    expect(글자(화면.tree)).toContain("채운 칸 1 / 15");
+    칸단추누르기(화면, "tax", "없음");
+    칸단추누르기(화면, "cert", "없음");
+    칸적기(화면, "patent", "0");
+    expect(글자(화면.tree)).toContain("채운 칸 4 / 15");
+    expect(글자(화면.tree)).toContain("모름 11칸");
+    칸적기(화면, "nice", "1200"); // 범위 밖은 모름으로 처리되니 채운 칸이 아니다
+    expect(글자(화면.tree)).toContain("채운 칸 4 / 15");
+  });
+
+  it("확인 필요 건수를 받으면 「모름 N칸 → 확인 필요 M건」으로 보인다", () => {
+    const 화면 = new 손React();
+    화면.render(<ProfileForm onDiagnose={async () => false} diagnosing={false} reviewCount={1284} />);
+    expect(글자(화면.tree)).toContain("모름 15칸 → 확인 필요 1,284건");
+    const 없을때 = 진단받기().화면;
+    expect(글자(없을때.tree)).not.toContain("확인 필요 ");
+  });
+
+  it("모름 상태인 단추·점수 칸은 흐리게 표시하고, 채우면 풀린다", () => {
+    const { 화면 } = 진단받기();
+    expect(칸덩어리(화면.tree, "tax").props["data-unk"]).toBe("true");
+    expect(칸덩어리(화면.tree, "nice").props["data-unk"]).toBe("true");
+    칸단추누르기(화면, "tax", "없음");
+    칸적기(화면, "nice", "780");
+    expect(칸덩어리(화면.tree, "tax").props["data-unk"]).toBeUndefined();
+    expect(칸덩어리(화면.tree, "nice").props["data-unk"]).toBeUndefined();
   });
 });
 

@@ -21,7 +21,13 @@ import type { ReactNode } from "react";
 import type { BusinessProfile } from "../../engine/match-engine";
 import type { DirectoryStatus } from "../../funding/source-directory";
 import type { VerdictResult } from "../../ai/verdict";
+import type { DocumentPrefillResult } from "../../documents/types";
 import type { DiagnoseItem } from "./PolicyMatchScreen";
+
+/** `POST {endpoints.documentPrefill}` 응답 — 서류를 읽은 결과 또는 실패 사유. */
+export type DocumentPrefillResponse =
+  | { success: true; data: DocumentPrefillResult }
+  | { success: false; error: { code: string; message: string } };
 
 export type PolicyMatchEndpoints = {
   fundingMap: string;            // POST
@@ -34,6 +40,11 @@ export type PolicyMatchEndpoints = {
   askInstructor?: string;        // POST — 없으면 「자료실에 질문 저장」 미표시
   sync?: string;                 // POST — 없으면 「지금 새로 받아오기」 미표시
   prefill?: string;              // GET ?query= — 없으면 고객 검색 칸 미표시
+  /**
+   * POST multipart — 필드 `files`(여러 개) + 고객을 불러온 상태면 `customerKey`.
+   * 응답은 `DocumentPrefillResponse`. 없으면 서류 올리기 칸 미표시.
+   */
+  documentPrefill?: string;
 };
 
 /**
@@ -55,6 +66,7 @@ export const ERP_POLICY_MATCH_ENDPOINTS: PolicyMatchEndpoints = {
   askInstructor: "/api/policy-match/ask-instructor",
   sync: "/api/policy-match/sync",
   prefill: "/api/policy-match/prefill",
+  documentPrefill: "/api/policy-match/document-prefill",
 };
 
 export type VerdictFeedbackContext = {
@@ -98,6 +110,12 @@ export type PolicyMatchFeatures = {
    * false — 「읽는 중」 폴링·안내를 하지 않되 AI 판정 단추는 endpoints.verdict 로 따로 결정한다.
    */
   serverStructurizes?: boolean;
+  /**
+   * 서류 올리기 안내 방식. `"attach"`(기본, ERP·컨설턴트 앱)는 「고객을 불러온 상태면 올린 서류를 그 고객
+   * 자료에 붙여 둡니다」, `"lab"`(랩)은 「서류를 저장하지 않아요. 사진·스캔본은 글자 있는 PDF로 올려 주세요」
+   * 안내와 사진 형식 카드의 「글자 있는 PDF로」 표시. `endpoints.documentPrefill` 이 있을 때만 쓴다.
+   */
+  documentPrefillMode?: "attach" | "lab";
 };
 
 /**
