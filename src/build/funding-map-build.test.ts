@@ -11,6 +11,8 @@ import { usedProfileSummary } from "../engine/profile-summary";
 import type { FundingGroup } from "../funding/funding-group";
 import type { FundingItem } from "../funding/funding-map";
 import { MANUAL_PRODUCTS } from "../funding/products/sources/manual";
+import { filterFundingData } from "../ui/policy/result-conditions";
+import { sectionsOf } from "../ui/policy/ResultGroupList";
 
 /**
  * 흉내 낸 자료 읽기 — ERP 에서는 `vi.mock("./open-announcements")` 와 `vi.mock("@/lib/prisma")` 로
@@ -1575,5 +1577,38 @@ describe("BF11 — 검색어·탭은 80건으로 자르기 전에 서버에서 �
     loadOpenAnnouncements.mockResolvedValue(many());
     const data = await buildFundingMap({}, NOW);
     expect(shownOf(data.groups).filter((it) => it.group === "grant")).toHaveLength(80);
+  });
+
+  // 11차 리뷰 P2① — 화면이 같은 검색어로 한 번 더 거를 때 잘린 줄 수(80)로 건수를 덮어쓰면 안 된다.
+  it("81건 검색 결과는 화면을 거쳐도 81건 — 카드·목록 모두 「80건 전부」로 줄지 않는다", async () => {
+    loadOpenAnnouncements.mockResolvedValue(many());
+    const data = await buildFundingMap({}, NOW, { query: "지원사업" });
+    expect(data.totals.filtered).toBe(81);
+    const shown = filterFundingData(data, { tab: "all", query: "지원사업" });
+    const grant = shown.groups.find((b) => b.group === "grant")!;
+    expect(grant.items).toHaveLength(80);
+    expect(grant.total).toBe(81);
+    expect(sectionsOf(shown).find((s) => s.key === "grant")!.total).toBe(81);
+  });
+
+  const parked = () => [
+    ann({ id: "u1", title: "2026년 우수기업 현판 수여식 안내", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
+    ann({ id: "u2", title: "2026년 기업인 간담회 개최 알림", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
+  ];
+
+  // 11차 리뷰 P2② — 검색에서 빠진 미확인 줄이 「N건 중 M건만 보여 드림」에 남으면 안 된다.
+  it("미확인 2건 중 1건만 검색에 맞으면 미확인 전체 수도 1건", async () => {
+    loadOpenAnnouncements.mockResolvedValue(parked());
+    const data = await buildFundingMap({}, NOW, { query: "수여식" });
+    expect(data.unclassified).toBe(1);
+    expect(data.totals.filtered).toBe(1);
+    expect(filterFundingData(data, { tab: "all", query: "수여식" }).unclassified).toBe(1);
+  });
+
+  it("검색 전 자료를 화면이 거르면 미확인 전체 수도 남은 줄로 다시 센다", async () => {
+    loadOpenAnnouncements.mockResolvedValue(parked());
+    const data = await buildFundingMap({}, NOW);
+    expect(data.unclassified).toBe(2);
+    expect(filterFundingData(data, { tab: "all", query: "수여식" }).unclassified).toBe(1);
   });
 });

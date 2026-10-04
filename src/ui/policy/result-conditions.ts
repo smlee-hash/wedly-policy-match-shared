@@ -107,7 +107,7 @@ export function serverTotalOf(data: FundingMapPayload): number {
 
 /**
  * 검색어·탭을 서버가 걸어 보낸 자료의 건수 — 갈래 건수의 합 + 종류 미확인 줄 수.
- * 자료 속 `unclassified` 는 거르기 전 전체 수라(검색에 안 맞는 줄까지 센다) 그대로 더하면 안 된다.
+ * 갈래마다 미확인 수를 더한다(자료 속 `unclassified` 와 같은 값이지만, 옛 통로는 그 칸을 거르기 전 수로 보냈다).
  * 미확인 줄은 **서버가 거른 뒤 센 수**(`unclassifiedTotal`)를 쓴다 — 실려 온 줄 수는 갈래마다 80건에서
  * 잘려 있어 그것으로 세면 잘림 안내가 사라진다. 그 칸이 없는 응답(옛 통로)만 실려 온 줄로 센다.
  */
@@ -179,6 +179,12 @@ export function filterFundingData(data: FundingMapPayload, raw: ResultConditions
     .filter((b) => !isGroupTab(c.tab) || b.group === c.tab)
     .map((b) => {
       const items = b.items.filter(keep);
+      const excludedItems = b.excludedItems?.filter(keep);
+      // 서버가 같은 검색어·탭을 걸어 보낸 자료면 여기서 빠지는 줄이 없다 — 그때는 서버가 **자르기 전에** 센
+      // 건수를 그대로 둔다. 실려 온 줄(갈래마다 80건)로 다시 세면 81건짜리 검색이 「80건 전부」가 된다.
+      if (items.length === b.items.length && (excludedItems?.length ?? 0) === (b.excludedItems?.length ?? 0)) {
+        return b;
+      }
       const normal = items.filter((it) => !it.unclassified);
       const next: FundingMapPayload["groups"][number] = {
         ...b,
@@ -187,13 +193,19 @@ export function filterFundingData(data: FundingMapPayload, raw: ResultConditions
         fit: normal.filter((it) => it.fitVerdict === "fit").length,
         unverified: normal.filter((it) => it.fitVerdict === "unverified").length,
         soon: normal.filter(isSoon).length,
-        excludedItems: b.excludedItems?.filter(keep),
+        excludedItems,
       };
       // 서버가 센 미확인 건수는 서버가 걸었던 조건의 수다 — 화면이 다시 거른 뒤에는 남은 줄로 다시 센다.
       delete next.unclassifiedTotal;
       return next;
     });
-  return { ...data, groups };
+  // 미확인 전체 수도 남은 갈래의 미확인 수로 맞춘다 — 서버 수를 그대로 두면 검색에서 빠진 미확인 줄까지
+  // 「N건 중 M건만 보여 드림」에 남는다.
+  const unclassified = groups.reduce(
+    (n, b) => n + (b.unclassifiedTotal ?? b.items.filter((it) => it.unclassified).length),
+    0,
+  );
+  return { ...data, groups, unclassified };
 }
 
 export interface DiagnosisViewOptions {

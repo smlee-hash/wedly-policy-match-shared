@@ -88,7 +88,8 @@ export function sectionsOf(data: FundingMapPayload | null): GroupSection[] {
   if (loose.length > 0) {
     out.push({
       key: UNCLASSIFIED_KEY, name: "종류 미확인", sub: "돈의 종류를 아직 못 가른 공고", dotClass: "bg-wedly-muted",
-      total: loose.length, items: loose, excluded: 0, excludedItems: undefined, group: null,
+      // 건수는 서버가 자르기 전에 센 미확인 수다 — 실려 온 줄(갈래마다 80건)로 세면 잘린 검색이 전부처럼 보인다.
+      total: Math.max(loose.length, data.unclassified), items: loose, excluded: 0, excludedItems: undefined, group: null,
     });
   }
   return out;

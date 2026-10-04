@@ -946,7 +946,8 @@ export async function buildFundingMap(
   //  상품까지 함께 사라진다(맞는 상품을 잃는다).
   const shown = foldTwinProducts(filtered);
   const excludedShown = foldTwinProducts(excludedPool);
-  const unclassified = shown.filter((it) => it.unclassified).length;
+  // 검색어·탭을 걸었으면 미확인 수도 그 둘을 건 뒤 수다 — 갈래 칸(`unclassifiedTotal`)·`totals.filtered` 와 같은 잣대.
+  const unclassified = searchedCount(shown.filter((it) => it.unclassified), opts.query, opts.tab);
 
   // ★「무엇을 채우면 좋은가」(빈칸 힌트)는 **판정이 끝난 목록 전부**로 센다 — 정상 풀 + 안 맞음 풀을
   //  **겹친 상품을 접기 전**(`filtered`·`excludedPool`)으로 본다(코덱스 3차 #B1, 2026-09-04).
