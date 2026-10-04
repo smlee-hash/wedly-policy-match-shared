@@ -6,12 +6,19 @@
 // ★aiReader 가 돌려준 값도 믿지 않고 걸러 쓴다 — 주소는 시도+시군구까지만, 주민번호 모양 글자·모르는 칸은 버린다.
 // ★주민번호·대표자 이름·도로명은 결과 어디에도 내보내지 않는다(파일 이름에 든 주민번호 모양도 가린다).
 // ★업종 글의 이름은 짐작해 지우지 않는다. 서류(대표자·성명 칸)와 AI(personNames)가 알려 준 이름을 묶음 전체에서 모아 그것만 지운다.
+// ★이름 지우기·업종 40자 자르기·파일 이름 가리기는 합친 뒤 돌려주기 직전 한 곳(redactKnownNames)에서 한다. 앞단은 자르지 않는다.
 
 import { canonicalRegion } from "../engine/match-engine";
 import { CERT_TYPE_NAMES } from "../engine/profile-derive";
 import { sigunguSido } from "../engine/sigungu";
 import { classifyDocument } from "./classify";
-import { cleanCompanyScale, cleanIndustryText, cleanPersonNames, RRN_LIKE_GLOBAL } from "./clean-text";
+import {
+  cleanAiPersonNames,
+  cleanCompanyScale,
+  RRN_LIKE_GLOBAL,
+  screenIndustryText,
+  uniquePersonNames,
+} from "./clean-text";
 import { extractDocumentText } from "./extract-text";
 import { DOCUMENT_FIELD_KEYS, mergeDocumentFields, type MergeInput } from "./merge";
 import { readBizRegistration } from "./parse-biz-registration";
@@ -19,6 +26,7 @@ import { parseCompanyStatus } from "./parse-company-status";
 import { addressFields, normalizeDate, type DocumentBody, type ParsedWithNames } from "./parse-common";
 import { parseEmployment } from "./parse-employment";
 import { parseFinancial } from "./parse-financial";
+import { redactKnownNames } from "./redact-names";
 import {
   DOCUMENT_UPLOAD_LIMITS,
   type AiReaderResult,
@@ -83,14 +91,14 @@ function displayNameOf(base: string): string {
 /* ───────── AI 읽기 결과 거르기 ───────── */
 
 /**
- * 서류 파서·AI 가 돌려준 글자 칸(업종·규모)을 한 번 더 거른다 — 두 길이 같은 거르개를 쓴다.
- * 이 서류 묶음이 알려 준 사람 이름(`names`)을 업종에서 지우고, 다음 항목 이름(성명·대표자 …)에서 자르고,
- * 주민번호·주소 모양이 있으면 칸을 버린다. 규모는 정해진 값만 남긴다.
+ * 서류 파서가 돌려준 글자 칸(업종·규모)을 한 번 더 거른다 — AI 읽기와 같은 거르개를 쓴다.
+ * 업종은 다음 항목 이름(성명·대표자 …)에서 자르고, 주민번호·주소 모양이 있으면 칸을 버린다(40자로는 자르지 않는다).
+ * 규모는 정해진 값만 남긴다. 사람 이름 지우기는 묶음 전체의 이름이 모인 뒤 redactKnownNames 가 한다.
  */
-function scrubFields(fields: DocumentFields, names: readonly string[]): DocumentFields {
+function scrubFields(fields: DocumentFields): DocumentFields {
   const out: DocumentFields = { ...fields };
   if (out.industry !== undefined) {
-    const industry = cleanIndustryText(out.industry, undefined, names);
+    const industry = screenIndustryText(out.industry);
     if (industry) out.industry = industry;
     else delete out.industry;
   }
@@ -121,7 +129,7 @@ function sanitizeAiFields(raw: unknown): DocumentFields {
         break;
       }
       case "industry": {
-        const text = cleanIndustryText(value);
+        const text = screenIndustryText(value);
         if (text) out.industry = text;
         break;
       }
@@ -191,7 +199,7 @@ function sanitizeAiFields(raw: unknown): DocumentFields {
 function aiPersonNames(raw: unknown): string[] {
   if (typeof raw !== "object" || raw === null) return [];
   const names = (raw as Record<string, unknown>).personNames;
-  return Array.isArray(names) ? cleanPersonNames(names.slice(0, AI_NAMES_MAX)) : [];
+  return Array.isArray(names) ? cleanAiPersonNames(names.slice(0, AI_NAMES_MAX)) : [];
 }
 
 /* ───────── 파일 하나 읽기 ───────── */
@@ -199,10 +207,8 @@ function aiPersonNames(raw: unknown): string[] {
 interface ReadOne {
   result: DocumentFileResult;
   merge?: MergeInput;
-  /** 이 파일이 알려 준 사람 이름 — 묶음 전체의 업종에서 지우는 데만 쓴다. 결과에는 넣지 않는다. */
+  /** 이 파일이 알려 준 사람 이름 — 묶음 전체의 결과에서 지우는 데만 쓴다. 결과에는 넣지 않는다. */
   names: string[];
-  /** 이름을 지운 뒤 칸이 하나도 안 남았을 때 쓸 안내 */
-  emptyMessage?: string;
 }
 
 const noNames = (result: DocumentFileResult): ReadOne => ({ result, names: [] });
@@ -255,7 +261,6 @@ async function readImage(
     result: { name: display, docType: "unknown", status: "read-by-ai", fields: keys },
     merge: { name: display, docType: "unknown", fields },
     names,
-    emptyMessage: AI_EMPTY,
   };
 }
 
@@ -278,30 +283,18 @@ async function readOne(
   const read = parseByType(docType, body);
   if (!read) return noNames({ ...refused(display, "no-fields", UNKNOWN_DOC), docType });
 
-  // 칸의 글자 거르기는 서류 묶음 전체의 이름이 모인 뒤(finishRead)에 한다 — 다른 서류가 알려 준 이름도 지워야 해서.
+  // 사람 이름 지우기는 서류 묶음 전체의 이름이 모인 뒤(redactKnownNames)에 한다 — 다른 서류가 알려 준 이름도 지워야 해서.
   const { parsed, personNames } = read;
-  const emptyMessage = parsed.note ?? NO_FIELDS;
-  const keys = Object.keys(parsed.fields) as DocumentFileResult["fields"];
-  if (keys.length === 0) return { result: { ...refused(display, "no-fields", emptyMessage), docType }, names: personNames };
-  const result: DocumentFileResult = { name: display, docType, status: "read", fields: keys };
-  if (parsed.year !== undefined) result.year = parsed.year;
-  const merge: MergeInput = { name: display, docType, fields: parsed.fields };
-  if (parsed.year !== undefined) merge.year = parsed.year;
-  return { result, merge, names: personNames, emptyMessage };
-}
-
-/**
- * 묶음 전체의 사람 이름으로 칸을 거른 뒤 확정한다 — 업종에서 이름이 지워져 칸이 하나도 안 남으면 「채울 값 없음」으로 바꾼다.
- */
-function finishRead(read: ReadOne, names: readonly string[]): Pick<ReadOne, "result" | "merge"> {
-  if (!read.merge) return { result: read.result };
-  const fields = scrubFields(read.merge.fields, names);
+  const fields = scrubFields(parsed.fields);
   const keys = Object.keys(fields) as DocumentFileResult["fields"];
   if (keys.length === 0) {
-    const { name, docType } = read.result;
-    return { result: { ...refused(name, "no-fields", read.emptyMessage ?? NO_FIELDS), docType } };
+    return { result: { ...refused(display, "no-fields", parsed.note ?? NO_FIELDS), docType }, names: personNames };
   }
-  return { result: { ...read.result, fields: keys }, merge: { ...read.merge, fields } };
+  const result: DocumentFileResult = { name: display, docType, status: "read", fields: keys };
+  if (parsed.year !== undefined) result.year = parsed.year;
+  const merge: MergeInput = { name: display, docType, fields };
+  if (parsed.year !== undefined) merge.year = parsed.year;
+  return { result, merge, names: personNames };
 }
 
 /**
@@ -337,15 +330,12 @@ export async function readDocuments(
     }
   }
 
-  // 서류 묶음 전체가 알려 준 사람 이름(규칙 경로·AI 경로 모두)으로 모든 서류의 칸을 거른다. 이름은 여기서만 쓰고 결과에 넣지 않는다.
-  const names = cleanPersonNames(reads.flatMap((r) => r.names));
-  const results: DocumentFileResult[] = [];
-  const inputs: MergeInput[] = [];
-  for (const read of reads) {
-    const done = finishRead(read, names);
-    results.push(done.result);
-    if (done.merge) inputs.push(done.merge);
-  }
+  const results = reads.map((r) => r.result);
+  const inputs = reads.flatMap((r) => (r.merge ? [r.merge] : []));
+  const merged: DocumentPrefillResult = { ...mergeDocumentFields(inputs), files: results };
 
-  return { ...mergeDocumentFields(inputs), files: results };
+  // 서류 묶음 전체가 알려 준 사람 이름(규칙 경로·AI 경로 모두)으로 돌려주기 직전에 결과 전체를 한 번에 지운다.
+  // 이름은 여기서만 쓰고 결과에 넣지 않는다.
+  const names = uniquePersonNames(reads.flatMap((r) => r.names));
+  return redactKnownNames(merged, names, (file) => (file.status === "read-by-ai" ? AI_EMPTY : NO_FIELDS));
 }

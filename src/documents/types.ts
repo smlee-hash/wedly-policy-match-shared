@@ -32,7 +32,8 @@ export type DocumentFields = Partial<Pick<BusinessProfile, DocumentFieldKey>>;
 /**
  * aiReader(사진·스캔본을 AI 로 읽는 함수)가 돌려주는 값 — 칸 값 묶음 + 선택 값 personNames.
  * - personNames: AI 가 사진에서 본 대표자·직원 이름. **결과 칸에는 넣지 않고** 같은 서류 묶음 모든 서류의
- *   업종 글에서 그 이름을 지우는 데만 쓴다. 앱의 AI 지시문은 이름을 여기에만 담게 한다(업종 칸에 적지 않게).
+ *   업종 글에서 그 이름을 지우고 파일 이름 속 이름을 「○○○」로 바꾸는 데만 쓴다. 앱의 AI 지시문은 이름을 여기에만 담게 한다(업종 칸에 적지 않게).
+ *   이름은 공백을 정리한 1~40자의 글자(한글·영문·점)면 그대로 쓰고, 지울 때는 대소문자·공백을 가리지 않는다.
  */
 export type AiReaderResult = DocumentFields & { personNames?: string[] };
 

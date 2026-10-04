@@ -593,26 +593,54 @@ function sheetOf(name: string, ws: XLSX.WorkSheet, date1904: boolean): SheetData
   return sheet;
 }
 
-/** `<row r="12" …>` 의 줄 번호(큰따옴표·작은따옴표 모두) */
-const ROW_NUMBER = /\sr=(?:"(\d{1,9})"|'(\d{1,9})')/;
+/** `<row r="12" …>` 의 줄 번호(큰따옴표·작은따옴표 모두, 등호 앞뒤 공백 허용). 태그 하나 안에서만 찾는 짧은 식이다. */
+const ROW_NUMBER = /\sr\s*=\s*(?:"(\d{1,9})"|'(\d{1,9})')/;
 /** 태그 이름이 끝나는 글자 */
 const TAG_NAME_END = new Set([" ", "\t", "\n", "\r", ">", "/", "<"]);
 
+/** `<` 자리에서 태그 이름(닫는 태그의 `/` 는 뺀다)과 이름 끝 자리를 읽는다. 이름 앞 접두사(`x:`)는 떼고 본 이름도 함께. */
+function tagNameAt(xml: string, open: number): { local: string; closing: boolean; end: number } {
+  let start = open + 1;
+  const closing = xml[start] === "/";
+  if (closing) start++;
+  let end = start;
+  while (end < xml.length && !TAG_NAME_END.has(xml[end])) end++;
+  const name = xml.slice(start, end);
+  return { local: name.slice(name.lastIndexOf(":") + 1), closing, end };
+}
+
 /**
- * 줄 속에 값이 든 칸이 있다는 표시 — 숫자·글자 값(`<v>`)이나 바로 적은 글자(`<is>`). 서식만 있는 칸에는 없다.
- * 이름 앞 접두사(`<x:v>`)가 붙은 표기도 같이 본다.
+ * 한 줄의 몸통(`from`~`to`)에 값이 든 칸이 있는가 — 숫자·글자 값(`<v>`)이나 바로 적은 글자(`<is>`)가 있으면 참.
+ * 서식만 있는 칸(`<c r="A1"/>`)·속이 빈 `<v/>` 에는 없다. 값 태그의 접두사(`<x:v>`)는 줄 태그와 달라도 된다.
  */
-function valueMarksOf(prefix: string): string[] {
-  const out = ["<v>", "<v ", "<is>", "<is "];
-  if (prefix) out.push(`<${prefix}v>`, `<${prefix}v `, `<${prefix}is>`, `<${prefix}is `);
-  return out;
+function hasValueTag(xml: string, from: number, to: number): boolean {
+  let at = from;
+  for (;;) {
+    const open = xml.indexOf("<", at);
+    if (open < 0 || open >= to) return false;
+    const tag = tagNameAt(xml, open);
+    if (!tag.closing && (tag.local === "v" || tag.local === "is") && xml[tag.end] !== "/") return true;
+    at = open + 1;
+  }
+}
+
+/** 줄을 닫는 태그(`</row>`·`</x:row>`)의 자리. 접두사는 가리지 않는다. 없으면 -1. */
+function rowCloseFrom(xml: string, from: number): number {
+  let at = from;
+  for (;;) {
+    const open = xml.indexOf("</", at);
+    if (open < 0) return -1;
+    if (tagNameAt(xml, open).local === "row") return open;
+    at = open + 2;
+  }
 }
 
 /**
  * 시트 XML 에서 **값이 있는 칸을 가진 마지막 줄 번호**. 없으면 0.
  * 읽기 도구에 행 상한(sheetRows)을 주면 상한 뒤 줄은 읽지 않아 범위가 줄어든다 — 그 뒤에 값이 있었는지는
  * 읽기 전에 원본 XML 에서 따로 알아야 한다. 앞에서 한 번만 훑는다(역추적 정규식·되돌아가기 없음).
- * 줄 태그에 이름 접두사(`<x:row …>`)가 붙어도, 속성이 작은따옴표(`r='3000'`)여도 읽는다.
+ * 줄 태그에 이름 접두사(`<x:row …>`)가 붙어도, 속성이 작은따옴표·등호 공백(`r = '3000'`)이어도 읽는다.
+ * 줄 태그·닫는 태그·값 태그의 접두사는 서로 달라도 된다.
  */
 export function lastValuedRowOf(xml: string): number {
   let last = 0;
@@ -621,16 +649,12 @@ export function lastValuedRowOf(xml: string): number {
   for (;;) {
     const open = xml.indexOf("<", from);
     if (open < 0) break;
-    let nameEnd = open + 1;
-    while (nameEnd < xml.length && !TAG_NAME_END.has(xml[nameEnd])) nameEnd++;
-    const name = xml.slice(open + 1, nameEnd);
-    const colon = name.lastIndexOf(":");
+    const { local, closing } = tagNameAt(xml, open);
     // 「<rowBreaks」·「</row>」처럼 줄을 여는 태그가 아닌 것은 건너뛴다.
-    if (name.slice(colon + 1) !== "row") {
+    if (closing || local !== "row") {
       from = open + 1;
       continue;
     }
-    const prefix = name.slice(0, colon + 1);
     const tagEnd = xml.indexOf(">", open);
     if (tagEnd < 0) break;
     const tag = xml.slice(open, tagEnd + 1);
@@ -638,11 +662,10 @@ export function lastValuedRowOf(xml: string): number {
     current = num ? Number(num[1] ?? num[2]) : current + 1; // 번호가 없는 줄은 앞 줄 다음 번호
     from = tagEnd + 1;
     if (tag.endsWith("/>")) continue; // 칸이 없는 줄
-    const close = xml.indexOf(`</${prefix}row>`, from);
+    const close = rowCloseFrom(xml, from);
     const end = close < 0 ? xml.length : close;
-    const body = xml.slice(from, end);
+    if (current > last && hasValueTag(xml, from, end)) last = current;
     from = end;
-    if (current > last && valueMarksOf(prefix).some((mark) => body.includes(mark))) last = current;
   }
   return last;
 }

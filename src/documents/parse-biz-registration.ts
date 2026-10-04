@@ -4,7 +4,7 @@
 // ★사업장 소재지는 시도+시군구까지만 남긴다(도로명·번지·건물명은 결과 어디에도 없다).
 // (ERP 의 policy-match/taxbot-document-facts 의 parseRegistrationCertificate 를 옮겨 칸을 넓혔다.)
 
-import { cleanIndustryText, personNamesIn } from "./clean-text";
+import { personNamesIn, screenIndustryText } from "./clean-text";
 import { addressFields, normalizeDate, type ParsedDocument, type ParsedWithNames } from "./parse-common";
 import type { DocumentFields } from "./types";
 
@@ -155,10 +155,9 @@ export function readBizRegistration(rawText: string): ParsedWithNames {
   const sectors = [...new Set(items)];
   if (types.length && sectors.length) {
     const joined = `${types.join(", ")} / ${sectors.join(", ")}`;
-    // 다음 항목 이름·주민번호·주소 모양이 섞였으면 자르거나 버리고, 업종은 40자까지만 쓴다.
-    // 이 서류가 알려 준 대표자 이름은 업종 글에서 먼저 지운다.
-    const industry =
-      joined.length <= MAX_INDUSTRY_LENGTH ? cleanIndustryText(joined, undefined, personNames) : null;
+    // 다음 항목 이름·주민번호·주소 모양이 섞였으면 자르거나 버리고, 이 서류가 알려 준 대표자 이름은 지운다.
+    // 40자로는 자르지 않는다 — 묶음 전체의 이름을 모은 뒤 돌려주기 직전에 한 곳에서 자른다(readDocuments).
+    const industry = joined.length <= MAX_INDUSTRY_LENGTH ? screenIndustryText(joined, personNames) : null;
     if (industry) fields.industry = industry;
   }
 
