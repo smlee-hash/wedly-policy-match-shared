@@ -3,10 +3,12 @@
 // 지원정책 매칭 — 상태 관리와 배치만 맡는다(그리는 일은 조각들이 나눠 한다).
 // 화면의 주인공은 「사업자 정보 입력 → 매칭」이다(2026-08-22 사장님 결정 2번).
 // 넓은 화면(>820px)은 두 칸이다 — 왼쪽 회사 정보 고정 패널(안쪽 스크롤·진단 단추 바닥 고정), 오른쪽 결과.
-// 오른쪽은 위에서부터 요약 탭·「모름 → 확인 필요」 띠·도구 줄, 그 아래 두 판이 갈린다.
+// 오른쪽은 위에서부터 요약 탭·「모름 → 확인 필요」 띠·도구 줄, 그 아래 판이 갈린다.
 //  · 탐색(browse) — 좌 결과 목록 / 우 공고 상세. **여기는 바뀌지 않는다**(탐색 회귀 금지).
-//  · 진단(diagnosed) — 「한눈에」는 전폭 자금 조달 지도 + 서랍, 「목록」은 위 두 컬럼 그대로.
+//  · 진단(diagnosed) — 「한눈에」는 전폭 자금 조달 지도 + 서랍, 「목록」은 묶음별 접기·펴기 목록이다.
 //    두 판은 도구 줄의 보기 단추(목록 / 한눈에)로 갈아탄다.
+// 목록의 행을 누르면 오른쪽 서랍(820px 이하는 아래에서 올라오는 창)에 공고 상세(DetailPanel)가 열린다 —
+// 정밀 판정·돌파구·피드백·강사 문의가 전부 그 안에 그대로 있다. 닫기·Esc·바깥 누르기로 닫는다.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 // 거르개(칩)·펼침을 한 자리에서 옮기는 규칙 — 상세창 레일(FundingRecommendPanel)과 **같은 함수**를
 // 쓴다. 이 규칙을 여기 다시 적으면 두 화면이 갈라진다(레일에서 이미 겪은 결함).
@@ -17,6 +19,8 @@ import type { FundingFilters, FundingItem, FundingSort } from "../../funding/fun
 import type { FundingGroup } from "../../funding/funding-group";
 import ProfileForm, { type ProfileFormStatus } from "./ProfileForm";
 import ResultList from "./ResultList";
+import ResultGroupList from "./ResultGroupList";
+import ResultDrawer from "./ResultDrawer";
 import ResultSummaryBar from "./ResultSummaryBar";
 import { filterDiagnosis, filterFundingData, reviewCountOf, type SummaryTab } from "./result-conditions";
 import DetailPanel from "./DetailPanel";
@@ -363,6 +367,8 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
   const [diagnosing, setDiagnosing] = useState(false);
   const [selectedId, setSelectedId] = useState("");
+  // 상세 서랍이 열려 있나 — 진단 목록·지도에서 공고를 눌렀을 때만 참이 된다(탐색은 오른쪽 칸에 그대로 펼친다).
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const detailRef = useRef<HTMLDivElement | null>(null);
 
   // ── 자금 조달 지도(3단계) 상태 ────────────────────────────────────────
@@ -387,8 +393,6 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
       (req) => postFundingMap(req, endpoints.fundingMap),
     ),
   );
-  /** 지도 → 목록·상세로 건너간 뒤 좁은 화면에서 상세로 데려갈지(그 순간엔 상세가 아직 안 그려져 있다). */
-  const scrollAfterList = useRef(false);
 
   // ── 결과 위 요약 탭·검색·「지금 신청 가능」 — 목록과 한눈에(지도) 둘 다 같은 조건으로 거른다.
   // 정렬은 지도 통로의 줄 세우기(fundingSort)와 한 값이다 — 두 곳에서 따로 쥐면 어긋난다.
@@ -428,15 +432,6 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
     if (profileNonce === 0) return; // 아직 진단 전 — 부를 것이 없다
     void loadFunding({ profile, filters: fundingFilters, sort: fundingSort });
   }, [loadFunding, profileNonce, profile, fundingFilters, fundingSort]);
-
-  // 목록·상세 판이 그려진 뒤에 데려간다 — 건너뛰던 순간엔 상세 자리가 없어 스크롤이 먹지 않는다.
-  useEffect(() => {
-    if (!scrollAfterList.current || mapUi.view !== "list") return;
-    scrollAfterList.current = false;
-    if (typeof window !== "undefined" && window.innerWidth < NARROW_MAX_PX) {
-      detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, [mapUi.view, selectedId]);
 
   const submitSearch = useCallback(() => {
     setPage(1);
@@ -497,6 +492,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
       setMode("diagnosed");
       const first = data.possible[0] ?? data.uncertain[0] ?? data.impossible[0];
       setSelectedId(first?.announcementId ?? "");
+      setDrawerOpen(false); // 새 회차는 서랍을 닫은 채 시작한다 — 앞 회사의 상세를 덮어 두지 않는다
       // 지도는 새 회차 것부터 — 다른 회사의 지도를 흐리게 남겨 두지 않는다(자료를 비우면 뼈대가 뜬다).
       setFundingData(null);
       setFundingError("");
@@ -512,18 +508,36 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
     }
   }, [endpoints.diagnose, resetFundingForCompany]);
 
-  /** 서랍의 「상세·AI 판정 열기」 — 목록·상세 판으로 건너가며 그 공고를 고른다(서랍은 닫힌다). */
+  /** 지도 서랍의 「상세·AI 판정 열기」 — 목록 판으로 건너가며 그 공고의 상세 서랍을 연다(지도 서랍은 닫힌다). */
   const openDetailFromMap = useCallback((announcementId: string) => {
-    scrollAfterList.current = true;
     dispatchMapUi({ type: "detail" });
-    select(announcementId);
-  }, [select]);
-
-  /** 지도의 「전체 공고 탐색」 — 탐색 판으로. 서랍을 덮어 둔 채 넘어가지 않는다. */
-  const browseAll = useCallback(() => {
-    setMode("browse");
-    dispatchMapUi({ type: "close" });
+    setSelectedId(announcementId);
+    setDrawerOpen(true);
   }, []);
+
+  /** 목록의 행 — 공고는 상세 서랍, 상시 상품은 상세 통로가 없어 지도의 항목 서랍을 그대로 쓴다. */
+  const openRow = useCallback((item: FundingItem) => {
+    if (item.kind === "announcement") {
+      setSelectedId(item.refId);
+      setDrawerOpen(true);
+    } else {
+      dispatchMapUi({ type: "open", item });
+    }
+  }, []);
+
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+
+  /** 「진단 결과 ↔ 전체 공고」 — 판을 갈아타면 상세 서랍은 닫는다(탐색은 오른쪽 칸에 상세를 펼친다). */
+  const changeMode = useCallback((m: ListMode) => {
+    setMode(m);
+    setDrawerOpen(false);
+  }, []);
+
+  /** 「전체 공고 탐색」 — 탐색 판으로. 서랍을 덮어 둔 채 넘어가지 않는다. */
+  const browseAll = useCallback(() => {
+    changeMode("browse");
+    dispatchMapUi({ type: "close" });
+  }, [changeMode]);
 
   /** 지도 오류 상자의 「다시 시도」 — 같은 조건으로 다시 부른다. */
   const retryFunding = useCallback(() => {
@@ -638,8 +652,23 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
           onToggleExcluded={toggleExcluded}
           renderCardFooter={mapCardFooter}
         />
+      ) : mode === "diagnosed" ? (
+        // 진단 「목록」 — 묶음별 접기·펴기. 행을 누르면 아래의 상세 서랍이 열린다(오른쪽 칸을 따로 차지하지 않는다).
+        <ResultGroupList
+          data={shownFunding}
+          loading={fundingLoading}
+          error={fundingError}
+          onRetry={retryFunding}
+          diagnosis={diagnosis}
+          serverStructurizes={features?.serverStructurizes ?? true}
+          selectedKey={drawerOpen ? (fundingByRef.get(selectedId)?.id ?? "") : ""}
+          onOpen={openRow}
+          showExcluded={showExcluded}
+          onToggleExcluded={toggleExcluded}
+          onBrowseAll={browseAll}
+        />
       ) : (
-        /* 큰 화면(lg+) master-detail — 오른쪽 상세가 「내용 높이」로 자라 그 높이가 두 컬럼의 높이를
+        /* 탐색 — 큰 화면(lg+) master-detail. 오른쪽 상세가 「내용 높이」로 자라 그 높이가 두 컬럼의 높이를
            정한다(align stretch 기본값). 상세는 안쪽 스크롤 없이 다 펼쳐지고(길면 페이지가 스크롤),
            왼쪽 목록은 그 높이에 맞춰지고 목록이 더 길면 목록 안에서만 스크롤한다.
            min-h 36rem = 상세가 아주 짧아도 목록칸이 쓸 만한 최소 높이를 갖게 하는 바닥값.
@@ -650,7 +679,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
           <div className="lg:col-span-5 lg:relative">
             <ResultList
               mode={mode}
-              onModeChange={setMode}
+              onModeChange={changeMode}
               diagnosis={shownDiagnosis}
               selectedId={selectedId}
               onSelect={select}
@@ -691,6 +720,27 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
         header={slots?.sourcesHeader}
         trailingPaddingClass={features?.sourcesTrailingPaddingClass ?? ""}
       />
+
+      {/* 상세 서랍 — 진단 목록에서 행을 눌렀을 때 DetailPanel(조건 맞춰 보기·AI 판정·돌파구·피드백·강사 문의)이
+          그대로 열린다. 탐색 판은 오른쪽 칸에 상세를 펼치므로 여기서는 진단 판일 때만 연다. */}
+      <ResultDrawer
+        open={drawerOpen && mode === "diagnosed"}
+        title={selectedItem?.title ?? fundingByRef.get(selectedId)?.title ?? "공고 상세"}
+        onClose={closeDrawer}
+      >
+        <DetailPanel
+          endpoints={endpoints}
+          parseError={features?.parseError}
+          verdictFeedback={verdictFeedback}
+          announcementId={selectedId}
+          mode={mode}
+          profile={profile}
+          profileNonce={profileNonce}
+          item={selectedItem}
+          hasDiagnosis={diagnosis !== null}
+          serverStructurizes={features?.serverStructurizes ?? true}
+        />
+      </ResultDrawer>
 
       {/* 서랍은 화면 위에 덮이는 판(SidePanel)이라 자리는 맨 끝이면 된다 — 좁은 화면에선 전폭이 된다.
           ★`aiVerdictAvailable` 은 다른 자리(「AI 판정」 단추·돌파구)와 **같은 규칙**이다 —

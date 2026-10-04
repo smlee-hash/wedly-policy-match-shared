@@ -238,6 +238,40 @@ export function GroupMembers({ repId, members, selectedId, onSelect }: {
   );
 }
 
+/**
+ * 진단 결과 위 안내 띠 — AI 가 읽은 수·소재지가 달라 뺀 수. 할 말이 없으면 아무것도 안 그린다.
+ * 옛 세 묶음 목록(ResultList)과 새 묶음별 목록(ResultGroupList)이 **같은 글자**를 쓰도록 한 벌만 둔다.
+ */
+export function DiagnosisNotice({ diagnosis, serverStructurizes = true }: {
+  diagnosis: Diagnosis | null;
+  serverStructurizes?: boolean;
+}) {
+  const candidateCount = diagnosis?.candidateCount;
+  const analyzedCount = diagnosis?.analyzedCount;
+  const droppedByRegion = diagnosis?.droppedByRegion;
+  const showAnalyzeBanner =
+    typeof candidateCount === "number" &&
+    typeof analyzedCount === "number" &&
+    candidateCount > analyzedCount;
+  // 제외 건수는 **분석이 다 끝나도** 보여야 한다 — 다 읽힌 뒤가 이 시스템이 지향하는 상태인데,
+  // 그때 「왜 그 공고가 안 보이냐」에 답할 숫자가 함께 사라지면 안 된다(2026-08-24 화면 독립 검사 2번).
+  const showDroppedBanner = typeof droppedByRegion === "number" && droppedByRegion > 0;
+  if (!showAnalyzeBanner && !showDroppedBanner) return null;
+  return (
+    <div className={`mt-4 tabular-nums ${BANNER_WARN}`}>
+      {showAnalyzeBanner && (
+        /* 「잠시 뒤 다시 진단하면 반영」은 이제 거짓이다 — 뒤에서 읽어 주던 시계를 없앴다
+           (2026-08-25 비용 구조 전환). 오지 않을 반영을 기다리게 하지 않는다. */
+        <>후보 {candidateCount}건 중 {analyzedCount}건은 AI 가 읽었습니다 — 나머지는 간이 판정이며, {serverStructurizes ? "공고를 열면 그 자리서 읽습니다" : "AI 가 차례로 읽고 나면 다시 진단할 때 반영됩니다"}</>
+      )}
+      {/* 지역이 안 맞아 빠진 수 — 「왜 그 공고가 안 보이냐」에 답할 유일한 숫자다. */}
+      {showDroppedBanner && (
+        <>{showAnalyzeBanner ? " · " : ""}소재지가 맞지 않아 {droppedByRegion}건 제외</>
+      )}
+    </div>
+  );
+}
+
 export default function ResultList({
   mode, onModeChange, diagnosis, selectedId, onSelect, browse, announcementsEndpoint,
   onManualSync, verdictFeedback, profile, serverStructurizes = true,
@@ -286,16 +320,6 @@ export default function ResultList({
     : "possible";
   const grade: GradeKey = pick && pick.from === diagnosis ? pick.key : defaultGrade;
 
-  const candidateCount = diagnosis?.candidateCount;
-  const analyzedCount = diagnosis?.analyzedCount;
-  const droppedByRegion = diagnosis?.droppedByRegion;
-  const showAnalyzeBanner =
-    typeof candidateCount === "number" &&
-    typeof analyzedCount === "number" &&
-    candidateCount > analyzedCount;
-  // 제외 건수는 **분석이 다 끝나도** 보여야 한다 — 다 읽힌 뒤가 이 시스템이 지향하는 상태인데,
-  // 그때 「왜 그 공고가 안 보이냐」에 답할 숫자가 함께 사라지면 안 된다(2026-08-24 화면 독립 검사 2번).
-  const showDroppedBanner = typeof droppedByRegion === "number" && droppedByRegion > 0;
   const items: DiagnoseItem[] = diagnosis ? diagnosis[grade] : [];
   const pageCount = Math.max(1, Math.ceil(browse.total / PAGE_SIZE));
 
@@ -348,19 +372,7 @@ export default function ResultList({
             ))}
           </div>
 
-          {(showAnalyzeBanner || showDroppedBanner) && (
-            <div className={`mt-4 tabular-nums ${BANNER_WARN}`}>
-              {showAnalyzeBanner && (
-                /* 「잠시 뒤 다시 진단하면 반영」은 이제 거짓이다 — 뒤에서 읽어 주던 시계를 없앴다
-                   (2026-08-25 비용 구조 전환). 오지 않을 반영을 기다리게 하지 않는다. */
-                <>후보 {candidateCount}건 중 {analyzedCount}건은 AI 가 읽었습니다 — 나머지는 간이 판정이며, {serverStructurizes ? "공고를 열면 그 자리서 읽습니다" : "AI 가 차례로 읽고 나면 다시 진단할 때 반영됩니다"}</>
-              )}
-              {/* 지역이 안 맞아 빠진 수 — 「왜 그 공고가 안 보이냐」에 답할 유일한 숫자다. */}
-              {showDroppedBanner && (
-                <>{showAnalyzeBanner ? " · " : ""}소재지가 맞지 않아 {droppedByRegion}건 제외</>
-              )}
-            </div>
-          )}
+          <DiagnosisNotice diagnosis={diagnosis} serverStructurizes={serverStructurizes} />
 
           <div className="mt-4 max-h-[calc(100vh-22rem)] space-y-2 overflow-y-auto pr-1 lg:max-h-none lg:min-h-0 lg:flex-1">
             {items.length === 0 && (
