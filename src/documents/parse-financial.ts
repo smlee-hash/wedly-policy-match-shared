@@ -27,7 +27,8 @@ const REVENUE_RE: Record<FinancialDocType, RegExp> = {
 /** 괄호 안이 숫자뿐인 모양(「1,234」·「△1,234」) — 풀이가 아니라 음수 금액이다. */
 const NEGATIVE_PAREN_INNER = String.raw`[\s△▲\-−,.]*\d[\s\d,.]*`;
 /** 라벨 바로 뒤의 괄호 풀이(「(주석 3)」)와 점·콜론을 건너뛴다. 숫자뿐인 괄호는 풀이가 아니니 건너뛰지 않는다. */
-const AFTER_LABEL_RE = new RegExp(String.raw`^(?:\s*[(（](?!${NEGATIVE_PAREN_INNER}[)）])[^)）]{0,10}[)）])?[\s:：.…·|]*`);
+// sticky(y) — 라벨 끝 자리에서 바로 읽는다. 줄 나머지를 잘라 복사하지 않아 라벨이 많은 줄도 줄 길이만큼만 든다.
+const AFTER_LABEL_RE = new RegExp(String.raw`(?:\s*[(（](?!${NEGATIVE_PAREN_INNER}[)）])[^)）]{0,10}[)）])?[\s:：.…·|]*`, "y");
 
 /** 단위 표기. 긴 이름이 먼저 와야 「천만원」이 「만원」으로 잘못 읽히지 않는다. */
 const UNIT_RE = /단\s*위\s*[:：]?\s*(천\s*만\s*원|백\s*만\s*원|억\s*원|천\s*원|만\s*원|원)/g;
@@ -47,9 +48,6 @@ const PERIOD_LABEL_RE = /사업\s*연도|사업\s*년도|과세\s*기간|귀속/
 /** 기간 모양이 아니고 「사업연도 2025」처럼 해만 적힌 경우 */
 const YEAR_ONLY_RE = /(?:사업\s*연도|사업\s*년도|귀속\s*(?:연도|년도)?)\s*[:：]?\s*(\d{4})\s*년?(?!\s*[.\-/\d])/;
 
-/** 한 줄에서 금액을 찾아볼 매출 라벨 수 상한 — 라벨을 수만 번 되풀이한 줄이 처리 시간을 잡아먹지 않게. */
-const MAX_LABELS_PER_LINE = 4;
-
 const NOTHING_FOUND = "매출을 찾지 못했습니다. 손익계산서의 매출액이나 부가세 신고서의 과세표준 합계가 보이는 글자 있는 PDF·엑셀로 올려 주세요.";
 
 function validYear(y: number): number | undefined {
@@ -68,9 +66,18 @@ function yearOf(text: string): number | undefined {
   return single ? validYear(Number(single[1])) : undefined;
 }
 
+interface UnitMark {
+  index: number;
+  name: string;
+}
+
+/** 글의 단위 표기 자리들 — 글마다 한 번만 찾는다. */
+function unitsOf(text: string): UnitMark[] {
+  return [...text.matchAll(UNIT_RE)].map((m) => ({ index: m.index ?? 0, name: m[1].replace(/\s+/g, "") }));
+}
+
 /** 매출 줄의 위치 앞에서 가장 가까운 단위. 앞에 없으면 글에서 처음 나온 단위. 표기가 없으면 원(1). */
-function multiplierAt(text: string, at: number): number {
-  const units = [...text.matchAll(UNIT_RE)].map((m) => ({ index: m.index ?? 0, name: m[1].replace(/\s+/g, "") }));
+function multiplierAt(units: UnitMark[], at: number): number {
   if (units.length === 0) return 1;
   const before = units.filter((u) => u.index <= at);
   const pick = before.length > 0 ? before[before.length - 1] : units[0];
@@ -139,21 +146,40 @@ const UNIT_NAMES = "천만원|백만원|억원|천원|만원|원";
  * 단위 뒤에 한글이 이어 붙으면(「원가」) 단위가 아니라 낱말이다.
  */
 const AMOUNT_TOKEN_RE = new RegExp(
-  String.raw`^(?:[(（](${NEGATIVE_PAREN_INNER})[)）]|([△▲\-−])\s*(\d[\d,]*(?:\.\d+)?)|(\d[\d,]*(?:\.\d+)?))(?:\s*(${UNIT_NAMES})(?![가-힣]))?[\s:：.…·|]*`,
+  String.raw`(?:[(（](${NEGATIVE_PAREN_INNER})[)）]|([△▲\-−])\s*(\d[\d,]*(?:\.\d+)?)|(\d[\d,]*(?:\.\d+)?))(?:\s*(${UNIT_NAMES})(?![가-힣]))?[\s:：.…·|]*`,
+  "y",
 );
 
-/** 라벨 뒤에 이어지는 금액들(공백·`|`·콜론으로 이어진 것만) — 음수 표시와 금액 바로 뒤 단위도 함께. m 은 라벨이 찾은 결과. */
-function numbersAfterLabel(scan: string, m: RegExpExecArray): PickedAmount[] {
-  let rest = scan.slice(m.index + m[0].length);
-  rest = rest.slice((AFTER_LABEL_RE.exec(rest) as RegExpExecArray)[0].length);
+/** 라벨 끝 자리에서 풀이·점·콜론을 건너뛴 첫 금액 자리. */
+function amountStart(scan: string, m: RegExpExecArray): number {
+  AFTER_LABEL_RE.lastIndex = m.index + m[0].length;
+  const skip = AFTER_LABEL_RE.exec(scan) as RegExpExecArray; // 모두 생략 가능한 식이라 늘 맞는다
+  return skip.index + skip[0].length;
+}
+
+/** 라벨 바로 뒤에 금액 토큰(음수 포함)이 하나라도 있는지 — 토큰 하나만 본다. */
+function hasAmountAfterLabel(scan: string, m: RegExpExecArray): boolean {
+  AMOUNT_TOKEN_RE.lastIndex = amountStart(scan, m);
+  return AMOUNT_TOKEN_RE.exec(scan) !== null;
+}
+
+/**
+ * 라벨 뒤에 이어지는 금액들(공백·`|`·콜론으로 이어진 것만) — 음수 표시와 금액 바로 뒤 단위도 함께. m 은 라벨이 찾은 결과.
+ * stop 이 참을 돌려주는 토큰에서 멈춘다(그 토큰까지 담는다) — 첫 쓸 값만 필요할 때 뒤 금액을 끝까지 읽지 않게.
+ */
+function numbersAfterLabel(scan: string, m: RegExpExecArray, stop?: (t: PickedAmount) => boolean): PickedAmount[] {
+  let at = amountStart(scan, m);
   const out: PickedAmount[] = [];
   for (;;) {
-    const t = AMOUNT_TOKEN_RE.exec(rest);
-    if (!t) break;
+    AMOUNT_TOKEN_RE.lastIndex = at;
+    const t = AMOUNT_TOKEN_RE.exec(scan);
+    if (!t || t[0].length === 0) break;
     const negative = t[1] !== undefined || t[2] !== undefined;
-    const picked = amountWithUnit(t[4] ?? t[3] ?? t[1].replace(/[^\d.]/g, ""), t[5]);
-    out.push(negative ? { ...picked, negative: true } : picked);
-    rest = rest.slice(t[0].length);
+    const base = amountWithUnit(t[4] ?? t[3] ?? t[1].replace(/[^\d.]/g, ""), t[5]);
+    const picked: PickedAmount = negative ? { ...base, negative: true } : base;
+    out.push(picked);
+    if (stop?.(picked)) break;
+    at = t.index + t[0].length;
   }
   return out;
 }
@@ -171,33 +197,50 @@ function amountCell(raw: string): PickedAmount | null {
   return m ? amountWithUnit(m[1], m[2]) : null;
 }
 
+/** 한 줄의 머리글·칸 나누기 — 줄마다 한 번만 계산해 그 줄의 모든 라벨이 함께 쓴다. */
+interface LineLayout {
+  header: AmountHeader | null;
+  cells: string[];
+  aligned: boolean;
+  /** 코드 열을 뺀 줄과 그 안의 첫 라벨(코드 열이 있는 머리글일 때만). */
+  codeless?: { scan: string; hit: RegExpExecArray | null };
+}
+
+function layoutOf(lines: string[], at: number, label: RegExp): LineLayout {
+  const header = headerAbove(lines, at);
+  const cells = cellsOf(lines[at]);
+  const aligned = header !== null && cells.length === header.cells.length;
+  if (header !== null && aligned && header.amountAt < 0 && header.codeAt.length > 0) {
+    const scan = cells.filter((_, k) => !header.codeAt.includes(k)).join("\t");
+    return { header, cells, aligned, codeless: { scan, hit: label.exec(scan) } };
+  }
+  return { header, cells, aligned };
+}
+
+/** 코드 모양(0으로 시작하는 6자리 이하)이 아닌 금액 — 쉼표·소수점이 있으면 코드가 아니다. 음수는 따로 판정하려고 함께 잡는다. */
+function usableToken(t: PickedAmount): boolean {
+  return t.negative === true || t.amount.includes(",") || t.amount.includes(".") || !CODE_LIKE_RE.test(t.amount);
+}
+
 /**
  * 매출 줄에서 금액 글자를 고른다. 머리글에 당기·금액 열이 있고 줄의 칸 수가 맞으면 그 열에서 읽는다.
  * 아니면 라벨 뒤 숫자 중 코드 모양(0으로 시작하는 6자리 이하)·코드 열을 뺀 첫 값. 하나도 없으면 null.
  */
-function pickAmount(lines: string[], at: number, label: RegExp, m: RegExpExecArray): PickedAmount | null {
+function pickAmount(lines: string[], at: number, label: RegExp, m: RegExpExecArray, layout: () => LineLayout): PickedAmount | null {
   const line = lines[at];
   // 라벨 바로 뒤에 금액 토큰(음수 포함)이 없으면 매출 줄이 아니다(「매출액 증가율 5.0」). 열로 읽기 전에도 같은 문을 지난다.
-  if (numbersAfterLabel(line, m).length === 0) return null;
-  const header = headerAbove(lines, at);
-  const cells = cellsOf(line);
-  const aligned = header !== null && cells.length === header.cells.length;
+  if (!hasAmountAfterLabel(line, m)) return null;
+  const { header, cells, aligned, codeless } = layout();
   if (header !== null && aligned && header.amountAt >= 0) {
     // 머리글에서 금액·당기 열을 찾았으면 그 열 칸만 읽는다. 칸이 비었거나 숫자가 아니면 옆의
     // 코드·전기·비고 값으로 대신하지 않는다 — 틀린 값의 매출보다 빈 칸이 낫다.
     return amountCell(cells[header.amountAt]);
   }
-  let scan = line;
-  let hit: RegExpExecArray | null = m;
-  if (header !== null && aligned && header.codeAt.length > 0) {
-    scan = cells.filter((_, k) => !header.codeAt.includes(k)).join("\t");
-    hit = label.exec(scan);
-  }
+  const scan = codeless ? codeless.scan : line;
+  const hit = codeless ? codeless.hit : m;
   if (!hit) return null;
   // 머리글로 열을 못 고른 줄: 코드 모양을 뺀 첫 금액을 본다. 그것이 음수이면 정하지 않는다(뒤의 양수로 대신하지 않는다).
-  const picked = numbersAfterLabel(scan, hit).find(
-    (t) => t.negative || t.amount.includes(",") || t.amount.includes(".") || !CODE_LIKE_RE.test(t.amount),
-  );
+  const picked = numbersAfterLabel(scan, hit, usableToken).find(usableToken);
   return picked && !picked.negative ? picked : null;
 }
 
@@ -207,19 +250,22 @@ export function parseFinancial(body: DocumentBody, docType: FinancialDocType): P
   const lines = tableLines(body);
   const text = lines.join("\n");
   const re = REVENUE_RE[docType];
+  let units: UnitMark[] | undefined;
 
   let offset = 0;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    // 한 줄에 라벨이 여럿이면 금액을 읽을 수 있는 첫 라벨을 쓴다.
+    // 한 줄에 라벨이 여럿이면 금액을 읽을 수 있는 첫 라벨을 쓴다. 라벨 수에 상한을 두지 않는다 —
+    // 라벨마다 드는 일은 라벨 뒤 토큰 하나 보기뿐이고, 머리글·칸 나누기는 줄마다 한 번만 한다.
     const labels = new RegExp(re.source, "g");
-    let tried = 0;
-    for (let m = labels.exec(line); m && tried < MAX_LABELS_PER_LINE; m = labels.exec(line), tried++) {
-      const picked = pickAmount(lines, i, re, m);
+    let layout: LineLayout | undefined;
+    const layoutOnce = () => (layout ??= layoutOf(lines, i, re));
+    for (let m = labels.exec(line); m; m = labels.exec(line)) {
+      const picked = pickAmount(lines, i, re, m, layoutOnce);
       if (picked === null) continue;
       const value = Number(picked.amount.replace(/,/g, ""));
       // 칸 값에 단위가 적혀 있으면 그것을 쓰고, 없을 때만 머리글·본문의 「단위: …」를 곱한다(두 번 곱하지 않게).
-      const krw = Math.round(value * (picked.unit ?? multiplierAt(text, offset + m.index)));
+      const krw = Math.round(value * (picked.unit ?? multiplierAt((units ??= unitsOf(text)), offset + m.index)));
       if (Number.isFinite(krw) && krw >= 0 && krw <= MAX_KRW) {
         const year = yearOf(text);
         return year === undefined ? { fields: { lastYearRevenueKrw: krw } } : { fields: { lastYearRevenueKrw: krw }, year };
