@@ -56,7 +56,6 @@ export interface ReadDocumentsOptions {
 const MB = 1024 * 1024;
 const NO_NAME = "이름 없는 파일";
 
-const AI_NAMES_MAX = 100;
 const COUNT_MAX = 100_000;
 const KRW_MAX = 1e15;
 const BIZNO_RE = /^(\d{3})-?(\d{2})-?(\d{5})$/;
@@ -197,11 +196,10 @@ function sanitizeAiFields(raw: unknown): DocumentFields {
   return out as DocumentFields;
 }
 
-/** AI 가 사진에서 본 사람 이름(대표자·직원). 지우기 목록에만 쓰고 결과 칸에는 넣지 않는다. */
+/** AI 가 사진에서 본 사람 이름(대표자·직원). 지우기 목록에만 쓰고 결과 칸에는 넣지 않는다. 개수 상한은 두지 않는다. */
 function aiPersonNames(raw: unknown): string[] {
   if (typeof raw !== "object" || raw === null) return [];
-  const names = (raw as Record<string, unknown>).personNames;
-  return Array.isArray(names) ? cleanAiPersonNames(names.slice(0, AI_NAMES_MAX)) : [];
+  return cleanAiPersonNames((raw as Record<string, unknown>).personNames);
 }
 
 /* ───────── 파일 하나 읽기 ───────── */
@@ -209,8 +207,10 @@ function aiPersonNames(raw: unknown): string[] {
 interface ReadOne {
   result: DocumentFileResult;
   merge?: MergeInput;
-  /** 이 파일이 알려 준 사람 이름 — 묶음 전체의 결과에서 지우는 데만 쓴다. 결과에는 넣지 않는다. */
+  /** 이 파일이 알려 준 사람 이름(서류 라벨의 대표자·성명, AI 가 본 이름) — 묶음 전체의 결과에서 지우는 데만 쓴다. 결과에는 넣지 않는다. */
   names: string[];
+  /** 명부에서 읽은 직원 이름. 따로 모아 라벨·AI 이름 뒤에 붙인다(많아도 앞 이름을 밀어내지 않게). */
+  rosterNames?: string[];
 }
 
 const noNames = (result: DocumentFileResult): ReadOne => ({ result, names: [] });
@@ -291,17 +291,21 @@ async function readOne(
   if (!read) return noNames({ ...refused(display, "no-fields", UNKNOWN_DOC), docType });
 
   // 사람 이름 지우기는 서류 묶음 전체의 이름이 모인 뒤(redactKnownNames)에 한다 — 다른 서류가 알려 준 이름도 지워야 해서.
-  const { parsed, personNames } = read;
+  const { parsed } = read;
+  // 고용보험 명부의 직원 이름은 라벨·AI 이름과 따로 모은다.
+  const fromRoster = docType === "employment-insurance";
+  const names = fromRoster ? [] : read.personNames;
+  const rosterNames = fromRoster ? read.personNames : [];
   const fields = scrubFields(parsed.fields);
   const keys = Object.keys(fields) as DocumentFileResult["fields"];
   if (keys.length === 0) {
-    return { result: { ...refused(display, "no-fields", parsed.note ?? NO_FIELDS), docType }, names: personNames };
+    return { result: { ...refused(display, "no-fields", parsed.note ?? NO_FIELDS), docType }, names, rosterNames };
   }
   const result: DocumentFileResult = { name: display, docType, status: "read", fields: keys };
   if (parsed.year !== undefined) result.year = parsed.year;
   const merge: MergeInput = { name: display, docType, fields };
   if (parsed.year !== undefined) merge.year = parsed.year;
-  return { result, merge, names: personNames };
+  return { result, merge, names, rosterNames };
 }
 
 /**
@@ -342,7 +346,7 @@ export async function readDocuments(
   const merged: DocumentPrefillResult = { ...mergeDocumentFields(inputs), files: results };
 
   // 서류 묶음 전체가 알려 준 사람 이름(규칙 경로·AI 경로 모두)으로 돌려주기 직전에 결과 전체를 한 번에 지운다.
-  // 이름은 여기서만 쓰고 결과에 넣지 않는다.
-  const names = uniquePersonNames(reads.flatMap((r) => r.names));
+  // 이름은 여기서만 쓰고 결과에 넣지 않는다. 서류 라벨·AI 이름을 항상 먼저 두고, 명부 직원 이름은 그 뒤에 붙인다(개수 상한 없음).
+  const names = uniquePersonNames([...reads.flatMap((r) => r.names), ...reads.flatMap((r) => r.rosterNames ?? [])]);
   return redactKnownNames(merged, names, (file) => (file.status === "read-by-ai" ? AI_EMPTY : NO_FIELDS));
 }

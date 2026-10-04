@@ -7,7 +7,7 @@
 // ★글 명부(CSV·TXT 등)가 글자 상한으로 잘렸으면 엑셀 잘림과 같게 세지 않고 직접 적게 안내한다.
 // ★표 모양이 믿기지 않으면(머리줄 칸 없음·줄 칸 수 어긋남=본문이 잘린 흔적) 세지 않고 이유만 알린다. 이유에는 사람 정보가 없다.
 
-import { cleanAiPersonNames, PERSON_NAMES_MAX, uniquePersonNames } from "./clean-text";
+import { cleanAiPersonNames, uniquePersonNames } from "./clean-text";
 import { bodyLines, splitTableRow, type DocumentBody, type ParsedDocument, type ParsedWithNames } from "./parse-common";
 
 const STATUS_HEADER = "고용상태";
@@ -84,6 +84,7 @@ function linesOf(raw: string): string[] {
 /**
  * 머리줄 아래 표의 근로자 이름 칸 글자들. 센 결과와 상관없이(표가 깨졌거나 잘렸어도) 모은다 —
  * 이 이름은 다른 서류 업종 글에서 지우는 데만 쓰고 결과에는 넣지 않는다.
+ * 개수 상한을 두지 않는다 — 읽은 줄이 엑셀은 2,000줄·글은 20만 자로 이미 한정돼 있고, 상한이 있으면 밀려난 이름이 남는다.
  */
 function rosterNames(lines: string[]): string[] {
   const start = headerIndex(lines);
@@ -95,7 +96,6 @@ function rosterNames(lines: string[]): string[] {
     if (/^\s*##/.test(line)) break;
     const name = splitTableRow(line)[nameAt]?.trim();
     if (name && compact(name).length >= 2) seen.add(name); // 한 글자 칸은 이름으로 보지 않는다(글 속 한 글자까지 지우게 된다)
-    if (seen.size >= PERSON_NAMES_MAX) break;
   }
   return cleanAiPersonNames([...seen]);
 }
@@ -113,21 +113,21 @@ export function parseEmploymentWithNames(body: DocumentBody): ParsedWithNames {
   // 글 서류가 글자 상한으로 잘렸으면 뒤쪽 근로자가 빠진 채 세게 된다.
   if (body.text) candidates.push({ lines: linesOf(body.text), truncated: body.truncated === true });
 
-  const personNames: string[] = [];
+  // 인원 셈이 첫 명부에서 끝나더라도 모든 명부 시트·글의 이름은 끝까지 모은다(뒤 시트의 이름도 업종 글에서 지워야 한다).
+  const rosters = candidates.filter(({ lines }) => headerIndex(lines) >= 0);
+  const names = uniquePersonNames(rosters.flatMap(({ lines }) => rosterNames(lines)));
+
   let firstFailure: string | undefined;
-  for (const { lines, truncated } of candidates) {
-    if (headerIndex(lines) < 0) continue;
-    personNames.push(...rosterNames(lines));
+  for (const { lines, truncated } of rosters) {
     // 뒤가 잘린 명부는 센 수가 실제보다 적다 — 채우지 않고 직접 적게 안내한다.
     if (truncated) {
       firstFailure ??= TOO_LONG;
       continue;
     }
     const counted = countCurrentEmployees(lines);
-    if (counted.ok) return { parsed: { fields: { employeeCount: counted.count } }, personNames: uniquePersonNames(personNames) };
+    if (counted.ok) return { parsed: { fields: { employeeCount: counted.count } }, personNames: names };
     firstFailure ??= counted.reason;
   }
-  const names = uniquePersonNames(personNames);
 
   // 표를 못 읽었을 때만 「근로자수 N명」 글을 본다. 표가 있는데 깨진 경우에는 지어내지 않는다.
   if (firstFailure === undefined) {

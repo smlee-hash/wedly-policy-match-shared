@@ -1,6 +1,7 @@
 // 엑셀(.xlsx, 잘못 이름 붙인 ZIP) 속을 XLSX.read 전에 실제로 풀며 상한을 지킨다.
 // 헤더가 작다고 적어도 믿지 않고, 칸마다 inflateRawSync(maxOutputLength)로 확인한다.
 // 중앙 디렉터리뿐 아니라 칸마다 로컬 파일 헤더(읽기 도구가 먼저 보는 크기)도 같은지·상한 안인지 본다.
+// 업로드 상한 안의 엑셀은 ZIP64 가 필요 없으므로, ZIP64 표시(크기·위치 칸 가득 참·확장 필드 0x0001·ZIP64 끝 레코드)가 있으면 거절한다.
 // (ERP consulting/spreadsheet-zip-guard.ts 를 그대로 옮겼다.)
 
 import { crc32, inflateRawSync } from "node:zlib";
@@ -80,6 +81,107 @@ function checkLocalHeader(buf: Buffer, entry: AdmZip.IZipEntry, maxEntry: number
   return null;
 }
 
+/* ───────── ZIP64 거절 ───────── */
+
+// 업로드 상한(20MB) 안의 엑셀은 ZIP64 가 필요 없다. ZIP64 표시가 하나라도 있으면 크기·위치를 믿을 수 없으니 읽지 않는다.
+// (중앙 디렉터리와 로컬 헤더 어느 쪽이든. 확장 필드는 길이 안에서만 걷고, 넘치면 깨진 파일로 거절한다.)
+
+const EOCD_SIGNATURE = 0x06054b50;
+const ZIP64_EOCD_SIGNATURE = 0x06064b50;
+const ZIP64_LOCATOR_SIGNATURE = 0x07064b50;
+const CENTRAL_SIGNATURE = 0x02014b50;
+const EOCD_SIZE = 22;
+const ZIP64_LOCATOR_SIZE = 20;
+const CENTRAL_HEADER_SIZE = 46;
+const MAX_EOCD_SEARCH = EOCD_SIZE + 0xffff;
+const ZIP64_EXTRA_ID = 0x0001;
+const U16_FULL = 0xffff;
+const U32_FULL = 0xffffffff;
+
+/** 확장 필드(`start`~`end`)를 걸으며 ZIP64 표시(ID 0x0001)가 있는지 본다. 길이가 범위를 넘으면 "broken". */
+function scanExtra(buf: Buffer, start: number, end: number): "zip64" | "broken" | "none" {
+  if (start < 0 || end < start || end > buf.length) return "broken";
+  let at = start;
+  while (at < end) {
+    if (at + 4 > end) return "broken";
+    const id = buf.readUInt16LE(at);
+    const size = buf.readUInt16LE(at + 2);
+    if (at + 4 + size > end) return "broken";
+    if (id === ZIP64_EXTRA_ID) return "zip64";
+    at += 4 + size;
+  }
+  return "none";
+}
+
+/** 끝 레코드(EOCD)의 자리. 파일 끝에서 거꾸로 찾는다. 없으면 -1. */
+function findEndRecord(buf: Buffer): number {
+  const lowest = Math.max(0, buf.length - MAX_EOCD_SEARCH);
+  for (let at = buf.length - EOCD_SIZE; at >= lowest; at--) {
+    if (buf.readUInt32LE(at) === EOCD_SIGNATURE) return at;
+  }
+  return -1;
+}
+
+/**
+ * ZIP64 표시가 하나라도 있거나 구조가 맞지 않으면 거절 결과를, 아니면 null.
+ *  - 끝 레코드: 항목 수 0xFFFF·디렉터리 크기/위치 0xFFFFFFFF, ZIP64 끝 레코드·위치 표시 서명
+ *  - 중앙 디렉터리 항목과 그 로컬 헤더: 크기·위치 칸 0xFFFFFFFF, 확장 필드 ID 0x0001
+ */
+function rejectZip64(buf: Buffer): SpreadsheetZipPreflight | null {
+  const eocd = findEndRecord(buf);
+  if (eocd < 0) return invalid();
+
+  const entriesOnDisk = buf.readUInt16LE(eocd + 8);
+  const entriesTotal = buf.readUInt16LE(eocd + 10);
+  const centralSize = buf.readUInt32LE(eocd + 12);
+  const centralOffset = buf.readUInt32LE(eocd + 16);
+  if (entriesOnDisk === U16_FULL || entriesTotal === U16_FULL) return tooLarge();
+  if (centralSize === U32_FULL || centralOffset === U32_FULL) return tooLarge();
+  // ZIP64 끝 레코드는 위치 표시 바로 앞, 위치 표시는 끝 레코드 바로 앞에 놓인다.
+  if (eocd >= ZIP64_LOCATOR_SIZE && buf.readUInt32LE(eocd - ZIP64_LOCATOR_SIZE) === ZIP64_LOCATOR_SIGNATURE) return tooLarge();
+
+  const centralEnd = centralOffset + centralSize;
+  if (centralEnd > eocd) return invalid();
+  // 중앙 디렉터리 끝과 끝 레코드 사이에는 보통 아무것도 없다. 거기에 ZIP64 서명이 있으면 거절한다.
+  for (const signature of [ZIP64_EOCD_SIGNATURE, ZIP64_LOCATOR_SIGNATURE]) {
+    const mark = Buffer.alloc(4);
+    mark.writeUInt32LE(signature);
+    const found = buf.indexOf(mark, centralEnd);
+    if (found >= 0 && found < eocd) return tooLarge();
+  }
+
+  let at = centralOffset;
+  while (at < centralEnd) {
+    if (at + CENTRAL_HEADER_SIZE > centralEnd || buf.readUInt32LE(at) !== CENTRAL_SIGNATURE) return invalid();
+    const compressed = buf.readUInt32LE(at + 20);
+    const size = buf.readUInt32LE(at + 24);
+    const nameLength = buf.readUInt16LE(at + 28);
+    const extraLength = buf.readUInt16LE(at + 30);
+    const commentLength = buf.readUInt16LE(at + 32);
+    const diskStart = buf.readUInt16LE(at + 34);
+    const localAt = buf.readUInt32LE(at + 42);
+    const next = at + CENTRAL_HEADER_SIZE + nameLength + extraLength + commentLength;
+    if (next > centralEnd) return invalid();
+    if (compressed === U32_FULL || size === U32_FULL || localAt === U32_FULL || diskStart === U16_FULL) return tooLarge();
+    const extraAt = at + CENTRAL_HEADER_SIZE + nameLength;
+    const central = scanExtra(buf, extraAt, extraAt + extraLength);
+    if (central === "broken") return invalid();
+    if (central === "zip64") return tooLarge();
+
+    // 이 항목의 로컬 헤더도 같은 눈으로 본다(읽기 도구는 로컬 헤더를 먼저 본다).
+    if (localAt + LOCAL_HEADER_SIZE > buf.length || buf.readUInt32LE(localAt) !== LOCAL_HEADER_SIGNATURE) return invalid();
+    const localCompressed = buf.readUInt32LE(localAt + 18);
+    const localSize = buf.readUInt32LE(localAt + 22);
+    if (localCompressed === U32_FULL || localSize === U32_FULL) return tooLarge();
+    const localExtraAt = localAt + LOCAL_HEADER_SIZE + buf.readUInt16LE(localAt + 26);
+    const local = scanExtra(buf, localExtraAt, localExtraAt + buf.readUInt16LE(localAt + 28));
+    if (local === "broken") return invalid();
+    if (local === "zip64") return tooLarge();
+    at = next;
+  }
+  return null;
+}
+
 function inflatePart(compressed: Buffer, method: number, maxOutput: number): Buffer | null {
   if (maxOutput <= 0) return null;
   if (method === 0) {
@@ -104,6 +206,10 @@ export function preflightSpreadsheetZip(
   const maxTotal = Math.max(0, Math.floor(limits.maxTotalBytes));
   const maxEntry = Math.max(0, Math.floor(limits.maxEntryBytes));
   if (maxParts < 1 || maxTotal < 1 || maxEntry < 1) return tooLarge();
+
+  // ZIP64 표시가 있으면 adm-zip 이 큰 값으로 바꿔 읽기 전에 막는다(중앙·로컬 모두).
+  const zip64 = rejectZip64(buf);
+  if (zip64) return zip64;
 
   let archive: AdmZip;
   try {

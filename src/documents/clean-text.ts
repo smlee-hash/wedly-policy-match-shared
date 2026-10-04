@@ -78,8 +78,8 @@ const LEADING_MARKS = /^[\s:：/,;·.。)）-]+/;
 
 /** 이름 자리에 적히는 직함·말머리 — 이름으로 모으지 않는다. */
 const NOT_NAMES = new Set(["대표", "대표자", "대표이사", "공동대표", "각자대표", "사내이사", "이사", "사업자", "개인", "법인", "본인"]);
-/** 한 번에 받는 이름 수 — 터무니없이 많이 와도 지우기 식이 커지지 않게(서류 10개 묶음의 이름이 다 들어갈 만큼). */
-export const PERSON_NAMES_MAX = 1000;
+// ★이름 목록에는 개수 상한이 없다. 상한이 있으면 많은 명부 이름이 서류 라벨·AI 이름을 밀어내 그 이름이 남는다.
+//   목록이 길어도 지우기가 느려지지 않게 personNameEraser 는 이름 집합을 길이별로 두고 글을 한 번 훑는다.
 
 /** 서류 라벨(대표자·성명)에서 읽는 이름: 공백을 뺀 한글 2~6자. */
 const LABEL_NAME = /^[가-힣]{2,6}$/;
@@ -113,7 +113,7 @@ function cleanNameList(values: unknown, clean: (value: unknown) => string | null
   if (!Array.isArray(values)) return [];
   const out: string[] = [];
   const seen = new Set<string>();
-  for (const v of values.slice(0, PERSON_NAMES_MAX)) {
+  for (const v of values) {
     const name = clean(v);
     if (name && !seen.has(nameKey(name))) {
       seen.add(nameKey(name));
@@ -142,7 +142,6 @@ export function uniquePersonNames(names: readonly string[]): string[] {
     if (key === "" || seen.has(key)) continue;
     seen.add(key);
     out.push(name);
-    if (out.length >= PERSON_NAMES_MAX) break;
   }
   return out;
 }
@@ -167,18 +166,65 @@ export function personNamesIn(text: string): string[] {
   return cleanPersonNames(found);
 }
 
+/** 이름 맞춰 보기용 글자 — 소문자로 바꾼다. 바꾸면 글자 수가 달라지는 드문 글자는 그대로 둔다. */
+function foldChar(ch: string): string {
+  const lower = ch.toLowerCase();
+  return Array.from(lower).length === 1 ? lower : ch;
+}
+
 /**
- * 이름들을 글에서 찾는 식 — 글자 사이 공백은 있어도 되고, 대소문자는 가리지 않고, 긴 이름을 먼저 찾는다.
+ * 이름들을 글에서 지우는 함수 — 글자 사이 공백은 있어도 되고, 대소문자는 가리지 않고, 같은 자리에서는 긴 이름을 먼저 지운다.
  * 이름은 앞서 다듬은 목록이어야 한다. 이름이 없으면 null.
+ * 큰 정규식 하나로 합치지 않는다 — 공백을 뺀 글을 앞에서부터 한 번 훑으며, 이름 집합을 길이별로 두고 그 길이의 조각만 찾아본다.
+ * 글 길이 × (서로 다른 이름 길이 수)만큼만 일하므로 이름이 수천 개여도 빠르다.
  */
-export function personNameRegex(names: readonly string[]): RegExp | null {
-  const parts = uniquePersonNames(names)
-    .map((name) => Array.from(name.replace(/\s+/g, "")))
-    .filter((chars) => chars.length > 0)
-    .sort((a, b) => b.length - a.length);
-  if (parts.length === 0) return null;
-  const escape = (c: string) => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(parts.map((chars) => chars.map(escape).join("\\s*")).join("|"), "gi");
+export function personNameEraser(names: readonly string[]): ((text: string, mark: string) => string) | null {
+  const byLength = new Map<number, Set<string>>();
+  for (const name of uniquePersonNames(names)) {
+    const chars = Array.from(name.replace(/\s+/g, "")).map(foldChar);
+    if (chars.length === 0) continue;
+    const set = byLength.get(chars.length) ?? new Set<string>();
+    set.add(chars.join(""));
+    byLength.set(chars.length, set);
+  }
+  if (byLength.size === 0) return null;
+  const lengths = [...byLength.keys()].sort((a, b) => b - a);
+
+  return (text, mark) => {
+    // 공백을 뺀 글자들과, 각 글자가 원래 글의 어디서 시작하는지.
+    const chars: string[] = [];
+    const starts: number[] = [];
+    const ends: number[] = [];
+    let at = 0;
+    for (const ch of text) {
+      if (!/\s/.test(ch)) {
+        chars.push(foldChar(ch));
+        starts.push(at);
+        ends.push(at + ch.length);
+      }
+      at += ch.length;
+    }
+    let out = "";
+    let copied = 0; // text 에서 out 으로 옮겨 적은 곳까지
+    for (let i = 0; i < chars.length; ) {
+      let hit = 0;
+      for (const length of lengths) {
+        if (i + length > chars.length) continue;
+        if (byLength.get(length)?.has(chars.slice(i, i + length).join(""))) {
+          hit = length;
+          break;
+        }
+      }
+      if (hit === 0) {
+        i++;
+        continue;
+      }
+      out += text.slice(copied, starts[i]) + mark;
+      copied = ends[i + hit - 1];
+      i += hit;
+    }
+    return out + text.slice(copied);
+  };
 }
 
 /** 이름을 지운 자리에 남은 구분표(빈 괄호·겹친 빗금·앞뒤 쉼표)를 정리한다. */
@@ -203,8 +249,8 @@ function scrubIndustry(value: unknown, names: readonly string[]): string | null 
   let text = value.normalize("NFC").slice(0, INDUSTRY_SCAN_CHARS).replace(/\s+/g, " ").trim();
   // 주민번호는 항목 이름 없이 붙어 있을 수 있어 자르기 전에 먼저 본다.
   if (RRN_LIKE.test(text)) return null;
-  const remover = personNameRegex(names);
-  if (remover) text = tidyAfterRemoval(text.replace(remover, " "));
+  const erase = personNameEraser(names);
+  if (erase) text = tidyAfterRemoval(erase(text, " "));
   const label = NEXT_LABEL.exec(text);
   if (label) text = text.slice(0, label.index);
   text = text.replace(TRAILING_MARKS, "").trim();

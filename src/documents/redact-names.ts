@@ -8,7 +8,7 @@
 //  - 이름을 지워 업종이 사라진 파일은 칸 목록에서 업종을 빼고, 칸이 하나도 안 남으면 「채울 값 없음」으로 바꾼다.
 // ★입력 객체는 바꾸지 않는다.
 
-import { cleanIndustryText, INDUSTRY_MAX_CHARS, personNameRegex } from "./clean-text";
+import { cleanIndustryText, INDUSTRY_MAX_CHARS, personNameEraser } from "./clean-text";
 import type {
   DocumentFieldConflict,
   DocumentFieldKey,
@@ -44,8 +44,8 @@ export function redactKnownNames(
   names: readonly string[],
   emptyMessageOf: (file: DocumentFileResult) => string,
 ): DocumentPrefillResult {
-  const remover = personNameRegex(names);
-  const mask = (text: string): string => (remover ? text.replace(remover, NAME_MASK) : text);
+  const erase = personNameEraser(names);
+  const mask = (text: string): string => (erase ? erase(text, NAME_MASK) : text);
   // 파일 이름: 이름을 바꾼 뒤에 자른다. 자르면 같아지는 이름은 한 번만 남긴다.
   const maskName = (text: string): string => cutFileName(mask(text));
   const maskAll = (files: readonly string[]): string[] => [...new Set(files.map(maskName))];

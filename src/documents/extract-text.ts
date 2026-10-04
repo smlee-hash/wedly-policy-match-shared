@@ -576,16 +576,37 @@ function clampSheetRange(ws: XLSX.WorkSheet): boolean {
   return over;
 }
 
+/** 파일이 적은 시트 범위(`dimension`)가 실제 칸보다 작으면(거짓 범위) 상한 안의 실제 칸까지 넓힌다 — 범위 밖 줄을 글에서 놓치지 않게. */
+function widenSheetRange(ws: XLSX.WorkSheet, maxR: number, maxC: number): void {
+  if (maxR < 0) return;
+  let range: XLSX.Range;
+  try {
+    range = ws["!ref"] ? XLSX.utils.decode_range(ws["!ref"]) : { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
+  } catch {
+    range = { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
+  }
+  if (range.e.r >= maxR && range.e.c >= maxC) return;
+  range.e.r = Math.max(range.e.r, maxR);
+  range.e.c = Math.max(range.e.c, maxC);
+  ws["!ref"] = XLSX.utils.encode_range(range);
+}
+
 function sheetOf(name: string, ws: XLSX.WorkSheet, date1904: boolean): SheetData {
   const cells: Record<string, string> = {};
+  let maxR = -1;
+  let maxC = -1;
   for (const addr of Object.keys(ws)) {
     // 칸 이름처럼 생긴 것만 본다 — 엑셀 속 이름은 파일이 정하므로 믿지 않는다.
     if (!CELL_ADDRESS.test(addr)) continue;
     const { r, c } = XLSX.utils.decode_cell(addr);
     if (r >= MAX_SHEET_ROWS || c >= MAX_SHEET_COLS) continue;
     const text = cellText(ws[addr] as XLSX.CellObject, date1904);
-    if (text) cells[addr] = text;
+    if (!text) continue;
+    cells[addr] = text;
+    if (r > maxR) maxR = r;
+    if (c > maxC) maxC = c;
   }
+  widenSheetRange(ws, maxR, maxC);
   const rangeCut = clampSheetRange(ws);
   const csv = XLSX.utils.sheet_to_csv(ws).trimEnd();
   const full = `## ${name}\n${csv}`;
@@ -729,44 +750,84 @@ function tagsOf(xml: string, tagName: string): string[] {
  * 시트 하나가 행 상한을 넘어 뒤가 잘렸는가. 원본에서 구한 마지막 값 줄(lastRow)이 있으면 그것을 따른다.
  * 못 구했으면(undefined) 상한을 넘었는지 모르는 것이니 잘린 쪽으로 둔다 — 단 읽기 도구가 「원래 범위가 읽은 범위보다 크다」
  * (`!fullref`)를 알리지 않아 상한보다 작다는 게 읽은 결과로 확실하면 예외.
+ * ★그 예외는 zip 엑셀에는 쓰지 않는다(readSpreadsheet 가 hasFullRef 에 늘 true 를 넘긴다). 파일이 적은 시트 범위(`dimension`)는
+ *   거짓일 수 있어 `!fullref` 가 없다고 상한 안이라는 증거가 되지 못한다. zip 이 아닌 옛 엑셀(.xls)만 이 예외를 쓴다.
  */
 export function isSheetTruncated(lastRow: number | undefined, hasFullRef: boolean): boolean {
   if (lastRow === undefined) return hasFullRef;
   return lastRow < 0 || lastRow > MAX_SHEET_ROWS;
 }
 
+/** `a/b/../c` 같은 경로를 정리한다(연결표의 Target 이 `../` 를 쓸 수 있다). 칸 이름 비교용이라 소문자로 돌려준다. */
+function normalizedEntryPath(path: string): string {
+  const parts: string[] = [];
+  for (const part of path.replace(/\\/g, "/").split("/")) {
+    if (part === "" || part === ".") continue;
+    if (part === "..") parts.pop();
+    else parts.push(part);
+  }
+  return parts.join("/").toLowerCase();
+}
+
+/** 통합 문서 목록(workbook.xml)의 시트 하나. 마지막 값 줄을 못 구했으면 lastRow 가 없다. */
+interface SheetOrderRow {
+  name: string | null;
+  lastRow?: number;
+}
+
 /**
- * 시트 이름 → 값이 있는 마지막 줄 번호. 시트 이름과 시트 파일은 통합 문서 목록(`xl/workbook.xml`)과
- * 연결표(`xl/_rels/workbook.xml.rels`)로 잇는다. 시트 XML 이 풀림 상한(20MB)을 넘어 못 풀면 -1 —
- * 줄 수를 확인할 수 없을 만큼 큰 시트라 잘린 것으로 본다. zip 이 아닌 옛 엑셀·모양이 다른 파일은 빈 표(기존 방식).
+ * workbook.xml 의 `<sheet>` **순서대로** 시트마다 값이 있는 마지막 줄 번호를 구한다. 읽기 도구의 시트 목록(SheetNames)도
+ * 같은 순서이므로, 이름(`고용_x0020_현황` 같은 바꿔 쓴 이름)이 아니라 순서로 잇는다.
+ * 통합 문서·연결표·시트 파일은 칸 이름의 대소문자를 가리지 않고 찾고(읽기 도구도 그렇게 찾는다), 시트 파일은 연결표로 고른다.
+ * 시트 XML 이 풀림 상한(20MB)을 넘어 못 풀면 -1 — 줄 수를 확인할 수 없을 만큼 큰 시트라 잘린 것으로 본다.
+ * 시트 파일을 못 찾았거나 통합 문서·연결표를 못 읽으면 lastRow 가 없다. zip 이 아니면 null.
+ */
+function sheetRowsInOrder(buf: Buffer): SheetOrderRow[] | null {
+  if (!isZipBuffer(buf)) return null;
+  const out: SheetOrderRow[] = [];
+  try {
+    const zip = new AdmZip(buf);
+    const byPath = new Map<string, AdmZip.IZipEntry>();
+    for (const entry of zip.getEntries()) {
+      const key = normalizedEntryPath(entry.entryName);
+      if (!byPath.has(key)) byPath.set(key, entry);
+    }
+    const bookEntry = byPath.get("xl/workbook.xml");
+    const relsEntry = byPath.get("xl/_rels/workbook.xml.rels");
+    const book = bookEntry ? readEntryText(bookEntry) : null;
+    const rels = relsEntry ? readEntryText(relsEntry) : null;
+    if (book === null) return out;
+    const targets = new Map<string, string>();
+    for (const tag of rels === null ? [] : tagsOf(rels, "Relationship")) {
+      const id = attrOf(tag, "Id");
+      const target = attrOf(tag, "Target");
+      if (id && target) targets.set(id, normalizedEntryPath(target.startsWith("/") ? target : `xl/${target}`));
+    }
+    for (const tag of tagsOf(book, "sheet")) {
+      const rid = relIdOf(tag);
+      const path = rid ? targets.get(rid) : undefined;
+      const entry = path ? byPath.get(path) : undefined;
+      const row: SheetOrderRow = { name: attrOf(tag, "name") };
+      if (entry) {
+        const xml = readEntryText(entry);
+        row.lastRow = xml === null ? -1 : lastValuedRowOf(xml);
+      }
+      out.push(row);
+    }
+  } catch {
+    // 못 읽으면 지금까지 모은 것만 돌려준다 — 모자란 시트는 마지막 줄을 모르는 시트가 된다.
+  }
+  return out;
+}
+
+/**
+ * 시트 이름 → 값이 있는 마지막 줄 번호(구한 시트만). 시험·진단용 — 실제 잘림 판단은 이름이 아니라 순서로 한다(readSpreadsheet).
+ * zip 이 아닌 옛 엑셀·모양이 다른 파일은 빈 표.
  */
 export function lastValuedRows(buf: Buffer): Map<string, number> {
   const out = new Map<string, number>();
-  if (!isZipBuffer(buf)) return out;
-  try {
-    const zip = new AdmZip(buf);
-    const bookEntry = zip.getEntry("xl/workbook.xml");
-    const relsEntry = zip.getEntry("xl/_rels/workbook.xml.rels");
-    const book = bookEntry ? readEntryText(bookEntry) : null;
-    const rels = relsEntry ? readEntryText(relsEntry) : null;
-    if (book === null || rels === null) return out;
-    const targets = new Map<string, string>();
-    for (const tag of tagsOf(rels, "Relationship")) {
-      const id = attrOf(tag, "Id");
-      const target = attrOf(tag, "Target");
-      if (id && target) targets.set(id, target.startsWith("/") ? target.slice(1) : `xl/${target}`);
-    }
-    for (const tag of tagsOf(book, "sheet")) {
-      const name = attrOf(tag, "name");
-      const rid = relIdOf(tag);
-      const path = rid ? targets.get(rid) : undefined;
-      const entry = path ? zip.getEntry(path) : null;
-      if (name === null || !entry) continue;
-      const xml = readEntryText(entry);
-      out.set(name, xml === null ? -1 : lastValuedRowOf(xml));
-    }
-  } catch {
-    // 못 읽으면 기존 방식(읽은 범위)으로만 잘림을 가린다.
+  for (const row of sheetRowsInOrder(buf) ?? []) {
+    if (row.name !== null && row.lastRow !== undefined) out.set(row.name, row.lastRow);
   }
   return out;
 }
@@ -783,16 +844,21 @@ function readSpreadsheet(buf: Buffer): ExtractedDocument {
     const flag: unknown = wb.Workbook?.WBProps?.date1904;
     const date1904 = flag === true || flag === 1 || flag === "1" || flag === "true";
     // 행 상한으로 읽으면 상한 뒤 줄은 범위에서 사라진다 — 값이 있는 마지막 줄을 원본에서 따로 보아 잘림을 표시한다.
-    const lastRows = lastValuedRows(buf);
+    // 시트는 이름이 아니라 순서로 잇는다(workbook.xml 의 시트 순서 = SheetNames 순서). 개수가 다르면 어느 것도 믿지 않는다.
+    // 마지막 줄을 못 구한 시트는 행 상한을 줬으니 믿지 않고 잘린 것으로 본다. 「XML 이 작으면 예외」는 두지 않는다 —
+    // 줄 번호는 건너뛸 수 있어(2행 다음 3,000행) 파일이 작아도 마지막 줄 번호는 알 수 없다.
+    const order = sheetRowsInOrder(buf);
+    const lastRows = order !== null && order.length === wb.SheetNames.length ? order : null;
     const sheets: SheetData[] = [];
-    for (const name of wb.SheetNames) {
+    wb.SheetNames.forEach((name, index) => {
       const ws = wb.Sheets[name];
-      if (!ws) continue;
+      if (!ws) return;
       const sheet = sheetOf(name, ws, date1904);
-      // 읽기 도구가 원래 범위가 더 크다고 알린 시트(!fullref)인데 마지막 값 줄을 못 구했으면 잘린 것으로 둔다.
-      if (isSheetTruncated(lastRows.get(name), "!fullref" in ws)) sheet.truncated = true;
+      // zip 엑셀: 마지막 값 줄을 못 구했으면(hasFullRef=true) 잘린 것으로 둔다. 옛 엑셀(.xls)은 읽기 도구의 !fullref 표시를 따른다.
+      const truncated = order === null ? isSheetTruncated(undefined, "!fullref" in ws) : isSheetTruncated(lastRows?.[index].lastRow, true);
+      if (truncated) sheet.truncated = true;
       sheets.push(sheet);
-    }
+    });
     return { kind: "spreadsheet", sheets };
   } catch {
     return unsupported(BAD_EXCEL_MESSAGE);
