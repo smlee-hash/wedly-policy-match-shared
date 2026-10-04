@@ -67,8 +67,9 @@ function multiplierAt(text: string, at: number): number {
 
 /** 계정 코드처럼 보이는 숫자: 0으로 시작하는 두 자리 이상 6자리 이하(「001」「0101」). 금액은 0으로 시작하지 않는다(「0」 하나는 매출 0원). */
 const CODE_LIKE_RE = /^0\d{1,5}$/;
-const AMOUNT_HEADER_RE = /^(?:당기|금액)/;
-const CODE_HEADER_RE = /코드|번호/;
+// 「당기순이익」 같은 계정 이름은 금액 열 머리글이 아니다. 코드 열 머리글은 칸 전체가 「코드」·「계정코드」·「번호」 꼴일 때만 본다.
+const AMOUNT_HEADER_RE = /^(?:당기(?!순)|금액)/;
+const CODE_HEADER_RE = /^(?:계정|과목|항목)?(?:코드|번호)$/;
 const LOOK_BACK_LINES = 30;
 
 /** 한 줄을 칸으로 나눈다 — 탭·`|` 가 있으면 그것으로, 없으면 공백 둘 이상으로(PDF 글은 칸 사이가 넓다). */
@@ -85,15 +86,15 @@ interface AmountHeader {
   codeAt: number[];
 }
 
-/** 매출 줄 위쪽에서 가장 가까운 머리글(당기·금액 열이 있는 줄). 없으면 null. */
+/** 매출 줄 위쪽에서 가장 가까운 머리글(당기·금액 열이나 코드 열이 있는 줄). 없으면 null. */
 function headerAbove(lines: string[], at: number): AmountHeader | null {
   for (let i = at - 1; i >= 0 && i >= at - LOOK_BACK_LINES; i--) {
     const cells = cellsOf(lines[i]);
     if (cells.length < 2) continue;
     const names = cells.map((c) => c.replace(/\s/g, ""));
     const amountAt = names.findIndex((n) => AMOUNT_HEADER_RE.test(n));
-    if (amountAt < 0) continue;
     const codeAt = names.flatMap((n, k) => (CODE_HEADER_RE.test(n) ? [k] : []));
+    if (amountAt < 0 && codeAt.length === 0) continue;
     return { cells, amountAt, codeAt };
   }
   return null;
@@ -121,13 +122,15 @@ function pickAmount(lines: string[], at: number, re: RegExp, m: RegExpExecArray)
   const header = headerAbove(lines, at);
   const cells = cellsOf(line);
   const aligned = header !== null && cells.length === header.cells.length;
-  if (aligned) {
+  if (header !== null && aligned && header.amountAt >= 0) {
     const cell = cells[header.amountAt].replace(/[,\s]/g, "");
     if (/^\d+(?:\.\d+)?$/.test(cell)) return cell;
+    // 당기 칸이 비어 있으면 옆의 전기 값을 대신 쓰지 않는다 — 틀린 해의 매출보다 빈 칸이 낫다.
+    if (cell === "") return null;
   }
   let scan = line;
   let hit: RegExpExecArray | null = m;
-  if (aligned && header.codeAt.length > 0) {
+  if (header !== null && aligned && header.codeAt.length > 0) {
     scan = cells.filter((_, k) => !header.codeAt.includes(k)).join("\t");
     hit = re.exec(scan);
   }
