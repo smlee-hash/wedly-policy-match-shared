@@ -23,7 +23,7 @@ import ResultGroupList, { SearchCutNotice } from "./ResultGroupList";
 import ResultDrawer from "./ResultDrawer";
 import ResultSummaryBar from "./ResultSummaryBar";
 import {
-  FUNDING_QUERY_DELAY_MS, WIDE_TOP_N_MAX, filterDiagnosis, filterFundingData, fundingSearchOf, reviewCountOf,
+  FUNDING_QUERY_DELAY_MS, WIDE_TOP_N_MAX, clipQuery, filterDiagnosis, filterFundingData, fundingSearchOf, reviewCountOf,
   searchCutOf,
   type SummaryTab,
 } from "./result-conditions";
@@ -553,6 +553,11 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
       setFundingError("");
       // 이전 회사에서 펼쳐 뒀던 「안 맞아서 뺀 항목」도 새 회차로 넘어가지 않는다(훅의 같은 규칙).
       resetFundingForCompany();
+      // 요약 탭 건수는 탭·검색어 없이 받은 전체 응답에서 센다 — 탭·검색어가 걸린 채 다시 진단하면 그 응답이
+      // 오지 않아 건수가 걸러진 수로 줄어든다. 새 회차는 「전체」·빈 검색어에서 시작한다.
+      setResultTab("all");
+      setResultQuery("");
+      setAskedQuery("");
       dispatchMapUi({ type: "diagnosed" });
       return true;
     } catch {
@@ -699,7 +704,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
           view={mapUi.view}
           onView={(v) => dispatchMapUi({ type: "view", view: v })}
           query={resultQuery}
-          onQuery={setResultQuery}
+          onQuery={(q) => setResultQuery(clipQuery(q))}
           nowOnly={fundingFilters.openOnly}
           onNowOnly={(v) => changeFundingFilters({ ...fundingFilters, openOnly: v })}
           sort={fundingSort}

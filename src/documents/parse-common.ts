@@ -14,6 +14,15 @@ export interface ParsedDocument {
   note?: string;
 }
 
+/**
+ * 칸 결과 + 서류 속 사람 이름(대표자·직원) — **내부 값**이다. 이름은 업종 글에서 지우는 데만 쓰고
+ * 결과 칸·파일 줄·안내 어디에도 넣지 않는다(DocumentFileResult 에는 이 칸이 없다).
+ */
+export interface ParsedWithNames {
+  parsed: ParsedDocument;
+  personNames: string[];
+}
+
 /* ───────── 금액 ───────── */
 
 /** 단위 없는 숫자는 이 값 이상일 때만 「원」으로 본다. 그보다 작으면 원인지 만원인지 알 수 없다. */

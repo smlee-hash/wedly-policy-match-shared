@@ -593,49 +593,64 @@ function sheetOf(name: string, ws: XLSX.WorkSheet, date1904: boolean): SheetData
   return sheet;
 }
 
-/** `<row r="12" …>` 의 줄 번호 */
-const ROW_NUMBER = /\sr="(\d{1,9})"/;
-/** 줄 속에 값이 든 칸이 있다는 표시 — 숫자·글자 값(`<v>`)이나 바로 적은 글자(`<is>`). 서식만 있는 칸에는 없다. */
-const VALUE_MARKS = ["<v>", "<v ", "<is>", "<is "];
+/** `<row r="12" …>` 의 줄 번호(큰따옴표·작은따옴표 모두) */
+const ROW_NUMBER = /\sr=(?:"(\d{1,9})"|'(\d{1,9})')/;
+/** 태그 이름이 끝나는 글자 */
+const TAG_NAME_END = new Set([" ", "\t", "\n", "\r", ">", "/", "<"]);
+
+/**
+ * 줄 속에 값이 든 칸이 있다는 표시 — 숫자·글자 값(`<v>`)이나 바로 적은 글자(`<is>`). 서식만 있는 칸에는 없다.
+ * 이름 앞 접두사(`<x:v>`)가 붙은 표기도 같이 본다.
+ */
+function valueMarksOf(prefix: string): string[] {
+  const out = ["<v>", "<v ", "<is>", "<is "];
+  if (prefix) out.push(`<${prefix}v>`, `<${prefix}v `, `<${prefix}is>`, `<${prefix}is `);
+  return out;
+}
 
 /**
  * 시트 XML 에서 **값이 있는 칸을 가진 마지막 줄 번호**. 없으면 0.
  * 읽기 도구에 행 상한(sheetRows)을 주면 상한 뒤 줄은 읽지 않아 범위가 줄어든다 — 그 뒤에 값이 있었는지는
- * 읽기 전에 원본 XML 에서 따로 알아야 한다. indexOf 로 앞에서 한 번만 훑는다(역추적 정규식·되돌아가기 없음).
+ * 읽기 전에 원본 XML 에서 따로 알아야 한다. 앞에서 한 번만 훑는다(역추적 정규식·되돌아가기 없음).
+ * 줄 태그에 이름 접두사(`<x:row …>`)가 붙어도, 속성이 작은따옴표(`r='3000'`)여도 읽는다.
  */
 export function lastValuedRowOf(xml: string): number {
   let last = 0;
   let current = 0;
   let from = 0;
   for (;;) {
-    const open = xml.indexOf("<row", from);
+    const open = xml.indexOf("<", from);
     if (open < 0) break;
-    const next = xml[open + 4] ?? "";
-    // 「<rowBreaks」처럼 이름만 비슷한 다른 태그는 건너뛴다.
-    if (next !== " " && next !== ">" && next !== "/" && next !== "\t" && next !== "\n" && next !== "\r") {
-      from = open + 4;
+    let nameEnd = open + 1;
+    while (nameEnd < xml.length && !TAG_NAME_END.has(xml[nameEnd])) nameEnd++;
+    const name = xml.slice(open + 1, nameEnd);
+    const colon = name.lastIndexOf(":");
+    // 「<rowBreaks」·「</row>」처럼 줄을 여는 태그가 아닌 것은 건너뛴다.
+    if (name.slice(colon + 1) !== "row") {
+      from = open + 1;
       continue;
     }
+    const prefix = name.slice(0, colon + 1);
     const tagEnd = xml.indexOf(">", open);
     if (tagEnd < 0) break;
     const tag = xml.slice(open, tagEnd + 1);
     const num = ROW_NUMBER.exec(tag);
-    current = num ? Number(num[1]) : current + 1; // 번호가 없는 줄은 앞 줄 다음 번호
+    current = num ? Number(num[1] ?? num[2]) : current + 1; // 번호가 없는 줄은 앞 줄 다음 번호
     from = tagEnd + 1;
     if (tag.endsWith("/>")) continue; // 칸이 없는 줄
-    const close = xml.indexOf("</row>", from);
+    const close = xml.indexOf(`</${prefix}row>`, from);
     const end = close < 0 ? xml.length : close;
     const body = xml.slice(from, end);
     from = end;
-    if (current > last && VALUE_MARKS.some((mark) => body.includes(mark))) last = current;
+    if (current > last && valueMarksOf(prefix).some((mark) => body.includes(mark))) last = current;
   }
   return last;
 }
 
-/** 속성 값 하나(`name="…"`). 없으면 null. */
+/** 속성 값 하나(`name="…"` 또는 `name='…'`). 없으면 null. */
 function attrOf(tag: string, name: string): string | null {
-  const m = new RegExp(`\\s${name}="([^"]*)"`).exec(tag);
-  return m ? unescapeXml(m[1]) : null;
+  const m = new RegExp(`\\s${name}=(?:"([^"]*)"|'([^']*)')`).exec(tag);
+  return m ? unescapeXml(m[1] ?? m[2]) : null;
 }
 
 /** 태그 이름으로 시작하는 태그들(`<sheet …>`)을 앞에서부터 모은다. */

@@ -5,21 +5,23 @@
 // ★사진·스캔본은 앱이 넘긴 aiReader 로만 읽는다. 없으면(랩) 「글자 있는 PDF로 올려 주세요」 안내만 한다.
 // ★aiReader 가 돌려준 값도 믿지 않고 걸러 쓴다 — 주소는 시도+시군구까지만, 주민번호 모양 글자·모르는 칸은 버린다.
 // ★주민번호·대표자 이름·도로명은 결과 어디에도 내보내지 않는다(파일 이름에 든 주민번호 모양도 가린다).
+// ★업종 글의 이름은 짐작해 지우지 않는다. 서류(대표자·성명 칸)와 AI(personNames)가 알려 준 이름을 묶음 전체에서 모아 그것만 지운다.
 
 import { canonicalRegion } from "../engine/match-engine";
 import { CERT_TYPE_NAMES } from "../engine/profile-derive";
 import { sigunguSido } from "../engine/sigungu";
 import { classifyDocument } from "./classify";
-import { cleanCompanyScale, cleanIndustryText, RRN_LIKE_GLOBAL } from "./clean-text";
+import { cleanCompanyScale, cleanIndustryText, cleanPersonNames, RRN_LIKE_GLOBAL } from "./clean-text";
 import { extractDocumentText } from "./extract-text";
 import { DOCUMENT_FIELD_KEYS, mergeDocumentFields, type MergeInput } from "./merge";
-import { parseBizRegistration } from "./parse-biz-registration";
+import { readBizRegistration } from "./parse-biz-registration";
 import { parseCompanyStatus } from "./parse-company-status";
-import { addressFields, normalizeDate, type DocumentBody, type ParsedDocument } from "./parse-common";
+import { addressFields, normalizeDate, type DocumentBody, type ParsedWithNames } from "./parse-common";
 import { parseEmployment } from "./parse-employment";
 import { parseFinancial } from "./parse-financial";
 import {
   DOCUMENT_UPLOAD_LIMITS,
+  type AiReaderResult,
   type DocumentFields,
   type DocumentFileResult,
   type DocumentPrefillResult,
@@ -35,14 +37,18 @@ export interface DocumentInputFile {
 }
 
 export interface ReadDocumentsOptions {
-  /** 사진·스캔본을 AI 로 읽어 칸을 돌려주는 함수(ERP·컨설턴트 앱이 넘긴다). 없으면 사진은 읽지 않고 안내만 한다. */
-  aiReader?: (file: DocumentInputFile) => Promise<DocumentFields>;
+  /**
+   * 사진·스캔본을 AI 로 읽어 칸을 돌려주는 함수(ERP·컨설턴트 앱이 넘긴다). 없으면 사진은 읽지 않고 안내만 한다.
+   * 사진에서 본 사람 이름은 칸이 아니라 `personNames` 에만 담게 한다 — 업종에서 그 이름을 지우는 데만 쓴다.
+   */
+  aiReader?: (file: DocumentInputFile) => Promise<AiReaderResult>;
 }
 
 const MB = 1024 * 1024;
 const NAME_MAX_CHARS = 100;
 const NO_NAME = "이름 없는 파일";
 
+const AI_NAMES_MAX = 100;
 const COUNT_MAX = 100_000;
 const KRW_MAX = 1e15;
 const BIZNO_RE = /^(\d{3})-?(\d{2})-?(\d{5})$/;
@@ -78,12 +84,13 @@ function displayNameOf(base: string): string {
 
 /**
  * 서류 파서·AI 가 돌려준 글자 칸(업종·규모)을 한 번 더 거른다 — 두 길이 같은 거르개를 쓴다.
- * 다음 항목 이름(성명·대표자 …)에서 자르고, 주민번호·주소 모양이 있으면 칸을 버린다. 규모는 정해진 값만 남긴다.
+ * 이 서류 묶음이 알려 준 사람 이름(`names`)을 업종에서 지우고, 다음 항목 이름(성명·대표자 …)에서 자르고,
+ * 주민번호·주소 모양이 있으면 칸을 버린다. 규모는 정해진 값만 남긴다.
  */
-function scrubFields(fields: DocumentFields): DocumentFields {
+function scrubFields(fields: DocumentFields, names: readonly string[]): DocumentFields {
   const out: DocumentFields = { ...fields };
   if (out.industry !== undefined) {
-    const industry = cleanIndustryText(out.industry);
+    const industry = cleanIndustryText(out.industry, undefined, names);
     if (industry) out.industry = industry;
     else delete out.industry;
   }
@@ -180,29 +187,43 @@ function sanitizeAiFields(raw: unknown): DocumentFields {
   return out as DocumentFields;
 }
 
+/** AI 가 사진에서 본 사람 이름(대표자·직원). 지우기 목록에만 쓰고 결과 칸에는 넣지 않는다. */
+function aiPersonNames(raw: unknown): string[] {
+  if (typeof raw !== "object" || raw === null) return [];
+  const names = (raw as Record<string, unknown>).personNames;
+  return Array.isArray(names) ? cleanPersonNames(names.slice(0, AI_NAMES_MAX)) : [];
+}
+
 /* ───────── 파일 하나 읽기 ───────── */
 
 interface ReadOne {
   result: DocumentFileResult;
   merge?: MergeInput;
+  /** 이 파일이 알려 준 사람 이름 — 묶음 전체의 업종에서 지우는 데만 쓴다. 결과에는 넣지 않는다. */
+  names: string[];
+  /** 이름을 지운 뒤 칸이 하나도 안 남았을 때 쓸 안내 */
+  emptyMessage?: string;
 }
+
+const noNames = (result: DocumentFileResult): ReadOne => ({ result, names: [] });
 
 function textOf(body: DocumentBody): string {
   return [body.text ?? "", ...(body.sheets ?? []).map((s) => s.text)].filter(Boolean).join("\n");
 }
 
-/** 서류 종류에 맞는 칸 뽑기를 부른다. 읽을 수 없는 종류(unknown)는 null. */
-function parseByType(docType: DocumentType, body: DocumentBody): ParsedDocument | null {
+/** 서류 종류에 맞는 칸 뽑기를 부른다. 읽을 수 없는 종류(unknown)는 null. 이름을 알려 주는 서류는 이름 목록도 함께 돌려준다. */
+function parseByType(docType: DocumentType, body: DocumentBody): ParsedWithNames | null {
+  const plain = (parsed: ParsedWithNames["parsed"]): ParsedWithNames => ({ parsed, personNames: [] });
   switch (docType) {
     case "company-status":
-      return body.sheets ? parseCompanyStatus(body.sheets) : { fields: {}, note: COMPANY_STATUS_NEEDS_EXCEL };
+      return plain(body.sheets ? parseCompanyStatus(body.sheets) : { fields: {}, note: COMPANY_STATUS_NEEDS_EXCEL });
     case "biz-registration":
-      return parseBizRegistration(textOf(body));
+      return readBizRegistration(textOf(body));
     case "financial-statement":
     case "vat-return":
-      return parseFinancial(body, docType);
+      return plain(parseFinancial(body, docType));
     case "employment-insurance":
-      return parseEmployment(body);
+      return plain(parseEmployment(body));
     default:
       return null;
   }
@@ -217,19 +238,24 @@ async function readImage(
   bytes: Uint8Array,
   aiReader: ReadDocumentsOptions["aiReader"],
 ): Promise<ReadOne> {
-  if (!aiReader) return { result: refused(display, "needs-text-pdf", NEEDS_TEXT_PDF) };
+  if (!aiReader) return noNames(refused(display, "needs-text-pdf", NEEDS_TEXT_PDF));
   let fields: DocumentFields;
+  let names: string[];
   try {
-    fields = sanitizeAiFields(await aiReader({ name: display, bytes }));
+    const raw = await aiReader({ name: display, bytes });
+    fields = sanitizeAiFields(raw);
+    names = aiPersonNames(raw);
   } catch {
     // 오류 글에 파일 속 정보가 섞일 수 있어 그대로 내보내지 않는다.
-    return { result: refused(display, "failed", AI_FAILED) };
+    return noNames(refused(display, "failed", AI_FAILED));
   }
   const keys = Object.keys(fields) as DocumentFileResult["fields"];
-  if (keys.length === 0) return { result: refused(display, "no-fields", AI_EMPTY) };
+  if (keys.length === 0) return { result: refused(display, "no-fields", AI_EMPTY), names };
   return {
     result: { name: display, docType: "unknown", status: "read-by-ai", fields: keys },
     merge: { name: display, docType: "unknown", fields },
+    names,
+    emptyMessage: AI_EMPTY,
   };
 }
 
@@ -240,7 +266,7 @@ async function readOne(
   aiReader: ReadDocumentsOptions["aiReader"],
 ): Promise<ReadOne> {
   const extracted = await extractDocumentText(base, bytes);
-  if (extracted.kind === "unsupported") return { result: refused(display, "unsupported", extracted.reason) };
+  if (extracted.kind === "unsupported") return noNames(refused(display, "unsupported", extracted.reason));
   if (extracted.kind === "image") return readImage(display, bytes, aiReader);
 
   // 쉼표 표(.csv)는 따옴표를 지키며 열을 나눠 읽도록 표시한다.
@@ -249,19 +275,33 @@ async function readOne(
       ? { text: extracted.text, ...(/\.csv$/i.test(base) ? { csv: true } : {}) }
       : { sheets: extracted.sheets };
   const docType = classifyDocument({ fileName: base, ...body });
-  const parsed = parseByType(docType, body);
-  if (!parsed) return { result: { ...refused(display, "no-fields", UNKNOWN_DOC), docType } };
+  const read = parseByType(docType, body);
+  if (!read) return noNames({ ...refused(display, "no-fields", UNKNOWN_DOC), docType });
 
-  const fields = scrubFields(parsed.fields);
-  const keys = Object.keys(fields) as DocumentFileResult["fields"];
-  if (keys.length === 0) {
-    return { result: { ...refused(display, "no-fields", parsed.note ?? NO_FIELDS), docType } };
-  }
+  // 칸의 글자 거르기는 서류 묶음 전체의 이름이 모인 뒤(finishRead)에 한다 — 다른 서류가 알려 준 이름도 지워야 해서.
+  const { parsed, personNames } = read;
+  const emptyMessage = parsed.note ?? NO_FIELDS;
+  const keys = Object.keys(parsed.fields) as DocumentFileResult["fields"];
+  if (keys.length === 0) return { result: { ...refused(display, "no-fields", emptyMessage), docType }, names: personNames };
   const result: DocumentFileResult = { name: display, docType, status: "read", fields: keys };
   if (parsed.year !== undefined) result.year = parsed.year;
-  const merge: MergeInput = { name: display, docType, fields };
+  const merge: MergeInput = { name: display, docType, fields: parsed.fields };
   if (parsed.year !== undefined) merge.year = parsed.year;
-  return { result, merge };
+  return { result, merge, names: personNames, emptyMessage };
+}
+
+/**
+ * 묶음 전체의 사람 이름으로 칸을 거른 뒤 확정한다 — 업종에서 이름이 지워져 칸이 하나도 안 남으면 「채울 값 없음」으로 바꾼다.
+ */
+function finishRead(read: ReadOne, names: readonly string[]): Pick<ReadOne, "result" | "merge"> {
+  if (!read.merge) return { result: read.result };
+  const fields = scrubFields(read.merge.fields, names);
+  const keys = Object.keys(fields) as DocumentFileResult["fields"];
+  if (keys.length === 0) {
+    const { name, docType } = read.result;
+    return { result: { ...refused(name, "no-fields", read.emptyMessage ?? NO_FIELDS), docType } };
+  }
+  return { result: { ...read.result, fields: keys }, merge: { ...read.merge, fields } };
 }
 
 /**
@@ -273,8 +313,7 @@ export async function readDocuments(
   opts: ReadDocumentsOptions = {},
 ): Promise<DocumentPrefillResult> {
   const limits = DOCUMENT_UPLOAD_LIMITS;
-  const results: DocumentFileResult[] = [];
-  const inputs: MergeInput[] = [];
+  const reads: ReadOne[] = [];
   let total = 0;
 
   for (let i = 0; i < files.length; i++) {
@@ -284,20 +323,28 @@ export async function readDocuments(
       const bytes = files[i].bytes;
       const size = bytes.byteLength;
       if (i >= limits.maxFiles) {
-        results.push(refused(display, "failed", LIMIT_MESSAGE.tooMany));
+        reads.push(noNames(refused(display, "failed", LIMIT_MESSAGE.tooMany)));
       } else if (size > limits.maxFileBytes) {
-        results.push(refused(display, "too-large", LIMIT_MESSAGE.tooLarge));
+        reads.push(noNames(refused(display, "too-large", LIMIT_MESSAGE.tooLarge)));
       } else if (total + size > limits.maxTotalBytes) {
-        results.push(refused(display, "too-large", LIMIT_MESSAGE.totalTooLarge));
+        reads.push(noNames(refused(display, "too-large", LIMIT_MESSAGE.totalTooLarge)));
       } else {
         total += size;
-        const read = await readOne(base, display, bytes, opts.aiReader);
-        results.push(read.result);
-        if (read.merge) inputs.push(read.merge);
+        reads.push(await readOne(base, display, bytes, opts.aiReader));
       }
     } catch {
-      results.push(refused(display, "failed", READ_FAILED));
+      reads.push(noNames(refused(display, "failed", READ_FAILED)));
     }
+  }
+
+  // 서류 묶음 전체가 알려 준 사람 이름(규칙 경로·AI 경로 모두)으로 모든 서류의 칸을 거른다. 이름은 여기서만 쓰고 결과에 넣지 않는다.
+  const names = cleanPersonNames(reads.flatMap((r) => r.names));
+  const results: DocumentFileResult[] = [];
+  const inputs: MergeInput[] = [];
+  for (const read of reads) {
+    const done = finishRead(read, names);
+    results.push(done.result);
+    if (done.merge) inputs.push(done.merge);
   }
 
   return { ...mergeDocumentFields(inputs), files: results };

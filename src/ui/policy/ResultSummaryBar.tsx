@@ -3,7 +3,7 @@
 // 결과 위 한 묶음 — 요약 탭(누르면 그 조건으로 거른다) · 「모름 → 확인 필요」 띠 · 도구 줄.
 // 상태는 전부 부모(PolicyMatchScreen)가 쥔다 — 이 부품은 그리기만 하고, 그래서 그려서 잴 수 있다.
 import { SegmentedControl } from "@wedly/ui-shared/ui";
-import type { FundingSort } from "../../funding/funding-map";
+import { FUNDING_QUERY_MAX, type FundingSort } from "../../funding/funding-map";
 import type { FundingMapPayload } from "../FundingMap";
 import type { DiagnosedView } from "./PolicyMatchScreen";
 import { SORT_CHOICES, summaryTabs, type SummaryTab } from "./result-conditions";
@@ -100,6 +100,7 @@ export default function ResultSummaryBar({
           onChange={(e) => onQuery(e.target.value)}
           placeholder="공고명·기관·지원대상 검색"
           aria-label="공고 검색"
+          maxLength={FUNDING_QUERY_MAX}
           className={`${FIELD} w-56 max-w-full`}
         />
         <label className="inline-flex items-center gap-2 text-sm leading-[22px] text-wedly-t2">

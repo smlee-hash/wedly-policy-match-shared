@@ -111,6 +111,12 @@ export interface FundingGroupBlock {
   items: FundingItem[];
   truncated: boolean;
   /**
+   * 이 갈래의 「종류 미확인」 줄 수 — **서버가 자르기 전에 센 값**. 검색어·탭을 건 요청에서만 싣는다(없으면 안 건 요청).
+   * 미확인 줄은 `items` 뒤에 따로 topN 으로 잘려 붙으므로, 화면이 실려 온 줄 수로 세면 잘린 만큼 모자라
+   * 「앞의 N건 안에서 찾았어요」 안내가 사라진다 — 거른 뒤 건수는 이 칸을 쓴다.
+   */
+  unclassifiedTotal?: number;
+  /**
    * 안 맞아서 뺀 항목 — **`includeExcluded:true` 일 때만 있다**(false 면 필드 자체가 없다: 응답 크기).
    * `items` 와 같은 정렬·같은 topN 으로 따로 잘린다 — 정상 항목과 한 상한을 나눠 갖지 않는다.
    * 잘려서 못 실은 것이 있는지는 `excluded`(전체 개수)와 이 배열 길이를 견줘 안다.
@@ -763,6 +769,8 @@ export function groupBlocks(items: FundingItem[], opts: GroupBlockOptions = {}):
       items: [...sortItems(carded, sort).slice(0, topN), ...sortItems(parked, sort).slice(0, topN)],
       truncated: carded.length > topN,
     };
+    // 검색어·탭을 걸었을 때만 거른 뒤 미확인 건수를 싣는다 — 안 건 요청의 응답 모양은 그대로다.
+    if (searching) block.unclassifiedTotal = parked.length;
     if (opts.includeExcluded) block.excludedItems = sortItems(excludedMine, sort).slice(0, topN);
     return block;
   });

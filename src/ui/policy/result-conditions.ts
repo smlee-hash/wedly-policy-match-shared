@@ -65,9 +65,23 @@ export function summaryTabs(data: FundingMapPayload | null): SummaryTabInfo[] {
  */
 export const matchesQuery = matchesFundingQuery;
 
-/** 지도 요청에 실을 검색 조건 — 걸린 것만 담는다(검색어는 앞뒤 공백을 걷고 100자까지). */
+/** 검색 입력 칸에 담아 두는 글 — 100자까지만 남긴다(공백은 그대로: 낱말 사이에 띄어 쓰는 중일 수 있다). */
+export function clipQuery(query: string): string {
+  return Array.from(query).slice(0, FUNDING_QUERY_MAX).join("");
+}
+
+/**
+ * 검색어를 거르는 쪽(화면)과 묻는 쪽(서버 요청)이 **똑같이 쓰는 한 값** — 앞뒤 공백을 걷고 100자까지.
+ * 두 곳이 따로 자르면 103자 검색어를 화면은 103자로 거르고 서버는 100자로 걸러, 서버가 보낸 100자 접두사 공고를
+ * 화면이 다시 걸러 0건이 된다.
+ */
+export function normalizeQuery(query: string): string {
+  return clipQuery(query.trim());
+}
+
+/** 지도 요청에 실을 검색 조건 — 걸린 것만 담는다(검색어는 `normalizeQuery` 한 값). */
 export function fundingSearchOf(c: ResultConditions): { query?: string; tab?: SummaryTab } {
-  const query = Array.from(c.query.trim()).slice(0, FUNDING_QUERY_MAX).join("");
+  const query = normalizeQuery(c.query);
   return { ...(query ? { query } : {}), ...(c.tab !== "all" ? { tab: c.tab } : {}) };
 }
 
@@ -92,11 +106,16 @@ export function serverTotalOf(data: FundingMapPayload): number {
 }
 
 /**
- * 검색어·탭을 서버가 걸어 보낸 자료의 건수 — 갈래 건수의 합 + **실려 온** 종류 미확인 줄.
- * 자료 속 `unclassified` 는 거르기 전 전체 수라(검색에 안 맞는 줄까지 센다) 그대로 더하면 안내가 없는 잘림을 말한다.
+ * 검색어·탭을 서버가 걸어 보낸 자료의 건수 — 갈래 건수의 합 + 종류 미확인 줄 수.
+ * 자료 속 `unclassified` 는 거르기 전 전체 수라(검색에 안 맞는 줄까지 센다) 그대로 더하면 안 된다.
+ * 미확인 줄은 **서버가 거른 뒤 센 수**(`unclassifiedTotal`)를 쓴다 — 실려 온 줄 수는 갈래마다 80건에서
+ * 잘려 있어 그것으로 세면 잘림 안내가 사라진다. 그 칸이 없는 응답(옛 통로)만 실려 온 줄로 센다.
  */
 export function filteredTotalOf(data: FundingMapPayload): number {
-  return data.groups.reduce((n, b) => n + b.total + b.items.filter((it) => it.unclassified).length, 0);
+  return data.groups.reduce(
+    (n, b) => n + b.total + (b.unclassifiedTotal ?? b.items.filter((it) => it.unclassified).length),
+    0,
+  );
 }
 
 /** 실려 온 줄 수 — 서버가 갈래마다 상한까지만 실어 보내므로 서버 전체 건수보다 적을 수 있다. */
@@ -149,7 +168,8 @@ export function searchCutText(cut: SearchCut): string {
  * 묶음 탭은 그 묶음 카드만 남긴다(건수는 서버가 센 그대로). 시간 탭·검색어는 실려 온 줄만 거르므로
  * 그때는 카드 건수를 남은 줄로 다시 센다.
  */
-export function filterFundingData(data: FundingMapPayload, c: ResultConditions): FundingMapPayload {
+export function filterFundingData(data: FundingMapPayload, raw: ResultConditions): FundingMapPayload {
+  const c: ResultConditions = { ...raw, query: normalizeQuery(raw.query) }; // 서버에 보낸 값과 같은 검색어로 거른다
   if (noConditions(c)) return data;
   if (isGroupTab(c.tab) && c.query.trim() === "") {
     return { ...data, groups: data.groups.filter((b) => b.group === c.tab) };
@@ -160,7 +180,7 @@ export function filterFundingData(data: FundingMapPayload, c: ResultConditions):
     .map((b) => {
       const items = b.items.filter(keep);
       const normal = items.filter((it) => !it.unclassified);
-      return {
+      const next: FundingMapPayload["groups"][number] = {
         ...b,
         items,
         total: normal.length,
@@ -169,6 +189,9 @@ export function filterFundingData(data: FundingMapPayload, c: ResultConditions):
         soon: normal.filter(isSoon).length,
         excludedItems: b.excludedItems?.filter(keep),
       };
+      // 서버가 센 미확인 건수는 서버가 걸었던 조건의 수다 — 화면이 다시 거른 뒤에는 남은 줄로 다시 센다.
+      delete next.unclassifiedTotal;
+      return next;
     });
   return { ...data, groups };
 }
@@ -196,11 +219,12 @@ function diagnoseSoon(it: DiagnoseItem): boolean {
  */
 export function filterDiagnosis(
   d: Diagnosis | null,
-  c: ResultConditions,
+  raw: ResultConditions,
   opts: DiagnosisViewOptions,
   byRefId: ReadonlyMap<string, FundingItem>,
 ): Diagnosis | null {
   if (!d) return d;
+  const c: ResultConditions = { ...raw, query: normalizeQuery(raw.query) }; // 지도와 같은 검색어로 거른다
   const sortKept = opts.sort === "dead" || opts.sort === "amt";
   if (noConditions(c) && !opts.nowOnly && !sortKept) return d;
 

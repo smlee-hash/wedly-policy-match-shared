@@ -28,35 +28,22 @@ const NEXT_LABEL = new RegExp(
 );
 
 /**
- * 업종 칸 끝에 붙은 주소 꼬리가 시작하는 자리 — 시도 이름(「서울」「경기도」「서울특별시」)이나
- * 「…동·읍·면·리·로·길 + 숫자」 모양. 숫자 뒤에 글자가 바로 이어지면(「자동 3D」) 주소가 아니다.
+ * 업종 칸 끝에 붙은 주소 꼬리가 시작하는 자리. 시도 이름만 홀로 나오면 자르지 않는다(「스포츠 경기 운영업」).
+ *  - 시도 이름에 접미어가 붙은 것(「서울특별시」「경기도」「부산시」)
+ *  - 시도 이름 + 공백 + 「…시·군·구」로 끝나는 낱말(「경기 화성시」「서울 강남구」)
+ *  - 글 맨 앞의 시도 이름(앞에 업종이 없으니 주소 글이다)
+ *  - 「…동·읍·면·리·로·길 + 숫자」 모양. 숫자 뒤에 글자가 바로 이어지면(「자동 3D」) 주소가 아니다.
  */
 const SIDO_NAMES =
   "서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주|충청북|충청남|전라북|전라남|경상북|경상남";
 const ADDRESS_TAIL = new RegExp(
   [
-    `(?<![가-힣])(?:${SIDO_NAMES})(?:특별자치시|특별자치도|특별시|광역시|도|시)?(?![가-힣])`,
+    `(?<![가-힣])(?:${SIDO_NAMES})(?:특별자치시|특별자치도|특별시|광역시|도|시)(?![가-힣])`,
+    `(?<![가-힣])(?:${SIDO_NAMES})\\s+[가-힣]{1,5}(?:시|군|구)(?![가-힣])`,
+    `^(?:${SIDO_NAMES})(?![가-힣])`,
     "[가-힣]+(?:동|읍|면|리|로|길)\\s*(?:산\\s*)?\\d+(?:-\\d+)?(?:번지|번길)?(?![0-9A-Za-z가-힣])",
   ].join("|"),
 );
-
-/** 이름 꼬리 판별용 — 흔한 성씨. 마지막 낱말이 이 글자로 시작하는 한글 2~4자면 이름 후보다. */
-const SURNAMES = new Set(
-  Array.from(
-    "김이박최정강조윤장임한오서신권황안송류유전홍고문양손배백허남심노하곽성차주우구민진나지엄채원천방공현함변염여추도소석선설마길연위표명기반왕금옥육인맹제모탁국어은편용예봉경사부",
-  ),
-);
-
-/** 업종 꼬리말 — 이것으로 끝나는 낱말은 이름 후보여도 업종이다(「공사」「임대」「소매」). */
-const INDUSTRY_TAILS = [
-  "업", "점", "제조", "개발", "서비스", "판매", "도매", "소매", "통신", "공사", "설비", "가공", "수리", "임대", "중개",
-  "교육", "컨설팅", "운송", "음식", "식당", "한식", "양식", "중식", "일식", "장비", "조경", "인쇄", "출판", "광고",
-  "디자인", "유통", "무역", "건설", "제작", "관리", "용역", "대행", "숙박", "의료", "미용", "세탁", "학원", "김치",
-  "이벤트", "공급", "생산", "시공", "설계", "설치", "정비", "보관", "물류", "택배", "배송", "배달", "부품", "용품",
-  "상품", "제품", "기기", "기계", "기구", "연구", "상담", "지원", "시설", "사업", "기술", "정보", "전자", "전기",
-  "금속", "금융", "부동산", "소프트웨어", "시스템", "솔루션", "플랫폼", "쇼핑몰", "마케팅", "인력", "사무", "운영",
-  "제공", "재배", "사육", "식품", "의류", "문구", "문화", "주류", "플라스틱",
-];
 
 /** 업종은 짧다 — 이보다 길면 앞부분만 쓴다. */
 export const INDUSTRY_MAX_CHARS = 40;
@@ -69,38 +56,94 @@ export function looksPersonal(text: string): boolean {
   return RRN_LIKE.test(text) || ROAD_ADDRESS.test(text) || LOT_ADDRESS.test(text);
 }
 
-const TRAILING_MARKS = /[\s:：/,·(（-]+$/;
+/** 글 끝에 남는 구분표(공백·쌍점·빗금·쉼표·가운뎃점·마침표·여는 괄호·붙임표). */
+const TRAILING_MARKS = /[\s:：/,;·.。(（-]+$/;
+const LEADING_MARKS = /^[\s:：/,;·.。)）-]+/;
 
-/** 마지막 낱말이 사람 이름 모양(성씨로 시작하는 한글 2~4자, 업종 꼬리말로 끝나지 않음)이면 그 낱말을 뺀다. */
-function dropNameTail(text: string): string {
-  const at = text.lastIndexOf(" ") + 1; // 공백은 한 칸으로 맞춰져 있다
-  const word = text.slice(at);
-  if (!/^[가-힣]{2,4}$/.test(word) || !SURNAMES.has(word[0])) return text;
-  if (INDUSTRY_TAILS.some((tail) => word.endsWith(tail))) return text;
-  return text.slice(0, at).replace(TRAILING_MARKS, "").trim();
+/* ───────── 서류 속 사람 이름 ───────── */
+
+/** 이름 자리에 적히는 직함·말머리 — 이름으로 모으지 않는다. */
+const NOT_NAMES = new Set(["대표", "대표자", "대표이사", "공동대표", "각자대표", "사내이사", "이사", "사업자", "개인", "법인", "본인"]);
+/** 한 번에 받는 이름 수 — 터무니없이 많이 와도 지우기 식이 커지지 않게(서류 10개 묶음의 이름이 다 들어갈 만큼). */
+export const PERSON_NAMES_MAX = 1000;
+
+/** 이름 하나를 다듬는다: 공백을 빼고 한글 2~5자이며 직함이 아니면 그 이름, 아니면 null. */
+function cleanPersonName(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const name = value.normalize("NFC").replace(/\s+/g, "");
+  return /^[가-힣]{2,5}$/.test(name) && !NOT_NAMES.has(name) ? name : null;
+}
+
+/** 이름 목록을 다듬는다 — 이름 모양이 아닌 값은 버리고 중복은 한 번만. */
+export function cleanPersonNames(values: unknown): string[] {
+  if (!Array.isArray(values)) return [];
+  const out: string[] = [];
+  for (const v of values.slice(0, PERSON_NAMES_MAX)) {
+    const name = cleanPersonName(v);
+    if (name && !out.includes(name)) out.push(name);
+  }
+  return out;
 }
 
 /**
- * 업종 같은 글자 칸을 거른다. 다음 항목 이름(성명·대표자·주민등록번호·주소 …)에서 자르고,
- * 남은 글에 주민번호·주소 모양이 있으면 버린다. 번지 없는 주소 꼬리(시도 이름·「역삼동 123」)는
- * 그 자리에서 자르고, 끝에 이름처럼 보이는 낱말이 붙었으면 뺀다. 최대 `max` 글자. 비면 null.
+ * 「대표자」「성명」 항목의 값 글에서 이름을 꺼낸다. 값의 첫 줄만 보고, 쉼표·빗금으로 나뉜 조각마다
+ * (공백을 뺀 전체 / 첫 낱말)을 이름 모양인지 본다. 이 이름은 업종에서 지우는 데만 쓰고 결과에는 넣지 않는다.
  */
-export function cleanIndustryText(value: unknown, max: number = INDUSTRY_MAX_CHARS): string | null {
+export function personNamesIn(text: string): string[] {
+  const line = text.normalize("NFC").split(/\r\n|\r|\n/).find((l) => l.trim() !== "") ?? "";
+  const found: string[] = [];
+  for (const piece of line.replace(/^[\s:：]+/, "").slice(0, 60).split(/[,/·、]/).slice(0, 3)) {
+    const spaced = piece.trim();
+    found.push(spaced, spaced.split(/[\s()（）]/)[0]);
+  }
+  return cleanPersonNames(found);
+}
+
+/** 이름들을 글에서 찾는 식 — 글자 사이 공백은 있어도 되고, 긴 이름을 먼저 찾는다. 이름이 없으면 null. */
+function nameRemover(names: readonly string[]): RegExp | null {
+  const clean = cleanPersonNames([...names]).sort((a, b) => b.length - a.length);
+  if (clean.length === 0) return null;
+  return new RegExp(clean.map((n) => Array.from(n).join("\\s*")).join("|"), "g");
+}
+
+/** 이름을 지운 자리에 남은 구분표(빈 괄호·겹친 빗금·앞뒤 쉼표)를 정리한다. */
+function tidyAfterRemoval(text: string): string {
+  return text
+    .replace(/[(（]\s*[)）]/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/([/,;·])(?:\s*[/,;·])+/g, "$1")
+    .replace(LEADING_MARKS, "")
+    .replace(TRAILING_MARKS, "")
+    .trim();
+}
+
+/**
+ * 업종 같은 글자 칸을 거른다. 서류가 알려 준 사람 이름(`names`)은 글 어디에 있든 지우고(공백 무시),
+ * 다음 항목 이름(성명·대표자·주민등록번호·주소 …)에서 자르고, 남은 글에 주민번호·주소 모양이 있으면 버린다.
+ * 번지 없는 주소 꼬리(「경기 화성시」·「역삼동 123」)는 그 자리에서 자른다. 이름을 글자 모양으로 짐작해
+ * 지우지는 않는다(「농업 / 양봉」을 지키려고). 최대 `max` 글자. 비면 null.
+ */
+export function cleanIndustryText(
+  value: unknown,
+  max: number = INDUSTRY_MAX_CHARS,
+  names: readonly string[] = [],
+): string | null {
   if (typeof value !== "string") return null;
   // 업종은 40자만 남으니 앞 500자만 본다 — 아주 긴 글에서 주소 모양 찾기가 오래 걸리지 않게(결과에 뒤쪽 글은 들어가지 않는다).
   let text = value.normalize("NFC").slice(0, 500).replace(/\s+/g, " ").trim();
   // 주민번호는 항목 이름 없이 붙어 있을 수 있어 자르기 전에 먼저 본다.
   if (RRN_LIKE.test(text)) return null;
+  const remover = nameRemover(names);
+  if (remover) text = tidyAfterRemoval(text.replace(remover, " "));
   const label = NEXT_LABEL.exec(text);
   if (label) text = text.slice(0, label.index);
   text = text.replace(TRAILING_MARKS, "").trim();
   if (text === "" || looksPersonal(text)) return null;
   const address = ADDRESS_TAIL.exec(text);
   if (address) text = text.slice(0, address.index).replace(TRAILING_MARKS, "").trim();
-  text = dropNameTail(text);
   if (text === "") return null;
   const chars = Array.from(text);
-  if (chars.length > max) text = chars.slice(0, max).join("").replace(/[\s:：/,·(（-]+$/, "").trim();
+  if (chars.length > max) text = chars.slice(0, max).join("").replace(TRAILING_MARKS, "").trim();
   return text === "" ? null : text;
 }
 

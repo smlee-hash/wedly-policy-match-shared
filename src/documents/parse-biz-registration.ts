@@ -4,8 +4,8 @@
 // ★사업장 소재지는 시도+시군구까지만 남긴다(도로명·번지·건물명은 결과 어디에도 없다).
 // (ERP 의 policy-match/taxbot-document-facts 의 parseRegistrationCertificate 를 옮겨 칸을 넓혔다.)
 
-import { cleanIndustryText } from "./clean-text";
-import { addressFields, normalizeDate, type ParsedDocument } from "./parse-common";
+import { cleanIndustryText, personNamesIn } from "./clean-text";
+import { addressFields, normalizeDate, type ParsedDocument, type ParsedWithNames } from "./parse-common";
 import type { DocumentFields } from "./types";
 
 // 증명서 글은 글자 사이에 공백이 섞여 있다("사 업 장 소 재 지"). 항목 이름을 글자마다 공백을 허용하는 식으로 만든다.
@@ -18,7 +18,8 @@ function standalone(source: string): string {
   return `(?<![가-힣A-Za-z0-9])${source}(?=[\\s:：]|$)`;
 }
 
-type LabelKind = "address" | "open" | "businessType" | "item" | "name" | "corpReg" | "other";
+// person = 대표자·성명 칸. 값은 결과에 넣지 않고 「지울 이름 목록」으로만 돌려준다.
+type LabelKind = "address" | "open" | "businessType" | "item" | "name" | "corpReg" | "person" | "other";
 
 // 값은 자기 항목 이름 뒤부터 다음 항목 이름 앞까지다. 쓰지 않는 항목도 값의 끝을 알리려고 적어 둔다.
 // 같은 자리에서 시작하는 이름은 긴 쪽을 앞에 둔다(「상호(법인명)」이 「상호」보다 먼저).
@@ -36,9 +37,10 @@ const LABELS: ReadonlyArray<readonly [LabelKind, string]> = [
   ["other", loose("사업자등록일")],
   ["other", loose("사업자등록번호")],
   ["other", standalone(loose("등록번호"))],
-  ["other", loose("대표자성명")],
-  ["other", loose("성명(대표자)")],
-  ["other", standalone(loose("대표자"))],
+  ["person", loose("대표자성명")],
+  ["person", loose("대표자명")],
+  ["person", loose("성명(대표자)")],
+  ["person", standalone(loose("대표자"))],
   ["other", loose("주민(법인)등록번호")],
   ["other", loose("성명(법인명)")],
   ["other", loose("주민(사업자)등록번호")],
@@ -47,7 +49,7 @@ const LABELS: ReadonlyArray<readonly [LabelKind, string]> = [
   ["other", loose("사업의종류")],
   ["other", loose("발급사유")],
   // 종목 값이 이 항목 이름에서 끊겨야 한다 — 이름·주민번호·주소가 업종으로 딸려 들어오지 않게(위의 긴 이름 뒤에 둔다).
-  ["other", standalone(loose("성명"))],
+  ["person", standalone(loose("성명"))],
   ["other", loose("주민등록번호")],
   ["other", loose("생년월일")],
   ["other", standalone(loose("주소"))],
@@ -104,8 +106,10 @@ function orgTypeOfTitle(body: string): "법인" | "개인" | undefined {
   return undefined;
 }
 
-/** 사업자등록증·증명 글에서 칸을 뽑는다. 읽은 칸이 없으면 빈 결과 + 안내. */
-export function parseBizRegistration(rawText: string): ParsedDocument {
+/**
+ * 칸 뽑기 + 서류가 알려 준 대표자 이름. 이름은 서류 묶음 전체의 업종에서 이름을 지우는 데만 쓴다(결과에 넣지 않는다).
+ */
+export function readBizRegistration(rawText: string): ParsedWithNames {
   const text = rawText.normalize("NFC");
   // 맺음 문구 뒤의 안내 글에 항목 이름이 또 나와도 읽지 않는다.
   const end = text.search(CERT_END_RE);
@@ -117,6 +121,7 @@ export function parseBizRegistration(rawText: string): ParsedDocument {
   let corpName = false;
   const businessTypes: string[] = [];
   const items: string[] = [];
+  const personNames: string[] = [];
   for (const segment of labelledSegments(body)) {
     if (segment.kind === "address") {
       if (address !== undefined) continue;
@@ -135,6 +140,8 @@ export function parseBizRegistration(rawText: string): ParsedDocument {
       if (CORP_REG_FILLED_RE.test(segment.value)) corpRegFilled = true;
     } else if (segment.kind === "name") {
       if (CORP_NAME_RE.test(segment.value)) corpName = true;
+    } else if (segment.kind === "person") {
+      for (const name of personNamesIn(segment.value)) if (!personNames.includes(name)) personNames.push(name);
     }
   }
 
@@ -149,7 +156,9 @@ export function parseBizRegistration(rawText: string): ParsedDocument {
   if (types.length && sectors.length) {
     const joined = `${types.join(", ")} / ${sectors.join(", ")}`;
     // 다음 항목 이름·주민번호·주소 모양이 섞였으면 자르거나 버리고, 업종은 40자까지만 쓴다.
-    const industry = joined.length <= MAX_INDUSTRY_LENGTH ? cleanIndustryText(joined) : null;
+    // 이 서류가 알려 준 대표자 이름은 업종 글에서 먼저 지운다.
+    const industry =
+      joined.length <= MAX_INDUSTRY_LENGTH ? cleanIndustryText(joined, undefined, personNames) : null;
     if (industry) fields.industry = industry;
   }
 
@@ -161,5 +170,11 @@ export function parseBizRegistration(rawText: string): ParsedDocument {
   if (orgType === "법인" || corpRegFilled || corpName) fields.isCorporation = true;
   else if (orgType === "개인") fields.isCorporation = false;
 
-  return Object.keys(fields).length > 0 ? { fields } : { fields, note: NOTHING_FOUND };
+  const parsed: ParsedDocument = Object.keys(fields).length > 0 ? { fields } : { fields, note: NOTHING_FOUND };
+  return { parsed, personNames };
+}
+
+/** 사업자등록증·증명 글에서 칸을 뽑는다. 읽은 칸이 없으면 빈 결과 + 안내. */
+export function parseBizRegistration(rawText: string): ParsedDocument {
+  return readBizRegistration(rawText).parsed;
 }

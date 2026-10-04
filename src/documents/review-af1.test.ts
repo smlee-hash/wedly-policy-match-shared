@@ -139,19 +139,22 @@ describe("BF3-1 업종 칸의 주소 꼬리·이름 꼬리", () => {
     expect(cleanIndustryText("자동 3D 프린터 제조")).toBe("자동 3D 프린터 제조");
   });
 
-  it("리뷰 표본: 가짜 AI 응답 끝에 붙은 이름은 버린다", async () => {
+  it("리뷰 표본: 가짜 AI 가 이름을 personNames 로 알려 주면 업종 끝에 붙은 이름은 버린다", async () => {
     const result = await readDocuments([{ name: "사진.png", bytes: HEAD.png }], {
-      aiReader: async () => ({ industry: "소프트웨어 개발 김가상", companyScale: "중소기업" }) as never,
+      aiReader: async () =>
+        ({ industry: "소프트웨어 개발 김가상", companyScale: "중소기업", personNames: ["김가상"] }) as never,
     });
     expect(result.fields.industry).toBe("소프트웨어 개발");
     expect(JSON.stringify(result)).not.toContain("김가상");
   });
 
-  it("마지막 낱말이 성씨로 시작하는 2~4자 이름 모양이고 업종 꼬리말이 아니면 버린다", () => {
-    expect(cleanIndustryText("소프트웨어 개발 김가상")).toBe("소프트웨어 개발");
-    expect(cleanIndustryText("제조업 박가상")).toBe("제조업");
-    expect(cleanIndustryText("서비스업 / 도소매업 남궁가상")).toBe("서비스업 / 도소매업"); // 4자 이름
-    expect(cleanIndustryText("김가상")).toBeNull();
+  it("이름은 글자 모양으로 짐작해 지우지 않고, 알려 준 이름(names)만 지운다(공백 무시)", () => {
+    expect(cleanIndustryText("소프트웨어 개발 김가상", undefined, ["김가상"])).toBe("소프트웨어 개발");
+    expect(cleanIndustryText("제조업 박가상", undefined, ["박가상"])).toBe("제조업");
+    expect(cleanIndustryText("서비스업 / 도소매업 남궁가상", undefined, ["남궁가상"])).toBe("서비스업 / 도소매업"); // 4자 이름
+    expect(cleanIndustryText("제조업 / 박 가 상 / 원단", undefined, ["박가상"])).toBe("제조업 / 원단");
+    expect(cleanIndustryText("김가상", undefined, ["김가상"])).toBeNull();
+    expect(cleanIndustryText("소프트웨어 개발 김가상")).toBe("소프트웨어 개발 김가상"); // 이름을 모르면 그대로
   });
 
   it("잘못 지우지 않기: 흔한 업종은 그대로 둔다", () => {

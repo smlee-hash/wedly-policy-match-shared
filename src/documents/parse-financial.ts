@@ -113,11 +113,31 @@ function numbersAfterLabel(scan: string, m: RegExpExecArray): string[] {
   return out;
 }
 
+/** 고른 금액 글자. unit 은 칸 값 끝에 적힌 단위(「원」「천원」「백만원」)의 곱 — 있으면 머리글·본문의 「단위: …」 대신 이것을 쓴다. */
+interface PickedAmount {
+  amount: string;
+  unit?: number;
+}
+
+/** 금액 칸 값 끝의 단위 표시. 긴 이름이 먼저 와야 「천만원」이 「만원」으로 읽히지 않는다. */
+const CELL_AMOUNT_RE = /^(\d+(?:\.\d+)?)(천만원|백만원|억원|천원|만원|원)?$/;
+
+/**
+ * 금액 열의 칸 값을 읽는다. 「123,456」「123,456원」「123,456천원」은 값(+단위), 괄호 음수 「(1,234)」·빈 칸·글자는 null.
+ * 매출은 0 이상이어야 하니 괄호 음수는 금액으로 보지 않는다.
+ */
+function amountCell(raw: string): PickedAmount | null {
+  const t = raw.normalize("NFC").replace(/[,\s]/g, "");
+  const m = CELL_AMOUNT_RE.exec(t); // 괄호가 붙은 값은 이 모양이 아니라 여기서 걸러진다
+  if (!m) return null;
+  return m[2] === undefined ? { amount: m[1] } : { amount: m[1], unit: UNIT_MULTIPLIER[m[2]] };
+}
+
 /**
  * 매출 줄에서 금액 글자를 고른다. 머리글에 당기·금액 열이 있고 줄의 칸 수가 맞으면 그 열에서 읽는다.
  * 아니면 라벨 뒤 숫자 중 코드 모양(0으로 시작하는 6자리 이하)·코드 열을 뺀 첫 값. 하나도 없으면 null.
  */
-function pickAmount(lines: string[], at: number, re: RegExp, m: RegExpExecArray): string | null {
+function pickAmount(lines: string[], at: number, re: RegExp, m: RegExpExecArray): PickedAmount | null {
   const line = lines[at];
   const header = headerAbove(lines, at);
   const cells = cellsOf(line);
@@ -125,8 +145,7 @@ function pickAmount(lines: string[], at: number, re: RegExp, m: RegExpExecArray)
   if (header !== null && aligned && header.amountAt >= 0) {
     // 머리글에서 금액·당기 열을 찾았으면 그 열 칸만 읽는다. 칸이 비었거나 숫자가 아니면 옆의
     // 코드·전기·비고 값으로 대신하지 않는다 — 틀린 값의 매출보다 빈 칸이 낫다.
-    const cell = cells[header.amountAt].replace(/[,\s]/g, "");
-    return /^\d+(?:\.\d+)?$/.test(cell) ? cell : null;
+    return amountCell(cells[header.amountAt]);
   }
   let scan = line;
   let hit: RegExpExecArray | null = m;
@@ -136,7 +155,7 @@ function pickAmount(lines: string[], at: number, re: RegExp, m: RegExpExecArray)
   }
   if (!hit) return null;
   const amount = numbersAfterLabel(scan, hit).find((t) => t.includes(",") || t.includes(".") || !CODE_LIKE_RE.test(t));
-  return amount ?? null;
+  return amount === undefined ? null : { amount };
 }
 
 /** 재무제표·부가세 신고서·과세표준증명에서 매출과 귀속 연도를 뽑는다. 못 읽으면 빈 결과 + 안내. */
@@ -152,8 +171,9 @@ export function parseFinancial(body: DocumentBody, docType: FinancialDocType): P
     const m = re.exec(line);
     const picked = m ? pickAmount(lines, i, re, m) : null;
     if (m && picked !== null) {
-      const value = Number(picked.replace(/,/g, ""));
-      const krw = Math.round(value * multiplierAt(text, offset + m.index));
+      const value = Number(picked.amount.replace(/,/g, ""));
+      // 칸 값에 단위가 적혀 있으면 그것을 쓰고, 없을 때만 머리글·본문의 「단위: …」를 곱한다(두 번 곱하지 않게).
+      const krw = Math.round(value * (picked.unit ?? multiplierAt(text, offset + m.index)));
       if (Number.isFinite(krw) && krw >= 0 && krw <= MAX_KRW) {
         const year = yearOf(text);
         return year === undefined ? { fields: { lastYearRevenueKrw: krw } } : { fields: { lastYearRevenueKrw: krw }, year };
