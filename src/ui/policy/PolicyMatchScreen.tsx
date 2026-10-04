@@ -2,21 +2,23 @@
 
 // 지원정책 매칭 — 상태 관리와 배치만 맡는다(그리는 일은 조각들이 나눠 한다).
 // 화면의 주인공은 「사업자 정보 입력 → 매칭」이다(2026-08-22 사장님 결정 2번).
-// 위: 사업자 정보(접이식) / 아래는 두 판이 갈린다.
+// 넓은 화면(>820px)은 두 칸이다 — 왼쪽 회사 정보 고정 패널(안쪽 스크롤·진단 단추 바닥 고정), 오른쪽 결과.
+// 오른쪽은 위에서부터 요약 탭·「모름 → 확인 필요」 띠·도구 줄, 그 아래 두 판이 갈린다.
 //  · 탐색(browse) — 좌 결과 목록 / 우 공고 상세. **여기는 바뀌지 않는다**(탐색 회귀 금지).
-//  · 진단(diagnosed) — 「지도」는 전폭 자금 조달 지도 + 서랍, 「목록·상세」는 위 두 컬럼 그대로.
-//    두 판은 알약(SegmentedControl)으로 갈아탄다.
+//  · 진단(diagnosed) — 「한눈에」는 전폭 자금 조달 지도 + 서랍, 「목록」은 위 두 컬럼 그대로.
+//    두 판은 도구 줄의 보기 단추(목록 / 한눈에)로 갈아탄다.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 // 거르개(칩)·펼침을 한 자리에서 옮기는 규칙 — 상세창 레일(FundingRecommendPanel)과 **같은 함수**를
 // 쓴다. 이 규칙을 여기 다시 적으면 두 화면이 갈라진다(레일에서 이미 겪은 결함).
 import { nextFundingState } from "../FundingRecommendPanel";
-import { SegmentedControl } from "@wedly/ui-shared/ui";
 import { syncUserMessage } from "../../engine/types";
 import type { BusinessProfile } from "../../engine/match-engine";
 import type { FundingFilters, FundingItem, FundingSort } from "../../funding/funding-map";
 import type { FundingGroup } from "../../funding/funding-group";
-import ProfileForm from "./ProfileForm";
+import ProfileForm, { type ProfileFormStatus } from "./ProfileForm";
 import ResultList from "./ResultList";
+import ResultSummaryBar from "./ResultSummaryBar";
+import { filterDiagnosis, filterFundingData, reviewCountOf, type SummaryTab } from "./result-conditions";
 import DetailPanel from "./DetailPanel";
 import SourceDirectoryPanel from "./SourceDirectoryPanel";
 import FundingMap, { type FundingMapPayload } from "../FundingMap";
@@ -388,6 +390,14 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
   /** 지도 → 목록·상세로 건너간 뒤 좁은 화면에서 상세로 데려갈지(그 순간엔 상세가 아직 안 그려져 있다). */
   const scrollAfterList = useRef(false);
 
+  // ── 결과 위 요약 탭·검색·「지금 신청 가능」 — 목록과 한눈에(지도) 둘 다 같은 조건으로 거른다.
+  // 정렬은 지도 통로의 줄 세우기(fundingSort)와 한 값이다 — 두 곳에서 따로 쥐면 어긋난다.
+  const [resultTab, setResultTab] = useState<SummaryTab>("all");
+  const [resultQuery, setResultQuery] = useState("");
+  // 왼쪽 폼이 알려 주는 칸 현황 → 「모름 N칸 → 확인 필요 M건」 띠. 「채우기」는 번호를 올려 폼에 알린다.
+  const [formStatus, setFormStatus] = useState<ProfileFormStatus | null>(null);
+  const [fillNonce, setFillNonce] = useState(0);
+
   const load = useCallback(async (pageToUse: number, qToUse: string, statusToUse: string) => {
     const seq = ++loadSeq.current;
     setLoading(true);
@@ -544,17 +554,44 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
           .find((x) => x.announcementId === selectedId) ?? null
       : null;
 
+  // 요약 탭·검색·정렬로 거른 목록 — 지도 자료는 공고 번호 표(묶음 탭·금액 정렬이 갈래·금액을 찾는 곳)도 함께 만든다.
+  const fundingByRef = useMemo(
+    () => new Map((fundingData?.groups ?? []).flatMap((b) => b.items).map((it) => [it.refId, it] as const)),
+    [fundingData],
+  );
+  const conditions = useMemo(() => ({ tab: resultTab, query: resultQuery }), [resultTab, resultQuery]);
+  const shownFunding = useMemo(
+    () => (fundingData ? filterFundingData(fundingData, conditions) : null),
+    [fundingData, conditions],
+  );
+  const shownDiagnosis = useMemo(
+    () => filterDiagnosis(diagnosis, conditions, { nowOnly: fundingFilters.openOnly, sort: fundingSort }, fundingByRef),
+    [diagnosis, conditions, fundingFilters.openOnly, fundingSort, fundingByRef],
+  );
+
   return (
     // 여백 계단(DESIGN.md §5): 구역 사이 24(space-y-6), 카드 사이 16(gap-4).
     <div className="space-y-6 p-6">
-      <ProfileForm
-        onDiagnose={runDiagnose}
-        diagnosing={diagnosing}
-        prefillEndpoint={endpoints.prefill}
-        documentPrefillEndpoint={endpoints.documentPrefill}
-        documentPrefillMode={features?.documentPrefillMode}
-      />
+      {/* 넓은 화면(>820px): 왼쪽 회사 정보 고정 패널 + 오른쪽 결과. 좁은 화면은 한 줄로 쌓인다.
+          패널은 화면에 붙어(sticky) 결과를 내려도 따라오고, 칸이 길면 패널 안에서만 스크롤한다(ProfileForm). */}
+      <div className="space-y-6 min-[821px]:grid min-[821px]:grid-cols-[380px_minmax(0,1fr)] min-[821px]:items-start min-[821px]:gap-6 min-[821px]:space-y-0">
+      <aside
+        data-area="company-panel"
+        className="min-[821px]:sticky min-[821px]:top-4"
+      >
+        <ProfileForm
+          onDiagnose={runDiagnose}
+          diagnosing={diagnosing}
+          prefillEndpoint={endpoints.prefill}
+          documentPrefillEndpoint={endpoints.documentPrefill}
+          documentPrefillMode={features?.documentPrefillMode}
+          reviewCount={reviewCountOf(fundingData, diagnosis)}
+          onStatusChange={setFormStatus}
+          focusUnknownNonce={fillNonce}
+        />
+      </aside>
 
+      <section data-area="results" className="min-w-0 space-y-6">
       {notice && (
         // 안내 띠 — 상하 8·좌우 16, 본문 14/22.
         <div className="rounded-xl border border-wedly-bd bg-wedly-bg-gray px-4 py-2 text-sm leading-[22px] text-wedly-t2">
@@ -563,24 +600,29 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
       )}
 
       {mode === "diagnosed" && (
-        // 진단 결과를 어느 판으로 볼지 — 지도 안의 「카드로 보기/표로 보기」(같은 자료의 다른 모양)와
-        // 층이 다르므로 앞에 이름을 붙여 무엇을 고르는 알약인지 5초 안에 읽히게 한다.
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-wedly-label text-wedly-muted">결과 보기</span>
-          <SegmentedControl
-            options={[
-              { value: "map", label: "지도" },
-              { value: "list", label: "목록·상세" },
-            ]}
-            value={mapUi.view}
-            onChange={(v) => dispatchMapUi({ type: "view", view: v === "list" ? "list" : "map" })}
-          />
-        </div>
+        // 결과 위 한 묶음 — 요약 탭·「모름 → 확인 필요」 띠·도구 줄(보기·검색·지금 신청 가능·정렬).
+        // 보기 단추(목록 / 한눈에)가 예전 「결과 보기」 알약 자리를 이어받는다(한눈에 = 기존 자금 조달 지도).
+        <ResultSummaryBar
+          data={fundingData}
+          tab={resultTab}
+          onTab={setResultTab}
+          unknownCount={formStatus?.unknownCount ?? null}
+          reviewCount={reviewCountOf(fundingData, diagnosis)}
+          onFill={() => setFillNonce((n) => n + 1)}
+          view={mapUi.view}
+          onView={(v) => dispatchMapUi({ type: "view", view: v })}
+          query={resultQuery}
+          onQuery={setResultQuery}
+          nowOnly={fundingFilters.openOnly}
+          onNowOnly={(v) => changeFundingFilters({ ...fundingFilters, openOnly: v })}
+          sort={fundingSort}
+          onSort={setFundingSort}
+        />
       )}
 
       {showsMap(mode, mapUi.view) ? (
         <FundingMap
-          data={fundingData}
+          data={shownFunding}
           loading={fundingLoading}
           error={fundingError}
           filters={fundingFilters}
@@ -609,7 +651,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
             <ResultList
               mode={mode}
               onModeChange={setMode}
-              diagnosis={diagnosis}
+              diagnosis={shownDiagnosis}
               selectedId={selectedId}
               onSelect={select}
               browse={{
@@ -639,6 +681,9 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
           </div>
         </div>
       )}
+      </section>
+      </div>
+
       <SourceDirectoryPanel
         endpoint={endpoints.sources}
         onExport={features?.exportSources}

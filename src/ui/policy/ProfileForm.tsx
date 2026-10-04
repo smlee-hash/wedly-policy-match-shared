@@ -3,12 +3,13 @@
 // 사업자 정보 입력 — 이 화면의 주인공. 여기서 넣은 값이 매칭 진단의 입력이 된다.
 // 모르는 칸은 「모름」으로 두면 그 조건은 「확인 필요」로 분류된다(모름을 통과로 치지 않는다).
 // 칸은 값의 모양에 맞게 받는다(2026-10-05 사장님 지시) — 글자·숫자(쉼표·단위)·날짜·단추·칩. 셀렉트는 쓰지 않는다.
-import { useRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
 import { isCorporationByBizno, type BusinessProfile } from "../../engine/match-engine";
 import { CERT_TYPE_NAMES, deriveProfileFlags, readRegionFromAddress } from "../../engine/profile-derive";
 import type { DocumentFieldKey, DocumentPrefillResult, DocumentType } from "../../documents/types";
 import { formatCount, manwonToKorean, maskBizno } from "./profile-field-format";
 import DocumentUploadBox, { useDocumentUpload } from "./DocumentUploadBox";
+import { focusFirstUnknown } from "./unknown-focus";
 import {
   applyDocumentFields,
   choiceOptionLabel,
@@ -91,7 +92,21 @@ interface Props {
   documentPrefillEndpoint?: string;
   /** 서류 올리기 안내 방식 — attach(기본): 고객 자료에 붙여 둠 · lab: 저장 안 함·사진은 글자 있는 PDF로 */
   documentPrefillMode?: "attach" | "lab";
+  /** 채운 칸·모름 칸 수가 바뀔 때마다 알린다 — 결과 위 「모름 N칸 → 확인 필요 M건」 띠가 이 수를 쓴다. */
+  onStatusChange?: (status: ProfileFormStatus) => void;
+  /** 올라가면 접혀 있어도 펴고 첫 「모름」 칸으로 초점을 준다(결과 위 띠의 「채우기」). 0 은 아직 안 누름. */
+  focusUnknownNonce?: number;
 }
+
+/** 폼 바깥(결과 위 띠)이 알아야 하는 칸 현황. */
+export interface ProfileFormStatus {
+  filledCount: number;
+  total: number;
+  unknownCount: number;
+}
+
+/** 이 너비 이하는 패널이 위아래로 쌓인다(시안 820px) — 진단 뒤 폼을 접어 결과를 위로 올린다. */
+const STACK_MAX_PX = 820;
 
 function numberOf(v: string): number | undefined {
   const t = v.replace(/[,\s]/g, "");
@@ -394,8 +409,10 @@ function ChipGroup({
 
 export default function ProfileForm({
   onDiagnose, diagnosing, prefillEndpoint, reviewCount, documentPrefillEndpoint, documentPrefillMode,
+  onStatusChange, focusUnknownNonce,
 }: Props) {
   const [open, setOpen] = useState(true);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   const [companyName, setCompanyName] = useState("");
   const [bizno, setBizno] = useState(""); // 하이픈 들어간 모양(000-00-00000)으로 든다
@@ -713,8 +730,29 @@ export default function ProfileForm({
   /** 진단·자금 지도에 넘기기 직전에 deriveProfileFlags 를 거친다 — 엔진이 읽는 칸(hasCert·hasPatent·creditScore·region …)이 채워진다. */
   const runDiagnose = async () => {
     const ok = await onDiagnose(deriveProfileFlags(buildProfile()));
-    if (ok) setOpen(false); // 결과를 넓게 보라고 접는다 — 「조건 수정」으로 다시 편다
+    // 쌓이는 좁은 화면에서만 접는다 — 넓은 화면은 패널이 왼쪽에 서 있어 접을 이유가 없다.
+    // 창이 없는 곳(서버 그리기·시험)은 예전처럼 접는다. 「조건 수정」으로 다시 편다.
+    const stacked = typeof window === "undefined" || window.innerWidth <= STACK_MAX_PX;
+    if (ok && stacked) setOpen(false);
   };
+
+  // 칸 현황을 바깥에 알린다 — 부모가 같은 수로 띠를 그린다.
+  useEffect(() => {
+    onStatusChange?.({ filledCount, total: filled.length, unknownCount });
+  }, [onStatusChange, filledCount, filled.length, unknownCount]);
+
+  // 「채우기」 — 접혀 있으면 펴고, 칸이 그려진 다음 첫 모름 칸으로 간다(펴는 렌더 뒤에 다시 이 효과가 돈다).
+  const pendingFocus = useRef(false);
+  useEffect(() => {
+    if (!focusUnknownNonce) return;
+    pendingFocus.current = true;
+    setOpen(true);
+  }, [focusUnknownNonce]);
+  useEffect(() => {
+    if (!pendingFocus.current || !open) return;
+    pendingFocus.current = false;
+    focusFirstUnknown(rootRef.current);
+  });
 
   const toggleCert = (name: string) => {
     hand("certTypes", "hasCert");
@@ -752,8 +790,13 @@ export default function ProfileForm({
   const docFilledCount = docFilled.length;
 
   return (
-    <div className="rounded-2xl border border-wedly-bd bg-white p-4 shadow-sm">
-      <div className="flex flex-wrap items-center gap-2">
+    // 넓은 화면(>820px)에서는 왼쪽 고정 패널이다 — 뿌리가 화면 높이를 넘지 않게 하고, 칸 묶음만 안쪽에서
+    // 스크롤하며(아래 body), 매칭 진단 단추는 스크롤 밖 바닥(footer)에 붙여 둔다. 좁은 화면은 그냥 쌓인다.
+    <div
+      ref={rootRef}
+      className="flex flex-col rounded-2xl border border-wedly-bd bg-white shadow-sm min-[821px]:max-h-[calc(100vh-2rem)]"
+    >
+      <div className="flex flex-wrap items-center gap-2 p-4">
         <span className="text-base font-semibold leading-6 text-wedly-t1">사업자 정보</span>
         <span className="text-xs leading-[18px] text-wedly-muted">
           입력하면 자격이 맞는 지원정책을 찾아 드립니다
@@ -766,7 +809,7 @@ export default function ProfileForm({
       {!open && (
         // 접힌 상태에서도 바로 다시 돌릴 수 있어야 한다 — 공고 읽기가 진행 중이면 결과가 늘어난다.
         // 요약은 조용한 회색 층 한 줄(상세의 회색 층과 같은 언어), 다시 진단은 보조 버튼.
-        <div className="mt-4 flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4 px-4 pb-4">
           {summary && (
             <div className="min-w-0 flex-1 truncate rounded-xl bg-wedly-bg-gray px-4 py-2 text-sm leading-[22px] text-wedly-t2">
               {summary}
@@ -785,6 +828,8 @@ export default function ProfileForm({
 
       {open && (
         <>
+          {/* 칸 묶음 — 길면 이 안에서만 스크롤한다(바닥 진단 단추는 밖) */}
+          <div data-panel="body" className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
           {/* 서류 올리기 — 통로(documentPrefillEndpoint)를 안 넘긴 앱에는 이 칸이 아예 없다. 맨 위에 둔다. */}
           {documentPrefillEndpoint && (
             <DocumentUploadBox
@@ -1063,8 +1108,10 @@ export default function ProfileForm({
             </Field>
           </div>
 
-          {/* 구역 사이 24 — 입력 칸 묶음과 주 행동을 떼어 놓는다 */}
-          <div className="mt-6 flex flex-wrap items-center gap-4">
+          </div>
+
+          {/* 바닥 고정 — 칸 묶음이 스크롤돼도 주 행동은 늘 보인다 */}
+          <div data-panel="footer" className="flex shrink-0 flex-wrap items-center gap-4 border-t border-wedly-bd p-4">
             <button
               type="button"
               onClick={() => void runDiagnose()}
