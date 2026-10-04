@@ -10,7 +10,7 @@
 
 import { inflateRawSync } from "node:zlib";
 import AdmZip from "adm-zip";
-import { extractText as extractPdfText, getDocumentProxy } from "unpdf";
+import { getDocumentProxy } from "unpdf";
 import * as XLSX from "xlsx";
 import { isZipBuffer, preflightSpreadsheetZip } from "./spreadsheet-zip-guard";
 import { DOCUMENT_UPLOAD_LIMITS } from "./types";
@@ -22,6 +22,8 @@ export interface SheetData {
   cells: Record<string, string>;
   /** `## 시트이름` 다음 줄부터 쉼표 표(CSV)로 펼친 글 — 종류 가르기·글자 찾기용. */
   text: string;
+  /** 행(2,000)·열(60)·글자 상한을 넘어 뒤가 잘렸다. 잘린 표로는 사람 수 같은 「전체 세기」를 하지 않는다. */
+  truncated?: true;
 }
 
 export type ExtractedDocument =
@@ -38,6 +40,9 @@ const MIN_EXTRACTED_CHARS = 100;
 const TEXT_LIMIT = 200_000;
 const MAX_SHEET_ROWS = 2000;
 const MAX_SHEET_COLS = 60;
+/** PDF 는 이 쪽수까지만 읽는다. 서류 한 벌은 이보다 짧고, 긴 PDF 는 글자 뽑기만으로 서버가 오래 묶인다. */
+const MAX_PDF_PAGES = 30;
+const TOO_MANY_PAGES_MESSAGE = "30쪽이 넘는 PDF는 필요한 쪽만 따로 저장해 올려 주세요.";
 
 const HWP_MESSAGE = "옛 한글 파일(.hwp)은 읽을 수 없습니다. 한글에서 PDF로 저장해 올려 주세요.";
 const UNSUPPORTED_MESSAGE = "이 종류의 파일은 읽을 수 없습니다. PDF·엑셀·워드·한글(.hwpx)·글 파일로 올려 주세요.";
@@ -208,6 +213,8 @@ function xmlToText(
   const innerBr = new RegExp(`<${marks.br}(?:\\s[^>]*)?\\/?>`, "g");
   const innerTab = new RegExp(`<${marks.tab}(?:\\s[^>]*)?\\/?>`, "g");
   const closeText = `</${textTag}>`;
+  const isRowOpen = table ? new RegExp(`^<${table.row}\\b`) : null;
+  const isCellOpen = table ? new RegExp(`^<${table.cell}\\b`) : null;
 
   // 표는 칸마다 문단이 하나씩 있어 그대로 두면 행·열이 사라진다. 행·칸을 **겹겹이 쌓아** 추적한다 —
   // 표 안에 표가 든 문서에서 안쪽 표를 만나는 순간 바깥 행에 모아 둔 칸이 버려지는 일을 막는다.
@@ -220,8 +227,8 @@ function xmlToText(
   while ((m = tokenRe.exec(xml)) !== null) {
     const token = m[0];
 
-    if (table) {
-      if (new RegExp(`^<${table.row}\\b`).test(token)) {
+    if (table && isRowOpen && isCellOpen) {
+      if (isRowOpen.test(token)) {
         if (line !== "") { paras.push(line); line = ""; }
         rowStack.push([]);
         continue;
@@ -232,7 +239,7 @@ function xmlToText(
         if (row) paras.push(row.join("\t"));
         continue;
       }
-      if (new RegExp(`^<${table.cell}\\b`).test(token)) {
+      if (isCellOpen.test(token)) {
         cellStack.push(paras.length);
         continue;
       }
@@ -309,14 +316,38 @@ function docxXmlToText(xml: string): string {
 
 /** 한글 본문 XML → 글자. 각주·미주는 본문 한가운데 끼어들지 않게 떼어 내 뒤에 모아 둔다. */
 function hwpxXmlToText(xml: string): string {
+  const marks = { br: "hp:lineBreak", tab: "hp:tab" };
+  const table = { row: "hp:tr", cell: "hp:tc" };
   const notes: string[] = [];
-  const noteRe = /<hp:(footNote|endNote)\b[\s\S]*?<\/hp:\1>/g;
-  const body = xml.replace(noteRe, (block) => {
-    const t = xmlToText(block, "hp:p", "hp:t", { br: "hp:lineBreak", tab: "hp:tab" });
+  let body = "";
+  let from = 0;
+  // 각주·미주 덩어리를 앞에서부터 한 번만 훑어 떼어 낸다. 닫는 태그를 못 찾은 이름은 뒤에도 없으니
+  // 다시 찾지 않는다 — 닫히지 않은 태그가 수만 개여도 제곱으로 느려지지 않는다.
+  const noMoreClose = new Set<string>();
+  const openRe = /<hp:(footNote|endNote)\b/g;
+  for (;;) {
+    openRe.lastIndex = from;
+    const m = openRe.exec(xml);
+    if (!m) break;
+    const name = m[1];
+    const close = `</hp:${name}>`;
+    const end = noMoreClose.has(name) ? -1 : xml.indexOf(close, m.index);
+    if (end < 0) {
+      noMoreClose.add(name);
+      // 닫는 태그가 없으면 그 시작 태그만 지우고 계속 간다.
+      const gt = xml.indexOf(">", m.index);
+      body += xml.slice(from, m.index);
+      from = gt < 0 ? xml.length : gt + 1;
+      continue;
+    }
+    body += xml.slice(from, m.index);
+    const t = xmlToText(xml.slice(m.index, end + close.length), "hp:p", "hp:t", marks);
     if (t.trim()) notes.push(t.trim());
-    return "";
-  });
-  const main = xmlToText(body, "hp:p", "hp:t", { br: "hp:lineBreak", tab: "hp:tab" });
+    from = end + close.length;
+  }
+  body += xml.slice(from);
+  // 표는 워드처럼 칸 사이 탭·행 사이 줄바꿈으로 넘긴다 — 「매출액 | 금액」이 한 줄로 이어져야 읽힌다.
+  const main = xmlToText(body, "hp:p", "hp:t", marks, table);
   return notes.length > 0 ? `${main}\n\n[각주]\n${notes.join("\n")}` : main;
 }
 
@@ -449,14 +480,30 @@ export function looksScanned(text: string): boolean {
   return text.replace(/\s+/g, "").length < MIN_EXTRACTED_CHARS;
 }
 
+/** 글자를 뽑기 전에 쪽수부터 본다 — 30쪽을 넘으면 읽지 않는다. */
+export function exceedsPdfPageLimit(pageCount: number): boolean {
+  return pageCount > MAX_PDF_PAGES;
+}
+
 async function readPdf(buf: Buffer): Promise<ExtractedDocument> {
   try {
     // unpdf(pdf.js)는 받은 버퍼를 작업 스레드로 넘겨 원본을 비운다 — 같은 바이트를 다시 읽을 수 있게 복사본을 넘긴다.
     const pdf = await getDocumentProxy(new Uint8Array(buf));
-    const read = await extractPdfText(pdf, { mergePages: false });
-    const pages = Array.isArray(read.text) ? read.text : [String(read.text ?? "")];
+    if (exceedsPdfPageLimit(pdf.numPages)) return unsupported(TOO_MANY_PAGES_MESSAGE);
+    // 한 쪽씩 차례로 읽는다(전 쪽 동시 읽기 금지). 글자가 상한을 넘으면 거기서 멈춘다.
+    const pages: string[] = [];
+    let used = 0;
+    for (let n = 1; n <= pdf.numPages && used <= TEXT_LIMIT; n++) {
+      const content = await (await pdf.getPage(n)).getTextContent();
+      const page = content.items
+        .map((item) => (item as { str?: string; hasEOL?: boolean }))
+        .filter((item) => item.str != null)
+        .map((item) => `${item.str}${item.hasEOL ? "\n" : ""}`)
+        .join("");
+      pages.push(page);
+      used += page.length;
+    }
     const text = pages
-      .map((p) => String(p ?? ""))
       .join("\n")
       .replace(/\r\n?/g, "\n")
       .trim();
@@ -476,17 +523,21 @@ function isDateFormat(format: string): boolean {
   return /[yd]/i.test(bare);
 }
 
-/** 엑셀 날짜 번호(1900 체계, 25569 = 1970-01-01)를 YYYY-MM-DD 로. 이상한 값이면 null. */
-function serialToDate(serial: number): string | null {
+/**
+ * 엑셀 날짜 번호를 YYYY-MM-DD 로. 이상한 값이면 null.
+ * 기본은 1900 체계(25569 = 1970-01-01). 통합 문서가 1904 체계(맥 엑셀 옛 파일)면 같은 번호가 1462일 뒤 날짜다.
+ */
+function serialToDate(serial: number, date1904 = false): string | null {
   if (!Number.isFinite(serial) || serial < 1 || serial > 2_958_465) return null;
-  return new Date(Date.UTC(1899, 11, 30) + Math.floor(serial) * 86_400_000).toISOString().slice(0, 10);
+  const epoch = date1904 ? Date.UTC(1904, 0, 1) : Date.UTC(1899, 11, 30);
+  return new Date(epoch + Math.floor(serial) * 86_400_000).toISOString().slice(0, 10);
 }
 
-function cellText(cell: XLSX.CellObject | undefined): string {
+function cellText(cell: XLSX.CellObject | undefined, date1904 = false): string {
   if (!cell || cell.v === undefined || cell.v === null) return "";
   if (cell.t === "n" && typeof cell.v === "number") {
     if (cell.z && isDateFormat(String(cell.z))) {
-      const date = serialToDate(cell.v);
+      const date = serialToDate(cell.v, date1904);
       if (date) return date;
     }
     return String(cell.v);
@@ -499,18 +550,47 @@ function cellText(cell: XLSX.CellObject | undefined): string {
 
 const CELL_ADDRESS = /^[A-Z]{1,3}[0-9]{1,7}$/;
 
-function sheetOf(name: string, ws: XLSX.WorkSheet): SheetData {
+/**
+ * 시트 범위(`!ref`)를 행·열 상한으로 잘라 다시 넣는다. 파일이 범위를 「A1:ZZZZ100」처럼 터무니없이 적어 두면
+ * 쉼표 표로 바꿀 때 빈 칸까지 전부 훑어 서버가 묶인다 — 변환은 잘린 범위로만 한다.
+ * 원래 범위가 상한을 넘었으면 true.
+ */
+function clampSheetRange(ws: XLSX.WorkSheet): boolean {
+  const ref = ws["!ref"];
+  if (!ref) return false;
+  let range: XLSX.Range;
+  try {
+    range = XLSX.utils.decode_range(ref);
+  } catch {
+    delete ws["!ref"]; // 읽을 수 없는 범위는 믿지 않는다 — 칸 이름 쪽(cells)만 쓴다
+    return false;
+  }
+  const over = range.e.r >= MAX_SHEET_ROWS || range.e.c >= MAX_SHEET_COLS;
+  if (over) {
+    range.e.r = Math.min(range.e.r, MAX_SHEET_ROWS - 1);
+    range.e.c = Math.min(range.e.c, MAX_SHEET_COLS - 1);
+    ws["!ref"] = XLSX.utils.encode_range(range);
+  }
+  return over;
+}
+
+function sheetOf(name: string, ws: XLSX.WorkSheet, date1904: boolean): SheetData {
   const cells: Record<string, string> = {};
   for (const addr of Object.keys(ws)) {
     // 칸 이름처럼 생긴 것만 본다 — 엑셀 속 이름은 파일이 정하므로 믿지 않는다.
     if (!CELL_ADDRESS.test(addr)) continue;
     const { r, c } = XLSX.utils.decode_cell(addr);
     if (r >= MAX_SHEET_ROWS || c >= MAX_SHEET_COLS) continue;
-    const text = cellText(ws[addr] as XLSX.CellObject);
+    const text = cellText(ws[addr] as XLSX.CellObject, date1904);
     if (text) cells[addr] = text;
   }
+  const rangeCut = clampSheetRange(ws);
   const csv = XLSX.utils.sheet_to_csv(ws).trimEnd();
-  return { name, cells, text: limited(`## ${name}\n${csv}`) };
+  const full = `## ${name}\n${csv}`;
+  const text = limited(full);
+  const sheet: SheetData = { name, cells, text };
+  if (rangeCut || text.length < full.length) sheet.truncated = true;
+  return sheet;
 }
 
 function readSpreadsheet(buf: Buffer): ExtractedDocument {
@@ -520,11 +600,14 @@ function readSpreadsheet(buf: Buffer): ExtractedDocument {
     if (!preflight.ok) return unsupported(preflight.reason);
   }
   try {
-    const wb = XLSX.read(buf, { type: "buffer", cellNF: true, sheetRows: MAX_SHEET_ROWS });
+    // 한 줄 더 읽어(+1) 상한을 넘는 줄이 있었는지 알아본다 — 딱 상한까지만 읽으면 잘렸는지 알 수 없다.
+    const wb = XLSX.read(buf, { type: "buffer", cellNF: true, sheetRows: MAX_SHEET_ROWS + 1 });
+    const flag: unknown = wb.Workbook?.WBProps?.date1904;
+    const date1904 = flag === true || flag === 1 || flag === "1" || flag === "true";
     const sheets: SheetData[] = [];
     for (const name of wb.SheetNames) {
       const ws = wb.Sheets[name];
-      if (ws) sheets.push(sheetOf(name, ws));
+      if (ws) sheets.push(sheetOf(name, ws, date1904));
     }
     return { kind: "spreadsheet", sheets };
   } catch {

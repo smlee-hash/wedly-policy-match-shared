@@ -4,6 +4,7 @@
 // ★사업장 소재지는 시도+시군구까지만 남긴다(도로명·번지·건물명은 결과 어디에도 없다).
 // (ERP 의 policy-match/taxbot-document-facts 의 parseRegistrationCertificate 를 옮겨 칸을 넓혔다.)
 
+import { cleanIndustryText } from "./clean-text";
 import { addressFields, normalizeDate, type ParsedDocument } from "./parse-common";
 import type { DocumentFields } from "./types";
 
@@ -45,6 +46,11 @@ const LABELS: ReadonlyArray<readonly [LabelKind, string]> = [
   ["other", loose("본점소재지")],
   ["other", loose("사업의종류")],
   ["other", loose("발급사유")],
+  // 종목 값이 이 항목 이름에서 끊겨야 한다 — 이름·주민번호·주소가 업종으로 딸려 들어오지 않게(위의 긴 이름 뒤에 둔다).
+  ["other", standalone(loose("성명"))],
+  ["other", loose("주민등록번호")],
+  ["other", loose("생년월일")],
+  ["other", standalone(loose("주소"))],
 ];
 const LABEL_RE = new RegExp(LABELS.map(([, source]) => `(${source})`).join("|"), "g");
 const CERT_END_RE = new RegExp(loose("위와같이증명합니다"));
@@ -141,8 +147,10 @@ export function parseBizRegistration(rawText: string): ParsedDocument {
   const types = [...new Set(businessTypes)];
   const sectors = [...new Set(items)];
   if (types.length && sectors.length) {
-    const industry = `${types.join(", ")} / ${sectors.join(", ")}`;
-    if (industry.length <= MAX_INDUSTRY_LENGTH) fields.industry = industry;
+    const joined = `${types.join(", ")} / ${sectors.join(", ")}`;
+    // 다음 항목 이름·주민번호·주소 모양이 섞였으면 자르거나 버리고, 업종은 40자까지만 쓴다.
+    const industry = joined.length <= MAX_INDUSTRY_LENGTH ? cleanIndustryText(joined) : null;
+    if (industry) fields.industry = industry;
   }
 
   // 소재지는 시도·시군구만 꺼내고 원문은 버린다.

@@ -10,6 +10,7 @@ import { canonicalRegion } from "../engine/match-engine";
 import { CERT_TYPE_NAMES } from "../engine/profile-derive";
 import { sigunguSido } from "../engine/sigungu";
 import { classifyDocument } from "./classify";
+import { cleanCompanyScale, cleanIndustryText, RRN_LIKE_GLOBAL } from "./clean-text";
 import { extractDocumentText } from "./extract-text";
 import { DOCUMENT_FIELD_KEYS, mergeDocumentFields, type MergeInput } from "./merge";
 import { parseBizRegistration } from "./parse-biz-registration";
@@ -42,12 +43,8 @@ const MB = 1024 * 1024;
 const NAME_MAX_CHARS = 100;
 const NO_NAME = "이름 없는 파일";
 
-const TEXT_MAX_CHARS = 400;
 const COUNT_MAX = 100_000;
 const KRW_MAX = 1e15;
-/** 주민번호·법인등록번호 모양(13자리). 앞뒤에 다른 숫자가 붙어 있지 않을 때만 */
-const RRN_LIKE = /(?<!\d)\d{6}\s*-?\s*\d{7}(?!\d)/;
-const RRN_LIKE_GLOBAL = new RegExp(RRN_LIKE.source, "g");
 const BIZNO_RE = /^(\d{3})-?(\d{2})-?(\d{5})$/;
 
 const LIMIT_MESSAGE = {
@@ -79,10 +76,23 @@ function displayNameOf(base: string): string {
 
 /* ───────── AI 읽기 결과 거르기 ───────── */
 
-function cleanText(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const text = value.normalize("NFC").replace(/\s+/g, " ").trim();
-  return text !== "" && text.length <= TEXT_MAX_CHARS && !RRN_LIKE.test(text) ? text : null;
+/**
+ * 서류 파서·AI 가 돌려준 글자 칸(업종·규모)을 한 번 더 거른다 — 두 길이 같은 거르개를 쓴다.
+ * 다음 항목 이름(성명·대표자 …)에서 자르고, 주민번호·주소 모양이 있으면 칸을 버린다. 규모는 정해진 값만 남긴다.
+ */
+function scrubFields(fields: DocumentFields): DocumentFields {
+  const out: DocumentFields = { ...fields };
+  if (out.industry !== undefined) {
+    const industry = cleanIndustryText(out.industry);
+    if (industry) out.industry = industry;
+    else delete out.industry;
+  }
+  if (out.companyScale !== undefined) {
+    const scale = cleanCompanyScale(out.companyScale);
+    if (scale) out.companyScale = scale;
+    else delete out.companyScale;
+  }
+  return out;
 }
 
 function cleanCount(value: unknown): number | null {
@@ -103,10 +113,14 @@ function sanitizeAiFields(raw: unknown): DocumentFields {
         if (m) out.bizno = `${m[1]}-${m[2]}-${m[3]}`;
         break;
       }
-      case "industry":
+      case "industry": {
+        const text = cleanIndustryText(value);
+        if (text) out.industry = text;
+        break;
+      }
       case "companyScale": {
-        const text = cleanText(value);
-        if (text) out[key] = text;
+        const scale = cleanCompanyScale(value);
+        if (scale) out.companyScale = scale;
         break;
       }
       case "region": {
@@ -229,19 +243,23 @@ async function readOne(
   if (extracted.kind === "unsupported") return { result: refused(display, "unsupported", extracted.reason) };
   if (extracted.kind === "image") return readImage(display, bytes, aiReader);
 
+  // 쉼표 표(.csv)는 따옴표를 지키며 열을 나눠 읽도록 표시한다.
   const body: DocumentBody =
-    extracted.kind === "text" ? { text: extracted.text } : { sheets: extracted.sheets };
+    extracted.kind === "text"
+      ? { text: extracted.text, ...(/\.csv$/i.test(base) ? { csv: true } : {}) }
+      : { sheets: extracted.sheets };
   const docType = classifyDocument({ fileName: base, ...body });
   const parsed = parseByType(docType, body);
   if (!parsed) return { result: { ...refused(display, "no-fields", UNKNOWN_DOC), docType } };
 
-  const keys = Object.keys(parsed.fields) as DocumentFileResult["fields"];
+  const fields = scrubFields(parsed.fields);
+  const keys = Object.keys(fields) as DocumentFileResult["fields"];
   if (keys.length === 0) {
     return { result: { ...refused(display, "no-fields", parsed.note ?? NO_FIELDS), docType } };
   }
   const result: DocumentFileResult = { name: display, docType, status: "read", fields: keys };
   if (parsed.year !== undefined) result.year = parsed.year;
-  const merge: MergeInput = { name: display, docType, fields: parsed.fields };
+  const merge: MergeInput = { name: display, docType, fields };
   if (parsed.year !== undefined) merge.year = parsed.year;
   return { result, merge };
 }

@@ -1192,6 +1192,13 @@ function stringListOf(v: unknown): string[] | undefined {
   return t !== undefined ? [t] : undefined;
 }
 
+/** 인증 종류 이름 — profile-derive 의 CERT_TYPE_NAMES 와 같아야 한다(거기서 이쪽을 부르는 순환을 피하려고 따로 적는다). */
+const CERT_TYPES_KNOWN = ["벤처", "이노비즈", "메인비즈", "ISO", "여성기업", "사회적기업", "기타", "없음"] as const;
+const ADDRESS_MAX_CHARS = 30;
+const COUNT_MAX = 100_000;
+/** 기존 대출 잔액(만원) 상한 — 10조원. 넘는 값은 단위를 잘못 적은 것으로 본다. */
+const LOAN_BALANCE_MAX_MANWON = 10_000_000_000;
+
 export function parseBusinessProfile(raw: unknown): BusinessProfile {
   if (!raw || typeof raw !== "object") return {};
   const o = raw as Record<string, unknown>;
@@ -1230,5 +1237,23 @@ export function parseBusinessProfile(raw: unknown): BusinessProfile {
     boolOf(o.hasExistingLoan) ??
     (o.hasExistingLoan === "yes" ? true : o.hasExistingLoan === "no" ? false : undefined);
   if (loan !== undefined) p.hasExistingLoan = loan;
+  // ── 서류 읽기로 늘어난 칸. 형식이 안 맞으면 모름으로 둔다(법인 여부만 빠져 있으면 법인 전용 조건이 계속 「모름」이 된다).
+  const corp = boolOf(o.isCorporation);
+  if (corp !== undefined) p.isCorporation = corp;
+  // 사업장 소재지는 시도+시군구까지만 받는다 — 숫자(번지)·긴 글이 섞였으면 도로명 주소일 수 있어 버린다.
+  const address = textOf(o.businessAddress)?.replace(/\s+/g, " ");
+  if (address !== undefined && address.length <= ADDRESS_MAX_CHARS && /^[가-힣 ]+$/.test(address)) {
+    p.businessAddress = address;
+  }
+  const certs = stringListOf(o.certTypes)?.filter((c) => (CERT_TYPES_KNOWN as readonly string[]).includes(c));
+  if (certs !== undefined && certs.length > 0) p.certTypes = [...new Set(certs)];
+  const patents = numberOf(o.patentCount);
+  if (patents !== undefined && Number.isInteger(patents) && patents <= COUNT_MAX) p.patentCount = patents;
+  const loanBalance = numberOf(o.existingLoanBalanceManwon);
+  if (loanBalance !== undefined && loanBalance <= LOAN_BALANCE_MAX_MANWON) p.existingLoanBalanceManwon = loanBalance;
+  for (const k of ["creditScoreNice", "creditScoreKcb"] as const) {
+    const score = numberOf(o[k]);
+    if (score !== undefined && score >= 300 && score <= 1000) p[k] = score;
+  }
   return p;
 }

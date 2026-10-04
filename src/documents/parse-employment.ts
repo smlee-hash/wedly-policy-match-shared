@@ -5,7 +5,7 @@
 // ★이름·주민번호는 같은 사람을 가리는 데만 쓰고 결과에 넣지 않는다. 내보내는 칸은 employeeCount 하나뿐이다.
 // ★표 모양이 믿기지 않으면(머리줄 칸 없음·줄 칸 수 어긋남=본문이 잘린 흔적) 세지 않고 이유만 알린다. 이유에는 사람 정보가 없다.
 
-import { bodyLines, splitCsvLine, type DocumentBody, type ParsedDocument } from "./parse-common";
+import { bodyLines, splitTableRow, type DocumentBody, type ParsedDocument } from "./parse-common";
 
 const STATUS_HEADER = "고용상태";
 /** 같은 사람을 가리는 칸 이름(공백 뺀 글). 신고서마다 이름이 조금씩 다르다. */
@@ -18,6 +18,7 @@ const HEADCOUNT_RE = /(?:상시\s*)?근로자\s*수\s*[:：]?\s*(\d[\d,]{0,6})\s
 const MAX_HEADCOUNT = 100_000;
 
 const NO_TABLE = "고용상태 칸이 있는 근로자 표를 찾지 못해 근로자 수를 세지 않았습니다.";
+const TOO_LONG = "명부가 너무 길어 직원 수를 다 세지 못했어요 — 직원 수는 직접 적어 주세요";
 
 type Counted = { ok: true; count: number } | { ok: false; reason: string };
 
@@ -25,7 +26,7 @@ const compact = (s: string) => s.normalize("NFC").replace(/\s/g, "");
 
 /** 머리줄(고용상태 칸이 있는 줄)의 자리. 없으면 -1. */
 function headerIndex(lines: string[]): number {
-  return lines.findIndex((line) => splitCsvLine(line).some((c) => compact(c) === STATUS_HEADER));
+  return lines.findIndex((line) => splitTableRow(line).some((c) => compact(c) === STATUS_HEADER));
 }
 
 function columnOf(header: string[], names: string[]): number {
@@ -38,7 +39,7 @@ function countCurrentEmployees(lines: string[]): Counted {
   const start = headerIndex(lines);
   if (start < 0) return fail(NO_TABLE);
 
-  const header = splitCsvLine(lines[start]).map(compact);
+  const header = splitTableRow(lines[start]).map(compact);
   const statusAt = header.indexOf(STATUS_HEADER);
   const nameAt = columnOf(header, NAME_HEADERS);
   const rrnAt = columnOf(header, RRN_HEADERS);
@@ -50,12 +51,12 @@ function countCurrentEmployees(lines: string[]): Counted {
   const rows: string[] = [];
   for (const line of lines.slice(start + 1)) {
     if (/^\s*##/.test(line)) break;
-    if (line.replace(/[,\s]/g, "") !== "") rows.push(line);
+    if (line.replace(/[,|\s]/g, "") !== "") rows.push(line);
   }
 
   const keys = new Set<string>();
   for (let i = 0; i < rows.length; i++) {
-    const cells = splitCsvLine(rows[i]);
+    const cells = splitTableRow(rows[i]);
     while (cells.length > header.length && cells[cells.length - 1].trim() === "") cells.pop();
     if (cells.length !== header.length) {
       return fail(
@@ -80,13 +81,18 @@ function linesOf(raw: string): string[] {
 /** 고용·산재 가입자 명부·신고서에서 현재 근로자 수를 뽑는다. 못 세면 빈 결과 + 안내. */
 export function parseEmployment(body: DocumentBody): ParsedDocument {
   // 엑셀은 시트마다 따로 본다(시트가 달라도 한 표가 둘로 합쳐지지 않게). 글 서류는 통째로 본다.
-  const candidates: string[][] = [];
-  for (const sheet of body.sheets ?? []) candidates.push(linesOf(sheet.text));
-  if (body.text) candidates.push(linesOf(body.text));
+  const candidates: Array<{ lines: string[]; truncated: boolean }> = [];
+  for (const sheet of body.sheets ?? []) candidates.push({ lines: linesOf(sheet.text), truncated: sheet.truncated === true });
+  if (body.text) candidates.push({ lines: linesOf(body.text), truncated: false });
 
   let firstFailure: string | undefined;
-  for (const lines of candidates) {
+  for (const { lines, truncated } of candidates) {
     if (headerIndex(lines) < 0) continue;
+    // 뒤가 잘린 명부는 센 수가 실제보다 적다 — 채우지 않고 직접 적게 안내한다.
+    if (truncated) {
+      firstFailure ??= TOO_LONG;
+      continue;
+    }
     const counted = countCurrentEmployees(lines);
     if (counted.ok) return { fields: { employeeCount: counted.count } };
     firstFailure ??= counted.reason;

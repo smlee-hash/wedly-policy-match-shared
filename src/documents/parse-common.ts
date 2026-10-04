@@ -142,10 +142,22 @@ export function splitCsvLine(line: string): string[] {
   return cells;
 }
 
+/**
+ * 표 한 줄을 칸으로 나눈다. 워드·한글 표(칸 사이 탭)·`|`·쉼표 표(CSV)를 같이 받는다.
+ * 탭이 있으면 탭으로만, 없고 `|` 가 있으면 `|` 로만, 둘 다 없으면 쉼표 표로 본다(숫자 속 쉼표가 갈라지지 않게).
+ */
+export function splitTableRow(line: string): string[] {
+  if (line.includes("\t")) return line.split("\t");
+  if (line.includes("|")) return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|");
+  return splitCsvLine(line);
+}
+
 /** 칸 뽑기가 받는 서류 내용 — 글 서류는 text, 엑셀은 sheets. */
 export interface DocumentBody {
   text?: string;
   sheets?: SheetData[];
+  /** text 가 쉼표 표(.csv) 파일에서 왔다 — 따옴표를 지키며 열을 나눠 탭 줄로 바꿔 읽는다. */
+  csv?: boolean;
 }
 
 /**
@@ -154,7 +166,17 @@ export interface DocumentBody {
  */
 export function bodyLines(body: DocumentBody): string[] {
   const lines: string[] = [];
-  if (body.text) lines.push(...body.text.normalize("NFC").split(/\r\n|\r|\n/));
+  if (body.text) {
+    for (const line of body.text.normalize("NFC").split(/\r\n|\r|\n/)) {
+      if (!body.csv) {
+        lines.push(line);
+        continue;
+      }
+      // 쉼표 표는 따옴표 속 쉼표(「"123,456,789"」)를 지켜 열을 나누고, 빈 열은 버려 탭으로 잇는다.
+      const cells = splitCsvLine(line).map((c) => c.trim()).filter(Boolean);
+      lines.push(cells.join("\t"));
+    }
+  }
   for (const sheet of body.sheets ?? []) {
     for (const row of sheet.text.normalize("NFC").split(/\r\n|\r|\n/).slice(1)) {
       const cells = splitCsvLine(row).map((c) => c.trim()).filter(Boolean);
