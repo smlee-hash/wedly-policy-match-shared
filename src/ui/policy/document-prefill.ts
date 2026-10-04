@@ -119,6 +119,8 @@ export interface DocumentApplyOutcome {
  * 서류를 읽은 결과를 현재 칸에 합친다 — 순수 함수.
  *  · 비어 있던 칸은 서류 값으로 채운다(서류끼리 다른 칸은 추천 값).
  *  · 사람이 손으로 고친 칸(touched)은 덮지 않는다. 서류 값이 다르면 고르는 상자(choices)로 돌려준다.
+ *    화면에 쓰던 글자가 진단용 값으로는 덜 찼어도(10자리 못 채운 사업자번호) `current` 에 원문으로 담아 오면 그 값을 지킨다.
+ *    다시 비워 둔 칸(담긴 값 없음)은 빈 칸이라 채운다.
  *  · 서류끼리 다른 칸은 서버가 준 conflicts 를 그대로 고르는 상자로 돌려준다.
  *  · 서류에 없는 칸은 건드리지 않는다. 기존 값을 비우지 않는다.
  *  · 손으로 고치지 않았는데 값이 있는 칸(불러온 고객 값·앞 서류 값)은 더 나중에 읽은 서류 값으로 바뀐다.
@@ -152,28 +154,34 @@ export function applyDocumentFields(
     const conflict = conflictOf.get(key);
     const weak = WEAK_KEYS.includes(key);
 
+    // 손으로 만진 칸이 빈 칸 검사보다 먼저다 — 사람이 쓰던 칸이면 「비어 있다」로 보고 채우지 않는다.
+    // 진단용 값이 덜 찬 입력(사업자번호 3자리 등)의 원문은 부르는 쪽이 current 에 담아 주므로 그 값을 지킨다.
+    // 담긴 값이 아예 없으면 사람이 비워 둔 칸이라 아래에서 비어 있는 칸으로 채운다.
+    const cur = current[key] as Value | undefined;
+    if (touched.has(key)) {
+      if (weak) continue; // 있다·없다 한 줄은 충돌로 보이지 않는다 — 사람이 만졌으면 건드리지도 않는다
+      if (cur !== undefined) {
+        // 덮지 않는다. 서류 값이 다르거나 서류끼리 다르면 고르게 한다.
+        const options = conflict
+          ? conflict.options
+          : [{ value: docValue, files: result.sources[key]?.files ?? [], docTypes: result.sources[key]?.docTypes ?? [] }];
+        const same = options.findIndex((o) => sameFieldValue(key, o.value, cur));
+        if (!conflict && same >= 0) continue; // 서류도 같은 값이라 물을 것이 없다
+        choices.push(
+          same >= 0
+            ? { field: key, options, recommended: same } // 손 값이 서류 값 하나와 같다 — 그 값이 골라진 것으로 본다
+            : { field: key, hand: cur, options, recommended: -1 },
+        );
+        continue;
+      }
+    }
+
     if (isEmptyField(key, current)) {
       fill(key, docValue);
       if (conflict && !weak) choices.push({ field: key, options: conflict.options, recommended: conflict.recommended });
       continue;
     }
     if (weak) continue; // 이미 주소·종류·건수가 있다 — 있다·없다 한 줄은 거기에 맡긴다
-
-    const cur = current[key] as Value;
-    if (touched.has(key)) {
-      // 손으로 고친 칸 — 덮지 않는다. 서류 값이 다르거나 서류끼리 다르면 고르게 한다.
-      const options = conflict
-        ? conflict.options
-        : [{ value: docValue, files: result.sources[key]?.files ?? [], docTypes: result.sources[key]?.docTypes ?? [] }];
-      const same = options.findIndex((o) => sameFieldValue(key, o.value, cur));
-      if (!conflict && same >= 0) continue; // 서류도 같은 값이라 물을 것이 없다
-      choices.push(
-        same >= 0
-          ? { field: key, options, recommended: same } // 손 값이 서류 값 하나와 같다 — 그 값이 골라진 것으로 본다
-          : { field: key, hand: cur, options, recommended: -1 },
-      );
-      continue;
-    }
 
     if (!sameFieldValue(key, cur, docValue)) fill(key, docValue);
     if (conflict) choices.push({ field: key, options: conflict.options, recommended: conflict.recommended });

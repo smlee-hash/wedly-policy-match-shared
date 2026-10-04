@@ -69,6 +69,61 @@ function isGroupTab(tab: SummaryTab): tab is FundingGroup {
 
 const noConditions = (c: ResultConditions) => c.tab === "all" && c.query.trim() === "";
 
+/** 검색어나 「전체」가 아닌 탭이 걸려 있나. */
+export const hasConditions = (c: ResultConditions) => !noConditions(c);
+
+/** 넓게 다시 받을 때 서버에 요청할 건수의 상한 — 이보다 많이 달라고 하지 않는다. */
+export const WIDE_TOP_N_MAX = 500;
+
+/** 서버가 센 정상 건수 — 갈래 카드 건수의 합 + 종류 미확인(요약 탭 「전체」와 같은 셈). */
+export function serverTotalOf(data: FundingMapPayload): number {
+  return data.groups.reduce((n, b) => n + b.total, 0) + data.unclassified;
+}
+
+/** 실려 온 줄 수 — 서버가 갈래마다 상한까지만 실어 보내므로 서버 전체 건수보다 적을 수 있다. */
+export function receivedCountOf(data: FundingMapPayload): number {
+  return data.groups.reduce((n, b) => n + b.items.length, 0);
+}
+
+export interface SearchCut {
+  /** 실제로 거른 대상의 줄 수(받은 건수) */
+  searched: number;
+  /** 서버가 센 전체 건수 */
+  total: number;
+}
+
+/**
+ * 탭·검색어로 거르는데 받은 자료가 서버 전체보다 적으면 그 차이를 돌려준다(아니면 null).
+ * 거를 조건이 없으면 처음부터 받은 만큼만 보이는 것이 정상이라 null 이다.
+ */
+export function searchCutOf(data: FundingMapPayload | null, c: ResultConditions): SearchCut | null {
+  if (!data || noConditions(c)) return null;
+  const total = serverTotalOf(data);
+  const searched = receivedCountOf(data);
+  return total > searched ? { searched, total } : null;
+}
+
+/**
+ * 지도 자료를 한 번 더 넓게 받아야 하면 그때 요청할 건수(서버 전체 건수, 상한 WIDE_TOP_N_MAX), 아니면 null.
+ * `current` 는 지금 받은 요청의 건수 — 이미 그만큼 요청했으면 더 부르지 않는다(서버가 상한으로 잘라도 되풀이하지 않게).
+ */
+export function widerTopN(data: FundingMapPayload | null, c: ResultConditions, current: number): number | null {
+  const cut = searchCutOf(data, c);
+  if (!cut) return null;
+  const want = Math.min(cut.total, WIDE_TOP_N_MAX);
+  return want > current ? want : null;
+}
+
+/** 넓게 받고도 잘려 있어 사람에게 알려야 할 때만 돌려준다 — 넓게 받는 중이면 아직 알리지 않는다. */
+export function searchCutNoticeOf(data: FundingMapPayload | null, c: ResultConditions, current: number): SearchCut | null {
+  return widerTopN(data, c, current) === null ? searchCutOf(data, c) : null;
+}
+
+/** 「앞의 80건 안에서 찾았어요 — 전체 81건」 */
+export function searchCutText(cut: SearchCut): string {
+  return `앞의 ${cut.searched.toLocaleString("ko-KR")}건 안에서 찾았어요 — 전체 ${cut.total.toLocaleString("ko-KR")}건`;
+}
+
 /**
  * 지도(한눈에) 자료를 탭·검색어로 거른다. 바꿀 것이 없으면 **같은 자료**를 돌려준다.
  * 묶음 탭은 그 묶음 카드만 남긴다(건수는 서버가 센 그대로). 시간 탭·검색어는 실려 온 줄만 거르므로

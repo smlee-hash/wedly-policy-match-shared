@@ -3,15 +3,18 @@
 // 진단 결과 「목록」 — 묶음(안 갚아도 되는 돈 등)별로 접고 펴는 목록.
 // 행 하나 = 판정 알약 · 공고명 · 기관 · 최대 금액 · 조건 한 줄 · 마감 · 자세히. 행을 누르면 부모가 서랍을 연다.
 // 고른 줄·서랍은 부모가 쥐고, 이 부품은 접기·더 보기만 스스로 쥔다.
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { FUNDING_GROUP_META, type FundingGroup } from "../../funding/funding-group";
 import {
   amountWords, deadlineWords, verdictWords,
   type FundingGroupBlock, type FundingItem,
 } from "../../funding/funding-map";
 import type { FitVerdict } from "../../engine/recommend-score";
-import { GROUP_TONE_TILE, classifiedGroupItems, unclassifiedGroupItems, type FundingMapPayload } from "../FundingMap";
+import {
+  GROUP_TONE_TILE, cardFooterOf, classifiedGroupItems, unclassifiedGroupItems, type FundingMapPayload,
+} from "../FundingMap";
 import { BTN_SECONDARY, DiagnosisNotice, PILL } from "./ResultList";
+import { searchCutText, type SearchCut } from "./result-conditions";
 import type { Diagnosis } from "./PolicyMatchScreen";
 
 /** 묶음마다 처음 보이는 건수, 「더 보기」를 한 번 누를 때마다 늘어나는 건수. */
@@ -96,8 +99,28 @@ const ROW_BASE =
   "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wedly-accent focus-visible:ring-inset " +
   "min-[821px]:grid-cols-[auto_minmax(0,1fr)_150px_110px_72px]";
 
-/** 목록 한 줄. 누르면 부모가 서랍을 연다. */
-export function ResultRow({ item, selected, onOpen }: {
+/**
+ * 목록 한 줄. 누르면 부모가 서랍을 연다.
+ * `footer`(판정 피드백 조각)가 있으면 줄 **밖 아래**에 붙인다 — 단추 안에 또 단추를 넣을 수 없어서다.
+ * 없으면(조각을 안 받은 앱) 줄 하나만 그대로 그린다.
+ */
+export function ResultRow({ item, selected, onOpen, footer }: {
+  item: FundingItem;
+  selected: boolean;
+  onOpen: (item: FundingItem) => void;
+  footer?: ReactNode;
+}) {
+  const row = <ResultRowButton item={item} selected={selected} onOpen={onOpen} />;
+  if (footer === null || footer === undefined) return row;
+  return (
+    <div data-row-wrap={item.id}>
+      {row}
+      <div className="bg-white px-4 pb-3">{footer}</div>
+    </div>
+  );
+}
+
+function ResultRowButton({ item, selected, onOpen }: {
   item: FundingItem;
   selected: boolean;
   onOpen: (item: FundingItem) => void;
@@ -147,14 +170,39 @@ interface Props {
   /** 서랍에 열려 있는 줄의 id(`FundingItem.id`) — 강조용. 없으면 빈 글자. */
   selectedKey: string;
   onOpen: (item: FundingItem) => void;
+  /** 행 바닥에 끼울 판정 피드백 조각(랩만). 없으면 행은 마디를 더하지 않는다. 공고 줄에만 그린다 */
+  renderRowFooter?: (item: FundingItem) => ReactNode;
   /** 「안 맞아서 뺀 N건 보기」를 펼친 갈래들과 그 손잡이(거르개와 한 짝이라 부모가 쥔다). */
   showExcluded: ReadonlySet<FundingGroup>;
   onToggleExcluded: (g: FundingGroup) => void;
   onBrowseAll: () => void;
 }
 
+/** 검색어·탭으로 거르는데 받은 자료가 서버 전체보다 적을 때 목록 위에 붙이는 안내. 잘림이 없으면 아무것도 안 그린다. */
+export function SearchCutNotice({ cut }: { cut: SearchCut | null }) {
+  if (!cut) return null;
+  return (
+    <div
+      data-area="search-cut"
+      className="rounded-xl border border-wedly-bd bg-wedly-bg-gray px-4 py-2 text-xs leading-[18px] text-wedly-t2"
+    >
+      {searchCutText(cut)}
+    </div>
+  );
+}
+
+/** 지도 기본 오류 문구 — 목록 위에서는 목록 말로 바꿔 보인다. */
+const MAP_FAIL_TEXT = "자금 조달 지도를 불러오지 못했습니다";
+const LIST_REFRESH_FAILED = "목록을 새로 받지 못했어요";
+
+/** 자료가 남아 있는데 새로 받기가 실패했을 때의 띠 글자 — 서버가 말한 안내가 있으면 그대로, 없거나 지도 기본 문구면 목록 말로. */
+export function staleErrorText(error: string): string {
+  const message = error.trim();
+  return message === "" || message === MAP_FAIL_TEXT ? LIST_REFRESH_FAILED : message;
+}
+
 export default function ResultGroupList({
-  data, loading, error, onRetry, diagnosis, serverStructurizes = true, selectedKey, onOpen,
+  data, loading, error, onRetry, diagnosis, serverStructurizes = true, selectedKey, onOpen, renderRowFooter,
   showExcluded, onToggleExcluded, onBrowseAll,
 }: Props) {
   const [folded, setFolded] = useState<ReadonlySet<string>>(() => new Set<string>());
@@ -176,6 +224,19 @@ export default function ResultGroupList({
       {error && !data && (
         <div className="rounded-xl border border-wedly-bd bg-wedly-bg-gray px-4 py-3 text-sm leading-[22px] text-wedly-t2">
           {error}{" "}
+          <button type="button" className="underline" onClick={onRetry}>
+            다시 시도
+          </button>
+        </div>
+      )}
+      {error && data && (
+        // 옛 자료가 남아 있어도 새로 받기가 실패한 것은 알린다 — 안 알리면 낡은 목록을 최신으로 오해한다.
+        <div
+          role="alert"
+          data-error-band="stale"
+          className="rounded-xl border border-wedly-bd bg-wedly-bg-yellow px-4 py-3 text-sm leading-[22px] text-wedly-t1"
+        >
+          {staleErrorText(error)} — 아래는 이전에 받은 목록이에요{" "}
           <button type="button" className="underline" onClick={onRetry}>
             다시 시도
           </button>
@@ -217,7 +278,13 @@ export default function ResultGroupList({
                 {!isFolded && (
                   <>
                     {rows.slice(0, shown).map((it) => (
-                      <ResultRow key={it.id} item={it} selected={selectedKey === it.id} onOpen={onOpen} />
+                      <ResultRow
+                        key={it.id}
+                        item={it}
+                        selected={selectedKey === it.id}
+                        onOpen={onOpen}
+                        footer={cardFooterOf(it, renderRowFooter)}
+                      />
                     ))}
                     {line &&
                       (shown < rows.length ? (

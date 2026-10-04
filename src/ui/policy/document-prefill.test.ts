@@ -116,6 +116,40 @@ describe("applyDocumentFields — 손으로 고친 칸(touched)은 덮지 않고
   });
 });
 
+describe("applyDocumentFields — 쓰던 글자가 덜 찬 칸은 빈 칸으로 보지 않는다(BF2 ③)", () => {
+  const 번호서류 = () =>
+    결과({
+      fields: { bizno: "987-81-12345" },
+      sources: { bizno: { files: ["등록증.pdf"], docTypes: ["biz-registration"] } },
+    });
+
+  it("10자리를 못 채운 사업자번호 원문(123)이 담겨 오면 서류 번호로 덮지 않고 고르는 상자로 돌려준다", () => {
+    const r = applyDocumentFields({ bizno: "123" }, 번호서류(), new Set<DocumentFieldKey>(["bizno"]));
+    expect(r.next.bizno).toBe("123");
+    expect(r.filled).toEqual([]);
+    expect(r.choices).toHaveLength(1);
+    expect(r.choices[0]).toMatchObject({ field: "bizno", hand: "123", recommended: -1 });
+    expect(r.choices[0].options.map((o) => o.value)).toEqual(["987-81-12345"]);
+  });
+
+  it("손으로 만진 있다·없다 한 줄(hasCert·시도·시군구)은 서류가 채우지도 충돌로 보이지도 않는다", () => {
+    const r = applyDocumentFields(
+      {},
+      결과({ fields: { hasCert: false, region: "경기", regionSigungu: "화성시" } }),
+      new Set<DocumentFieldKey>(["hasCert", "region", "regionSigungu"]),
+    );
+    expect(r.next).toEqual({});
+    expect(r.filled).toEqual([]);
+    expect(r.choices).toEqual([]);
+  });
+
+  it("담긴 값이 없는(다시 비운) 칸은 손으로 만졌어도 빈 칸이라 채운다", () => {
+    const r = applyDocumentFields({}, 번호서류(), new Set<DocumentFieldKey>(["bizno"]));
+    expect(r.next.bizno).toBe("987-81-12345");
+    expect(r.choices).toEqual([]);
+  });
+});
+
 describe("applyDocumentFields — 서류끼리 다른 칸(추천 값이 처음 골라짐)", () => {
   const 충돌서류 = (): DocumentPrefillResult =>
     결과({

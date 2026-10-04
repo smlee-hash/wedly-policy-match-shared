@@ -448,6 +448,7 @@ export default function ProfileForm({
   const [docFilled, setDocFilled] = useState<FormFieldKey[]>([]); // 서류로 채운 화면 칸(아래 「M칸」)
   const [docFileCount, setDocFileCount] = useState(0); // 칸을 채워 준 서류 수(아래 「N개」)
   const [customerKey, setCustomerKey] = useState(""); // 고객을 불러온 상태의 검색어 — 서류를 그 고객에 붙이는 열쇠
+  const loadedBiznoRef = useRef(""); // 불러온 고객의 사업자번호(숫자만) — 이 번호에서 벗어나면 다른 회사라 열쇠를 비운다
   const applyDocumentsRef = useRef<(r: DocumentPrefillResult) => void>(() => {});
   const doc = useDocumentUpload({
     endpoint: documentPrefillEndpoint,
@@ -536,6 +537,17 @@ export default function ProfileForm({
   };
 
   /**
+   * 서류 값과 맞대어 볼 현재 칸 — 진단용 값(buildProfile)에 **사람이 쓰던 원문**을 되살려 얹는다.
+   * 10자리를 못 채운 사업자번호·읽지 못한 주소는 진단에는 안 담기지만, 서류가 와서 덮어쓰면 쓰던 글자가 날아간다.
+   */
+  const buildProfileWithRaw = (): BusinessProfile => {
+    const p = buildProfile();
+    if (biznoDigits.length > 0 && biznoDigits.length < 10) p.bizno = bizno;
+    if (businessAddress.trim() && !p.businessAddress) p.businessAddress = businessAddress.trim();
+    return p;
+  };
+
+  /**
    * 모든 칸을 비운다(= 전부 「모름」).
    * 새 고객을 불러올 때 먼저 비우지 않으면 **앞 고객의 값이 남아** 엉뚱한 회사 조건으로 진단된다
    * (2026-08-22 리뷰 9번).
@@ -568,7 +580,8 @@ export default function ProfileForm({
     setDocFilled([]);
     setDocFileCount(0);
     setCustomerKey("");
-    doc.reset();
+    loadedBiznoRef.current = "";
+    doc.reset(); // 올리는 중이던 앞 고객 서류는 끊고, 늦게 오는 답은 버린다
   };
 
   /** 서류가 준 값 하나를 그 칸에 넣는다(칸 형식 규칙은 손으로 넣을 때와 같다). */
@@ -637,7 +650,7 @@ export default function ProfileForm({
 
   /** 서버가 읽어 온 결과를 칸에 합친다 — 합치는 규칙은 applyDocumentFields(순수 함수)가 정한다. */
   const applyDocuments = (result: DocumentPrefillResult) => {
-    const out = applyDocumentFields(buildProfile(), result, touchedRef.current);
+    const out = applyDocumentFields(buildProfileWithRaw(), result, touchedRef.current);
     const filled = new Set(out.filled);
     for (const key of out.filled) {
       // 주소·종류·건수가 같이 오면 그쪽이 시도·시군구·있음·없음을 정한다.
@@ -676,6 +689,7 @@ export default function ProfileForm({
     setOpen(true);
     clearFields(); // 앞 고객 값이 남아 섞이지 않게 먼저 비운다
     setCustomerKey(key); // 이제부터 올리는 서류는 이 고객 자료에 붙는다(ERP·컨설턴트 앱)
+    loadedBiznoRef.current = (d.bizno ?? "").replace(/\D/g, "");
     if (d.companyName) setCompanyName(d.companyName);
     // 법인 여부 — 사업자번호가 가르면 그것이 이긴다(엔진의 corporationOf 와 같은 순서).
     let corp: Tri = "";
@@ -782,7 +796,7 @@ export default function ProfileForm({
     return undefined;
   };
   // 그 칸의 「서류마다 달라요」 노란 상자 — 칸 아래 전폭으로 끼운다.
-  const nowProfile = buildProfile();
+  const nowProfile = buildProfileWithRaw(); // 쓰던 원문이 있는 칸은 「직접 넣은 값」 단추가 눌린 것으로 보인다
   const choiceFor = (form: FormFieldKey) => {
     const c = choices.find((x) => formFieldOf(x.field) === form);
     return c ? <ChoiceBox choice={c} current={nowProfile[c.field]} onPick={(i) => pickChoice(c, i)} /> : null;
@@ -894,6 +908,8 @@ export default function ProfileForm({
                   const masked = maskBizno(e.target.value);
                   setBizno(masked);
                   hand("bizno");
+                  // 불러온 고객의 번호에서 벗어나면 다른 회사다 — 상호를 고칠 때처럼 서류를 그 고객 자료에 붙이지 않는다.
+                  if (masked.replace(/\D/g, "") !== loadedBiznoRef.current) setCustomerKey("");
                   // 10자리가 되면 번호 가운데 두 자리로 법인·개인을 맞춘다(못 가르면 모름).
                   if (masked.replace(/\D/g, "").length === 10) {
                     const byBizno = isCorporationByBizno(masked);

@@ -1352,6 +1352,108 @@ describe("ProfileForm — 서류를 올려 칸 채우기", () => {
   });
 });
 
+// ── 독립 리뷰(Astra) 지적 BF2 — 늦은 응답·고객 열쇠·쓰던 번호 ─────────────────────
+
+describe("ProfileForm — 늦게 온 서류 응답은 새 고객 칸을 덮지 않는다(BF2 ①)", () => {
+  it("A 서류를 올리는 중에 B 고객을 불러오면, A 응답이 와도 B 의 직원 수 20명 그대로다", async () => {
+    let 서류끝내기: (v: unknown) => void = () => {};
+    let 서류신호: AbortSignal | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string, init?: { signal?: AbortSignal }) => {
+        if (String(url).startsWith(서류주소)) {
+          서류신호 = init?.signal;
+          return new Promise((resolve) => {
+            서류끝내기 = resolve;
+          });
+        }
+        return Promise.resolve({ json: async () => ({ success: true, data: { companyName: "B상사", employeeCount: 20 } }) });
+      }),
+    );
+    const { 화면 } = 서류화면();
+    let tree = await 서류고르기(화면, [가짜파일("기업상태표_가상테크.xlsx")]);
+    expect(글자(tree)).toContain("서류를 읽는 중이에요"); // A 가 아직 가는 중
+
+    적기(화면, 검색안내, "B상사");
+    누르기(화면, "불러오기");
+    tree = await 불러온뒤그리기(화면, "B상사");
+    expect(칸값(tree, "employees")).toBe("20");
+    expect(서류신호?.aborted).toBe(true); // 가던 요청을 끊었다
+    expect(글자(tree)).not.toContain("서류를 읽는 중이에요"); // 새 고객 앞에서 입력도 다시 열린다
+
+    // 끊었어도 응답이 뒤늦게 도착한 경우 — 버려야 한다
+    서류끝내기({ json: async () => ({ success: true, data: 기업상태표결과() }) });
+    tree = await 흘리기(화면);
+    expect(칸값(tree, "employees")).toBe("20");
+    expect(칸값(tree, "industry")).toBe("");
+    expect(올린서류줄(tree, "기업상태표_가상테크.xlsx")).toBeUndefined();
+    expect(글자(tree)).not.toContain("칸을 채웠어요");
+  });
+});
+
+describe("ProfileForm — 다른 사업자번호로 바꾸면 서류를 그 고객에 붙이지 않는다(BF2 ②)", () => {
+  it("고객 A 를 불러온 뒤 번호를 456-81-67890 으로 바꾸면 업로드에 customerKey 가 없다", async () => {
+    const { 화면 } = 서류화면();
+    await 고객불러오기(화면, { companyName: "위들리테크", bizno: "123-81-45678" }, "위들리테크");
+    칸적기(화면, "bizno", "456-81-67890");
+    const fn = 서류성공(기업상태표결과());
+    await 서류고르기(화면, [가짜파일("기업상태표_가상테크.xlsx")]);
+    expect(올린본문(fn).get("customerKey")).toBeNull();
+  });
+
+  it("불러온 번호와 같은 번호를 다시 넣으면 열쇠는 그대로 보낸다", async () => {
+    const { 화면 } = 서류화면();
+    await 고객불러오기(화면, { companyName: "위들리테크", bizno: "123-81-45678" }, "위들리테크");
+    칸적기(화면, "bizno", "123-81-45678");
+    const fn = 서류성공(기업상태표결과());
+    await 서류고르기(화면, [가짜파일("기업상태표_가상테크.xlsx")]);
+    expect(올린본문(fn).get("customerKey")).toBe("위들리테크");
+  });
+
+  it("번호를 쓰다 만 중간 글자(123)도 불러온 번호와 달라 열쇠를 비운다", async () => {
+    const { 화면 } = 서류화면();
+    await 고객불러오기(화면, { companyName: "위들리테크", bizno: "123-81-45678" }, "위들리테크");
+    칸적기(화면, "bizno", "123");
+    const fn = 서류성공(기업상태표결과());
+    await 서류고르기(화면, [가짜파일("기업상태표_가상테크.xlsx")]);
+    expect(올린본문(fn).get("customerKey")).toBeNull();
+  });
+});
+
+describe("ProfileForm — 쓰다 만 사업자번호는 서류가 덮지 않는다(BF2 ③)", () => {
+  it("번호 123 을 넣은 뒤 서류가 987-81-12345 를 주면 칸은 123 그대로, 고르는 상자가 뜬다", async () => {
+    서류성공(
+      읽은결과({
+        fields: { bizno: "987-81-12345" },
+        sources: { bizno: { files: ["등록증.pdf"], docTypes: ["biz-registration"] } },
+      }),
+    );
+    const { 받은, 화면 } = 서류화면();
+    칸적기(화면, "bizno", "123");
+    const 법인단추전 = 눌린단추들(화면.tree, "corp");
+    await 서류고르기(화면, [가짜파일("등록증.pdf")]);
+
+    expect(칸값(화면.tree, "bizno")).toBe("123");
+    expect(글자(상자(화면.tree, "bizno"))).toContain("사업자번호 서류와 직접 넣은 값이 달라요 — 어느 값을 쓸까요?");
+    expect(상자눌린단추들(화면.tree, "bizno")).toEqual(["123 · 직접 넣은 값"]);
+    expect(눌린단추들(화면.tree, "corp")).toEqual(법인단추전); // 서류 번호가 법인·개인을 바꾸지 않았다
+    expect(진단하기(화면, 받은).bizno).toBeUndefined(); // 10자리가 안 되면 진단에는 여전히 안 담긴다
+
+    상자단추누르기(화면, "bizno", "987-81-12345 · 사업자등록증");
+    expect(칸값(화면.tree, "bizno")).toBe("987-81-12345");
+  });
+
+  it("번호 칸을 지웠다면 빈 칸이라 서류 번호로 채운다", async () => {
+    서류성공(읽은결과({ fields: { bizno: "987-81-12345" } }));
+    const { 화면 } = 서류화면();
+    칸적기(화면, "bizno", "123");
+    칸적기(화면, "bizno", "");
+    await 서류고르기(화면, [가짜파일("등록증.pdf")]);
+    expect(칸값(화면.tree, "bizno")).toBe("987-81-12345");
+    expect(상자없음(화면.tree, "bizno")).toBe(true);
+  });
+});
+
 describe("ProfileForm — 서류 올리기 실패·제한 안내", () => {
   it("서버가 실패를 알리면 서버 안내 문구를 그대로 보이고 칸은 건드리지 않는다", async () => {
     서류응답붙이기({ success: false, error: { code: "READ_FAILED", message: "서류를 읽는 서버가 쉬고 있어요. 조금 뒤에 다시 올려 주세요" } });

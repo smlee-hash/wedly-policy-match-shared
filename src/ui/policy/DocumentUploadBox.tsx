@@ -43,13 +43,17 @@ interface UploadOptions {
  * 서류를 서버로 올리고 읽은 결과를 받는 상태 묶음.
  * 개수·크기는 서버에 보내기 전에 화면에서 먼저 막고, 서버가 실패를 알리면 서버 안내 문구를 그대로 보인다.
  * 올리는 도중에 칸 값이 바뀔 수 있어 결과를 받는 쪽·고객 열쇠는 「가장 최근 것」을 ref 로 읽는다.
+ * 올릴 때마다 차례 번호를 받고, 고객을 새로 불러오거나 비울 때(reset) 번호를 올려 진행 중인 요청을 끊는다 —
+ * 번호가 달라진 뒤에 도착한 응답은 버린다(앞 고객 서류가 새 고객 칸을 덮어쓰면 안 된다).
  */
 export function useDocumentUpload({ endpoint, customerKey, onResult }: UploadOptions) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [attached, setAttached] = useState(false);
-  const seq = useRef(0);
+  const seq = useRef(0); // 목록 줄 번호
+  const run = useRef(0); // 올리기 차례 번호 — reset 이 올린다
+  const inflight = useRef<AbortController | null>(null);
   const latest = useRef({ customerKey, onResult });
   latest.current = { customerKey, onResult };
 
@@ -60,14 +64,18 @@ export function useDocumentUpload({ endpoint, customerKey, onResult }: UploadOpt
       setError(warn);
       return;
     }
+    const mine = ++run.current;
+    const controller = new AbortController();
+    inflight.current = controller;
     setBusy(true);
     setError("");
     try {
       const form = new FormData();
       for (const f of picked) form.append("files", f);
       if (latest.current.customerKey) form.append("customerKey", latest.current.customerKey);
-      const res = await fetch(endpoint, { method: "POST", body: form });
+      const res = await fetch(endpoint, { method: "POST", body: form, signal: controller.signal });
       const j = (await res.json()) as DocumentPrefillResponse | null;
+      if (mine !== run.current) return; // 그 사이 고객이 바뀌었다 — 늦게 온 답은 버린다
       if (!j || !j.success) {
         setError((j && !j.success && j.error?.message) || UPLOAD_FAILED);
         return;
@@ -76,17 +84,25 @@ export function useDocumentUpload({ endpoint, customerKey, onResult }: UploadOpt
       if (j.data.attachedToCustomer) setAttached(true);
       latest.current.onResult(j.data);
     } catch {
+      if (mine !== run.current) return; // 끊은 요청의 오류는 알리지 않는다
       setError(NETWORK_FAILED);
     } finally {
-      setBusy(false);
+      if (mine === run.current) {
+        inflight.current = null;
+        setBusy(false);
+      }
     }
   };
 
   /** 목록에서만 뺀다 — 이미 채운 칸의 값은 그대로 둔다. */
   const remove = (id: number) => setFiles((prev) => prev.filter((f) => f.id !== id));
 
-  /** 고객을 새로 불러오면 앞 고객의 서류 목록도 함께 비운다. */
+  /** 고객을 새로 불러오면 앞 고객의 서류 목록도 함께 비운다. 올리는 중이던 요청은 끊고 그 답은 버린다. */
   const reset = () => {
+    run.current++;
+    inflight.current?.abort();
+    inflight.current = null;
+    setBusy(false);
     setFiles([]);
     setError("");
     setAttached(false);

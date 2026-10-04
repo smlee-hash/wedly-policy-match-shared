@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import PolicyMatchScreen, { type Diagnosis } from "./PolicyMatchScreen";
+import PolicyMatchScreen, { listVerdictContext, type Diagnosis } from "./PolicyMatchScreen";
 import ProfileForm from "./ProfileForm";
 import ResultSummaryBar from "./ResultSummaryBar";
 import ResultGroupList, {
@@ -271,6 +271,22 @@ describe("묶음별 목록(ResultGroupList) — 그려 보기", () => {
     expect(빔).toContain("조건에 맞는 공고가 없습니다");
   });
 
+  it("옛 자료가 남아 있어도 새로 받기가 실패했으면 목록 위에 오류 띠와 「다시 시도」가 보인다(BF2 ⑥)", () => {
+    const html = 글자(목록그림({ error: "서버가 바빠요" }));
+    expect(html).toContain('data-error-band="stale"');
+    expect(html).toContain("서버가 바빠요");
+    expect(html).toContain("다시 시도");
+    expect(html).toContain('data-group="grant"'); // 옛 목록은 그대로 보인다
+    expect(html.indexOf("data-error-band")).toBeLessThan(html.indexOf('data-group="grant"')); // 목록 위
+    // 지도 기본 문구가 오면 목록 말로 바꿔 보인다
+    expect(글자(목록그림({ error: "자금 조달 지도를 불러오지 못했습니다" }))).toContain("목록을 새로 받지 못했어요");
+    // 오류가 없으면 띠도 없다
+    expect(목록그림()).not.toContain("data-error-band");
+    // 단추는 부모의 다시 시도에 이어진다
+    const src = readFileSync(new URL("ResultGroupList.tsx", import.meta.url), "utf8");
+    expect(src.match(/onClick=\{onRetry\}/g)).toHaveLength(2);
+  });
+
   it("색은 토큰만 쓴다", () => {
     const html = 목록그림({ selectedKey: "a:g1" });
     expect(html).not.toMatch(RAW색);
@@ -414,6 +430,42 @@ describe("옮긴 자리 목록 — 기존 기능이 새 자리에 그대로 있�
     expect(서랍범위).toContain("verdictFeedback={verdictFeedback}");
     expect(화면글).toContain("renderCardFooter={mapCardFooter}");
     expect(화면글).toMatch(/<ResultList[\s\S]*?verdictFeedback=\{verdictFeedback\}[\s\S]*?\/>/);
+  });
+
+  it("진단→목록 전환 시 행 피드백 호출: 조각을 받은 앱은 공고 줄마다 place:card 로 부르고, 못 받은 앱은 줄만 그린다(BF2 ⑤)", () => {
+    // 그리기: 공고 줄(g1~g5·b1)마다 조각이 줄 아래에 붙고, 상품 줄(p1)에는 안 붙는다
+    const 호출: string[] = [];
+    const html = 글자(
+      목록그림({
+        renderRowFooter: (줄) => {
+          호출.push(줄.refId);
+          return <span data-fb={줄.refId}>맞음·틀림</span>;
+        },
+      }),
+    );
+    expect(호출).toEqual(["g1", "g2", "g3", "g4", "g5", "b1"]);
+    expect(html).toContain('data-fb="g1"');
+    expect(html).not.toContain('data-fb="p1"');
+    expect(html.indexOf('data-row="a:g1"')).toBeLessThan(html.indexOf('data-fb="g1"'));
+    expect(html).toContain('data-row-wrap="a:g1"');
+    // 조각을 안 받은 앱은 마디를 하나도 더하지 않는다
+    expect(목록그림()).not.toContain("data-row-wrap");
+
+    // 넘기는 자료: 예전 목록 카드와 같은 자리 이름
+    const 자료줄 = 자료().groups[0].items[0];
+    expect(listVerdictContext(자료줄, { byId: new Map(), profile: { employeeCount: 3 } })).toEqual({
+      announcementId: "g1",
+      title: "지원 공고 1",
+      item: null,
+      aiVerdict: null,
+      profile: { employeeCount: 3 },
+      place: "card",
+    });
+
+    // 배선: 목록 판이 조각을 이어 받고, 조각 만드는 자리가 listVerdictContext 를 쓴다
+    const 목록범위 = 화면글.slice(화면글.indexOf("<ResultGroupList"), 화면글.indexOf("/>", 화면글.indexOf("<ResultGroupList")));
+    expect(목록범위).toContain("renderRowFooter={rowFooter}");
+    expect(화면글).toContain("verdictFeedback(listVerdictContext(item, { byId: diagnoseById, profile }))");
   });
 
   it("자금 조달 지도: 「한눈에」 보기 단추와 FundingMap·지도 서랍이 있다", () => {
