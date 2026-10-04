@@ -133,6 +133,35 @@ describe("② 고객 불러오기 통로가 없으면 검색 칸이 없다", () 
   });
 });
 
+// ── ②-2 서류 올리기 칸 — 올리기 주소가 있는 앱에만 ───────────────────────────
+describe("②-2 서류 올리기 통로가 없으면 올리기 칸이 없다", () => {
+  it("documentPrefillEndpoint 를 안 주면 올리기 칸을 안 그리고, 주면 그린다(대조군)", () => {
+    const 없음 = renderToStaticMarkup(<ProfileForm onDiagnose={async () => true} diagnosing={false} />);
+    expect(없음).not.toContain("서류를 올리면 칸을 채워 드려요");
+    expect(없음).not.toContain('type="file"');
+    const 있음 = renderToStaticMarkup(
+      <ProfileForm onDiagnose={async () => true} diagnosing={false} documentPrefillEndpoint="/api/policy-match/document-prefill" />,
+    );
+    expect(있음).toContain("서류를 올리면 칸을 채워 드려요");
+    expect(있음).toContain('type="file"');
+  });
+
+  it("화면째로 봐도 같다 — ERP 통로엔 있고 올리기 주소가 없는 랩 통로엔 없다", () => {
+    expect(renderToStaticMarkup(<PolicyMatchScreen endpoints={ERP_POLICY_MATCH_ENDPOINTS} />)).toContain("서류를 올리면 칸을 채워 드려요");
+    expect(renderToStaticMarkup(<PolicyMatchScreen endpoints={LAB_ENDPOINTS} />)).not.toContain("서류를 올리면 칸을 채워 드려요");
+  });
+
+  it("features.documentPrefillMode 가 화면까지 전해져 안내 문구를 가른다", () => {
+    const attach = renderToStaticMarkup(<PolicyMatchScreen endpoints={ERP_POLICY_MATCH_ENDPOINTS} />);
+    expect(attach).toContain("그 고객 자료에 붙여 둡니다");
+    const lab = renderToStaticMarkup(
+      <PolicyMatchScreen endpoints={ERP_POLICY_MATCH_ENDPOINTS} features={{ documentPrefillMode: "lab" }} />,
+    );
+    expect(lab).toContain("서류를 저장하지 않아요. 사진·스캔본은 글자 있는 PDF로 올려 주세요");
+    expect(lab).not.toContain("그 고객 자료에 붙여 둡니다");
+  });
+});
+
 // ── ③ 판정 피드백 조각 — 카드마다 한 번, place:"card" ──────────────────────
 describe("③ 판정 피드백 조각은 카드마다 한 번 불리고 자리를 알려 준다", () => {
   it("카드 두 장이면 두 번 불리고, 넘어온 값이 그 카드의 것이다", () => {
@@ -286,6 +315,22 @@ describe("⑤ 그려 낸 HTML 에 raw Tailwind 색이 하나도 없다(WEDLY 토
     ["PolicyMatchScreen(랩 통로)", renderToStaticMarkup(<PolicyMatchScreen endpoints={LAB_ENDPOINTS} />)],
     ["ProfileForm", renderToStaticMarkup(
       <ProfileForm onDiagnose={async () => true} diagnosing={false} prefillEndpoint="/api/policy-match/prefill" />,
+    )],
+    // 서류 올리기 칸(형식 카드·칩·안내)의 색도 토큰만 쓴다 — 두 안내 방식 모두 잰다.
+    ["ProfileForm(서류 올리기·attach)", renderToStaticMarkup(
+      <ProfileForm
+        onDiagnose={async () => true}
+        diagnosing={false}
+        documentPrefillEndpoint="/api/policy-match/document-prefill"
+      />,
+    )],
+    ["ProfileForm(서류 올리기·lab)", renderToStaticMarkup(
+      <ProfileForm
+        onDiagnose={async () => true}
+        diagnosing={false}
+        documentPrefillEndpoint="/api/policy-match/document-prefill"
+        documentPrefillMode="lab"
+      />,
     )],
     ["ResultList(진단)", renderList({
       mode: "diagnosed",

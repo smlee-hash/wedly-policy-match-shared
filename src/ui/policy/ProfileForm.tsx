@@ -6,7 +6,20 @@
 import { useRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
 import { isCorporationByBizno, type BusinessProfile } from "../../engine/match-engine";
 import { CERT_TYPE_NAMES, deriveProfileFlags, readRegionFromAddress } from "../../engine/profile-derive";
+import type { DocumentFieldKey, DocumentPrefillResult, DocumentType } from "../../documents/types";
 import { formatCount, manwonToKorean, maskBizno } from "./profile-field-format";
+import DocumentUploadBox, { useDocumentUpload } from "./DocumentUploadBox";
+import {
+  applyDocumentFields,
+  choiceOptionLabel,
+  choiceTitle,
+  fieldValueText,
+  formFieldOf,
+  originChipText,
+  sameFieldValue,
+  type DocumentChoice,
+  type FormFieldKey,
+} from "./document-prefill";
 
 /**
  * 시도 — 고객 불러오기 응답의 옛 소재지(region)가 대조 엔진의 지역 사전과 같은 줄임말일 때만 쓴다
@@ -58,6 +71,8 @@ const PICK_OFF = `${PICK_BASE} border-wedly-bd bg-white text-wedly-t2 hover:bg-w
 /** 「모름」 상태 칸은 흐리게 — 손을 대거나 올리면 또렷해진다. */
 const DIM = "opacity-70 transition-opacity focus-within:opacity-100 hover:opacity-100";
 const SECTION = "mt-6 flex flex-wrap items-baseline justify-between gap-2 text-base font-semibold leading-6 text-wedly-t1";
+/** 노란 안내 상자 — 서류마다 값이 달라 고르게 할 때. 대비가 낮아 테두리를 함께 둔다(상세 화면의 노란 상자와 같다). */
+const BOX_WARN = "rounded-xl border border-[var(--wedly-gold)]/30 bg-wedly-bg-yellow px-4 py-2";
 
 interface Props {
   onDiagnose: (profile: BusinessProfile) => Promise<boolean>;
@@ -69,6 +84,13 @@ interface Props {
   prefillEndpoint?: string;
   /** 지금 진단 결과의 「확인 필요」 건수. 넘기면 「모름 N칸 → 확인 필요 M건」으로 보인다(없으면 칸 수만). */
   reviewCount?: number;
+  /**
+   * 서류 올리기 통로(`POST` multipart). **안 넘기면 올리기 칸이 아예 없다.**
+   * 서류를 읽는 서버가 없는 앱에 있지도 않은 기능을 약속하지 않는다.
+   */
+  documentPrefillEndpoint?: string;
+  /** 서류 올리기 안내 방식 — attach(기본): 고객 자료에 붙여 둠 · lab: 저장 안 함·사진은 글자 있는 PDF로 */
+  documentPrefillMode?: "attach" | "lab";
 }
 
 function numberOf(v: string): number | undefined {
@@ -127,7 +149,8 @@ interface CustomerPrefillState {
 
 function useCustomerPrefill(
   endpoint: string | undefined,
-  onLoad: (d: BusinessProfile) => void,
+  /** 불러온 값과, 불러올 때 쓴 검색어(사업자번호·상호 — 서류를 그 고객에 붙일 때 서버로 보내는 열쇠) */
+  onLoad: (d: BusinessProfile, key: string) => void,
 ): CustomerPrefillState {
   const [query, setQuery] = useState("");
   const [prefilling, setPrefilling] = useState(false);
@@ -158,7 +181,7 @@ function useCustomerPrefill(
         setPrefillNote("찾지 못했습니다 — 아래 칸을 직접 채워 주세요");
         return;
       }
-      onLoad(d);
+      onLoad(d, t);
       setPrefillNote(`${d.companyName || t} 정보를 불러왔습니다 — 아는 값만 채웠습니다`);
     } catch {
       if (loadId === latestLoad.current) setPrefillNote("고객 정보를 불러오지 못했습니다");
@@ -208,10 +231,12 @@ function CustomerPrefill({ prefill }: { prefill: CustomerPrefillState }) {
  * 이름표를 눌렀을 때 첫 단추가 눌린다.
  */
 function Field({
-  k, label, wide, group, dim, help, helpAccent, note, error, children,
+  k, label, chip, wide, group, dim, help, helpAccent, note, error, children,
 }: {
   k: string;
   label: string;
+  /** 이 칸 값을 준 서류 이름(출처 칩) — 서류로 채운 칸에만 붙는다 */
+  chip?: string;
   wide?: boolean;
   group?: boolean;
   /** 모름이라 흐리게 보일 칸인가 */
@@ -232,7 +257,16 @@ function Field({
         role={group ? "group" : undefined}
         aria-label={group ? label : undefined}
       >
-        <span className={LABEL}>{label}</span>
+        {chip ? (
+          <span className="flex flex-wrap items-center gap-2">
+            <span className={LABEL}>{label}</span>
+            <span data-src={chip} className="rounded bg-wedly-bg-blue px-2 text-xs leading-[18px] text-wedly-accent">
+              {chip}
+            </span>
+          </span>
+        ) : (
+          <span className={LABEL}>{label}</span>
+        )}
         <span className={`mt-1 block ${dim ? DIM : ""}`}>{children}</span>
       </Tag>
       {note && <span className="mt-1 block text-xs leading-[18px] text-wedly-t2">{note}</span>}
@@ -245,6 +279,57 @@ function Field({
       ) : null}
     </div>
   );
+}
+
+/**
+ * 서류마다 값이 달라(또는 손으로 고친 값과 달라) 어느 값을 쓸지 묻는 노란 상자.
+ * 지금 칸에 들어 있는 값과 같은 단추가 눌린 것으로 보인다 — 처음엔 추천 값이 칸에 들어가 눌려 있다.
+ */
+function ChoiceBox({
+  choice, current, onPick,
+}: {
+  choice: DocumentChoice;
+  /** 지금 칸에 든 값 */
+  current: unknown;
+  /** 순번 번째 서류 값을 쓴다. -1 은 직접 넣은 값으로 되돌린다 */
+  onPick: (index: number) => void;
+}) {
+  const handOn = choice.hand !== undefined && sameFieldValue(choice.field, choice.hand, current);
+  return (
+    <div data-conflict={choice.field} className={`sm:col-span-2 ${BOX_WARN}`}>
+      <span className="block text-xs font-semibold leading-[18px] text-wedly-gold-ink">{choiceTitle(choice)}</span>
+      <span className="mt-1 flex flex-wrap gap-1">
+        {choice.hand !== undefined && (
+          <button type="button" aria-pressed={handOn} onClick={() => onPick(-1)} className={handOn ? PICK_ON : PICK_OFF}>
+            {`${fieldValueText(choice.field, choice.hand)} · 직접 넣은 값`}
+          </button>
+        )}
+        {choice.options.map((o, i) => {
+          const on = !handOn && sameFieldValue(choice.field, o.value, current);
+          return (
+            <button
+              key={i}
+              type="button"
+              aria-pressed={on}
+              onClick={() => onPick(i)}
+              className={on ? PICK_ON : PICK_OFF}
+            >
+              {choiceOptionLabel(choice.field, o)}
+            </button>
+          );
+        })}
+      </span>
+    </div>
+  );
+}
+
+/** 서류가 준 인증 종류를 칩 규칙(「없음」은 다른 종류와 함께 못 둔다 — 함께 오면 종류가 이긴다)에 맞춰 정리한다. */
+function certChipsOf(list: unknown): string[] {
+  const known = (Array.isArray(list) ? list : []).filter((c): c is string =>
+    (CERT_TYPE_NAMES as readonly string[]).includes(c),
+  );
+  const named = known.filter((c, i) => c !== "없음" && known.indexOf(c) === i);
+  return named.length > 0 ? named : known.includes("없음") ? ["없음"] : [];
 }
 
 /** 입력 한 줄 — 뒤에 단위(만원·명·건·점)가 붙을 수 있다. */
@@ -307,7 +392,9 @@ function ChipGroup({
   );
 }
 
-export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint, reviewCount }: Props) {
+export default function ProfileForm({
+  onDiagnose, diagnosing, prefillEndpoint, reviewCount, documentPrefillEndpoint, documentPrefillMode,
+}: Props) {
   const [open, setOpen] = useState(true);
 
   const [companyName, setCompanyName] = useState("");
@@ -336,6 +423,33 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint, r
   const [legacyHasCert, setLegacyHasCert] = useState<boolean | undefined>(undefined);
   const [legacyHasPatent, setLegacyHasPatent] = useState<boolean | undefined>(undefined);
   const [legacyHasLoan, setLegacyHasLoan] = useState<boolean | undefined>(undefined);
+
+  // ── 서류 올리기 — 읽은 값은 비어 있는 칸에만 채우고, 사람이 손으로 고친 칸은 덮지 않는다.
+  const touchedRef = useRef<Set<DocumentFieldKey>>(new Set()); // 손으로 고친 칸 — 다시 렌더할 일이 없어 ref
+  const [origins, setOrigins] = useState<Partial<Record<DocumentFieldKey, DocumentType[]>>>({}); // 칸 옆 출처 칩
+  const [choices, setChoices] = useState<DocumentChoice[]>([]); // 어느 값을 쓸지 묻는 노란 상자
+  const [docFilled, setDocFilled] = useState<FormFieldKey[]>([]); // 서류로 채운 화면 칸(아래 「M칸」)
+  const [docFileCount, setDocFileCount] = useState(0); // 칸을 채워 준 서류 수(아래 「N개」)
+  const [customerKey, setCustomerKey] = useState(""); // 고객을 불러온 상태의 검색어 — 서류를 그 고객에 붙이는 열쇠
+  const applyDocumentsRef = useRef<(r: DocumentPrefillResult) => void>(() => {});
+  const doc = useDocumentUpload({
+    endpoint: documentPrefillEndpoint,
+    customerKey,
+    onResult: (r) => applyDocumentsRef.current(r), // 올리는 사이 칸이 바뀌어도 가장 최근 칸 값으로 합친다
+  });
+
+  const dropOrigin = (...keys: DocumentFieldKey[]) =>
+    setOrigins((prev) => {
+      if (!keys.some((k) => k in prev)) return prev;
+      const rest = { ...prev };
+      for (const k of keys) delete rest[k];
+      return rest;
+    });
+  /** 사람이 이 칸을 직접 고쳤다 — 서류가 덮어쓰지 못하게 표시하고, 서류 출처 칩은 뗀다. */
+  const hand = (...keys: DocumentFieldKey[]) => {
+    for (const k of keys) touchedRef.current.add(k);
+    dropOrigin(...keys);
+  };
 
   const biznoDigits = bizno.replace(/\D/g, "");
   const revenueNum = numberOf(revenueManwon);
@@ -430,15 +544,121 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint, r
     setLegacyHasCert(undefined);
     setLegacyHasPatent(undefined);
     setLegacyHasLoan(undefined);
+    // 서류 쪽 흔적도 함께 비운다 — 앞 고객 서류의 출처 칩·고르는 상자·목록이 남으면 안 된다.
+    touchedRef.current.clear();
+    setOrigins({});
+    setChoices([]);
+    setDocFilled([]);
+    setDocFileCount(0);
+    setCustomerKey("");
+    doc.reset();
+  };
+
+  /** 서류가 준 값 하나를 그 칸에 넣는다(칸 형식 규칙은 손으로 넣을 때와 같다). */
+  const writeDocField = (key: DocumentFieldKey, value: unknown) => {
+    switch (key) {
+      case "bizno": {
+        const masked = maskBizno(String(value));
+        setBizno(masked);
+        // 번호가 법인·개인을 가른다 — 손으로 고른 법인·개인이 있으면 그것을 지킨다.
+        const byBizno = isCorporationByBizno(masked);
+        if (byBizno !== null && !touchedRef.current.has("isCorporation")) setIsCorp(byBizno ? "yes" : "no");
+        return;
+      }
+      case "industry":
+        setIndustry(String(value));
+        return;
+      case "businessAddress":
+        setBusinessAddress(String(value));
+        setRegion(""); // 주소 글자가 시도·시군구를 정한다 — 옛 소재지는 비운다
+        setRegionSigungu("");
+        return;
+      case "region":
+        if ((SIDO as readonly string[]).includes(String(value))) setRegion(String(value));
+        return;
+      case "regionSigungu":
+        setRegionSigungu(String(value));
+        return;
+      case "foundedDate":
+        setFoundedDate(String(value));
+        return;
+      case "lastYearRevenueKrw":
+        setRevenueManwon(numText(Number(value) / 10_000));
+        return;
+      case "employeeCount":
+        setEmployeeCount(numText(Number(value)));
+        return;
+      case "companyScale": {
+        const scale = value === "중견" ? "중견기업" : String(value); // 엔진 표기와 단추 이름의 차이
+        if (SCALE_OPTIONS.some(([v]) => v === scale)) setCompanyScale(scale);
+        return;
+      }
+      case "isCorporation":
+        setIsCorp(value ? "yes" : "no");
+        return;
+      case "taxDelinquent":
+        setTaxDelinquent(value ? "yes" : "no");
+        return;
+      case "certTypes":
+        setCertTypes(certChipsOf(value));
+        setLegacyHasCert(undefined);
+        return;
+      case "hasCert": // 서류가 「없음」을 분명히 말할 때만 온다
+        if (value === false) setCertTypes(["없음"]);
+        else setLegacyHasCert(true);
+        return;
+      case "patentCount":
+        setPatentCount(numText(Number(value)));
+        setLegacyHasPatent(undefined);
+        return;
+      case "hasPatent":
+        if (value === false) setPatentCount("0");
+        else setLegacyHasPatent(true);
+        return;
+    }
+  };
+
+  /** 서버가 읽어 온 결과를 칸에 합친다 — 합치는 규칙은 applyDocumentFields(순수 함수)가 정한다. */
+  const applyDocuments = (result: DocumentPrefillResult) => {
+    const out = applyDocumentFields(buildProfile(), result, touchedRef.current);
+    const filled = new Set(out.filled);
+    for (const key of out.filled) {
+      // 주소·종류·건수가 같이 오면 그쪽이 시도·시군구·있음·없음을 정한다.
+      if ((key === "region" || key === "regionSigungu") && filled.has("businessAddress")) continue;
+      if (key === "hasCert" && filled.has("certTypes")) continue;
+      if (key === "hasPatent" && filled.has("patentCount")) continue;
+      writeDocField(key, out.next[key]);
+    }
+    setOrigins((prev) => ({ ...prev, ...out.origins }));
+    // 이번 서류가 다시 말한 칸의 앞 상자는 새 상자로 바꾼다.
+    const mentioned = new Set(Object.keys(result.fields));
+    setChoices((prev) => [...prev.filter((c) => !mentioned.has(c.field)), ...out.choices]);
+    setDocFilled((prev) => Array.from(new Set([...prev, ...out.filled.map(formFieldOf)])));
+    setDocFileCount((n) => n + result.files.filter((f) => f.status === "read" || f.status === "read-by-ai").length);
+  };
+  applyDocumentsRef.current = applyDocuments;
+
+  /** 노란 상자에서 값을 골랐다 — 그 값을 칸에 넣고, 고른 서류를 출처로 한다(-1 은 직접 넣은 값). */
+  const pickChoice = (choice: DocumentChoice, index: number) => {
+    if (index < 0 || !choice.options[index]) {
+      if (choice.hand !== undefined) writeDocField(choice.field, choice.hand);
+      hand(choice.field);
+      return;
+    }
+    const option = choice.options[index];
+    writeDocField(choice.field, option.value);
+    hand(choice.field); // 사람이 정했다 — 다음 서류가 덮지 않는다
+    setOrigins((prev) => ({ ...prev, [choice.field]: [...option.docTypes] }));
   };
 
   /**
    * 불러온 고객 값을 칸에 채운다 — 먼저 전부 비우고, 아는 값만(모르는 칸은 「모름」으로 남는다).
    * 옛 응답(인증·특허·대출이 예/아니오, 신용점수 하나)은 새 칸으로 옮긴다. 새 칸이 응답에 있으면 그대로 채운다.
    */
-  const applyCustomer = (d: BusinessProfile) => {
+  const applyCustomer = (d: BusinessProfile, key: string) => {
     setOpen(true);
     clearFields(); // 앞 고객 값이 남아 섞이지 않게 먼저 비운다
+    setCustomerKey(key); // 이제부터 올리는 서류는 이 고객 자료에 붙는다(ERP·컨설턴트 앱)
     if (d.companyName) setCompanyName(d.companyName);
     // 법인 여부 — 사업자번호가 가르면 그것이 이긴다(엔진의 corporationOf 와 같은 순서).
     let corp: Tri = "";
@@ -497,6 +717,7 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint, r
   };
 
   const toggleCert = (name: string) => {
+    hand("certTypes", "hasCert");
     setLegacyHasCert(undefined); // 사람이 직접 고르면 옛 안내는 거둔다
     setCertTypes((prev) => {
       if (name === "없음") return prev.includes("없음") ? [] : ["없음"]; // 「없음」은 나머지를 끈다
@@ -512,6 +733,23 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint, r
     foundedDate ? `설립 ${foundedDate}` : "",
     employeeCount ? `${employeeCount}명` : "",
   ].filter(Boolean).join(" · ");
+
+  // 서류로 채운 칸의 출처 칩 글자 — 서류 종류 이름. 손으로 고치면 칩이 떨어진다.
+  const chipOf = (form: FormFieldKey): string | undefined => {
+    for (const k of Object.keys(origins) as DocumentFieldKey[]) {
+      if (formFieldOf(k) !== form) continue;
+      const text = originChipText(origins[k]);
+      if (text) return text;
+    }
+    return undefined;
+  };
+  // 그 칸의 「서류마다 달라요」 노란 상자 — 칸 아래 전폭으로 끼운다.
+  const nowProfile = buildProfile();
+  const choiceFor = (form: FormFieldKey) => {
+    const c = choices.find((x) => formFieldOf(x.field) === form);
+    return c ? <ChoiceBox choice={c} current={nowProfile[c.field]} onPick={(i) => pickChoice(c, i)} /> : null;
+  };
+  const docFilledCount = docFilled.length;
 
   return (
     <div className="rounded-2xl border border-wedly-bd bg-white p-4 shadow-sm">
@@ -547,6 +785,19 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint, r
 
       {open && (
         <>
+          {/* 서류 올리기 — 통로(documentPrefillEndpoint)를 안 넘긴 앱에는 이 칸이 아예 없다. 맨 위에 둔다. */}
+          {documentPrefillEndpoint && (
+            <DocumentUploadBox
+              files={doc.files}
+              busy={doc.busy}
+              error={doc.error}
+              attached={doc.attached}
+              mode={documentPrefillMode}
+              onPick={(picked) => void doc.upload(picked)}
+              onRemove={doc.remove}
+            />
+          )}
+
           {/* 통로를 안 넘긴 앱(랩)에는 이 줄이 아예 없다 — 있지도 않은 고객 표를 약속하지 않는다. */}
           {prefill.active && <CustomerPrefill prefill={prefill} />}
 
@@ -574,6 +825,8 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint, r
                   // 손으로 고치는 순간 사업자번호를 비운다 — 불러오기로는 다시 채워진다
                   // (2026-08-22 독립 화면 검사 5번).
                   setBizno("");
+                  dropOrigin("bizno");
+                  setCustomerKey(""); // 다른 회사로 고쳤으니 서류를 앞 고객 자료에 붙이지 않는다
                 }}
                 placeholder="예: 가상테크"
               />
@@ -581,6 +834,7 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint, r
             <Field
               k="bizno"
               label="사업자번호"
+              chip={chipOf("bizno")}
               error={
                 biznoDigits.length > 0 && biznoDigits.length < 10
                   ? "10자리를 모두 넣어 주세요 — 지금은 모름으로 처리됩니다"
@@ -594,28 +848,44 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint, r
                 onChange={(e) => {
                   const masked = maskBizno(e.target.value);
                   setBizno(masked);
+                  hand("bizno");
                   // 10자리가 되면 번호 가운데 두 자리로 법인·개인을 맞춘다(못 가르면 모름).
                   if (masked.replace(/\D/g, "").length === 10) {
                     const byBizno = isCorporationByBizno(masked);
                     setIsCorp(byBizno === null ? "" : byBizno ? "yes" : "no");
+                    dropOrigin("isCorporation"); // 번호가 맞춘 값이라 서류 출처가 아니다
                   }
                 }}
                 placeholder="000-00-00000"
               />
             </Field>
-            <Field k="corp" label="법인·개인" group dim={isCorp === ""} help="사업자번호를 넣으면 자동">
-              <Segmented options={CORP_OPTIONS} value={isCorp} onPick={(v) => setIsCorp(v as Tri)} />
+            {choiceFor("bizno")}
+            <Field k="corp" label="법인·개인" chip={chipOf("corp")} group dim={isCorp === ""} help="사업자번호를 넣으면 자동">
+              <Segmented
+                options={CORP_OPTIONS}
+                value={isCorp}
+                onPick={(v) => {
+                  setIsCorp(v as Tri);
+                  hand("isCorporation");
+                }}
+              />
             </Field>
-            <Field k="industry" label="주업종" wide>
+            {choiceFor("corp")}
+            <Field k="industry" label="주업종" chip={chipOf("industry")} wide>
               <InputRow
                 value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
+                onChange={(e) => {
+                  setIndustry(e.target.value);
+                  hand("industry");
+                }}
                 placeholder="예: 전자부품 제조업"
               />
             </Field>
+            {choiceFor("industry")}
             <Field
               k="address"
               label="사업장 주소"
+              chip={chipOf("address")}
               wide
               help={regionText ? `지역 조건: ${regionText}` : "주소를 넣으면 시도·시군구를 읽어 지역 조건에 씁니다"}
               helpAccent={regionText !== ""}
@@ -627,13 +897,23 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint, r
                   // 사람이 주소를 직접 고치면 불러온 옛 소재지와 어긋난다 — 비운다(리뷰 F1).
                   setRegion("");
                   setRegionSigungu("");
+                  hand("businessAddress", "region", "regionSigungu");
                 }}
                 placeholder="예: 경기 화성시 동탄대로 000"
               />
             </Field>
-            <Field k="founded" label="설립일(개업일)">
-              <InputRow type="date" value={foundedDate} onChange={(e) => setFoundedDate(e.target.value)} />
+            {choiceFor("address")}
+            <Field k="founded" label="설립일(개업일)" chip={chipOf("founded")}>
+              <InputRow
+                type="date"
+                value={foundedDate}
+                onChange={(e) => {
+                  setFoundedDate(e.target.value);
+                  hand("foundedDate");
+                }}
+              />
             </Field>
+            {choiceFor("founded")}
           </div>
 
           <div className={SECTION}>
@@ -643,41 +923,67 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint, r
             <Field
               k="revenue"
               label="작년 연매출"
+              chip={chipOf("revenue")}
               help={revenueNum !== undefined ? `= ${manwonToKorean(revenueNum)}` : "세금 신고 매출 기준"}
               helpAccent={revenueNum !== undefined}
             >
               <InputRow
                 inputMode="numeric"
                 value={revenueManwon}
-                onChange={(e) => setRevenueManwon(formatCount(e.target.value))}
+                onChange={(e) => {
+                  setRevenueManwon(formatCount(e.target.value));
+                  hand("lastYearRevenueKrw");
+                }}
                 placeholder="예: 120,000"
                 suffix="만원"
               />
             </Field>
-            <Field k="employees" label="직원 수" help="4대보험 가입 인원">
+            {choiceFor("revenue")}
+            <Field k="employees" label="직원 수" chip={chipOf("employees")} help="4대보험 가입 인원">
               <InputRow
                 inputMode="numeric"
                 value={employeeCount}
-                onChange={(e) => setEmployeeCount(formatCount(e.target.value))}
+                onChange={(e) => {
+                  setEmployeeCount(formatCount(e.target.value));
+                  hand("employeeCount");
+                }}
                 placeholder="예: 8"
                 suffix="명"
               />
             </Field>
-            <Field k="scale" label="기업 규모" wide group dim={companyScale === ""}>
-              <Segmented options={SCALE_OPTIONS} value={companyScale} onPick={setCompanyScale} />
+            {choiceFor("employees")}
+            <Field k="scale" label="기업 규모" chip={chipOf("scale")} wide group dim={companyScale === ""}>
+              <Segmented
+                options={SCALE_OPTIONS}
+                value={companyScale}
+                onPick={(v) => {
+                  setCompanyScale(v);
+                  hand("companyScale");
+                }}
+              />
             </Field>
+            {choiceFor("scale")}
           </div>
 
           <div className={SECTION}>
             <span>체납·인증·대출 · 모르면 비워 두세요</span>
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field k="tax" label="세금·4대보험 체납" wide group dim={taxDelinquent === ""}>
-              <Segmented options={TAX_OPTIONS} value={taxDelinquent} onPick={(v) => setTaxDelinquent(v as Tri)} />
+            <Field k="tax" label="세금·4대보험 체납" chip={chipOf("tax")} wide group dim={taxDelinquent === ""}>
+              <Segmented
+                options={TAX_OPTIONS}
+                value={taxDelinquent}
+                onPick={(v) => {
+                  setTaxDelinquent(v as Tri);
+                  hand("taxDelinquent");
+                }}
+              />
             </Field>
+            {choiceFor("tax")}
             <Field
               k="cert"
               label="보유 인증 (여러 개 고르기)"
+              chip={chipOf("cert")}
               wide
               group
               dim={certTypes.length === 0}
@@ -685,9 +991,11 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint, r
             >
               <ChipGroup names={CERT_TYPE_NAMES} selected={certTypes} onToggle={toggleCert} />
             </Field>
+            {choiceFor("cert")}
             <Field
               k="patent"
               label="특허·지재권"
+              chip={chipOf("patent")}
               dim={patentCount === ""}
               note={legacyHasPatent ? "특허 있음(건수 모름)" : undefined}
               help="없으면 0"
@@ -698,11 +1006,13 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint, r
                 onChange={(e) => {
                   setPatentCount(formatCount(e.target.value));
                   setLegacyHasPatent(undefined);
+                  hand("patentCount", "hasPatent");
                 }}
                 placeholder="모름"
                 suffix="건"
               />
             </Field>
+            {choiceFor("patent")}
             <Field
               k="loan"
               label="기존 대출 잔액"
@@ -763,9 +1073,16 @@ export default function ProfileForm({ onDiagnose, diagnosing, prefillEndpoint, r
             >
               {diagnosing ? "진단 중…" : "매칭 진단"}
             </button>
-            <span className="text-xs leading-[18px] text-wedly-muted">
-              모르는 칸은 &lsquo;모름&rsquo;으로 두세요 — 그 조건은 &lsquo;확인 필요&rsquo;로 분류됩니다
-            </span>
+            {docFileCount > 0 && docFilledCount > 0 ? (
+              // 서류로 칸을 채웠으면 확인하고 진단하라고 알린다 — 채운 값은 틀릴 수 있어 사람이 한 번 본다.
+              <span className="text-xs font-semibold leading-[18px] text-wedly-t1">
+                {`서류 ${docFileCount}개에서 ${docFilledCount}칸을 채웠어요. 확인하고 진단하세요`}
+              </span>
+            ) : (
+              <span className="text-xs leading-[18px] text-wedly-muted">
+                모르는 칸은 &lsquo;모름&rsquo;으로 두세요 — 그 조건은 &lsquo;확인 필요&rsquo;로 분류됩니다
+              </span>
+            )}
           </div>
         </>
       )}

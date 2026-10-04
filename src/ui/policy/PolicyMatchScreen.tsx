@@ -547,7 +547,13 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
   return (
     // 여백 계단(DESIGN.md §5): 구역 사이 24(space-y-6), 카드 사이 16(gap-4).
     <div className="space-y-6 p-6">
-      <ProfileForm onDiagnose={runDiagnose} diagnosing={diagnosing} prefillEndpoint={endpoints.prefill} />
+      <ProfileForm
+        onDiagnose={runDiagnose}
+        diagnosing={diagnosing}
+        prefillEndpoint={endpoints.prefill}
+        documentPrefillEndpoint={endpoints.documentPrefill}
+        documentPrefillMode={features?.documentPrefillMode}
+      />
 
       {notice && (
         // 안내 띠 — 상하 8·좌우 16, 본문 14/22.

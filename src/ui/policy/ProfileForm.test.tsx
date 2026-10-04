@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import React from "react";
 import ProfileForm from "./ProfileForm";
 import type { BusinessProfile } from "../../engine/match-engine";
+import { DOCUMENT_UPLOAD_LIMITS, type DocumentPrefillResult } from "../../documents/types";
 
 /**
  * 사업자 정보 칸 형식 — 시군구 통과(리뷰 F1)·옛 응답 → 새 칸 옮기기·칸 형식(마스크·칩·두 점수)을 잰다.
@@ -915,5 +916,527 @@ describe("ProfileForm — 가장 최근 고객 검색만 반영한다", () => {
     const p = 진단하기(화면, 받은);
     expect(p.companyName).toBeUndefined();
     expect(p.companyScale).toBeUndefined();
+  });
+});
+
+// ── 서류 올리기(B2) ────────────────────────────────────────────────────────
+// 서류를 읽는 서버는 가짜 fetch 로 대신한다. 올린 파일은 이름·크기만 있는 가짜 파일이다.
+
+const 서류주소 = "/api/policy-match/document-prefill";
+
+function 서류화면(opts: { 주소?: string | null; 모드?: "attach" | "lab"; 고객찾기?: boolean } = {}): {
+  받은: BusinessProfile[];
+  화면: 손React;
+} {
+  const 받은: BusinessProfile[] = [];
+  const 화면 = new 손React();
+  화면.render(
+    <ProfileForm
+      onDiagnose={async (p) => {
+        받은.push(p);
+        return false;
+      }}
+      diagnosing={false}
+      prefillEndpoint={opts.고객찾기 === false ? undefined : "/api/policy-match/prefill"}
+      documentPrefillEndpoint={opts.주소 === null ? undefined : (opts.주소 ?? 서류주소)}
+      documentPrefillMode={opts.모드}
+    />,
+  );
+  return { 받은, 화면 };
+}
+
+function 가짜파일(이름: string, 크기 = 10): File {
+  return { name: 이름, size: 크기 } as unknown as File;
+}
+
+function 읽은결과(p: Partial<DocumentPrefillResult> = {}): DocumentPrefillResult {
+  return { fields: {}, sources: {}, conflicts: [], files: [], ...p };
+}
+
+/** 서류 올리기에 쓸 fetch 를 붙인다 — 본문을 돌려주거나(성공·서버 실패 모두) Error 를 주면 연결이 끊긴 것처럼 던진다. */
+function 서류응답붙이기(본문: unknown) {
+  const fn = vi.fn(async (_url: string, _init?: { method?: string; body?: unknown }) => {
+    if (본문 instanceof Error) throw 본문;
+    return { json: async () => 본문 };
+  });
+  vi.stubGlobal("fetch", fn);
+  return fn;
+}
+
+function 서류성공(data: DocumentPrefillResult) {
+  return 서류응답붙이기({ success: true, data });
+}
+
+function 흘리기(화면: 손React): Promise<그림> {
+  return (async () => {
+    let tree = 화면.tree;
+    for (let i = 0; i < 30; i++) {
+      await Promise.resolve();
+      tree = 화면.다시그리기();
+    }
+    return tree;
+  })();
+}
+
+function 파일입력(tree: 그림): 마디 {
+  for (const m of 모든마디(tree)) {
+    if (m.type === "input" && m.props.type === "file") return m;
+  }
+  throw new Error("서류 고르는 칸(input type=file)이 화면에 없다");
+}
+
+function 서류고르기(화면: 손React, 파일들: File[]): Promise<그림> {
+  (파일입력(화면.tree).props.onChange as (e: unknown) => void)({ target: { files: 파일들, value: "찌꺼기" } });
+  return 흘리기(화면);
+}
+
+function 끌어놓기(화면: 손React, 파일들: File[]): Promise<그림> {
+  for (const m of 모든마디(화면.tree)) {
+    if (typeof m.props.onDrop === "function") {
+      (m.props.onDrop as (e: unknown) => void)({ preventDefault() {}, dataTransfer: { files: 파일들 } });
+      return 흘리기(화면);
+    }
+  }
+  throw new Error("끌어 놓는 자리가 화면에 없다");
+}
+
+function 올린본문(fn: ReturnType<typeof 서류응답붙이기>, 번째 = 0): FormData {
+  return fn.mock.calls[번째][1]?.body as FormData;
+}
+
+function 상자(tree: 그림, 열쇠: string): 마디 {
+  for (const m of 모든마디(tree)) {
+    if (m.props["data-conflict"] === 열쇠) return m;
+  }
+  throw new Error(`「${열쇠}」 고르는 상자가 화면에 없다`);
+}
+
+function 상자없음(tree: 그림, 열쇠: string): boolean {
+  return ![...모든마디(tree)].some((m) => m.props["data-conflict"] === 열쇠);
+}
+
+function 상자눌린단추들(tree: 그림, 열쇠: string): string[] {
+  return [...모든마디(상자(tree, 열쇠).props.children as 그림)]
+    .filter((m) => m.type === "button" && m.props["aria-pressed"] === true)
+    .map((m) => 글자(m.props.children as 그림).trim());
+}
+
+function 상자단추누르기(화면: 손React, 열쇠: string, 이름: string): 그림 {
+  for (const m of 모든마디(상자(화면.tree, 열쇠).props.children as 그림)) {
+    if (m.type === "button" && 글자(m.props.children as 그림).trim() === 이름) {
+      (m.props.onClick as () => void)();
+      return 화면.다시그리기();
+    }
+  }
+  throw new Error(`「${열쇠}」 상자에 「${이름}」 단추가 없다`);
+}
+
+function 올린서류줄(tree: 그림, 이름: string): 마디 | undefined {
+  return [...모든마디(tree)].find((m) => m.props["data-file"] === 이름);
+}
+
+const 기업상태표결과 = (): DocumentPrefillResult =>
+  읽은결과({
+    fields: {
+      employeeCount: 8,
+      industry: "전자부품 제조업",
+      certTypes: ["벤처", "ISO"],
+      lastYearRevenueKrw: 1_245_000_000,
+      businessAddress: "경기 화성시",
+      region: "경기",
+      regionSigungu: "화성시",
+    },
+    sources: {
+      employeeCount: { files: ["기업상태표_가상테크.xlsx"], docTypes: ["company-status"] },
+      industry: { files: ["기업상태표_가상테크.xlsx"], docTypes: ["company-status"] },
+      certTypes: { files: ["기업상태표_가상테크.xlsx"], docTypes: ["company-status"] },
+      lastYearRevenueKrw: { files: ["기업상태표_가상테크.xlsx"], docTypes: ["company-status"] },
+      businessAddress: { files: ["기업상태표_가상테크.xlsx"], docTypes: ["company-status"] },
+      region: { files: ["기업상태표_가상테크.xlsx"], docTypes: ["company-status"] },
+      regionSigungu: { files: ["기업상태표_가상테크.xlsx"], docTypes: ["company-status"] },
+    },
+    files: [
+      {
+        name: "기업상태표_가상테크.xlsx",
+        docType: "company-status",
+        status: "read",
+        fields: ["employeeCount", "industry", "certTypes", "lastYearRevenueKrw", "businessAddress", "region", "regionSigungu"],
+      },
+    ],
+  });
+
+describe("ProfileForm — 서류 올리기 칸(드롭존)", () => {
+  it("올리기 주소를 안 넘기면 올리기 칸이 아예 없다", () => {
+    const { 화면 } = 서류화면({ 주소: null });
+    expect([...모든마디(화면.tree)].some((m) => m.type === "input" && m.props.type === "file")).toBe(false);
+    expect([...모든마디(화면.tree)].some((m) => m.props["data-k"] === "documents")).toBe(false);
+    expect(글자(화면.tree)).not.toContain("서류를 올리면 칸을 채워 드려요");
+  });
+
+  it("주소가 있으면 제목·끌어 놓기 안내·여러 개 고르는 입력이 맨 위에 있다", () => {
+    const { 화면 } = 서류화면();
+    const 글 = 글자(화면.tree);
+    expect(글).toContain("서류를 올리면 칸을 채워 드려요");
+    expect(글).toContain("여기로 끌어 놓거나 눌러서 고르세요 · 여러 개 한 번에");
+    const 입력 = 파일입력(화면.tree);
+    expect(입력.props.multiple).toBe(true);
+    expect(입력.props.accept).toBe(DOCUMENT_UPLOAD_LIMITS.acceptExtensions.join(","));
+    // 맨 위 — 서류 칸이 회사 정보 칸(채운 칸 세기·상호 …)보다 앞에 그려진다.
+    expect(글.indexOf("서류를 올리면")).toBeGreaterThan(-1);
+    expect(글.indexOf("서류를 올리면")).toBeLessThan(글.indexOf("채운 칸"));
+    expect(글.indexOf("서류를 올리면")).toBeLessThan(글.indexOf("상호"));
+  });
+
+  it("형식 카드 5개(PDF·엑셀·한글·워드·사진 + 확장자)와 제한 문구, 읽는 서류 칩 5개가 있다", () => {
+    const { 화면 } = 서류화면();
+    const 카드 = [...모든마디(화면.tree)].filter((m) => m.props["data-fmt"] !== undefined);
+    expect(카드.map((m) => 글자(m).replace(/\s+/g, " ").trim())).toEqual([
+      "PDF PDF .pdf",
+      "XLS 엑셀 .xlsx .xls",
+      "HWP 한글 .hwpx",
+      "DOC 워드 .docx",
+      "IMG 사진 .jpg .png",
+    ]);
+    expect(글자(화면.tree)).toContain("한 번에 10개 · 파일당 20MB · 옛 한글(.hwp)은 PDF로 저장해 올려 주세요");
+    expect(글자(화면.tree)).toContain("이런 서류를 읽어요");
+    const 칩 = [...모든마디(화면.tree)].filter((m) => m.props["data-kind"] !== undefined).map((m) => 글자(m).trim());
+    expect(칩).toEqual(["기업상태표", "사업자등록증", "재무제표", "부가세 신고서", "고용보험 신고서"]);
+  });
+
+  it("시안 전용 「예시 서류 3개 올려 보기」 단추는 없다", () => {
+    const { 화면 } = 서류화면();
+    expect(글자(화면.tree)).not.toContain("예시 서류");
+  });
+
+  it("기본(attach) 모드는 고객 자료에 붙여 둔다는 안내를 보인다", () => {
+    const { 화면 } = 서류화면();
+    expect(글자(화면.tree)).toContain("고객을 불러온 상태면 올린 서류를 그 고객 자료에 붙여 둡니다");
+    expect(글자(화면.tree)).not.toContain("서류를 저장하지 않아요");
+    const 사진카드 = [...모든마디(화면.tree)].find((m) => m.props["data-fmt"] === "IMG")!;
+    expect(글자(사진카드)).not.toContain("글자 있는 PDF로");
+  });
+
+  it("lab 모드는 저장하지 않는다는 안내와 사진 카드의 「글자 있는 PDF로」를 보이고 고객 자료 문구는 없다", () => {
+    const { 화면 } = 서류화면({ 모드: "lab" });
+    expect(글자(화면.tree)).toContain("서류를 저장하지 않아요. 사진·스캔본은 글자 있는 PDF로 올려 주세요");
+    expect(글자(화면.tree)).not.toContain("그 고객 자료에 붙여 둡니다");
+    const 사진카드 = [...모든마디(화면.tree)].find((m) => m.props["data-fmt"] === "IMG")!;
+    expect(글자(사진카드)).toContain("글자 있는 PDF로");
+    const 엑셀카드 = [...모든마디(화면.tree)].find((m) => m.props["data-fmt"] === "XLS")!;
+    expect(글자(엑셀카드)).not.toContain("글자 있는 PDF로");
+  });
+
+  it("서류 칸을 넣어도 폼에는 셀렉트가 없다", () => {
+    const { 화면 } = 서류화면();
+    expect([...모든마디(화면.tree)].filter((m) => m.type === "select")).toEqual([]);
+  });
+
+  it("끌어 올리면 칸이 강조되고 놓으면 올린다", async () => {
+    const fn = 서류성공(기업상태표결과());
+    const { 화면 } = 서류화면();
+    const 자리 = [...모든마디(화면.tree)].find((m) => typeof m.props.onDragOver === "function")!;
+    (자리.props.onDragOver as (e: unknown) => void)({ preventDefault() {} });
+    화면.다시그리기();
+    const 강조 = [...모든마디(화면.tree)].find((m) => typeof m.props.onDragOver === "function")!;
+    expect(String(강조.props.className)).toContain("bg-wedly-bg-blue");
+
+    await 끌어놓기(화면, [가짜파일("기업상태표_가상테크.xlsx")]);
+    expect(fn).toHaveBeenCalledTimes(1);
+    const 놓은뒤 = [...모든마디(화면.tree)].find((m) => typeof m.props.onDragOver === "function")!;
+    expect(String(놓은뒤.props.className)).not.toContain("bg-wedly-bg-blue");
+  });
+});
+
+describe("ProfileForm — 서류를 올려 칸 채우기", () => {
+  it("파일을 고르면 files 로 POST 하고, 고객을 안 불러왔으면 customerKey 는 보내지 않는다", async () => {
+    const fn = 서류성공(기업상태표결과());
+    const { 화면 } = 서류화면();
+    await 서류고르기(화면, [가짜파일("기업상태표_가상테크.xlsx"), 가짜파일("재무제표.pdf")]);
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(fn.mock.calls[0][0]).toBe(서류주소);
+    expect(fn.mock.calls[0][1]?.method).toBe("POST");
+    const 본문 = 올린본문(fn);
+    expect(본문.getAll("files")).toHaveLength(2);
+    expect(본문.get("customerKey")).toBeNull();
+  });
+
+  it("고객을 불러온 상태면 그 열쇠(불러온 검색어)를 함께 보낸다", async () => {
+    const { 화면 } = 서류화면();
+    await 고객불러오기(화면, { companyName: "위들리테크" }, "위들리테크");
+    const fn = 서류성공(기업상태표결과());
+    await 서류고르기(화면, [가짜파일("기업상태표_가상테크.xlsx")]);
+    expect(올린본문(fn).get("customerKey")).toBe("위들리테크");
+  });
+
+  it("상호를 손으로 고치면 앞 고객 열쇠는 더 이상 보내지 않는다", async () => {
+    const { 화면 } = 서류화면();
+    await 고객불러오기(화면, { companyName: "위들리테크" }, "위들리테크");
+    칸적기(화면, "name", "다른회사");
+    const fn = 서류성공(기업상태표결과());
+    await 서류고르기(화면, [가짜파일("기업상태표_가상테크.xlsx")]);
+    expect(올린본문(fn).get("customerKey")).toBeNull();
+  });
+
+  it("읽은 값은 비어 있던 칸에 채우고 칸 옆에 출처 칩이 붙고 진단에도 실린다", async () => {
+    서류성공(기업상태표결과());
+    const { 받은, 화면 } = 서류화면();
+    await 서류고르기(화면, [가짜파일("기업상태표_가상테크.xlsx")]);
+
+    expect(칸값(화면.tree, "employees")).toBe("8");
+    expect(칸값(화면.tree, "industry")).toBe("전자부품 제조업");
+    expect(칸값(화면.tree, "revenue")).toBe("124,500");
+    expect(칸글자(화면.tree, "revenue")).toContain("= 12억 4,500만원");
+    expect(칸값(화면.tree, "address")).toBe("경기 화성시");
+    expect(칸글자(화면.tree, "address")).toContain("지역 조건: 경기 · 화성시");
+    expect(눌린단추들(화면.tree, "cert")).toEqual(["벤처", "ISO"]);
+    // 출처 칩 — 서류 종류 이름
+    for (const 열쇠 of ["employees", "industry", "revenue", "address", "cert"]) {
+      expect(칸글자(화면.tree, 열쇠), `${열쇠} 칸에 출처 칩이 없다`).toContain("기업상태표");
+    }
+    expect(칸글자(화면.tree, "founded")).not.toContain("기업상태표");
+
+    expect(진단하기(화면, 받은)).toMatchObject({
+      employeeCount: 8,
+      industry: "전자부품 제조업",
+      lastYearRevenueKrw: 1_245_000_000,
+      region: "경기",
+      regionSigungu: "화성시",
+      certTypes: ["벤처", "ISO"],
+      hasCert: true,
+    });
+  });
+
+  it("올린 파일 목록에 형식 표식·이름·「N칸 채움」이 보이고, 패널 아래에 요약 문구가 나온다", async () => {
+    서류성공(기업상태표결과());
+    const { 화면 } = 서류화면();
+    expect(글자(화면.tree)).toContain("모르는 칸은");
+    await 서류고르기(화면, [가짜파일("기업상태표_가상테크.xlsx")]);
+
+    const 줄 = 올린서류줄(화면.tree, "기업상태표_가상테크.xlsx")!;
+    expect(줄).toBeDefined();
+    const 줄글 = 글자(줄).replace(/\s+/g, " ");
+    expect(줄글).toContain("XLS");
+    expect(줄글).toContain("기업상태표_가상테크.xlsx");
+    expect(줄글).toContain("7칸 채움");
+    // 화면 칸으로 세면 주소(세 칸)·인증이 한 칸이라 5칸: 직원 수·주업종·매출·주소·인증
+    expect(글자(화면.tree)).toContain("서류 1개에서 5칸을 채웠어요. 확인하고 진단하세요");
+    expect(단추찾기(화면.tree, "매칭 진단")).not.toBeNull();
+  });
+
+  it("사진이라 못 읽은 서류·모르는 서류는 상태 문구를 보이고 칸은 건드리지 않는다", async () => {
+    서류성공(
+      읽은결과({
+        files: [
+          { name: "등록증.jpg", docType: "unknown", status: "needs-text-pdf", fields: [], message: "사진이라 못 읽었어요 — 글자 있는 PDF로 올려 주세요" },
+          { name: "메모.txt", docType: "unknown", status: "no-fields", fields: [] },
+          { name: "옛문서.hwp", docType: "unknown", status: "unsupported", fields: [], message: "옛 한글(.hwp)은 PDF로 저장해 올려 주세요" },
+        ],
+      }),
+    );
+    const { 받은, 화면 } = 서류화면();
+    await 서류고르기(화면, [가짜파일("등록증.jpg"), 가짜파일("메모.txt"), 가짜파일("옛문서.hwp")]);
+    expect(글자(올린서류줄(화면.tree, "등록증.jpg")!)).toContain("사진이라 못 읽었어요");
+    expect(글자(올린서류줄(화면.tree, "메모.txt")!)).toContain("모르는 서류");
+    expect(글자(올린서류줄(화면.tree, "옛문서.hwp")!)).toContain("옛 한글(.hwp)은 PDF로 저장해 올려 주세요");
+    // 채운 칸이 없으면 「채웠어요」 문구는 나오지 않는다
+    expect(글자(화면.tree)).not.toContain("칸을 채웠어요");
+    expect(진단하기(화면, 받은)).toEqual({});
+  });
+
+  it("손으로 고친 칸은 덮지 않고 「어느 값을 쓸까요?」 상자로 보여 준다", async () => {
+    서류성공(기업상태표결과());
+    const { 받은, 화면 } = 서류화면();
+    칸적기(화면, "employees", "12");
+    await 서류고르기(화면, [가짜파일("기업상태표_가상테크.xlsx")]);
+
+    expect(칸값(화면.tree, "employees")).toBe("12"); // 손 값 그대로
+    expect(칸값(화면.tree, "industry")).toBe("전자부품 제조업"); // 비어 있던 칸은 채워졌다
+    expect(글자(상자(화면.tree, "employeeCount"))).toContain("직원 수 서류와 직접 넣은 값이 달라요 — 어느 값을 쓸까요?");
+    expect(상자눌린단추들(화면.tree, "employeeCount")).toEqual(["12명 · 직접 넣은 값"]);
+    expect(칸글자(화면.tree, "employees")).not.toContain("기업상태표"); // 손 값이라 칩이 없다
+    expect(진단하기(화면, 받은).employeeCount).toBe(12);
+
+    상자단추누르기(화면, "employeeCount", "8명 · 기업상태표");
+    expect(칸값(화면.tree, "employees")).toBe("8");
+    expect(상자눌린단추들(화면.tree, "employeeCount")).toEqual(["8명 · 기업상태표"]);
+    expect(칸글자(화면.tree, "employees")).toContain("기업상태표");
+    expect(진단하기(화면, 받은).employeeCount).toBe(8);
+
+    상자단추누르기(화면, "employeeCount", "12명 · 직접 넣은 값");
+    expect(칸값(화면.tree, "employees")).toBe("12");
+    expect(칸글자(화면.tree, "employees")).not.toContain("기업상태표");
+  });
+
+  it("서류끼리 다른 칸은 노란 상자로 보이고 추천 값이 처음 골라져 있다", async () => {
+    서류성공(
+      읽은결과({
+        fields: { employeeCount: 8 },
+        sources: { employeeCount: { files: ["기업상태표.xlsx"], docTypes: ["company-status"] } },
+        conflicts: [
+          {
+            field: "employeeCount",
+            options: [
+              { value: 8, files: ["기업상태표.xlsx"], docTypes: ["company-status"], year: 2026 },
+              { value: 6, files: ["재무제표.pdf"], docTypes: ["financial-statement"], year: 2025 },
+            ],
+            recommended: 0,
+          },
+        ],
+        files: [
+          { name: "기업상태표.xlsx", docType: "company-status", status: "read", fields: ["employeeCount"] },
+          { name: "재무제표.pdf", docType: "financial-statement", status: "read", fields: ["employeeCount"] },
+        ],
+      }),
+    );
+    const { 받은, 화면 } = 서류화면();
+    await 서류고르기(화면, [가짜파일("기업상태표.xlsx"), 가짜파일("재무제표.pdf")]);
+
+    expect(글자(상자(화면.tree, "employeeCount"))).toContain("직원 수 서류마다 달라요 — 어느 값을 쓸까요?");
+    expect(칸값(화면.tree, "employees")).toBe("8");
+    expect(상자눌린단추들(화면.tree, "employeeCount")).toEqual(["8명 · 기업상태표(2026)"]);
+    expect(칸글자(화면.tree, "employees")).toContain("기업상태표");
+
+    상자단추누르기(화면, "employeeCount", "6명 · 재무제표(2025)");
+    expect(칸값(화면.tree, "employees")).toBe("6");
+    expect(상자눌린단추들(화면.tree, "employeeCount")).toEqual(["6명 · 재무제표(2025)"]);
+    expect(칸글자(화면.tree, "employees")).toContain("재무제표");
+    expect(칸글자(화면.tree, "employees")).not.toContain("기업상태표");
+    expect(진단하기(화면, 받은).employeeCount).toBe(6);
+  });
+
+  it("서류에 없는 칸·손으로 넣은 칸은 지우지 않고, 목록에서 빼도 채운 값은 그대로다", async () => {
+    서류성공(기업상태표결과());
+    const { 받은, 화면 } = 서류화면();
+    칸적기(화면, "founded", "2019-03-20");
+    칸단추누르기(화면, "tax", "없음");
+    await 서류고르기(화면, [가짜파일("기업상태표_가상테크.xlsx")]);
+    expect(칸값(화면.tree, "founded")).toBe("2019-03-20");
+    expect(눌린단추들(화면.tree, "tax")).toEqual(["없음"]);
+
+    // 빼기 — 목록에서만 사라진다
+    const 빼기 = [...모든마디(화면.tree)].find((m) => m.props["aria-label"] === "기업상태표_가상테크.xlsx 빼기")!;
+    (빼기.props.onClick as () => void)();
+    화면.다시그리기();
+    expect(올린서류줄(화면.tree, "기업상태표_가상테크.xlsx")).toBeUndefined();
+    expect(칸값(화면.tree, "employees")).toBe("8");
+    expect(진단하기(화면, 받은)).toMatchObject({ employeeCount: 8, foundedDate: "2019-03-20", taxDelinquent: false });
+  });
+
+  it("서류가 사업자번호를 주면 법인·개인 단추도 맞춘다(손으로 고른 단추는 지킨다)", async () => {
+    서류성공(읽은결과({ fields: { bizno: "123-81-45678" }, sources: { bizno: { files: ["등록증.pdf"], docTypes: ["biz-registration"] } } }));
+    const { 화면 } = 서류화면();
+    await 서류고르기(화면, [가짜파일("등록증.pdf")]);
+    expect(칸값(화면.tree, "bizno")).toBe("123-81-45678");
+    expect(눌린단추들(화면.tree, "corp")).toEqual(["법인"]);
+    expect(칸글자(화면.tree, "bizno")).toContain("사업자등록증");
+
+    const 손으로 = 서류화면();
+    칸단추누르기(손으로.화면, "corp", "개인");
+    서류성공(읽은결과({ fields: { bizno: "123-81-45678" } }));
+    await 서류고르기(손으로.화면, [가짜파일("등록증.pdf")]);
+    expect(눌린단추들(손으로.화면.tree, "corp")).toEqual(["개인"]);
+  });
+
+  it("고객을 새로 불러오면 앞 서류의 출처 칩·고르는 상자·목록이 남지 않는다", async () => {
+    서류성공(기업상태표결과());
+    const { 화면 } = 서류화면();
+    칸적기(화면, "employees", "12");
+    await 서류고르기(화면, [가짜파일("기업상태표_가상테크.xlsx")]);
+    expect(올린서류줄(화면.tree, "기업상태표_가상테크.xlsx")).toBeDefined();
+
+    await 고객불러오기(화면, { companyName: "다른회사" }, "다른회사");
+    expect(올린서류줄(화면.tree, "기업상태표_가상테크.xlsx")).toBeUndefined();
+    expect(상자없음(화면.tree, "employeeCount")).toBe(true);
+    expect(칸글자(화면.tree, "industry")).not.toContain("기업상태표");
+    expect(글자(화면.tree)).not.toContain("칸을 채웠어요");
+  });
+});
+
+describe("ProfileForm — 서류 올리기 실패·제한 안내", () => {
+  it("서버가 실패를 알리면 서버 안내 문구를 그대로 보이고 칸은 건드리지 않는다", async () => {
+    서류응답붙이기({ success: false, error: { code: "READ_FAILED", message: "서류를 읽는 서버가 쉬고 있어요. 조금 뒤에 다시 올려 주세요" } });
+    const { 받은, 화면 } = 서류화면();
+    const tree = await 서류고르기(화면, [가짜파일("기업상태표_가상테크.xlsx")]);
+    expect(글자(tree)).toContain("서류를 읽는 서버가 쉬고 있어요. 조금 뒤에 다시 올려 주세요");
+    const 알림 = [...모든마디(tree)].find((m) => m.props.role === "alert")!;
+    expect(글자(알림)).toContain("서류를 읽는 서버가 쉬고 있어요");
+    expect(올린서류줄(tree, "기업상태표_가상테크.xlsx")).toBeUndefined();
+    expect(글자(tree)).not.toContain("서류를 읽는 중이에요"); // 끝났으니 올리는 중 표시는 사라진다
+    expect(진단하기(화면, 받은)).toEqual({});
+  });
+
+  it("서버 문구가 비어 있거나 응답이 이상하면 쉬운 기본 안내를 보인다", async () => {
+    서류응답붙이기({ success: false, error: { code: "X", message: "" } });
+    const { 화면 } = 서류화면();
+    let tree = await 서류고르기(화면, [가짜파일("a.pdf")]);
+    expect(글자(tree)).toContain("서류를 읽지 못했어요 — 잠시 뒤 다시 올려 주세요");
+
+    서류응답붙이기(null);
+    tree = await 서류고르기(화면, [가짜파일("a.pdf")]);
+    expect(글자(tree)).toContain("서류를 읽지 못했어요 — 잠시 뒤 다시 올려 주세요");
+  });
+
+  it("연결이 끊기면 쉬운 말로 알린다", async () => {
+    서류응답붙이기(new Error("synthetic network failure"));
+    const { 화면 } = 서류화면();
+    const tree = await 서류고르기(화면, [가짜파일("a.pdf")]);
+    expect(글자(tree)).toContain("서류를 올리지 못했어요 — 연결을 확인하고 다시 올려 주세요");
+  });
+
+  it("올리는 동안 「읽는 중」을 보이고 입력을 막는다", async () => {
+    let 끝내기: (v: unknown) => void = () => {};
+    const fn = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          끝내기 = resolve;
+        }),
+    );
+    vi.stubGlobal("fetch", fn);
+    const { 화면 } = 서류화면();
+    (파일입력(화면.tree).props.onChange as (e: unknown) => void)({ target: { files: [가짜파일("a.pdf")], value: "" } });
+    let tree = 화면.다시그리기();
+    expect(글자(tree)).toContain("서류를 읽는 중이에요");
+    expect(파일입력(tree).props.disabled).toBe(true);
+
+    끝내기({ json: async () => ({ success: true, data: 읽은결과() }) });
+    tree = await 흘리기(화면);
+    expect(글자(tree)).not.toContain("서류를 읽는 중이에요");
+    expect(파일입력(tree).props.disabled).toBe(false);
+  });
+
+  it("한 번에 10개를 넘게 고르면 서버에 보내지 않고 쉬운 말로 막는다", async () => {
+    const fn = 서류성공(읽은결과());
+    const { 화면 } = 서류화면();
+    const 열한개 = Array.from({ length: 11 }, (_, i) => 가짜파일(`서류${i}.pdf`));
+    const tree = await 서류고르기(화면, 열한개);
+    expect(fn).not.toHaveBeenCalled();
+    expect(글자(tree)).toContain("한 번에 10개까지 올릴 수 있어요");
+    expect(글자(tree)).toContain("11개");
+    expect([...모든마디(tree)].some((m) => m.props.role === "alert")).toBe(true);
+  });
+
+  it("파일 하나가 20MB 를 넘으면 서버에 보내지 않고 그 파일 이름과 함께 알린다", async () => {
+    const fn = 서류성공(읽은결과());
+    const { 화면 } = 서류화면();
+    const tree = await 서류고르기(화면, [가짜파일("작은.pdf"), 가짜파일("큰파일.pdf", 21 * 1024 * 1024)]);
+    expect(fn).not.toHaveBeenCalled();
+    expect(글자(tree)).toContain("큰파일.pdf");
+    expect(글자(tree)).toContain("20MB");
+  });
+
+  it("제한 안내는 다음에 제대로 올리면 사라진다", async () => {
+    서류성공(읽은결과());
+    const { 화면 } = 서류화면();
+    let tree = await 서류고르기(화면, [가짜파일("큰파일.pdf", 21 * 1024 * 1024)]);
+    expect([...모든마디(tree)].some((m) => m.props.role === "alert")).toBe(true);
+    tree = await 서류고르기(화면, [가짜파일("a.pdf")]);
+    expect([...모든마디(tree)].some((m) => m.props.role === "alert")).toBe(false);
+  });
+
+  it("고른 파일이 없으면 아무 일도 하지 않는다", async () => {
+    const fn = 서류성공(읽은결과());
+    const { 화면 } = 서류화면();
+    await 서류고르기(화면, []);
+    expect(fn).not.toHaveBeenCalled();
   });
 });
