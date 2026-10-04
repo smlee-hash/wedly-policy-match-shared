@@ -593,6 +593,104 @@ function sheetOf(name: string, ws: XLSX.WorkSheet, date1904: boolean): SheetData
   return sheet;
 }
 
+/** `<row r="12" …>` 의 줄 번호 */
+const ROW_NUMBER = /\sr="(\d{1,9})"/;
+/** 줄 속에 값이 든 칸이 있다는 표시 — 숫자·글자 값(`<v>`)이나 바로 적은 글자(`<is>`). 서식만 있는 칸에는 없다. */
+const VALUE_MARKS = ["<v>", "<v ", "<is>", "<is "];
+
+/**
+ * 시트 XML 에서 **값이 있는 칸을 가진 마지막 줄 번호**. 없으면 0.
+ * 읽기 도구에 행 상한(sheetRows)을 주면 상한 뒤 줄은 읽지 않아 범위가 줄어든다 — 그 뒤에 값이 있었는지는
+ * 읽기 전에 원본 XML 에서 따로 알아야 한다. indexOf 로 앞에서 한 번만 훑는다(역추적 정규식·되돌아가기 없음).
+ */
+export function lastValuedRowOf(xml: string): number {
+  let last = 0;
+  let current = 0;
+  let from = 0;
+  for (;;) {
+    const open = xml.indexOf("<row", from);
+    if (open < 0) break;
+    const next = xml[open + 4] ?? "";
+    // 「<rowBreaks」처럼 이름만 비슷한 다른 태그는 건너뛴다.
+    if (next !== " " && next !== ">" && next !== "/" && next !== "\t" && next !== "\n" && next !== "\r") {
+      from = open + 4;
+      continue;
+    }
+    const tagEnd = xml.indexOf(">", open);
+    if (tagEnd < 0) break;
+    const tag = xml.slice(open, tagEnd + 1);
+    const num = ROW_NUMBER.exec(tag);
+    current = num ? Number(num[1]) : current + 1; // 번호가 없는 줄은 앞 줄 다음 번호
+    from = tagEnd + 1;
+    if (tag.endsWith("/>")) continue; // 칸이 없는 줄
+    const close = xml.indexOf("</row>", from);
+    const end = close < 0 ? xml.length : close;
+    const body = xml.slice(from, end);
+    from = end;
+    if (current > last && VALUE_MARKS.some((mark) => body.includes(mark))) last = current;
+  }
+  return last;
+}
+
+/** 속성 값 하나(`name="…"`). 없으면 null. */
+function attrOf(tag: string, name: string): string | null {
+  const m = new RegExp(`\\s${name}="([^"]*)"`).exec(tag);
+  return m ? unescapeXml(m[1]) : null;
+}
+
+/** 태그 이름으로 시작하는 태그들(`<sheet …>`)을 앞에서부터 모은다. */
+function tagsOf(xml: string, tagName: string): string[] {
+  const tags: string[] = [];
+  const open = `<${tagName}`;
+  let from = 0;
+  for (;;) {
+    const at = xml.indexOf(open, from);
+    if (at < 0) break;
+    const end = xml.indexOf(">", at);
+    if (end < 0) break;
+    const next = xml[at + open.length] ?? "";
+    if (next === " " || next === "\t" || next === "\n" || next === "\r") tags.push(xml.slice(at, end + 1));
+    from = end + 1;
+  }
+  return tags;
+}
+
+/**
+ * 시트 이름 → 값이 있는 마지막 줄 번호. 시트 이름과 시트 파일은 통합 문서 목록(`xl/workbook.xml`)과
+ * 연결표(`xl/_rels/workbook.xml.rels`)로 잇는다. 시트 XML 이 풀림 상한(20MB)을 넘어 못 풀면 -1 —
+ * 줄 수를 확인할 수 없을 만큼 큰 시트라 잘린 것으로 본다. zip 이 아닌 옛 엑셀·모양이 다른 파일은 빈 표(기존 방식).
+ */
+function lastValuedRows(buf: Buffer): Map<string, number> {
+  const out = new Map<string, number>();
+  if (!isZipBuffer(buf)) return out;
+  try {
+    const zip = new AdmZip(buf);
+    const bookEntry = zip.getEntry("xl/workbook.xml");
+    const relsEntry = zip.getEntry("xl/_rels/workbook.xml.rels");
+    const book = bookEntry ? readEntryText(bookEntry) : null;
+    const rels = relsEntry ? readEntryText(relsEntry) : null;
+    if (book === null || rels === null) return out;
+    const targets = new Map<string, string>();
+    for (const tag of tagsOf(rels, "Relationship")) {
+      const id = attrOf(tag, "Id");
+      const target = attrOf(tag, "Target");
+      if (id && target) targets.set(id, target.startsWith("/") ? target.slice(1) : `xl/${target}`);
+    }
+    for (const tag of tagsOf(book, "sheet")) {
+      const name = attrOf(tag, "name");
+      const rid = attrOf(tag, "r:id");
+      const path = rid ? targets.get(rid) : undefined;
+      const entry = path ? zip.getEntry(path) : null;
+      if (name === null || !entry) continue;
+      const xml = readEntryText(entry);
+      out.set(name, xml === null ? -1 : lastValuedRowOf(xml));
+    }
+  } catch {
+    // 못 읽으면 기존 방식(읽은 범위)으로만 잘림을 가린다.
+  }
+  return out;
+}
+
 function readSpreadsheet(buf: Buffer): ExtractedDocument {
   // zip 속은 XLSX.read 전에 칸마다 풀림 상한을 실제로 확인한다(압축 폭탄).
   if (isZipBuffer(buf)) {
@@ -604,10 +702,16 @@ function readSpreadsheet(buf: Buffer): ExtractedDocument {
     const wb = XLSX.read(buf, { type: "buffer", cellNF: true, sheetRows: MAX_SHEET_ROWS + 1 });
     const flag: unknown = wb.Workbook?.WBProps?.date1904;
     const date1904 = flag === true || flag === 1 || flag === "1" || flag === "true";
+    // 행 상한으로 읽으면 상한 뒤 줄은 범위에서 사라진다 — 값이 있는 마지막 줄을 원본에서 따로 보아 잘림을 표시한다.
+    const lastRows = lastValuedRows(buf);
     const sheets: SheetData[] = [];
     for (const name of wb.SheetNames) {
       const ws = wb.Sheets[name];
-      if (ws) sheets.push(sheetOf(name, ws, date1904));
+      if (!ws) continue;
+      const sheet = sheetOf(name, ws, date1904);
+      const lastRow = lastRows.get(name);
+      if (lastRow !== undefined && (lastRow < 0 || lastRow > MAX_SHEET_ROWS)) sheet.truncated = true;
+      sheets.push(sheet);
     }
     return { kind: "spreadsheet", sheets };
   } catch {

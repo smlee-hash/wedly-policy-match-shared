@@ -186,6 +186,27 @@ export function bodyLines(body: DocumentBody): string[] {
   return lines;
 }
 
+/**
+ * `bodyLines` 와 같되 **빈 칸을 지우지 않고** 탭으로 이어 열 위치를 지킨다 — 재무 파서가 머리글의
+ * 「금액」「당기」 열을 줄의 같은 자리 칸과 맞춰 읽을 때 쓴다(빈 칸을 지우면 뒤 칸이 앞으로 당겨져 코드·비고 값이 금액이 된다).
+ * 칸이 전부 빈 엑셀 줄만 건너뛴다. 다른 파서는 `bodyLines` 를 그대로 쓴다.
+ */
+export function tableLines(body: DocumentBody): string[] {
+  const lines: string[] = [];
+  if (body.text) {
+    for (const line of body.text.normalize("NFC").split(/\r\n|\r|\n/)) {
+      lines.push(body.csv ? splitCsvLine(line).map((c) => c.trim()).join("\t") : line);
+    }
+  }
+  for (const sheet of body.sheets ?? []) {
+    for (const row of sheet.text.normalize("NFC").split(/\r\n|\r|\n/).slice(1)) {
+      const cells = splitCsvLine(row).map((c) => c.trim());
+      if (cells.some(Boolean)) lines.push(cells.join("\t"));
+    }
+  }
+  return lines;
+}
+
 /* ───────── 주소 ───────── */
 
 /**

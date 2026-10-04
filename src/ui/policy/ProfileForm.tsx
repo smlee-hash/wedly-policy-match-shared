@@ -450,9 +450,18 @@ export default function ProfileForm({
   const [customerKey, setCustomerKey] = useState(""); // 고객을 불러온 상태의 검색어 — 서류를 그 고객에 붙이는 열쇠
   const loadedBiznoRef = useRef(""); // 불러온 고객의 사업자번호(숫자만) — 이 번호에서 벗어나면 다른 회사라 열쇠를 비운다
   const applyDocumentsRef = useRef<(r: DocumentPrefillResult) => void>(() => {});
+  /**
+   * 사업자번호 칸에 값을 넣는 **단 하나의 길** — 직접 입력·서류 적용·고르는 상자가 모두 여기로 온다.
+   * 불러온 고객의 번호와 달라지면 다른 회사이므로 서류를 그 고객 자료에 붙이는 열쇠를 비운다.
+   */
+  const setBiznoValue = (masked: string) => {
+    setBizno(masked);
+    if (masked.replace(/\D/g, "") !== loadedBiznoRef.current) setCustomerKey("");
+  };
   const doc = useDocumentUpload({
     endpoint: documentPrefillEndpoint,
-    customerKey,
+    // 칸 값이 불러온 번호에서 벗어나 있으면 열쇠를 싣지 않는다 — 어느 길로 바뀌었든 올리는 순간에도 한 번 더 막는다.
+    customerKey: bizno.replace(/\D/g, "") === loadedBiznoRef.current ? customerKey : "",
     onResult: (r) => applyDocumentsRef.current(r), // 올리는 사이 칸이 바뀌어도 가장 최근 칸 값으로 합친다
   });
 
@@ -589,7 +598,7 @@ export default function ProfileForm({
     switch (key) {
       case "bizno": {
         const masked = maskBizno(String(value));
-        setBizno(masked);
+        setBiznoValue(masked);
         // 번호가 법인·개인을 가른다 — 손으로 고른 법인·개인이 있으면 그것을 지킨다.
         const byBizno = isCorporationByBizno(masked);
         if (byBizno !== null && !touchedRef.current.has("isCorporation")) setIsCorp(byBizno ? "yes" : "no");
@@ -689,7 +698,7 @@ export default function ProfileForm({
     setOpen(true);
     clearFields(); // 앞 고객 값이 남아 섞이지 않게 먼저 비운다
     setCustomerKey(key); // 이제부터 올리는 서류는 이 고객 자료에 붙는다(ERP·컨설턴트 앱)
-    loadedBiznoRef.current = (d.bizno ?? "").replace(/\D/g, "");
+    loadedBiznoRef.current = d.bizno ? maskBizno(d.bizno).replace(/\D/g, "") : ""; // 칸에 들어가는 모양(최대 10자리)과 같게 맞춘다
     if (d.companyName) setCompanyName(d.companyName);
     // 법인 여부 — 사업자번호가 가르면 그것이 이긴다(엔진의 corporationOf 와 같은 순서).
     let corp: Tri = "";
@@ -906,10 +915,8 @@ export default function ProfileForm({
                 value={bizno}
                 onChange={(e) => {
                   const masked = maskBizno(e.target.value);
-                  setBizno(masked);
+                  setBiznoValue(masked); // 불러온 번호에서 벗어나면 열쇠도 비운다(서류가 번호를 바꿀 때와 같은 길)
                   hand("bizno");
-                  // 불러온 고객의 번호에서 벗어나면 다른 회사다 — 상호를 고칠 때처럼 서류를 그 고객 자료에 붙이지 않는다.
-                  if (masked.replace(/\D/g, "") !== loadedBiznoRef.current) setCustomerKey("");
                   // 10자리가 되면 번호 가운데 두 자리로 법인·개인을 맞춘다(못 가르면 모름).
                   if (masked.replace(/\D/g, "").length === 10) {
                     const byBizno = isCorporationByBizno(masked);

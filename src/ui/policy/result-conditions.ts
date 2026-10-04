@@ -1,7 +1,14 @@
 // 결과 위 요약 탭·검색·정렬이 목록을 거르는 규칙 — 화면 밖에서도 잴 수 있게 순수 함수로 뗀다.
 // 건수는 지도 자료(서버가 센 값)에서 그대로 읽는다 — 화면이 다시 세어 지어내지 않는다.
 import { FUNDING_GROUP_META, type FundingGroup } from "../../funding/funding-group";
-import { isOpen, isSoon, type FundingItem, type FundingSort } from "../../funding/funding-map";
+import {
+  FUNDING_QUERY_MAX,
+  isSoon,
+  matchesFundingQuery,
+  matchesFundingTab,
+  type FundingItem,
+  type FundingSort,
+} from "../../funding/funding-map";
 import type { FundingMapPayload } from "../FundingMap";
 import { daysLeft } from "./ResultList";
 import type { Diagnosis, DiagnoseItem } from "./PolicyMatchScreen";
@@ -52,16 +59,20 @@ export function summaryTabs(data: FundingMapPayload | null): SummaryTabInfo[] {
   ];
 }
 
-/** 검색어 — 띄어 쓴 낱말이 모두 들어 있어야 한다. 비어 있으면 모두 통과. */
-export function matchesQuery(
-  it: { title: string; agency?: string; targetText?: string; category?: string },
-  query: string,
-): boolean {
-  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-  if (terms.length === 0) return true;
-  const hay = [it.title, it.agency, it.targetText, it.category].filter(Boolean).join(" ").toLowerCase();
-  return terms.every((t) => hay.includes(t));
+/**
+ * 검색어 — 띄어 쓴 낱말이 모두 들어 있어야 한다. 비어 있으면 모두 통과.
+ * 규칙은 서버(`groupBlocks`)와 한 벌(`matchesFundingQuery`)이라 두 곳이 갈라지지 않는다.
+ */
+export const matchesQuery = matchesFundingQuery;
+
+/** 지도 요청에 실을 검색 조건 — 걸린 것만 담는다(검색어는 앞뒤 공백을 걷고 100자까지). */
+export function fundingSearchOf(c: ResultConditions): { query?: string; tab?: SummaryTab } {
+  const query = Array.from(c.query.trim()).slice(0, FUNDING_QUERY_MAX).join("");
+  return { ...(query ? { query } : {}), ...(c.tab !== "all" ? { tab: c.tab } : {}) };
 }
+
+/** 검색어를 입력이 멈춘 뒤 이만큼(밀리초) 기다렸다가 서버에 다시 묻는다. */
+export const FUNDING_QUERY_DELAY_MS = 300;
 
 function isGroupTab(tab: SummaryTab): tab is FundingGroup {
   return tab !== "all" && tab !== "now" && tab !== "soon";
@@ -78,6 +89,14 @@ export const WIDE_TOP_N_MAX = 500;
 /** 서버가 센 정상 건수 — 갈래 카드 건수의 합 + 종류 미확인(요약 탭 「전체」와 같은 셈). */
 export function serverTotalOf(data: FundingMapPayload): number {
   return data.groups.reduce((n, b) => n + b.total, 0) + data.unclassified;
+}
+
+/**
+ * 검색어·탭을 서버가 걸어 보낸 자료의 건수 — 갈래 건수의 합 + **실려 온** 종류 미확인 줄.
+ * 자료 속 `unclassified` 는 거르기 전 전체 수라(검색에 안 맞는 줄까지 센다) 그대로 더하면 안내가 없는 잘림을 말한다.
+ */
+export function filteredTotalOf(data: FundingMapPayload): number {
+  return data.groups.reduce((n, b) => n + b.total + b.items.filter((it) => it.unclassified).length, 0);
 }
 
 /** 실려 온 줄 수 — 서버가 갈래마다 상한까지만 실어 보내므로 서버 전체 건수보다 적을 수 있다. */
@@ -98,7 +117,8 @@ export interface SearchCut {
  */
 export function searchCutOf(data: FundingMapPayload | null, c: ResultConditions): SearchCut | null {
   if (!data || noConditions(c)) return null;
-  const total = serverTotalOf(data);
+  // 서버가 검색어·탭을 걸어 보내므로 서버 건수도 거른 뒤의 수다 — 거르기 전 전체(`unclassified`)를 더하지 않는다.
+  const total = filteredTotalOf(data);
   const searched = receivedCountOf(data);
   return total > searched ? { searched, total } : null;
 }
@@ -134,8 +154,7 @@ export function filterFundingData(data: FundingMapPayload, c: ResultConditions):
   if (isGroupTab(c.tab) && c.query.trim() === "") {
     return { ...data, groups: data.groups.filter((b) => b.group === c.tab) };
   }
-  const keep = (it: FundingItem) =>
-    (c.tab === "now" ? isOpen(it) : c.tab === "soon" ? isSoon(it) : true) && matchesQuery(it, c.query);
+  const keep = (it: FundingItem) => matchesFundingTab(it, c.tab) && matchesQuery(it, c.query);
   const groups = data.groups
     .filter((b) => !isGroupTab(c.tab) || b.group === c.tab)
     .map((b) => {

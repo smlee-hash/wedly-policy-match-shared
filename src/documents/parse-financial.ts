@@ -5,7 +5,7 @@
 // ★귀속 연도는 사업연도·과세기간의 **끝 해**다. 못 읽으면 비워 둔다(지어내지 않는다).
 // ★상호·사업자번호·대표자는 읽지 않는다. 읽은 칸은 lastYearRevenueKrw 하나뿐이다.
 
-import { bodyLines, splitTableRow, type DocumentBody, type ParsedDocument } from "./parse-common";
+import { splitTableRow, tableLines, type DocumentBody, type ParsedDocument } from "./parse-common";
 
 export type FinancialDocType = "financial-statement" | "vat-return";
 
@@ -123,10 +123,10 @@ function pickAmount(lines: string[], at: number, re: RegExp, m: RegExpExecArray)
   const cells = cellsOf(line);
   const aligned = header !== null && cells.length === header.cells.length;
   if (header !== null && aligned && header.amountAt >= 0) {
+    // 머리글에서 금액·당기 열을 찾았으면 그 열 칸만 읽는다. 칸이 비었거나 숫자가 아니면 옆의
+    // 코드·전기·비고 값으로 대신하지 않는다 — 틀린 값의 매출보다 빈 칸이 낫다.
     const cell = cells[header.amountAt].replace(/[,\s]/g, "");
-    if (/^\d+(?:\.\d+)?$/.test(cell)) return cell;
-    // 당기 칸이 비어 있으면 옆의 전기 값을 대신 쓰지 않는다 — 틀린 해의 매출보다 빈 칸이 낫다.
-    if (cell === "") return null;
+    return /^\d+(?:\.\d+)?$/.test(cell) ? cell : null;
   }
   let scan = line;
   let hit: RegExpExecArray | null = m;
@@ -141,7 +141,8 @@ function pickAmount(lines: string[], at: number, re: RegExp, m: RegExpExecArray)
 
 /** 재무제표·부가세 신고서·과세표준증명에서 매출과 귀속 연도를 뽑는다. 못 읽으면 빈 결과 + 안내. */
 export function parseFinancial(body: DocumentBody, docType: FinancialDocType): ParsedDocument {
-  const lines = bodyLines(body);
+  // 빈 칸을 지키는 표 줄 — 머리글 열과 줄의 칸 자리가 맞아야 금액 열만 읽을 수 있다.
+  const lines = tableLines(body);
   const text = lines.join("\n");
   const re = REVENUE_RE[docType];
 

@@ -5,6 +5,7 @@
 import AdmZip from "adm-zip";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { describe, expect, it } from "vitest";
+import * as XLSX from "xlsx";
 import { cleanCompanyScale, cleanIndustryText } from "./clean-text";
 import { exceedsPdfPageLimit, extractDocumentText } from "./extract-text";
 import { readDocuments } from "./index";
@@ -112,6 +113,66 @@ describe("AF1-1 종목 뒤에 이어 붙은 이름·주민번호·주소", () =>
   });
 });
 
+/* ───────── BF3-1. 업종 칸 끝에 붙은 주소 꼬리·이름 꼬리 ───────── */
+
+describe("BF3-1 업종 칸의 주소 꼬리·이름 꼬리", () => {
+  it("리뷰 표본: 종목 뒤에 번호 없는 지번 주소가 붙어도 시도·시군구·동·번지가 남지 않는다", () => {
+    const out = cleanIndustryText("서비스업 / 소프트웨어 개발 서울 강남구 역삼동 123");
+    expect(out).toBe("서비스업 / 소프트웨어 개발");
+    const r = parseBizRegistration("사업자등록증\n업태 서비스업 종목 소프트웨어 개발 서울 강남구 역삼동 123");
+    const json = JSON.stringify(r);
+    for (const piece of ["역삼동", "123", "강남구", "서울"]) expect(json).not.toContain(piece);
+  });
+
+  it("시도 이름이나 「…동·로·길 + 숫자」 모양이 나오는 자리에서 그 앞까지만 남긴다", () => {
+    expect(cleanIndustryText("소프트웨어 개발 경기도 성남시")).toBe("소프트웨어 개발");
+    expect(cleanIndustryText("전자부품 제조 충청남도 천안시")).toBe("전자부품 제조");
+    expect(cleanIndustryText("전자부품 제조 서울특별시")).toBe("전자부품 제조");
+    expect(cleanIndustryText("전자부품 제조 역삼동 12")).toBe("전자부품 제조");
+    expect(cleanIndustryText("전자부품 제조 가상읍 7-1")).toBe("전자부품 제조");
+    expect(cleanIndustryText("전자부품 제조 가상로 12")).toBeNull(); // 도로명 주소 모양은 기존대로 칸을 버린다
+    expect(cleanIndustryText("서울 전자부품 제조")).toBeNull(); // 맨 앞에서 잘려 남는 것이 없다
+  });
+
+  it("업종 낱말은 주소로 오해해 자르지 않는다", () => {
+    expect(cleanIndustryText("경기장 운영업")).toBe("경기장 운영업");
+    expect(cleanIndustryText("자동 3D 프린터 제조")).toBe("자동 3D 프린터 제조");
+  });
+
+  it("리뷰 표본: 가짜 AI 응답 끝에 붙은 이름은 버린다", async () => {
+    const result = await readDocuments([{ name: "사진.png", bytes: HEAD.png }], {
+      aiReader: async () => ({ industry: "소프트웨어 개발 김가상", companyScale: "중소기업" }) as never,
+    });
+    expect(result.fields.industry).toBe("소프트웨어 개발");
+    expect(JSON.stringify(result)).not.toContain("김가상");
+  });
+
+  it("마지막 낱말이 성씨로 시작하는 2~4자 이름 모양이고 업종 꼬리말이 아니면 버린다", () => {
+    expect(cleanIndustryText("소프트웨어 개발 김가상")).toBe("소프트웨어 개발");
+    expect(cleanIndustryText("제조업 박가상")).toBe("제조업");
+    expect(cleanIndustryText("서비스업 / 도소매업 남궁가상")).toBe("서비스업 / 도소매업"); // 4자 이름
+    expect(cleanIndustryText("김가상")).toBeNull();
+  });
+
+  it("잘못 지우지 않기: 흔한 업종은 그대로 둔다", () => {
+    for (const ok of [
+      "정보통신업",
+      "배추김치 제조",
+      "조경 공사",
+      "한식 음식점",
+      "이벤트 대행",
+      "장비 임대",
+      "소프트웨어 공급",
+      "전자상거래 도소매",
+      "제조업",
+      "도매 및 소매업",
+      "인쇄",
+    ]) {
+      expect(cleanIndustryText(ok)).toBe(ok);
+    }
+  });
+});
+
 /* ───────── 2. 엑셀 범위 ───────── */
 
 /** 작은 엑셀의 시트 범위(`dimension`)만 터무니없이 고쳐 쓴다 — 칸을 실제로 만들지 않아 표본 만들기는 빠르다. */
@@ -150,6 +211,64 @@ describe("AF1-2 시트 범위만 큰 엑셀", () => {
     const r = await extractDocumentText("정상.xlsx", xlsxTableOf("정상", [["가", "나"], ["다", "라"]]));
     if (r.kind !== "spreadsheet") throw new Error(`엑셀로 읽혀야 한다: ${r.kind}`);
     expect(r.sheets[0].truncated).toBeUndefined();
+  });
+});
+
+/* ───────── BF3-4. 읽기 상한 뒤에 값이 있는 줄 ───────── */
+
+/** 머리글 + 2행, 그리고 3,000행에 직원이 한 명씩 있는 명부 — 사이 줄은 비어 있다(실제로 만들지 않아 표본 만들기는 빠르다). */
+function rosterWithFarRow(farRow: number): Buffer {
+  const ws: XLSX.WorkSheet = {
+    A1: { t: "s", v: "근로자 이름" },
+    B1: { t: "s", v: "근로자 주민번호" },
+    C1: { t: "s", v: "고용상태" },
+    D1: { t: "s", v: "취득일" },
+    A2: { t: "s", v: "가상직원일" },
+    B2: { t: "s", v: "900101-1111111" },
+    C2: { t: "s", v: "고용" },
+    D2: { t: "s", v: "2022-01-03" },
+    [`A${farRow}`]: { t: "s", v: "가상직원이" },
+    [`B${farRow}`]: { t: "s", v: "910202-2222222" },
+    [`C${farRow}`]: { t: "s", v: "고용" },
+    [`D${farRow}`]: { t: "s", v: "2023-02-01" },
+    "!ref": `A1:D${farRow}`,
+  };
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "고용현황");
+  return Buffer.from(XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer);
+}
+
+describe("BF3-4 2,000줄 뒤에만 값이 있는 엑셀", () => {
+  it("3,000행에 직원이 있으면 직원 수를 채우지 않고 직접 적도록 안내한다(1초 안)", async () => {
+    const started = Date.now();
+    const result = await readDocuments([{ name: "고용보험 가입자명부.xlsx", bytes: rosterWithFarRow(3000) }]);
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(result.fields.employeeCount).toBeUndefined();
+    expect(result.files[0].message).toContain("명부가 너무 길어 직원 수를 다 세지 못했어요 — 직원 수는 직접 적어 주세요");
+  });
+
+  it("값이 있는 마지막 줄이 상한 안(2,000행)이면 잘림 표시가 없다", async () => {
+    const r = await extractDocumentText("명부.xlsx", rosterWithFarRow(2000));
+    if (r.kind !== "spreadsheet") throw new Error(`엑셀로 읽혀야 한다: ${r.kind}`);
+    expect(r.sheets[0].truncated).toBeUndefined();
+  });
+
+  it("3,000행이 값 없는 줄(서식만)이면 잘림 표시가 없다", async () => {
+    const zip = new AdmZip(xlsxTableOf("서식줄", [["가", "나"], ["다", "라"]]));
+    const name = "xl/worksheets/sheet1.xml";
+    const patched = zip.readAsText(name).replace("</sheetData>", `<row r="3000"><c r="A3000"/></row></sheetData>`);
+    if (!patched.includes(`<row r="3000">`)) throw new Error("표본의 시트를 고치지 못했다");
+    zip.updateFile(name, Buffer.from(patched, "utf-8"));
+    const r = await extractDocumentText("서식.xlsx", zip.toBuffer());
+    if (r.kind !== "spreadsheet") throw new Error(`엑셀로 읽혀야 한다: ${r.kind}`);
+    expect(r.sheets[0].truncated).toBeUndefined();
+  });
+
+  it("값이 있는 3,000행 한 칸이 있으면 잘림 표시가 붙는다", async () => {
+    const r = await extractDocumentText("명부.xlsx", rosterWithFarRow(3000));
+    if (r.kind !== "spreadsheet") throw new Error(`엑셀로 읽혀야 한다: ${r.kind}`);
+    expect(r.sheets[0].truncated).toBe(true);
+    expect(r.sheets[0].cells.A2).toBe("가상직원일");
   });
 });
 
@@ -384,5 +503,50 @@ describe("AF1-10 계정 코드 열이 금액으로 읽히지 않는다", () => {
     expect(read("(단위: 천원)", "과목      당기       전기", "Ⅰ.매출액   1,000     900").fields).toEqual({
       lastYearRevenueKrw: 1_000_000,
     });
+  });
+});
+
+/* ───────── BF3-3. 빈 금액 열을 건너뛰고 옆 칸을 읽지 않는다 ───────── */
+
+describe("BF3-3 표의 빈 칸이 열 위치를 밀지 않는다", () => {
+  const readCsv = (...lines: string[]) =>
+    parseFinancial({ text: ["표준손익계산서", ...lines].join("\n"), csv: true }, "financial-statement");
+
+  it("쉼표 표: 금액 열이 비면 코드·비고 값으로 매출을 채우지 않는다", () => {
+    const r = readCsv("계정과목,코드,금액,비고", "매출액,401,,123456789");
+    expect(r.fields).toEqual({});
+    expect(r.note).toBeTruthy();
+  });
+
+  it("쉼표 표: 당기 열이 비면 전기 값으로 매출을 채우지 않는다", () => {
+    expect(readCsv("과목,당기,전기", "매출액,,987654").fields).toEqual({});
+  });
+
+  it("쉼표 표: 금액 열에 값이 있으면 그 열을 읽는다(빈 비고 열이 뒤에 있어도)", () => {
+    expect(readCsv("계정과목,코드,금액,비고", "매출액,401,5000000,").fields).toEqual({ lastYearRevenueKrw: 5_000_000 });
+    expect(readCsv("과목,당기,전기", '매출액,"1,000",900').fields).toEqual({ lastYearRevenueKrw: 1_000 });
+  });
+
+  it("엑셀: 당기 칸이 빈 줄은 매출을 채우지 않는다", async () => {
+    const bytes = xlsxTableOf("손익계산서", [["표준손익계산서"], ["과목", "당기", "전기"], ["매출액", "", 987_654]]);
+    const extracted = await extractDocumentText("손익.xlsx", bytes);
+    if (extracted.kind !== "spreadsheet") throw new Error("엑셀로 읽혀야 한다");
+    expect(parseFinancial({ sheets: extracted.sheets }, "financial-statement").fields).toEqual({});
+  });
+
+  it("엑셀: 코드 열 옆의 빈 금액 칸도 채우지 않고, 값이 있으면 읽는다", async () => {
+    const make = async (amount: string | number) => {
+      const bytes = xlsxTableOf("손익계산서", [["계정과목", "코드", "금액", "비고"], ["매출액", 401, amount, 123_456_789]]);
+      const extracted = await extractDocumentText("손익.xlsx", bytes);
+      if (extracted.kind !== "spreadsheet") throw new Error("엑셀로 읽혀야 한다");
+      return parseFinancial({ sheets: extracted.sheets }, "financial-statement").fields;
+    };
+    expect(await make("")).toEqual({});
+    expect(await make(7_000_000)).toEqual({ lastYearRevenueKrw: 7_000_000 });
+  });
+
+  it("탭 표 글: 빈 칸이 있어도 같은 규칙이다", () => {
+    const r = parseFinancial({ text: "표준손익계산서\n계정과목\t코드\t금액\t비고\n매출액\t401\t\t123456789" }, "financial-statement");
+    expect(r.fields).toEqual({});
   });
 });

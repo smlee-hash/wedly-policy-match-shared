@@ -23,7 +23,8 @@ import ResultGroupList, { SearchCutNotice } from "./ResultGroupList";
 import ResultDrawer from "./ResultDrawer";
 import ResultSummaryBar from "./ResultSummaryBar";
 import {
-  WIDE_TOP_N_MAX, filterDiagnosis, filterFundingData, hasConditions, reviewCountOf, searchCutNoticeOf, widerTopN,
+  FUNDING_QUERY_DELAY_MS, WIDE_TOP_N_MAX, filterDiagnosis, filterFundingData, fundingSearchOf, reviewCountOf,
+  searchCutOf,
   type SummaryTab,
 } from "./result-conditions";
 import DetailPanel from "./DetailPanel";
@@ -111,8 +112,8 @@ const NARROW_MAX_PX = 1024; // lg 미만 = 세로로 쌓인 화면 — 고르면
 
 /**
  * 갈래 한 칸에 처음 받아 올 건수 — 통로가 1~80 으로 죈다(`funding-map` GROUP_TOP_N).
- * 검색어·탭이 걸렸는데 받은 자료가 잘려 있으면 이 값보다 크게 한 번 더 요청한다(`widerTopN`) —
- * 서버 상한은 그대로라 서버가 그만큼 못 주면 목록 위 안내(`SearchCutNotice`)가 잘렸다고 알린다.
+ * 검색어·탭은 서버가 이 건수로 자르기 **전에** 거른다(요청의 `query`·`tab`) — 그래서 80건 밖의 공고도 찾아진다.
+ * 거른 결과가 그래도 상한을 넘으면 목록 위 안내(`SearchCutNotice`)가 잘렸다고 알린다.
  */
 export const FUNDING_TOP_N = 80;
 
@@ -179,13 +180,20 @@ export interface FundingRequest {
   profile: BusinessProfile;
   filters: FundingFilters;
   sort: FundingSort;
-  /** 갈래 한 칸에 받을 건수. 없으면 `FUNDING_TOP_N`. 검색어·탭으로 거를 때 넓게 다시 받는 데 쓴다 */
+  /** 갈래 한 칸에 받을 건수. 없으면 `FUNDING_TOP_N`(서버 상한은 80). */
   topN?: number;
+  /**
+   * 검색어(100자까지) — 서버가 갈래마다 앞쪽 N건으로 자르기 **전에** 이 글로 거른다. 비어 있으면 싣지 않는다.
+   * 81번째 공고도 이 글로는 찾아진다.
+   */
+  query?: string;
+  /** 요약 탭 — 「전체」가 아닐 때만 싣는다. 서버도 같은 규칙(`matchesFundingTab`)으로 거른다. */
+  tab?: SummaryTab;
 }
 
 export type FundingOutcome = { ok: true; data: FundingMapPayload } | { ok: false; message: string };
 
-/** 통로 계약: `POST {endpoints.fundingMap} { profile, filters, sort, topN }`. */
+/** 통로 계약: `POST {endpoints.fundingMap} { profile, filters, sort, topN, query?, tab? }`. */
 export async function postFundingMap(req: FundingRequest, url: string): Promise<FundingOutcome> {
   try {
     const r = await fetch(url, {
@@ -197,6 +205,8 @@ export async function postFundingMap(req: FundingRequest, url: string): Promise<
         filters: req.filters,
         sort: req.sort,
         topN: Math.min(Math.max(Math.floor(req.topN ?? FUNDING_TOP_N) || FUNDING_TOP_N, 1), WIDE_TOP_N_MAX),
+        // 선택 칸 — 걸린 것만 싣는다(옛 통로는 모르는 칸을 무시한다).
+        ...fundingSearchOf({ tab: req.tab ?? "all", query: req.query ?? "" }),
       }),
     });
     // 502 처럼 몸통이 웹문서면 여기서 터진다 — 아래 catch 가 사람 말 안내로 바꾼다.
@@ -393,11 +403,10 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
   const [fundingLoading, setFundingLoading] = useState(false);
   const [fundingError, setFundingError] = useState("");
   const [fundingSort, setFundingSort] = useState<FundingSort>("rec");
-  // 갈래 한 칸에 받을 건수 — 검색어·탭을 걸었는데 받은 자료가 잘려 있으면 넓힌다(아래 효과).
-  const [fundingTopN, setFundingTopN] = useState(FUNDING_TOP_N);
-  // 지금 들고 있는 자료를 받을 때 요청한 건수 — 넓게 받는 중인지(= 아직 잘렸다고 알리면 안 되는지) 가린다.
-  const [dataTopN, setDataTopN] = useState(FUNDING_TOP_N);
-  const requestedTopN = useRef(FUNDING_TOP_N);
+  // 검색어·탭을 **걸지 않고** 받은 마지막 자료 — 요약 탭의 건수·「확인 필요 M건」은 이 자료로 센다.
+  // 서버가 검색어·탭으로 거른 자료는 건수도 거른 뒤의 수라 그대로 쓰면 다른 탭 건수가 0 으로 줄어든다.
+  const [countData, setCountData] = useState<FundingMapPayload | null>(null);
+  const requestedSearched = useRef(false); // 지금 들고 있는 자료를 받은 요청에 검색어·탭이 실렸나
   // 거르개·펼침은 짝이라 한 자리에서 쥔다 — 날 것 설정 함수는 이 범위에 없다(위 훅 주석 참고).
   const {
     filters: fundingFilters,
@@ -413,15 +422,15 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
     createFundingLoader(
       {
         setLoading: setFundingLoading,
-        // 답이 온 요청은 마지막에 시작한 요청뿐이라, 마지막에 요청한 건수가 이 자료의 건수다.
+        // 답이 온 요청은 마지막에 시작한 요청뿐이라, 마지막에 시작한 요청이 이 자료를 받은 요청이다.
         setData: (d) => {
           setFundingData(d);
-          setDataTopN(requestedTopN.current);
+          if (!requestedSearched.current) setCountData(d);
         },
         setError: setFundingError,
       },
       (req) => {
-        requestedTopN.current = req.topN ?? FUNDING_TOP_N;
+        requestedSearched.current = Object.keys(fundingSearchOf({ tab: req.tab ?? "all", query: req.query ?? "" })).length > 0;
         return postFundingMap(req, endpoints.fundingMap);
       },
     ),
@@ -431,6 +440,14 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
   // 정렬은 지도 통로의 줄 세우기(fundingSort)와 한 값이다 — 두 곳에서 따로 쥐면 어긋난다.
   const [resultTab, setResultTab] = useState<SummaryTab>("all");
   const [resultQuery, setResultQuery] = useState("");
+  // 서버에 다시 묻는 검색어 — 입력이 멈춘 뒤 300ms 에 따라간다(글자마다 요청하지 않는다). 탭은 바로 따라간다.
+  const [askedQuery, setAskedQuery] = useState("");
+  useEffect(() => {
+    if (resultQuery === askedQuery) return;
+    const timer = setTimeout(() => setAskedQuery(resultQuery), FUNDING_QUERY_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [resultQuery, askedQuery]);
+  const askedSearch = useMemo(() => fundingSearchOf({ tab: resultTab, query: askedQuery }), [resultTab, askedQuery]);
   // 왼쪽 폼이 알려 주는 칸 현황 → 「모름 N칸 → 확인 필요 M건」 띠. 「채우기」는 번호를 올려 폼에 알린다.
   const [formStatus, setFormStatus] = useState<ProfileFormStatus | null>(null);
   const [fillNonce, setFillNonce] = useState(0);
@@ -460,11 +477,16 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
 
   useEffect(() => { void load(page, q, status); }, [load, page, q, status, reloadNonce]);
 
-  // 진단이 끝났거나(회차가 오르거나) 칩·정렬이 바뀌면 지도를 서버에서 다시 받는다.
+  // 진단이 끝났거나(회차가 오르거나) 칩·정렬·검색어·탭이 바뀌면 지도를 서버에서 다시 받는다.
+  // 검색어·탭도 서버에 실어 보낸다 — 서버가 앞쪽 N건으로 자르기 전에 거르므로 N건 밖의 공고도 찾아진다.
   useEffect(() => {
     if (profileNonce === 0) return; // 아직 진단 전 — 부를 것이 없다
-    void loadFunding({ profile, filters: fundingFilters, sort: fundingSort, topN: fundingTopN });
-  }, [loadFunding, profileNonce, profile, fundingFilters, fundingSort, fundingTopN]);
+    void loadFunding({ profile, filters: fundingFilters, sort: fundingSort, ...askedSearch });
+  }, [loadFunding, profileNonce, profile, fundingFilters, fundingSort, askedSearch]);
+  // 새 진단이면 앞 진단에서 센 요약 탭 건수는 버린다(새 자료가 오기 전까지는 받은 자료로 센다).
+  useEffect(() => {
+    setCountData(null);
+  }, [profileNonce]);
 
   const submitSearch = useCallback(() => {
     setPage(1);
@@ -575,8 +597,8 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
   /** 지도 오류 상자의 「다시 시도」 — 같은 조건으로 다시 부른다. */
   const retryFunding = useCallback(() => {
     if (profileNonce === 0) return;
-    void loadFunding({ profile, filters: fundingFilters, sort: fundingSort, topN: fundingTopN });
-  }, [loadFunding, profileNonce, profile, fundingFilters, fundingSort, fundingTopN]);
+    void loadFunding({ profile, filters: fundingFilters, sort: fundingSort, ...askedSearch });
+  }, [loadFunding, profileNonce, profile, fundingFilters, fundingSort, askedSearch]);
 
   /**
    * 지도 공고 카드 바닥의 판정 피드백 — **조각을 안 받은 앱(ERP·일루아)에서는 `undefined`** 라
@@ -618,7 +640,9 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
     () => new Map((fundingData?.groups ?? []).flatMap((b) => b.items).map((it) => [it.refId, it] as const)),
     [fundingData],
   );
-  const conditions = useMemo(() => ({ tab: resultTab, query: resultQuery }), [resultTab, resultQuery]);
+  // 거르는 조건은 서버에 물은 검색어(askedQuery)를 쓴다 — 받은 자료와 조건이 한 짝이라야
+  // 입력 중에 「앞의 N건 안에서…」 안내가 잠깐 깜빡이지 않는다.
+  const conditions = useMemo(() => ({ tab: resultTab, query: askedQuery }), [resultTab, askedQuery]);
   const shownFunding = useMemo(
     () => (fundingData ? filterFundingData(fundingData, conditions) : null),
     [fundingData, conditions],
@@ -628,16 +652,9 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
     [diagnosis, conditions, fundingFilters.openOnly, fundingSort, fundingByRef],
   );
 
-  // 서버는 갈래마다 앞쪽 N건만 실어 보낸다. 검색어·탭을 걸었는데 받은 자료가 서버 전체보다 적으면
-  // 받은 앞쪽에서만 찾게 되므로, 서버 전체 건수(상한 500)만큼 한 번 더 넓게 받는다.
-  // 조건을 풀면 처음 건수로 되돌린다(넓게 받은 채로 두면 「전체」 화면이 무거워진다).
-  useEffect(() => {
-    const wider = widerTopN(fundingData, conditions, dataTopN);
-    if (wider !== null) setFundingTopN(wider);
-    else if (!hasConditions(conditions) && fundingTopN !== FUNDING_TOP_N) setFundingTopN(FUNDING_TOP_N);
-  }, [fundingData, conditions, dataTopN, fundingTopN]);
-  // 넓게 받고도 잘려 있을 때만 알린다(받는 동안·받을 예정이면 알리지 않는다).
-  const searchCut = fundingLoading ? null : searchCutNoticeOf(fundingData, conditions, dataTopN);
+  // 검색어·탭은 서버가 앞쪽 N건으로 자르기 전에 걸러 주므로(위 요청) 화면이 넓게 다시 받을 일은 없다.
+  // 거른 결과 자체가 한 갈래 상한(80건)을 넘을 때만 — 서버가 센 거른 뒤 건수가 실려 온 줄보다 많을 때만 알린다.
+  const searchCut = fundingLoading ? null : searchCutOf(fundingData, conditions);
 
   return (
     // 여백 계단(DESIGN.md §5): 구역 사이 24(space-y-6), 카드 사이 16(gap-4).
@@ -655,7 +672,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
           prefillEndpoint={endpoints.prefill}
           documentPrefillEndpoint={endpoints.documentPrefill}
           documentPrefillMode={features?.documentPrefillMode}
-          reviewCount={reviewCountOf(fundingData, diagnosis)}
+          reviewCount={reviewCountOf(countData ?? fundingData, diagnosis)}
           onStatusChange={setFormStatus}
           focusUnknownNonce={fillNonce}
         />
@@ -673,11 +690,11 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
         // 결과 위 한 묶음 — 요약 탭·「모름 → 확인 필요」 띠·도구 줄(보기·검색·지금 신청 가능·정렬).
         // 보기 단추(목록 / 한눈에)가 예전 「결과 보기」 알약 자리를 이어받는다(한눈에 = 기존 자금 조달 지도).
         <ResultSummaryBar
-          data={fundingData}
+          data={countData ?? fundingData}
           tab={resultTab}
           onTab={setResultTab}
           unknownCount={formStatus?.unknownCount ?? null}
-          reviewCount={reviewCountOf(fundingData, diagnosis)}
+          reviewCount={reviewCountOf(countData ?? fundingData, diagnosis)}
           onFill={() => setFillNonce((n) => n + 1)}
           view={mapUi.view}
           onView={(v) => dispatchMapUi({ type: "view", view: v })}

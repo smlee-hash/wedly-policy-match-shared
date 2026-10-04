@@ -27,6 +27,37 @@ const NEXT_LABEL = new RegExp(
   ].join("|"),
 );
 
+/**
+ * 업종 칸 끝에 붙은 주소 꼬리가 시작하는 자리 — 시도 이름(「서울」「경기도」「서울특별시」)이나
+ * 「…동·읍·면·리·로·길 + 숫자」 모양. 숫자 뒤에 글자가 바로 이어지면(「자동 3D」) 주소가 아니다.
+ */
+const SIDO_NAMES =
+  "서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주|충청북|충청남|전라북|전라남|경상북|경상남";
+const ADDRESS_TAIL = new RegExp(
+  [
+    `(?<![가-힣])(?:${SIDO_NAMES})(?:특별자치시|특별자치도|특별시|광역시|도|시)?(?![가-힣])`,
+    "[가-힣]+(?:동|읍|면|리|로|길)\\s*(?:산\\s*)?\\d+(?:-\\d+)?(?:번지|번길)?(?![0-9A-Za-z가-힣])",
+  ].join("|"),
+);
+
+/** 이름 꼬리 판별용 — 흔한 성씨. 마지막 낱말이 이 글자로 시작하는 한글 2~4자면 이름 후보다. */
+const SURNAMES = new Set(
+  Array.from(
+    "김이박최정강조윤장임한오서신권황안송류유전홍고문양손배백허남심노하곽성차주우구민진나지엄채원천방공현함변염여추도소석선설마길연위표명기반왕금옥육인맹제모탁국어은편용예봉경사부",
+  ),
+);
+
+/** 업종 꼬리말 — 이것으로 끝나는 낱말은 이름 후보여도 업종이다(「공사」「임대」「소매」). */
+const INDUSTRY_TAILS = [
+  "업", "점", "제조", "개발", "서비스", "판매", "도매", "소매", "통신", "공사", "설비", "가공", "수리", "임대", "중개",
+  "교육", "컨설팅", "운송", "음식", "식당", "한식", "양식", "중식", "일식", "장비", "조경", "인쇄", "출판", "광고",
+  "디자인", "유통", "무역", "건설", "제작", "관리", "용역", "대행", "숙박", "의료", "미용", "세탁", "학원", "김치",
+  "이벤트", "공급", "생산", "시공", "설계", "설치", "정비", "보관", "물류", "택배", "배송", "배달", "부품", "용품",
+  "상품", "제품", "기기", "기계", "기구", "연구", "상담", "지원", "시설", "사업", "기술", "정보", "전자", "전기",
+  "금속", "금융", "부동산", "소프트웨어", "시스템", "솔루션", "플랫폼", "쇼핑몰", "마케팅", "인력", "사무", "운영",
+  "제공", "재배", "사육", "식품", "의류", "문구", "문화", "주류", "플라스틱",
+];
+
 /** 업종은 짧다 — 이보다 길면 앞부분만 쓴다. */
 export const INDUSTRY_MAX_CHARS = 40;
 
@@ -38,19 +69,36 @@ export function looksPersonal(text: string): boolean {
   return RRN_LIKE.test(text) || ROAD_ADDRESS.test(text) || LOT_ADDRESS.test(text);
 }
 
+const TRAILING_MARKS = /[\s:：/,·(（-]+$/;
+
+/** 마지막 낱말이 사람 이름 모양(성씨로 시작하는 한글 2~4자, 업종 꼬리말로 끝나지 않음)이면 그 낱말을 뺀다. */
+function dropNameTail(text: string): string {
+  const at = text.lastIndexOf(" ") + 1; // 공백은 한 칸으로 맞춰져 있다
+  const word = text.slice(at);
+  if (!/^[가-힣]{2,4}$/.test(word) || !SURNAMES.has(word[0])) return text;
+  if (INDUSTRY_TAILS.some((tail) => word.endsWith(tail))) return text;
+  return text.slice(0, at).replace(TRAILING_MARKS, "").trim();
+}
+
 /**
  * 업종 같은 글자 칸을 거른다. 다음 항목 이름(성명·대표자·주민등록번호·주소 …)에서 자르고,
- * 남은 글에 주민번호·주소 모양이 있으면 버린다. 최대 `max` 글자. 비면 null.
+ * 남은 글에 주민번호·주소 모양이 있으면 버린다. 번지 없는 주소 꼬리(시도 이름·「역삼동 123」)는
+ * 그 자리에서 자르고, 끝에 이름처럼 보이는 낱말이 붙었으면 뺀다. 최대 `max` 글자. 비면 null.
  */
 export function cleanIndustryText(value: unknown, max: number = INDUSTRY_MAX_CHARS): string | null {
   if (typeof value !== "string") return null;
-  let text = value.normalize("NFC").replace(/\s+/g, " ").trim();
+  // 업종은 40자만 남으니 앞 500자만 본다 — 아주 긴 글에서 주소 모양 찾기가 오래 걸리지 않게(결과에 뒤쪽 글은 들어가지 않는다).
+  let text = value.normalize("NFC").slice(0, 500).replace(/\s+/g, " ").trim();
   // 주민번호는 항목 이름 없이 붙어 있을 수 있어 자르기 전에 먼저 본다.
   if (RRN_LIKE.test(text)) return null;
   const label = NEXT_LABEL.exec(text);
   if (label) text = text.slice(0, label.index);
-  text = text.replace(/[\s:：/,·(（-]+$/, "").trim();
+  text = text.replace(TRAILING_MARKS, "").trim();
   if (text === "" || looksPersonal(text)) return null;
+  const address = ADDRESS_TAIL.exec(text);
+  if (address) text = text.slice(0, address.index).replace(TRAILING_MARKS, "").trim();
+  text = dropNameTail(text);
+  if (text === "") return null;
   const chars = Array.from(text);
   if (chars.length > max) text = chars.slice(0, max).join("").replace(/[\s:：/,·(（-]+$/, "").trim();
   return text === "" ? null : text;

@@ -192,6 +192,66 @@ export interface FundingFilters {
 /** 갈래 한 칸에 실어 보내는 최대 건수 — 나머지는 「N건 전부 보기」가 아니라 표 보기로 간다. */
 export const GROUP_TOP_N = 80;
 
+/* ───────── 검색어·탭 — 서버가 80건으로 자르기 **전에** 거르는 규칙(화면과 한 벌) ───────── */
+
+/** 지도 요청 검색어의 글자 수 상한. */
+export const FUNDING_QUERY_MAX = 100;
+
+/** 지도 요청 탭 — 전체·지금 신청 가능·7일 안 마감·묶음 이름. 이 밖의 값은 받지 않는다. */
+export type FundingTab = "all" | "now" | "soon" | FundingGroup;
+
+export function isFundingTab(value: unknown): value is FundingTab {
+  return value === "all" || value === "now" || value === "soon" || (FUNDING_GROUPS as readonly unknown[]).includes(value);
+}
+
+/**
+ * 검색어 — 띄어 쓴 낱말이 모두 들어 있어야 한다. 비어 있으면 모두 통과.
+ * ★화면(`filterFundingData`)과 서버(`groupBlocks`)가 **이 함수 하나**를 쓴다 — 두 곳이 갈라지면
+ *  서버가 거른 목록을 화면이 다시 거를 때 줄이 사라진다.
+ */
+export function matchesFundingQuery(
+  it: { title: string; agency?: string; targetText?: string; category?: string },
+  query: string,
+): boolean {
+  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return true;
+  const hay = [it.title, it.agency, it.targetText, it.category].filter(Boolean).join(" ").toLowerCase();
+  return terms.every((t) => hay.includes(t));
+}
+
+/** 탭 — 지금 신청 가능은 열린 것, 7일 안 마감은 임박한 것, 묶음 이름은 그 갈래, 전체는 모두. 서버·화면 공용. */
+export function matchesFundingTab(it: FundingItem, tab: FundingTab): boolean {
+  if (tab === "all") return true;
+  if (tab === "now") return isOpen(it);
+  if (tab === "soon") return isSoon(it);
+  return it.group === tab;
+}
+
+export type FundingSearchParse = { ok: true; query: string; tab: FundingTab } | { ok: false; message: string };
+
+/**
+ * 지도 요청 본문의 선택 칸 `query`·`tab` 을 검사한다. 둘 다 없어도 된다(없으면 거르지 않는다).
+ * 모양이 틀리면(글이 아님·100자 초과·줄바꿈 같은 제어 글자·정해진 탭 이름이 아님) `ok:false` 와 안내를 돌려주니
+ * 통로는 **400** 으로 답한다 — 조용히 무시하면 화면은 거른 줄 알고 서버는 안 거른 목록이 간다.
+ */
+export function parseFundingSearch(body: { query?: unknown; tab?: unknown } | null | undefined): FundingSearchParse {
+  const rawQuery = body?.query;
+  const rawTab = body?.tab;
+  let query = "";
+  if (rawQuery !== undefined && rawQuery !== null) {
+    if (typeof rawQuery !== "string" || Array.from(rawQuery).length > FUNDING_QUERY_MAX || /\p{Cc}/u.test(rawQuery)) {
+      return { ok: false, message: `검색어는 ${FUNDING_QUERY_MAX}자 안의 글자로 보내 주세요` };
+    }
+    query = rawQuery.trim();
+  }
+  let tab: FundingTab = "all";
+  if (rawTab !== undefined && rawTab !== null) {
+    if (!isFundingTab(rawTab)) return { ok: false, message: "탭 이름이 올바르지 않습니다" };
+    tab = rawTab;
+  }
+  return { ok: true, query, tab };
+}
+
 const DAY_MS = 86_400_000;
 const KST_OFFSET_MS = 9 * 3_600_000;
 
@@ -651,6 +711,13 @@ export interface GroupBlockOptions {
    * 없다** — 응답 크기 때문이다(안 맞음은 열어 봐야 할 때만 실어 보낸다).
    */
   includeExcluded?: boolean;
+  /**
+   * 검색어 — **topN 으로 자르기 전에** 같은 규칙(`matchesFundingQuery`)으로 거른다. 거른 뒤의 목록으로
+   * 건수(`total` 등)·`truncated`·`items` 가 모두 나온다. 비어 있으면 거르지 않는다.
+   */
+  query?: string;
+  /** 탭(`matchesFundingTab`) — 위 검색어와 같은 자리에서 거른다. 모르는 값·미지정이면 「전체」. */
+  tab?: FundingTab;
 }
 
 /**
@@ -665,9 +732,14 @@ export function groupBlocks(items: FundingItem[], opts: GroupBlockOptions = {}):
   // 상한을 넘겨 받아도 GROUP_TOP_N 을 넘기지 않는다 — 응답 크기를 부르는 쪽이 정하게 두면
   // 한 요청이 수천 건을 실어 화면이 멈춘다.
   const topN = Math.min(Math.max(Math.floor(opts.topN ?? GROUP_TOP_N) || GROUP_TOP_N, 1), GROUP_TOP_N);
-  const pool = (opts.excludedPool ?? items).filter((it) => it.fitVerdict === "excluded");
+  // 검색어·탭은 **자르기 전에** 건다 — 자른 뒤에 걸면 81번째 공고는 어느 검색으로도 찾을 수 없다.
+  const query = (opts.query ?? "").trim();
+  const tab: FundingTab = isFundingTab(opts.tab) ? opts.tab : "all";
+  const searching = query !== "" || tab !== "all";
+  const wanted = (it: FundingItem) => matchesFundingTab(it, tab) && matchesFundingQuery(it, query);
+  const pool = (opts.excludedPool ?? items).filter((it) => it.fitVerdict === "excluded" && (!searching || wanted(it)));
   return FUNDING_GROUPS.map((group) => {
-    const mine = items.filter((it) => it.group === group && it.fitVerdict !== "excluded");
+    const mine = items.filter((it) => it.group === group && it.fitVerdict !== "excluded" && (!searching || wanted(it)));
     // ★셈은 **이 카드에 실제로 남는 줄**로 한다(브라우저 독립 검사 ③, 2026-09-04). 배포본에서 딱지
     //  「181건」 + 본문 「지금 조건에 맞는 항목이 없습니다」 + 발치 「이 갈래 181건 중 0건만 보여 드림」
     //  이 한 카드에 **동시에** 떴다 — 그 갈래 줄이 전부 「종류 미확인」이라 화면이 맨 아래 전용 블록으로

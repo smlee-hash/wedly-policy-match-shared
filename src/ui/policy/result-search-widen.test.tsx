@@ -194,11 +194,12 @@ describe("그래도 잘리면 목록 위에 안내한다", () => {
 describe("화면 배선 — 소스 글자로 잰다", () => {
   const 화면글 = readFileSync(new URL("PolicyMatchScreen.tsx", import.meta.url), "utf8");
 
-  it("지도 자료 요청에 건수를 싣고, 잘렸으면 넓히고, 조건을 풀면 처음 건수로 되돌린다", () => {
-    expect(화면글).toContain("topN: fundingTopN");
-    expect(화면글).toContain("widerTopN(fundingData, conditions, dataTopN)");
-    expect(화면글).toContain("setFundingTopN(FUNDING_TOP_N)");
-    expect(화면글).toContain("searchCutNoticeOf(fundingData, conditions, dataTopN)");
+  // BF3 ⑤ — 검색어·탭을 서버가 자르기 전에 걸러 주므로 화면은 더는 건수를 넓혀 다시 받지 않는다(위 판단 함수는 남겨 둔다).
+  it("지도 자료 요청에 검색어·탭을 싣고, 넓게 다시 받지 않으며, 안내는 거른 뒤 건수로만 한다", () => {
+    expect(화면글).toContain("sort: fundingSort, ...askedSearch");
+    expect(화면글).not.toContain("widerTopN(");
+    expect(화면글).not.toContain("setFundingTopN");
+    expect(화면글).toContain("searchCutOf(fundingData, conditions)");
   });
 
   it("진단 판일 때 목록(과 지도) 위에 안내를 둔다", () => {

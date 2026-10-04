@@ -1420,6 +1420,47 @@ describe("ProfileForm — 다른 사업자번호로 바꾸면 서류를 그 고�
   });
 });
 
+describe("ProfileForm — 번호가 바뀌는 모든 길에서 고객 열쇠를 비운다(BF3 ②)", () => {
+  const 다른번호서류 = () =>
+    읽은결과({
+      fields: { bizno: "456-81-67890" },
+      sources: { bizno: { files: ["등록증.pdf"], docTypes: ["biz-registration"] } },
+    });
+
+  it("서류 응답이 다른 번호를 칸에 채우면 다음 업로드에는 customerKey 가 없다", async () => {
+    const { 화면 } = 서류화면();
+    await 고객불러오기(화면, { companyName: "위들리테크", bizno: "123-81-45678" }, "위들리테크");
+    const fn = 서류성공(다른번호서류());
+    await 서류고르기(화면, [가짜파일("등록증.pdf")]);
+    expect(올린본문(fn, 0).get("customerKey")).toBe("위들리테크"); // 올리는 시점엔 아직 같은 고객이다
+    expect(칸값(화면.tree, "bizno")).toBe("456-81-67890");
+    await 서류고르기(화면, [가짜파일("등록증.pdf")]);
+    expect(올린본문(fn, 1).get("customerKey")).toBeNull();
+  });
+
+  it("서류 응답의 번호가 불러온 번호와 같으면 열쇠를 그대로 보낸다", async () => {
+    const { 화면 } = 서류화면();
+    await 고객불러오기(화면, { companyName: "위들리테크", bizno: "123-81-45678" }, "위들리테크");
+    const fn = 서류성공(읽은결과({ fields: { bizno: "123-81-45678" } }));
+    await 서류고르기(화면, [가짜파일("등록증.pdf")]);
+    await 서류고르기(화면, [가짜파일("등록증.pdf")]);
+    expect(올린본문(fn, 1).get("customerKey")).toBe("위들리테크");
+  });
+
+  it("고르는 상자에서 다른 번호를 고르면 다음 업로드에는 customerKey 가 없다", async () => {
+    const { 화면 } = 서류화면();
+    await 고객불러오기(화면, { companyName: "위들리테크", bizno: "123-81-45678" }, "위들리테크");
+    칸적기(화면, "bizno", "123-81-45678"); // 같은 번호를 손으로 다시 넣었다 — 열쇠는 그대로, 손으로 만진 칸이 된다
+    const fn = 서류성공(다른번호서류());
+    await 서류고르기(화면, [가짜파일("등록증.pdf")]);
+    expect(칸값(화면.tree, "bizno")).toBe("123-81-45678"); // 손 값은 덮이지 않고 고르는 상자가 뜬다
+    상자단추누르기(화면, "bizno", "456-81-67890 · 사업자등록증");
+    expect(칸값(화면.tree, "bizno")).toBe("456-81-67890");
+    await 서류고르기(화면, [가짜파일("등록증.pdf")]);
+    expect(올린본문(fn, 1).get("customerKey")).toBeNull();
+  });
+});
+
 describe("ProfileForm — 쓰다 만 사업자번호는 서류가 덮지 않는다(BF2 ③)", () => {
   it("번호 123 을 넣은 뒤 서류가 987-81-12345 를 주면 칸은 123 그대로, 고르는 상자가 뜬다", async () => {
     서류성공(
