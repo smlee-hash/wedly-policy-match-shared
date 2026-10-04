@@ -6,7 +6,8 @@
 // ★aiReader 가 돌려준 값도 믿지 않고 걸러 쓴다 — 주소는 시도+시군구까지만, 주민번호 모양 글자·모르는 칸은 버린다.
 // ★주민번호·대표자 이름·도로명은 결과 어디에도 내보내지 않는다(파일 이름에 든 주민번호 모양도 가린다).
 // ★업종 글의 이름은 짐작해 지우지 않는다. 서류(대표자·성명 칸)와 AI(personNames)가 알려 준 이름을 묶음 전체에서 모아 그것만 지운다.
-// ★이름 지우기·업종 40자 자르기·파일 이름 가리기는 합친 뒤 돌려주기 직전 한 곳(redactKnownNames)에서 한다. 앞단은 자르지 않는다.
+// ★이름 지우기·업종 40자 자르기·파일 이름 가리기와 100자 자르기는 합친 뒤 돌려주기 직전 한 곳(redactKnownNames)에서 한다. 앞단은 자르지 않는다.
+// ★고용보험 명부에서 읽은 직원 이름도 지우기 목록에 들어간다(인원 수만 세고 이름은 결과로 나가지 않는다).
 
 import { canonicalRegion } from "../engine/match-engine";
 import { CERT_TYPE_NAMES } from "../engine/profile-derive";
@@ -24,9 +25,9 @@ import { DOCUMENT_FIELD_KEYS, mergeDocumentFields, type MergeInput } from "./mer
 import { readBizRegistration } from "./parse-biz-registration";
 import { parseCompanyStatus } from "./parse-company-status";
 import { addressFields, normalizeDate, type DocumentBody, type ParsedWithNames } from "./parse-common";
-import { parseEmployment } from "./parse-employment";
+import { parseEmploymentWithNames } from "./parse-employment";
 import { parseFinancial } from "./parse-financial";
-import { redactKnownNames } from "./redact-names";
+import { cutFileName, redactKnownNames } from "./redact-names";
 import {
   DOCUMENT_UPLOAD_LIMITS,
   type AiReaderResult,
@@ -53,7 +54,6 @@ export interface ReadDocumentsOptions {
 }
 
 const MB = 1024 * 1024;
-const NAME_MAX_CHARS = 100;
 const NO_NAME = "이름 없는 파일";
 
 const AI_NAMES_MAX = 100;
@@ -82,10 +82,12 @@ function baseNameOf(name: string): string {
   return (clean.split(/[\\/]/).pop() ?? "").trim();
 }
 
-/** 화면·결과에 내보낼 이름 — 주민번호 모양은 가리고 100자로 자른다. */
+/**
+ * 결과 안에서 파일을 가리키는 이름 — 주민번호 모양은 가린다. 100자로 자르는 일은 여기서 하지 않는다:
+ * 먼저 자르면 이름이 반으로 잘려(「김지」) 뒤의 이름 지우기가 못 찾는다. 자르기는 이름을 지운 뒤 redactKnownNames 가 한다.
+ */
 function displayNameOf(base: string): string {
-  const masked = base.replace(RRN_LIKE_GLOBAL, "●●●●●●-●●●●●●●");
-  return Array.from(masked).slice(0, NAME_MAX_CHARS).join("") || NO_NAME;
+  return base.replace(RRN_LIKE_GLOBAL, "●●●●●●-●●●●●●●") || NO_NAME;
 }
 
 /* ───────── AI 읽기 결과 거르기 ───────── */
@@ -229,7 +231,7 @@ function parseByType(docType: DocumentType, body: DocumentBody): ParsedWithNames
     case "vat-return":
       return plain(parseFinancial(body, docType));
     case "employment-insurance":
-      return plain(parseEmployment(body));
+      return parseEmploymentWithNames(body); // 명부의 직원 이름도 함께(지우기 목록용)
     default:
       return null;
   }
@@ -248,7 +250,7 @@ async function readImage(
   let fields: DocumentFields;
   let names: string[];
   try {
-    const raw = await aiReader({ name: display, bytes });
+    const raw = await aiReader({ name: cutFileName(display), bytes });
     fields = sanitizeAiFields(raw);
     names = aiPersonNames(raw);
   } catch {
@@ -277,7 +279,12 @@ async function readOne(
   // 쉼표 표(.csv)는 따옴표를 지키며 열을 나눠 읽도록 표시한다.
   const body: DocumentBody =
     extracted.kind === "text"
-      ? { text: extracted.text, ...(/\.csv$/i.test(base) ? { csv: true } : {}) }
+      ? {
+          text: extracted.text,
+          ...(/\.csv$/i.test(base) ? { csv: true } : {}),
+          // 글자 상한(20만 자)으로 뒤가 잘렸으면 파서가 「전체 세기」를 하지 않게 알린다.
+          ...(extracted.truncated ? { truncated: true } : {}),
+        }
       : { sheets: extracted.sheets };
   const docType = classifyDocument({ fileName: base, ...body });
   const read = parseByType(docType, body);

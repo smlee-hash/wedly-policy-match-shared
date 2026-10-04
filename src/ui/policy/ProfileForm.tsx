@@ -895,6 +895,7 @@ export default function ProfileForm({
                   setBizno("");
                   dropOrigin("bizno");
                   setCustomerKey(""); // 다른 회사로 고쳤으니 서류를 앞 고객 자료에 붙이지 않는다
+                  doc.reset(); // 올리는 중이던 서류는 끊고 늦게 오는 답은 버린다. 올린 파일 목록도 비운다(고객을 새로 불러올 때와 같은 길)
                 }}
                 placeholder="예: 가상테크"
               />

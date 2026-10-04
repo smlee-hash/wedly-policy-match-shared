@@ -167,6 +167,8 @@ export interface DocumentBody {
   sheets?: SheetData[];
   /** text 가 쉼표 표(.csv) 파일에서 왔다 — 따옴표를 지키며 열을 나눠 탭 줄로 바꿔 읽는다. */
   csv?: boolean;
+  /** text 가 글자 상한(20만 자)으로 뒤가 잘렸다 — 사람 수 같은 「전체 세기」를 하지 않는다. */
+  truncated?: boolean;
 }
 
 /**

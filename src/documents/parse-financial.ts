@@ -2,6 +2,8 @@
 //  - 재무제표: 손익계산서의 「매출액」 첫 숫자(당기)
 //  - 부가세 신고서·과세표준증명: 「과세표준 합계」 첫 숫자
 // ★「(단위: 천원)」「백만원」 같은 단위 표기를 원으로 바꾼다. 표기가 없으면 원으로 본다.
+//   금액 바로 뒤에 단위(「1,000천원」)가 적혀 있으면 머리글·본문의 단위보다 그것이 앞선다(표 칸·글 줄 모두 같은 규칙).
+// ★괄호 안이 숫자뿐인 값(「(1,234)」)은 음수 금액이라 그 줄의 매출은 정하지 않는다.
 // ★귀속 연도는 사업연도·과세기간의 **끝 해**다. 못 읽으면 비워 둔다(지어내지 않는다).
 // ★상호·사업자번호·대표자는 읽지 않는다. 읽은 칸은 lastYearRevenueKrw 하나뿐이다.
 
@@ -11,8 +13,11 @@ export type FinancialDocType = "financial-statement" | "vat-return";
 
 const MAX_KRW = 1e15;
 
-/** 매출 줄 찾는 말. 라벨 뒤(괄호 풀이·점·콜론 건너뛰고)에 숫자가 이어져야 한다. */
-const NUMBER_AFTER = String.raw`(?:\s*[(（][^)）]{0,10}[)）])?[\s:：.…·|]*(\d[\d,]*(?:\.\d+)?)`;
+/**
+ * 매출 줄 찾는 말. 라벨 뒤(괄호 풀이·점·콜론 건너뛰고)에 숫자가 이어져야 한다.
+ * 괄호 안이 숫자뿐이면(「(1,234)」·「(△1,234)」) 풀이가 아니라 음수 금액이다 — 건너뛰지 않으니 그 줄은 맞지 않아 매출을 정하지 않는다.
+ */
+const NUMBER_AFTER = String.raw`(?:\s*[(（](?![\s△▲\-−,.]*\d[\s\d,.]*[)）])[^)）]{0,10}[)）])?[\s:：.…·|]*(\d[\d,]*(?:\.\d+)?)`;
 const REVENUE_RE: Record<FinancialDocType, RegExp> = {
   "financial-statement": new RegExp(String.raw`매\s*출\s*액${NUMBER_AFTER}`),
   "vat-return": new RegExp(String.raw`과\s*세\s*표\s*준\s*합\s*계${NUMBER_AFTER}`),
@@ -100,27 +105,41 @@ function headerAbove(lines: string[], at: number): AmountHeader | null {
   return null;
 }
 
-/** 라벨 뒤에 이어지는 숫자들(공백·`|`·콜론으로 이어진 것만). m 은 REVENUE_RE 가 찾은 결과. */
-function numbersAfterLabel(scan: string, m: RegExpExecArray): string[] {
-  let rest = scan.slice(m.index + m[0].length - m[1].length);
-  const out: string[] = [];
-  for (;;) {
-    const t = /^(\d[\d,]*(?:\.\d+)?)[\s:：.…·|]*/.exec(rest);
-    if (!t) break;
-    out.push(t[1]);
-    rest = rest.slice(t[0].length);
-  }
-  return out;
-}
-
-/** 고른 금액 글자. unit 은 칸 값 끝에 적힌 단위(「원」「천원」「백만원」)의 곱 — 있으면 머리글·본문의 「단위: …」 대신 이것을 쓴다. */
+/** 고른 금액 글자. unit 은 금액 바로 뒤에 적힌 단위(「원」「천원」「백만원」)의 곱 — 있으면 머리글·본문의 「단위: …」 대신 이것을 쓴다. */
 interface PickedAmount {
   amount: string;
   unit?: number;
 }
 
-/** 금액 칸 값 끝의 단위 표시. 긴 이름이 먼저 와야 「천만원」이 「만원」으로 읽히지 않는다. */
-const CELL_AMOUNT_RE = /^(\d+(?:\.\d+)?)(천만원|백만원|억원|천원|만원|원)?$/;
+/**
+ * 금액 글자와 그 바로 뒤 단위 이름으로 PickedAmount 를 만든다 — 칸 값(amountCell)과 라벨 뒤 숫자(numbersAfterLabel)가
+ * 단위를 환산하는 **같은 규칙**이다. 단위 이름이 없거나 모르는 이름이면 unit 을 비워 머리글·본문 단위를 따르게 한다.
+ */
+function amountWithUnit(amount: string, unitName: string | undefined): PickedAmount {
+  const unit = unitName === undefined ? undefined : UNIT_MULTIPLIER[unitName];
+  return unit === undefined ? { amount } : { amount, unit };
+}
+
+/** 금액 바로 뒤 단위 이름. 긴 이름이 먼저 와야 「천만원」이 「만원」으로 읽히지 않는다. */
+const UNIT_NAMES = "천만원|백만원|억원|천원|만원|원";
+
+/** 라벨 뒤에 이어지는 금액들(공백·`|`·콜론으로 이어진 것만) — 금액 바로 뒤 단위도 함께. m 은 REVENUE_RE 가 찾은 결과. */
+function numbersAfterLabel(scan: string, m: RegExpExecArray): PickedAmount[] {
+  let rest = scan.slice(m.index + m[0].length - m[1].length);
+  const out: PickedAmount[] = [];
+  // 단위 뒤에 한글이 이어 붙으면(「원가」) 단위가 아니라 낱말이다.
+  const token = new RegExp(String.raw`^(\d[\d,]*(?:\.\d+)?)(?:\s*(${UNIT_NAMES})(?![가-힣]))?[\s:：.…·|]*`);
+  for (;;) {
+    const t = token.exec(rest);
+    if (!t) break;
+    out.push(amountWithUnit(t[1], t[2]));
+    rest = rest.slice(t[0].length);
+  }
+  return out;
+}
+
+/** 금액 칸 값 끝의 단위 표시. */
+const CELL_AMOUNT_RE = new RegExp(String.raw`^(\d+(?:\.\d+)?)(${UNIT_NAMES})?$`);
 
 /**
  * 금액 열의 칸 값을 읽는다. 「123,456」「123,456원」「123,456천원」은 값(+단위), 괄호 음수 「(1,234)」·빈 칸·글자는 null.
@@ -129,8 +148,7 @@ const CELL_AMOUNT_RE = /^(\d+(?:\.\d+)?)(천만원|백만원|억원|천원|만�
 function amountCell(raw: string): PickedAmount | null {
   const t = raw.normalize("NFC").replace(/[,\s]/g, "");
   const m = CELL_AMOUNT_RE.exec(t); // 괄호가 붙은 값은 이 모양이 아니라 여기서 걸러진다
-  if (!m) return null;
-  return m[2] === undefined ? { amount: m[1] } : { amount: m[1], unit: UNIT_MULTIPLIER[m[2]] };
+  return m ? amountWithUnit(m[1], m[2]) : null;
 }
 
 /**
@@ -154,8 +172,10 @@ function pickAmount(lines: string[], at: number, re: RegExp, m: RegExpExecArray)
     hit = re.exec(scan);
   }
   if (!hit) return null;
-  const amount = numbersAfterLabel(scan, hit).find((t) => t.includes(",") || t.includes(".") || !CODE_LIKE_RE.test(t));
-  return amount === undefined ? null : { amount };
+  const picked = numbersAfterLabel(scan, hit).find(
+    (t) => t.amount.includes(",") || t.amount.includes(".") || !CODE_LIKE_RE.test(t.amount),
+  );
+  return picked ?? null;
 }
 
 /** 재무제표·부가세 신고서·과세표준증명에서 매출과 귀속 연도를 뽑는다. 못 읽으면 빈 결과 + 안내. */

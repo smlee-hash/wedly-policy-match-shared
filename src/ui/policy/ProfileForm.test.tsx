@@ -1391,6 +1391,62 @@ describe("ProfileForm — 늦게 온 서류 응답은 새 고객 칸을 덮지 �
   });
 });
 
+// ── 재리뷰(Astra 5차) BF6 ⑧ — 상호를 바꾸면 진행 중 서류 요청도 끊는다 ──────────────
+
+describe("ProfileForm — 상호를 직접 바꾸면 올리는 중이던 서류 응답은 버린다(BF6 ⑧)", () => {
+  it("A 서류를 올리는 중에 상호를 B 로 바꾸면, A 응답이 와도 진단 입력에 A 의 사업자번호·직원 수가 없다", async () => {
+    let 서류끝내기: (v: unknown) => void = () => {};
+    let 서류신호: AbortSignal | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init?: { signal?: AbortSignal }) => {
+        서류신호 = init?.signal;
+        return new Promise((resolve) => {
+          서류끝내기 = resolve;
+        });
+      }),
+    );
+    const { 받은, 화면 } = 서류화면();
+    let tree = await 서류고르기(화면, [가짜파일("기업상태표_가상테크.xlsx")]);
+    expect(글자(tree)).toContain("서류를 읽는 중이에요"); // A 가 아직 가는 중
+
+    tree = 칸적기(화면, "name", "B상사");
+    expect(서류신호?.aborted).toBe(true); // 가던 요청을 끊었다
+    expect(글자(tree)).not.toContain("서류를 읽는 중이에요"); // 입력도 다시 열린다
+
+    // 끊었어도 응답이 뒤늦게 도착한 경우 — 버려야 한다
+    서류끝내기({
+      json: async () => ({
+        success: true,
+        data: 읽은결과({
+          fields: { bizno: "123-81-45678", employeeCount: 8 },
+          sources: {
+            bizno: { files: ["기업상태표_가상테크.xlsx"], docTypes: ["company-status"] },
+            employeeCount: { files: ["기업상태표_가상테크.xlsx"], docTypes: ["company-status"] },
+          },
+          files: [{ name: "기업상태표_가상테크.xlsx", docType: "company-status", status: "read", fields: ["bizno", "employeeCount"] }],
+        }),
+      }),
+    });
+    tree = await 흘리기(화면);
+    expect(올린서류줄(tree, "기업상태표_가상테크.xlsx")).toBeUndefined();
+    expect(글자(tree)).not.toContain("칸을 채웠어요");
+    const 진단 = 진단하기(화면, 받은);
+    expect(진단.companyName).toBe("B상사");
+    expect(진단.bizno).toBeUndefined();
+    expect(진단.employeeCount).toBeUndefined();
+  });
+
+  it("이미 올린 서류 목록은 상호를 바꾸면 비운다", async () => {
+    서류성공(기업상태표결과());
+    const { 화면 } = 서류화면();
+    let tree = await 서류고르기(화면, [가짜파일("기업상태표_가상테크.xlsx")]);
+    expect(올린서류줄(tree, "기업상태표_가상테크.xlsx")).toBeDefined();
+    tree = 칸적기(화면, "name", "B상사");
+    expect(올린서류줄(tree, "기업상태표_가상테크.xlsx")).toBeUndefined();
+  });
+});
+
 describe("ProfileForm — 다른 사업자번호로 바꾸면 서류를 그 고객에 붙이지 않는다(BF2 ②)", () => {
   it("고객 A 를 불러온 뒤 번호를 456-81-67890 으로 바꾸면 업로드에 customerKey 가 없다", async () => {
     const { 화면 } = 서류화면();

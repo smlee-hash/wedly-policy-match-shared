@@ -27,7 +27,8 @@ export interface SheetData {
 }
 
 export type ExtractedDocument =
-  | { kind: "text"; text: string }
+  /** truncated: 글자 상한(20만 자)으로 뒤가 잘렸다. 잘린 글로는 사람 수 같은 「전체 세기」를 하지 않는다. */
+  | { kind: "text"; text: string; truncated?: true }
   /** 사진, 또는 글자가 없는 스캔 PDF. 글자로는 못 읽는다 */
   | { kind: "image" }
   | { kind: "spreadsheet"; sheets: SheetData[] }
@@ -493,7 +494,8 @@ async function readPdf(buf: Buffer): Promise<ExtractedDocument> {
     // 한 쪽씩 차례로 읽는다(전 쪽 동시 읽기 금지). 글자가 상한을 넘으면 거기서 멈춘다.
     const pages: string[] = [];
     let used = 0;
-    for (let n = 1; n <= pdf.numPages && used <= TEXT_LIMIT; n++) {
+    let n = 1;
+    for (; n <= pdf.numPages && used <= TEXT_LIMIT; n++) {
       const content = await (await pdf.getPage(n)).getTextContent();
       const page = content.items
         .map((item) => (item as { str?: string; hasEOL?: boolean }))
@@ -509,7 +511,7 @@ async function readPdf(buf: Buffer): Promise<ExtractedDocument> {
       .trim();
     // 글자가 없는 쪽만 이어진 스캔본은 사진처럼 AI 가 읽어야 한다.
     if (looksScanned(text)) return { kind: "image" };
-    return { kind: "text", text: limited(text) };
+    return textResult(text, n <= pdf.numPages); // 글자 상한에 걸려 남은 쪽을 읽지 않았으면 잘린 글이다
   } catch {
     return unsupported(BAD_PDF_MESSAGE);
   }
@@ -670,27 +672,67 @@ export function lastValuedRowOf(xml: string): number {
   return last;
 }
 
-/** 속성 값 하나(`name="…"` 또는 `name='…'`). 없으면 null. */
+/** 속성 값 하나(`name="…"`·`name='…'`·`name = "…"`, 등호 앞뒤 공백 허용). 없으면 null. */
 function attrOf(tag: string, name: string): string | null {
-  const m = new RegExp(`\\s${name}=(?:"([^"]*)"|'([^']*)')`).exec(tag);
+  const m = new RegExp(`\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`).exec(tag);
   return m ? unescapeXml(m[1] ?? m[2]) : null;
 }
 
-/** 태그 이름으로 시작하는 태그들(`<sheet …>`)을 앞에서부터 모은다. */
+/** 시트 태그의 연결표 번호(`r:id`). 접두사가 `r` 이 아닌 파일(`rel:id`)도 읽는다. */
+function relIdOf(tag: string): string | null {
+  const direct = attrOf(tag, "r:id");
+  if (direct !== null) return direct;
+  const m = /\s[A-Za-z_][\w.-]*:id\s*=\s*(?:"([^"]*)"|'([^']*)')/.exec(tag);
+  return m ? unescapeXml(m[1] ?? m[2]) : null;
+}
+
+/** `<` 로 연 태그의 끝(`>`) 자리. 따옴표 안의 `>` 는 건너뛴다. 없으면 -1. */
+function tagEndFrom(xml: string, open: number): number {
+  let quote = "";
+  for (let i = open + 1; i < xml.length; i++) {
+    const c = xml[i];
+    if (quote) {
+      if (c === quote) quote = "";
+    } else if (c === '"' || c === "'") {
+      quote = c;
+    } else if (c === ">") {
+      return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * 이름이 `tagName` 인 여는 태그들(`<sheet …>`)을 앞에서부터 모은다. 이름 앞 접두사(`<s:sheet …>`)는 가리지 않는다.
+ * `<sheets>` 처럼 이름만 비슷한 태그나 닫는 태그는 담지 않는다.
+ */
 function tagsOf(xml: string, tagName: string): string[] {
   const tags: string[] = [];
-  const open = `<${tagName}`;
   let from = 0;
   for (;;) {
-    const at = xml.indexOf(open, from);
-    if (at < 0) break;
-    const end = xml.indexOf(">", at);
+    const open = xml.indexOf("<", from);
+    if (open < 0) break;
+    const { local, closing } = tagNameAt(xml, open);
+    if (closing || local !== tagName) {
+      from = open + 1;
+      continue;
+    }
+    const end = tagEndFrom(xml, open);
     if (end < 0) break;
-    const next = xml[at + open.length] ?? "";
-    if (next === " " || next === "\t" || next === "\n" || next === "\r") tags.push(xml.slice(at, end + 1));
+    tags.push(xml.slice(open, end + 1));
     from = end + 1;
   }
   return tags;
+}
+
+/**
+ * 시트 하나가 행 상한을 넘어 뒤가 잘렸는가. 원본에서 구한 마지막 값 줄(lastRow)이 있으면 그것을 따른다.
+ * 못 구했으면(undefined) 상한을 넘었는지 모르는 것이니 잘린 쪽으로 둔다 — 단 읽기 도구가 「원래 범위가 읽은 범위보다 크다」
+ * (`!fullref`)를 알리지 않아 상한보다 작다는 게 읽은 결과로 확실하면 예외.
+ */
+export function isSheetTruncated(lastRow: number | undefined, hasFullRef: boolean): boolean {
+  if (lastRow === undefined) return hasFullRef;
+  return lastRow < 0 || lastRow > MAX_SHEET_ROWS;
 }
 
 /**
@@ -698,7 +740,7 @@ function tagsOf(xml: string, tagName: string): string[] {
  * 연결표(`xl/_rels/workbook.xml.rels`)로 잇는다. 시트 XML 이 풀림 상한(20MB)을 넘어 못 풀면 -1 —
  * 줄 수를 확인할 수 없을 만큼 큰 시트라 잘린 것으로 본다. zip 이 아닌 옛 엑셀·모양이 다른 파일은 빈 표(기존 방식).
  */
-function lastValuedRows(buf: Buffer): Map<string, number> {
+export function lastValuedRows(buf: Buffer): Map<string, number> {
   const out = new Map<string, number>();
   if (!isZipBuffer(buf)) return out;
   try {
@@ -716,7 +758,7 @@ function lastValuedRows(buf: Buffer): Map<string, number> {
     }
     for (const tag of tagsOf(book, "sheet")) {
       const name = attrOf(tag, "name");
-      const rid = attrOf(tag, "r:id");
+      const rid = relIdOf(tag);
       const path = rid ? targets.get(rid) : undefined;
       const entry = path ? zip.getEntry(path) : null;
       if (name === null || !entry) continue;
@@ -747,8 +789,8 @@ function readSpreadsheet(buf: Buffer): ExtractedDocument {
       const ws = wb.Sheets[name];
       if (!ws) continue;
       const sheet = sheetOf(name, ws, date1904);
-      const lastRow = lastRows.get(name);
-      if (lastRow !== undefined && (lastRow < 0 || lastRow > MAX_SHEET_ROWS)) sheet.truncated = true;
+      // 읽기 도구가 원래 범위가 더 크다고 알린 시트(!fullref)인데 마지막 값 줄을 못 구했으면 잘린 것으로 둔다.
+      if (isSheetTruncated(lastRows.get(name), "!fullref" in ws)) sheet.truncated = true;
       sheets.push(sheet);
     }
     return { kind: "spreadsheet", sheets };
@@ -759,8 +801,10 @@ function readSpreadsheet(buf: Buffer): ExtractedDocument {
 
 /* ───────── 들어가는 곳 ───────── */
 
-function textResult(text: string): ExtractedDocument {
-  return { kind: "text", text: limited(text) };
+/** 글 결과 — 글자 상한(20만 자)으로 잘랐거나(`alreadyCut` = 읽기 도중 멈춤) 앞부분만 읽었으면 truncated 를 붙인다. */
+function textResult(text: string, alreadyCut = false): ExtractedDocument {
+  const cut = alreadyCut || text.length > TEXT_LIMIT;
+  return { kind: "text", text: limited(text), ...(cut ? { truncated: true as const } : {}) };
 }
 
 /** 파일 이름(확장자 판별용)과 바이트로 글자·표를 꺼낸다. 예외를 던지지 않는다. */

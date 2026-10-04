@@ -3,9 +3,12 @@
 //
 // ★고용상태가 정확히 「고용」인 줄만 센다. 같은 사람(이름+주민번호)은 한 명으로 센다.
 // ★이름·주민번호는 같은 사람을 가리는 데만 쓰고 결과에 넣지 않는다. 내보내는 칸은 employeeCount 하나뿐이다.
+//   (이름은 parseEmploymentWithNames 의 personNames 로만 나간다 — 다른 서류 업종 글에서 그 이름을 지우는 데만 쓴다.)
+// ★글 명부(CSV·TXT 등)가 글자 상한으로 잘렸으면 엑셀 잘림과 같게 세지 않고 직접 적게 안내한다.
 // ★표 모양이 믿기지 않으면(머리줄 칸 없음·줄 칸 수 어긋남=본문이 잘린 흔적) 세지 않고 이유만 알린다. 이유에는 사람 정보가 없다.
 
-import { bodyLines, splitTableRow, type DocumentBody, type ParsedDocument } from "./parse-common";
+import { cleanAiPersonNames, PERSON_NAMES_MAX, uniquePersonNames } from "./clean-text";
+import { bodyLines, splitTableRow, type DocumentBody, type ParsedDocument, type ParsedWithNames } from "./parse-common";
 
 const STATUS_HEADER = "고용상태";
 /** 같은 사람을 가리는 칸 이름(공백 뺀 글). 신고서마다 이름이 조금씩 다르다. */
@@ -78,31 +81,59 @@ function linesOf(raw: string): string[] {
   return raw.normalize("NFC").split(/\r\n|\r|\n/);
 }
 
+/**
+ * 머리줄 아래 표의 근로자 이름 칸 글자들. 센 결과와 상관없이(표가 깨졌거나 잘렸어도) 모은다 —
+ * 이 이름은 다른 서류 업종 글에서 지우는 데만 쓰고 결과에는 넣지 않는다.
+ */
+function rosterNames(lines: string[]): string[] {
+  const start = headerIndex(lines);
+  if (start < 0) return [];
+  const nameAt = columnOf(splitTableRow(lines[start]).map(compact), NAME_HEADERS);
+  if (nameAt < 0) return [];
+  const seen = new Set<string>();
+  for (const line of lines.slice(start + 1)) {
+    if (/^\s*##/.test(line)) break;
+    const name = splitTableRow(line)[nameAt]?.trim();
+    if (name && compact(name).length >= 2) seen.add(name); // 한 글자 칸은 이름으로 보지 않는다(글 속 한 글자까지 지우게 된다)
+    if (seen.size >= PERSON_NAMES_MAX) break;
+  }
+  return cleanAiPersonNames([...seen]);
+}
+
 /** 고용·산재 가입자 명부·신고서에서 현재 근로자 수를 뽑는다. 못 세면 빈 결과 + 안내. */
 export function parseEmployment(body: DocumentBody): ParsedDocument {
+  return parseEmploymentWithNames(body).parsed;
+}
+
+/** parseEmployment 와 같되, 명부에서 읽은 직원 이름도 함께 돌려준다(업종 글에서 지우는 데만 쓴다). */
+export function parseEmploymentWithNames(body: DocumentBody): ParsedWithNames {
   // 엑셀은 시트마다 따로 본다(시트가 달라도 한 표가 둘로 합쳐지지 않게). 글 서류는 통째로 본다.
   const candidates: Array<{ lines: string[]; truncated: boolean }> = [];
   for (const sheet of body.sheets ?? []) candidates.push({ lines: linesOf(sheet.text), truncated: sheet.truncated === true });
-  if (body.text) candidates.push({ lines: linesOf(body.text), truncated: false });
+  // 글 서류가 글자 상한으로 잘렸으면 뒤쪽 근로자가 빠진 채 세게 된다.
+  if (body.text) candidates.push({ lines: linesOf(body.text), truncated: body.truncated === true });
 
+  const personNames: string[] = [];
   let firstFailure: string | undefined;
   for (const { lines, truncated } of candidates) {
     if (headerIndex(lines) < 0) continue;
+    personNames.push(...rosterNames(lines));
     // 뒤가 잘린 명부는 센 수가 실제보다 적다 — 채우지 않고 직접 적게 안내한다.
     if (truncated) {
       firstFailure ??= TOO_LONG;
       continue;
     }
     const counted = countCurrentEmployees(lines);
-    if (counted.ok) return { fields: { employeeCount: counted.count } };
+    if (counted.ok) return { parsed: { fields: { employeeCount: counted.count } }, personNames: uniquePersonNames(personNames) };
     firstFailure ??= counted.reason;
   }
+  const names = uniquePersonNames(personNames);
 
   // 표를 못 읽었을 때만 「근로자수 N명」 글을 본다. 표가 있는데 깨진 경우에는 지어내지 않는다.
   if (firstFailure === undefined) {
     const m = HEADCOUNT_RE.exec(bodyLines(body).join("\n"));
     const n = m ? Number(m[1].replace(/,/g, "")) : NaN;
-    if (Number.isInteger(n) && n <= MAX_HEADCOUNT) return { fields: { employeeCount: n } };
+    if (Number.isInteger(n) && n <= MAX_HEADCOUNT) return { parsed: { fields: { employeeCount: n } }, personNames: names };
   }
-  return { fields: {}, note: firstFailure ?? NO_TABLE };
+  return { parsed: { fields: {}, note: firstFailure ?? NO_TABLE }, personNames: names };
 }

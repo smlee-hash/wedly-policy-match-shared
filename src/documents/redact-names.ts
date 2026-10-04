@@ -4,6 +4,7 @@
 // 이 함수가 묶음 전체의 이름이 모인 뒤 다음을 한다.
 //  - 업종(fields·충돌 선택지): 이름을 지운 **뒤에** 40자로 자르고 앞뒤 구분표를 정리한다. 지우고 나면 같아지는 값은 한 값으로 합친다.
 //  - 파일 이름(sources·충돌 선택지·files 의 name·message): 이름을 「○○○」로 바꾼다(파일 이름 자체는 남긴다).
+//    파일 이름은 이름을 바꾼 **뒤에** 100자로 자른다(먼저 자르면 이름 앞 조각 「김지」가 남는다). message 는 자르지 않는다.
 //  - 이름을 지워 업종이 사라진 파일은 칸 목록에서 업종을 빼고, 칸이 하나도 안 남으면 「채울 값 없음」으로 바꾼다.
 // ★입력 객체는 바꾸지 않는다.
 
@@ -19,6 +20,13 @@ import type {
 
 /** 파일 이름 속 사람 이름을 바꾸는 글 */
 export const NAME_MASK = "○○○";
+/** 결과에 내보내는 파일 이름의 최대 글자 수 */
+export const FILE_NAME_MAX_CHARS = 100;
+
+/** 파일 이름을 글자(코드 포인트) 100자까지만 남긴다. */
+export function cutFileName(name: string): string {
+  return Array.from(name).slice(0, FILE_NAME_MAX_CHARS).join("");
+}
 
 interface IndustryGroup {
   value: string;
@@ -38,7 +46,9 @@ export function redactKnownNames(
 ): DocumentPrefillResult {
   const remover = personNameRegex(names);
   const mask = (text: string): string => (remover ? text.replace(remover, NAME_MASK) : text);
-  const maskAll = (files: readonly string[]): string[] => [...new Set(files.map(mask))];
+  // 파일 이름: 이름을 바꾼 뒤에 자른다. 자르면 같아지는 이름은 한 번만 남긴다.
+  const maskName = (text: string): string => cutFileName(mask(text));
+  const maskAll = (files: readonly string[]): string[] => [...new Set(files.map(maskName))];
 
   // 업종 값 묶음: 충돌이면 선택지마다, 아니면 확정 값 하나(출처와 함께).
   const conflictAt = result.conflicts.findIndex((c) => c.field === "industry");
@@ -122,7 +132,7 @@ export function redactKnownNames(
     if (lostIndustry && out.fields.length === 0) {
       out = { name: file.name, docType: file.docType, status: "no-fields", message: emptyMessageOf(file), fields: [] };
     }
-    out.name = mask(out.name);
+    out.name = maskName(out.name);
     if (out.message !== undefined) out.message = mask(out.message);
     return out;
   });
