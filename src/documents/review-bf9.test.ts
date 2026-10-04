@@ -1,7 +1,7 @@
 // 재리뷰(Astra 8차) BF9 — 한 줄 매출 라벨 상한을 없애도 당기 매출을 읽고, 라벨을 되풀이한 줄이 오래 걸리지 않는다.
 // ★표본은 전부 지어낸 값이다.
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { readDocuments } from "./index";
 import { parseFinancial } from "./parse-financial";
 import { txtOf } from "./__fixtures__/samples";
@@ -93,5 +93,24 @@ describe("BF10 머리글 줄·단위 표기를 되풀이해도 빨리 끝난다(
     const text = "손익계산서\n(단위: 백만원)\n자산 1\n(단위: 천원)\n매출액 5\n(단위: 원)";
     expect(fs(text).fields.lastYearRevenueKrw).toBe(5_000);
     expect(fs("손익계산서\n매출액 7\n(단위: 천원)").fields.lastYearRevenueKrw).toBe(7_000);
+  });
+});
+
+describe("BF12 머리글로 고른 긴 금액은 숫자로 한 번만 바꾼다(10차 리뷰)", () => {
+  it("라벨이 n번 되풀이돼도 긴 금액 글자를 숫자로 바꾸는 일은 한 번", () => {
+    const n = 512;
+    const text = "손익계산서\n과목\t당기\t전기\n" + "매출액 (1) ".repeat(n) + "\t" + "9".repeat(n) + "\t900";
+    const real = globalThis.Number;
+    let longConversions = 0;
+    const spy = vi.spyOn(globalThis, "Number").mockImplementation(((v?: unknown) => {
+      if (typeof v === "string" && v.length >= n) longConversions++;
+      return real(v);
+    }) as NumberConstructor);
+    try {
+      fs(text);
+    } finally {
+      spy.mockRestore();
+    }
+    expect(longConversions).toBeLessThanOrEqual(1);
   });
 });

@@ -16,6 +16,9 @@ import {
   formatWon,
   glanceOf,
   groupBlocks,
+  isFundingTab,
+  matchesFundingQuery,
+  matchesFundingTab,
   normalizeAmountUnits,
   splitByFit,
   whyOf,
@@ -23,6 +26,7 @@ import {
   type FundingItem,
   type FundingMapData,
   type FundingSort,
+  type FundingTab,
 } from "../funding/funding-map";
 import {
   checkCondition,
@@ -218,6 +222,12 @@ export interface BuildFundingMapOptions {
   sort?: FundingSort;
   /** 갈래 한 칸에 실을 최대 건수(통합 상세창 추천 탭은 3). */
   topN?: number;
+  /**
+   * 검색어·탭 — 갈래마다 topN 으로 **자르기 전에** 건다(`groupBlocks`). 화면에서만 거르면 잘린 뒤라
+   * 81번째 공고는 어느 검색으로도 못 찾는다. 앱 통로는 `parseFundingSearch` 로 검사한 값만 넘긴다.
+   */
+  query?: string;
+  tab?: FundingTab;
 }
 
 /**
@@ -227,6 +237,14 @@ export interface BuildFundingMapOptions {
  * 항상 숨기는 것까진 맞아도, 옛 필드 이름이 타입 밖에 남아 tsc 가 걸린다).
  */
 const NO_FILTERS: FundingFilters = { openOnly: false, soonOnly: false, includeExcluded: false };
+
+/** 검색어·탭을 건 뒤 남는 수. 둘 다 비었으면 그대로 — 거르는 규칙은 `groupBlocks` 와 같은 두 함수다. */
+function searchedCount(items: FundingItem[], rawQuery: string | undefined, rawTab: unknown): number {
+  const query = (rawQuery ?? "").trim();
+  const tab: FundingTab = isFundingTab(rawTab) ? rawTab : "all";
+  if (query === "" && tab === "all") return items.length;
+  return items.filter((it) => matchesFundingTab(it, tab) && matchesFundingQuery(it, query)).length;
+}
 
 /** Prisma Json 칸 → 대상 규칙. 값 검사는 rulesToConditions 가 키마다 다시 한다(모양이 이상하면 조건을 안 만든다). */
 function readTargetRules(raw: unknown): ProductTargetRules {
@@ -955,6 +973,8 @@ export async function buildFundingMap(
     groups: groupBlocks(shown, {
       sort: opts.sort,
       topN: opts.topN,
+      query: opts.query,
+      tab: opts.tab,
       excludedPool: excludedShown,
       includeExcluded: filters.includeExcluded,
     }),
@@ -968,7 +988,8 @@ export async function buildFundingMap(
     // 화면이 「상위 N 건만 실렸다」와 「칩으로 몇 건이 빠졌다」를 구분해 말할 수 있게 둘 다 준다.
     // `all` 은 **묶고(dedupKey) 쌍둥이 상품까지 접은 뒤** 건수다(13차 #5) — 접힌 줄까지 세면
     // 화면 발 hint 가 지도에 없는 줄을 말한다.
-    totals: { all: allCount, filtered: shown.length },
+    // 검색어·탭을 걸었으면 「조건에 맞는」 수도 그 둘을 건 뒤 수다 — 갈래 칸(groupBlocks)과 같은 잣대.
+    totals: { all: allCount, filtered: searchedCount(shown, opts.query, opts.tab) },
     generatedAt: now.toISOString(),
   };
 }

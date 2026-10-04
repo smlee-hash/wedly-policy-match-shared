@@ -139,6 +139,8 @@ interface PickedAmount {
   unit?: number;
   /** 괄호 숫자(「(1,234)」)나 △·- 가 붙은 음수 금액. 매출로 쓰지 않는다. */
   negative?: true;
+  /** `amount` 를 숫자로 바꾼 값 — 한 줄의 라벨들이 같은 금액을 고르면 다시 바꾸지 않는다(처음 쓸 때 채운다). */
+  num?: number;
 }
 
 /**
@@ -287,7 +289,7 @@ export function parseFinancial(body: DocumentBody, docType: FinancialDocType): P
     for (let m = labels.exec(line); m; m = labels.exec(line)) {
       const picked = pickAmount(lines, i, re, m, layoutOnce);
       if (picked === null) continue;
-      const value = Number(picked.amount.replace(/,/g, ""));
+      const value = (picked.num ??= Number(picked.amount.replace(/,/g, "")));
       // 칸 값에 단위가 적혀 있으면 그것을 쓰고, 없을 때만 머리글·본문의 「단위: …」를 곱한다(두 번 곱하지 않게).
       const krw = Math.round(value * (picked.unit ?? multiplierAt((units ??= unitsOf(text)), offset + m.index)));
       if (Number.isFinite(krw) && krw >= 0 && krw <= MAX_KRW) {

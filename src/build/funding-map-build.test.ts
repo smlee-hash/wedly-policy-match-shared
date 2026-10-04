@@ -1540,3 +1540,40 @@ describe("상품 접기 — 필터를 켜도 상품의 확인 조건이 공고�
     expect(item!.fitVerdict).not.toBe("fit");
   });
 });
+
+describe("BF11 — 검색어·탭은 80건으로 자르기 전에 서버에서 건다", () => {
+  const many = () =>
+    Array.from({ length: 81 }, (_, i) =>
+      ann({
+        id: `a${i}`,
+        url: `https://bizinfo.go.kr/a${i}`,
+        dedupKey: `k${i}`,
+        title: i === 80 ? "2026년 해양바이오 특화 지원사업 공고" : `2026년 소상공인 지원사업 ${i}차 공고`,
+      }),
+    );
+
+  it("검색어를 넘기면 그 낱말이 든 공고만 실린다 — 81번째 공고도 찾는다", async () => {
+    loadOpenAnnouncements.mockResolvedValue(many());
+    const data = await buildFundingMap({}, NOW, { query: "해양바이오" });
+    const shown = shownOf(data.groups);
+    expect(shown).toHaveLength(1);
+    expect(shown[0].title).toContain("해양바이오");
+    // 「조건에 맞는 N건」도 검색을 건 뒤 수 — 전체(all)는 그대로 81건 + 손 등록 명부
+    expect(data.totals).toEqual({ all: 81 + MANUAL_N, filtered: 1 });
+  });
+
+  it("탭을 넘기면 그 갈래만 실린다", async () => {
+    loadOpenAnnouncements.mockResolvedValue([ann()]);
+    productFindMany.mockResolvedValue([prod()]);
+    const data = await buildFundingMap({}, NOW, { tab: "bank" });
+    const shown = shownOf(data.groups);
+    expect(shown.length).toBeGreaterThan(0);
+    expect(shown.every((it) => it.group === "bank")).toBe(true);
+  });
+
+  it("안 넘기면 예전처럼 전부(갈래당 80건까지)", async () => {
+    loadOpenAnnouncements.mockResolvedValue(many());
+    const data = await buildFundingMap({}, NOW);
+    expect(shownOf(data.groups).filter((it) => it.group === "grant")).toHaveLength(80);
+  });
+});
