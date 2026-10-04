@@ -73,3 +73,25 @@ describe("BF9-2 라벨을 수만 번 되풀이한 줄도 빨리 끝난다", () =
     expect(value.fields.lastYearRevenueKrw).toBe(5_000);
   });
 });
+
+describe("BF10 머리글 줄·단위 표기를 되풀이해도 빨리 끝난다(9차 리뷰)", () => {
+  const n = 4_000;
+  const cases: Array<[string, string]> = [
+    ["코드 열 머리글 + 코드 숫자 묶음 + 음수 라벨 되풀이", `손익계산서\n과목\t코드\t비고\n매출액 ${"01 ".repeat(n)}${"매출액 (1) ".repeat(n)}\t0101\t메모`],
+    ["당기 열 머리글 + 범위를 넘는 긴 금액 칸", `손익계산서\n과목\t당기\t전기\n${"매출액 (1) ".repeat(n)}\t${"9".repeat(n)}\t900`],
+    ["범위를 넘는 금액과 단위 표기 되풀이", `손익계산서\n${"매출액 9999999999999999 단위:원 ".repeat(n)}`],
+  ];
+  for (const [name, text] of cases) {
+    it(name, () => {
+      const { value, ms } = timed(() => fs(text));
+      expect(ms).toBeLessThan(300);
+      expect(value.fields.lastYearRevenueKrw).toBeUndefined();
+    });
+  }
+
+  it("단위는 여전히 매출 줄 앞의 가장 가까운 표기를 쓴다", () => {
+    const text = "손익계산서\n(단위: 백만원)\n자산 1\n(단위: 천원)\n매출액 5\n(단위: 원)";
+    expect(fs(text).fields.lastYearRevenueKrw).toBe(5_000);
+    expect(fs("손익계산서\n매출액 7\n(단위: 천원)").fields.lastYearRevenueKrw).toBe(7_000);
+  });
+});

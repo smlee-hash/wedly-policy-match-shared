@@ -79,8 +79,20 @@ function unitsOf(text: string): UnitMark[] {
 /** 매출 줄의 위치 앞에서 가장 가까운 단위. 앞에 없으면 글에서 처음 나온 단위. 표기가 없으면 원(1). */
 function multiplierAt(units: UnitMark[], at: number): number {
   if (units.length === 0) return 1;
-  const before = units.filter((u) => u.index <= at);
-  const pick = before.length > 0 ? before[before.length - 1] : units[0];
+  // units 는 글 앞에서부터 찾은 순서라 자리가 늘어난다 — at 이하인 마지막 자리를 반으로 나눠 찾는다(후보마다 전체를 훑지 않게).
+  let lo = 0;
+  let hi = units.length - 1;
+  let found = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (units[mid].index <= at) {
+      found = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  const pick = found >= 0 ? units[found] : units[0];
   return UNIT_MULTIPLIER[pick.name] ?? 1;
 }
 
@@ -204,6 +216,11 @@ interface LineLayout {
   aligned: boolean;
   /** 코드 열을 뺀 줄과 그 안의 첫 라벨(코드 열이 있는 머리글일 때만). */
   codeless?: { scan: string; hit: RegExpExecArray | null };
+  /**
+   * 금액 열이나 코드 열 머리글로 읽는 줄은 어느 라벨에서 불러도 고르는 값이 같다 — 처음 한 번 고른 값을 담아 두고 다시 쓴다.
+   * (라벨을 되풀이한 줄이 같은 칸·같은 숫자 묶음을 라벨마다 다시 읽지 않게.)
+   */
+  linePick?: { value: PickedAmount | null };
 }
 
 function layoutOf(lines: string[], at: number, label: RegExp): LineLayout {
@@ -230,16 +247,23 @@ function pickAmount(lines: string[], at: number, label: RegExp, m: RegExpExecArr
   const line = lines[at];
   // 라벨 바로 뒤에 금액 토큰(음수 포함)이 없으면 매출 줄이 아니다(「매출액 증가율 5.0」). 열로 읽기 전에도 같은 문을 지난다.
   if (!hasAmountAfterLabel(line, m)) return null;
-  const { header, cells, aligned, codeless } = layout();
+  const lay = layout();
+  const { header, cells, aligned, codeless } = lay;
   if (header !== null && aligned && header.amountAt >= 0) {
     // 머리글에서 금액·당기 열을 찾았으면 그 열 칸만 읽는다. 칸이 비었거나 숫자가 아니면 옆의
     // 코드·전기·비고 값으로 대신하지 않는다 — 틀린 값의 매출보다 빈 칸이 낫다.
-    return amountCell(cells[header.amountAt]);
+    lay.linePick ??= { value: amountCell(cells[header.amountAt]) };
+    return lay.linePick.value;
   }
-  const scan = codeless ? codeless.scan : line;
-  const hit = codeless ? codeless.hit : m;
-  if (!hit) return null;
-  // 머리글로 열을 못 고른 줄: 코드 모양을 뺀 첫 금액을 본다. 그것이 음수이면 정하지 않는다(뒤의 양수로 대신하지 않는다).
+  if (codeless) {
+    lay.linePick ??= { value: codeless.hit ? firstUsable(codeless.scan, codeless.hit) : null };
+    return lay.linePick.value;
+  }
+  return firstUsable(line, m);
+}
+
+/** 머리글로 열을 못 고른 줄: 코드 모양을 뺀 첫 금액을 본다. 그것이 음수이면 정하지 않는다(뒤의 양수로 대신하지 않는다). */
+function firstUsable(scan: string, hit: RegExpExecArray): PickedAmount | null {
   const picked = numbersAfterLabel(scan, hit, usableToken).find(usableToken);
   return picked && !picked.negative ? picked : null;
 }
