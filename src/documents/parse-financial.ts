@@ -47,6 +47,9 @@ const PERIOD_LABEL_RE = /사업\s*연도|사업\s*년도|과세\s*기간|귀속/
 /** 기간 모양이 아니고 「사업연도 2025」처럼 해만 적힌 경우 */
 const YEAR_ONLY_RE = /(?:사업\s*연도|사업\s*년도|귀속\s*(?:연도|년도)?)\s*[:：]?\s*(\d{4})\s*년?(?!\s*[.\-/\d])/;
 
+/** 한 줄에서 금액을 찾아볼 매출 라벨 수 상한 — 라벨을 수만 번 되풀이한 줄이 처리 시간을 잡아먹지 않게. */
+const MAX_LABELS_PER_LINE = 4;
+
 const NOTHING_FOUND = "매출을 찾지 못했습니다. 손익계산서의 매출액이나 부가세 신고서의 과세표준 합계가 보이는 글자 있는 PDF·엑셀로 올려 주세요.";
 
 function validYear(y: number): number | undefined {
@@ -210,7 +213,8 @@ export function parseFinancial(body: DocumentBody, docType: FinancialDocType): P
     const line = lines[i];
     // 한 줄에 라벨이 여럿이면 금액을 읽을 수 있는 첫 라벨을 쓴다.
     const labels = new RegExp(re.source, "g");
-    for (let m = labels.exec(line); m; m = labels.exec(line)) {
+    let tried = 0;
+    for (let m = labels.exec(line); m && tried < MAX_LABELS_PER_LINE; m = labels.exec(line), tried++) {
       const picked = pickAmount(lines, i, re, m);
       if (picked === null) continue;
       const value = Number(picked.amount.replace(/,/g, ""));

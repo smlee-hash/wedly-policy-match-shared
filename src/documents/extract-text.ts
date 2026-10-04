@@ -576,16 +576,22 @@ function clampSheetRange(ws: XLSX.WorkSheet): boolean {
   return over;
 }
 
-/** 파일이 적은 시트 범위(`dimension`)가 실제 칸보다 작으면(거짓 범위) 상한 안의 실제 칸까지 넓힌다 — 범위 밖 줄을 글에서 놓치지 않게. */
-function widenSheetRange(ws: XLSX.WorkSheet, maxR: number, maxC: number): void {
-  if (maxR < 0) return;
+/**
+ * 파일이 적은 시트 범위(`dimension`)가 실제 칸보다 좁으면(거짓 범위) 상한 안의 실제 칸까지 넓힌다 — 시작(머리글·첫 열)과
+ * 끝 어느 쪽이든 범위 밖 칸을 글에서 놓치지 않게. `box` 는 값이 있는 칸들의 [최소 행, 최소 열, 최대 행, 최대 열].
+ */
+function widenSheetRange(ws: XLSX.WorkSheet, box: [number, number, number, number] | null): void {
+  if (box === null) return;
+  const [minR, minC, maxR, maxC] = box;
   let range: XLSX.Range;
   try {
-    range = ws["!ref"] ? XLSX.utils.decode_range(ws["!ref"]) : { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
+    range = ws["!ref"] ? XLSX.utils.decode_range(ws["!ref"]) : { s: { r: minR, c: minC }, e: { r: maxR, c: maxC } };
   } catch {
-    range = { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
+    range = { s: { r: minR, c: minC }, e: { r: maxR, c: maxC } };
   }
-  if (range.e.r >= maxR && range.e.c >= maxC) return;
+  if (range.s.r <= minR && range.s.c <= minC && range.e.r >= maxR && range.e.c >= maxC) return;
+  range.s.r = Math.min(range.s.r, minR);
+  range.s.c = Math.min(range.s.c, minC);
   range.e.r = Math.max(range.e.r, maxR);
   range.e.c = Math.max(range.e.c, maxC);
   ws["!ref"] = XLSX.utils.encode_range(range);
@@ -593,8 +599,7 @@ function widenSheetRange(ws: XLSX.WorkSheet, maxR: number, maxC: number): void {
 
 function sheetOf(name: string, ws: XLSX.WorkSheet, date1904: boolean): SheetData {
   const cells: Record<string, string> = {};
-  let maxR = -1;
-  let maxC = -1;
+  let box: [number, number, number, number] | null = null;
   for (const addr of Object.keys(ws)) {
     // 칸 이름처럼 생긴 것만 본다 — 엑셀 속 이름은 파일이 정하므로 믿지 않는다.
     if (!CELL_ADDRESS.test(addr)) continue;
@@ -603,10 +608,9 @@ function sheetOf(name: string, ws: XLSX.WorkSheet, date1904: boolean): SheetData
     const text = cellText(ws[addr] as XLSX.CellObject, date1904);
     if (!text) continue;
     cells[addr] = text;
-    if (r > maxR) maxR = r;
-    if (c > maxC) maxC = c;
+    box = box === null ? [r, c, r, c] : [Math.min(box[0], r), Math.min(box[1], c), Math.max(box[2], r), Math.max(box[3], c)];
   }
-  widenSheetRange(ws, maxR, maxC);
+  widenSheetRange(ws, box);
   const rangeCut = clampSheetRange(ws);
   const csv = XLSX.utils.sheet_to_csv(ws).trimEnd();
   const full = `## ${name}\n${csv}`;
@@ -787,13 +791,15 @@ function sheetRowsInOrder(buf: Buffer): SheetOrderRow[] | null {
   const out: SheetOrderRow[] = [];
   try {
     const zip = new AdmZip(buf);
-    const byPath = new Map<string, AdmZip.IZipEntry>();
+    // 정리하면 같은 경로가 되는 칸이 둘 이상이면(`xl/./worksheets/…`·대소문자 차이) 읽기 도구가 어느 쪽을 읽을지 모른다 —
+    // 그 경로는 null 로 두어 마지막 줄을 모르는 시트(=잘림)로 본다.
+    const byPath = new Map<string, AdmZip.IZipEntry | null>();
     for (const entry of zip.getEntries()) {
       const key = normalizedEntryPath(entry.entryName);
-      if (!byPath.has(key)) byPath.set(key, entry);
+      byPath.set(key, byPath.has(key) ? null : entry);
     }
-    const bookEntry = byPath.get("xl/workbook.xml");
-    const relsEntry = byPath.get("xl/_rels/workbook.xml.rels");
+    const bookEntry = byPath.get("xl/workbook.xml") ?? undefined;
+    const relsEntry = byPath.get("xl/_rels/workbook.xml.rels") ?? undefined;
     const book = bookEntry ? readEntryText(bookEntry) : null;
     const rels = relsEntry ? readEntryText(relsEntry) : null;
     if (book === null) return out;
@@ -806,7 +812,7 @@ function sheetRowsInOrder(buf: Buffer): SheetOrderRow[] | null {
     for (const tag of tagsOf(book, "sheet")) {
       const rid = relIdOf(tag);
       const path = rid ? targets.get(rid) : undefined;
-      const entry = path ? byPath.get(path) : undefined;
+      const entry = path ? (byPath.get(path) ?? undefined) : undefined;
       const row: SheetOrderRow = { name: attrOf(tag, "name") };
       if (entry) {
         const xml = readEntryText(entry);

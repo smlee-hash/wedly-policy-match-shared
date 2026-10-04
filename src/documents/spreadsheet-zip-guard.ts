@@ -150,6 +150,10 @@ function rejectZip64(buf: Buffer): SpreadsheetZipPreflight | null {
     if (found >= 0 && found < eocd) return tooLarge();
   }
 
+  // 읽기 도구는 디렉터리 크기가 아니라 끝 레코드의 항목 수만큼 걷는다 — 크기를 0·짧게 적어 검사를 건너뛰지 못하게
+  // 실제로 걸은 항목 수가 끝 레코드의 항목 수와 같아야 한다.
+  if (entriesOnDisk !== entriesTotal) return invalid();
+  let walked = 0;
   let at = centralOffset;
   while (at < centralEnd) {
     if (at + CENTRAL_HEADER_SIZE > centralEnd || buf.readUInt32LE(at) !== CENTRAL_SIGNATURE) return invalid();
@@ -178,7 +182,9 @@ function rejectZip64(buf: Buffer): SpreadsheetZipPreflight | null {
     if (local === "broken") return invalid();
     if (local === "zip64") return tooLarge();
     at = next;
+    walked++;
   }
+  if (walked !== entriesTotal) return invalid();
   return null;
 }
 

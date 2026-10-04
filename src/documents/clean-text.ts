@@ -166,8 +166,16 @@ export function personNamesIn(text: string): string[] {
   return cleanPersonNames(found);
 }
 
-/** 이름 맞춰 보기용 글자 — 소문자로 바꾼다. 바꾸면 글자 수가 달라지는 드문 글자는 그대로 둔다. */
+/**
+ * 이름 맞춰 보기용 글자 — 대문자로 올렸다가 소문자로 내린다(그리스어 끝 시그마 ς·σ·Σ 처럼 소문자가 둘인 글자도 하나로 모인다).
+ * 바꾸면 글자 수가 달라지는 드문 글자는 소문자만, 그래도 달라지면 그대로 둔다.
+ */
 function foldChar(ch: string): string {
+  const upper = ch.toUpperCase();
+  if (Array.from(upper).length === 1) {
+    const folded = upper.toLowerCase();
+    if (Array.from(folded).length === 1) return folded;
+  }
   const lower = ch.toLowerCase();
   return Array.from(lower).length === 1 ? lower : ch;
 }
