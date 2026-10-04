@@ -4,6 +4,7 @@
 // ★주소는 **시도 + 시군구까지만** 남긴다. 도로명·번지·건물명은 결과 어디에도 내보내지 않는다.
 
 import { readRegionFromAddress } from "../engine/profile-derive";
+import type { SheetData } from "./extract-text";
 import type { DocumentFields } from "./types";
 
 /** 서류 하나에서 읽은 결과. year 는 서류 기준 연도(재무제표·부가세), note 는 못 읽었을 때의 짧은 안내. */
@@ -106,6 +107,61 @@ export function normalizeDate(text: string): string | null {
     return isoOf(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate());
   }
   return null;
+}
+
+/* ───────── 쉼표 표 ───────── */
+
+/** 쉼표 표(CSV) 한 줄을 칸으로 나눈다. 따옴표 속 쉼표와 겹따옴표(「""」)를 지킨다. */
+export function splitCsvLine(line: string): string[] {
+  const cells: string[] = [];
+  let cell = "";
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (quoted) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') {
+          cell += '"';
+          i++;
+        } else {
+          quoted = false;
+        }
+      } else {
+        cell += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === ",") {
+      cells.push(cell);
+      cell = "";
+    } else {
+      cell += ch;
+    }
+  }
+  cells.push(cell);
+  return cells;
+}
+
+/** 칸 뽑기가 받는 서류 내용 — 글 서류는 text, 엑셀은 sheets. */
+export interface DocumentBody {
+  text?: string;
+  sheets?: SheetData[];
+}
+
+/**
+ * 서류 내용을 줄 목록으로 펼친다. 엑셀은 시트 이름 줄(「## 이름」)을 빼고 칸 사이를 공백 둘로 이어
+ * 글 서류와 같은 줄 모양으로 맞춘다(숫자 속 쉼표가 칸 나눔으로 잘못 읽히지 않는다).
+ */
+export function bodyLines(body: DocumentBody): string[] {
+  const lines: string[] = [];
+  if (body.text) lines.push(...body.text.normalize("NFC").split(/\r\n|\r|\n/));
+  for (const sheet of body.sheets ?? []) {
+    for (const row of sheet.text.normalize("NFC").split(/\r\n|\r|\n/).slice(1)) {
+      const cells = splitCsvLine(row).map((c) => c.trim()).filter(Boolean);
+      if (cells.length > 0) lines.push(cells.join("  "));
+    }
+  }
+  return lines;
 }
 
 /* ───────── 주소 ───────── */

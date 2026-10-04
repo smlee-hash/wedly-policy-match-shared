@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addressFields, normalizeDate, parseKrwAmount } from "./parse-common";
+import { addressFields, normalizeDate, parseKrwAmount, splitCsvLine } from "./parse-common";
 
 describe("parseKrwAmount — 금액 표기를 원 단위로", () => {
   it.each([
@@ -56,6 +56,17 @@ describe("normalizeDate", () => {
 
   it.each([["2018-13-45"], ["2018-02-30"], ["1800-01-01"], ["어제"], [""], ["899"]])("%j → null", (text) => {
     expect(normalizeDate(text)).toBeNull();
+  });
+});
+
+describe("splitCsvLine — 쉼표 표 한 줄을 칸으로", () => {
+  it("따옴표 속 쉼표·겹따옴표를 지킨다", () => {
+    expect(splitCsvLine('Ⅰ.매출액,"1,234,567",987654')).toEqual(["Ⅰ.매출액", "1,234,567", "987654"]);
+    expect(splitCsvLine('"말 ""인용"" 끝",b')).toEqual(['말 "인용" 끝', "b"]);
+  });
+
+  it("빈 칸도 자리를 지킨다", () => {
+    expect(splitCsvLine("a,,c,")).toEqual(["a", "", "c", ""]);
   });
 });
 

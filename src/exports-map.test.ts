@@ -59,6 +59,32 @@ describe("exports 지도 — 별표(와일드카드) 주소", () => {
   }
 });
 
+describe("exports 지도 — 서류 올려 채우기(documents·profile-derive)", () => {
+  const 목적지: Record<string, string> = {
+    "./documents": "./src/documents/index.ts",
+    "./documents/types": "./src/documents/types.ts",
+    "./profile-derive": "./src/engine/profile-derive.ts",
+  };
+
+  it("앱이 부를 세 주소가 지도에 있고 목적지가 맞다", () => {
+    for (const [subpath, target] of Object.entries(목적지)) {
+      expect(pkg.exports[subpath], `${subpath} 가 exports 에 없다`).toBeDefined();
+      expect(targetsOf(pkg.exports[subpath]), `${subpath} 의 목적지`).toEqual([target, target]);
+    }
+  });
+
+  it("서버 모듈이 든 `documents` 는 와일드카드로 열지 않는다 — 낱개 두 주소만 부를 수 있다", () => {
+    const 열린 = Object.keys(pkg.exports).filter((subpath) => subpath.startsWith("./documents"));
+    expect(열린.sort()).toEqual(["./documents", "./documents/types"]);
+  });
+
+  it("화면이 가져가는 `documents/types` 는 서류 읽기 서버 모듈을 끌고 오지 않는다", () => {
+    const code = readFileSync(join(ROOT, "src/documents/types.ts"), "utf8");
+    const specs = [...code.matchAll(/\bfrom\s*["']([^"']+)["']/g)].map((m) => m[1]);
+    expect(specs).toEqual(["../engine/match-engine"]);
+  });
+});
+
 describe("exports 지도 — 새로 옮겨 온 화면·판정 지시문(P4)", () => {
   const 있어야 = [
     "./ai", "./ai/verdict", "./ai/breakthrough", "./ai/tacit-types",

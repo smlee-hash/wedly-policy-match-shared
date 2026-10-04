@@ -74,6 +74,24 @@ export interface FundingMapLoaders {
 }
 ```
 
+### 2-d. 서류 올려 회사 정보 채우기(`./documents`)
+
+사업자등록증·기업상태표·재무제표·부가세 신고서·고용보험 서류를 읽어 프로필 칸 후보를 만든다. **서버 전용**이다(pdf·엑셀·zip 을 읽는다) — 화면(`src/ui`)은 결과 모양만 든 `./documents/types` 하나만 가져온다(`src/documents/ui-boundary.test.ts` 가 잰다).
+
+```ts
+import { readDocuments } from "@wedly/policy-match-shared/documents";
+import { DOCUMENT_UPLOAD_LIMITS } from "@wedly/policy-match-shared/documents/types";
+import { deriveProfileFlags } from "@wedly/policy-match-shared/profile-derive";
+
+// aiReader 는 사진·스캔본을 읽는 앱의 함수다. 안 넘기면(랩) 사진은 「글자 있는 PDF로 올려 주세요」 안내만 한다.
+const result = await readDocuments(files, { aiReader });
+const profile = deriveProfileFlags({ ...saved, ...result.fields });
+```
+
+- 값이 서류끼리 다르면 `result.conflicts` 에 값마다 한 줄이 있고, `result.fields` 에는 추천 값(연도가 가장 최근인 값 → 같으면 사업자등록증 > 재무제표·부가세 > 고용보험 > 기업상태표)이 들어 있다.
+- 주민번호·대표자 이름·도로명 주소는 결과 어디에도 없다. 소재지는 시도+시군구까지만(`businessAddress`).
+- `deriveProfileFlags` 는 새 칸(`certTypes`·`patentCount`·`creditScoreNice` …)을 판정이 읽는 옛 칸(`hasCert`·`hasPatent`·`creditScore` …)으로 옮긴다. 새 칸이 없으면 옛 값을 건드리지 않는다.
+
 ### 2-b. Tailwind — 앱 `globals.css` 에 한 줄
 
 ```css
