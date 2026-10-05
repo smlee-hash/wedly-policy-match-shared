@@ -1494,6 +1494,20 @@ describe("ProfileForm — 번호가 바뀌는 모든 길에서 고객 열쇠를 
     expect(올린본문(fn, 1).get("customerKey")).toBeNull();
   });
 
+  it("붙이기 안내는 마지막으로 올린 결과만 따른다 — 붙인 뒤 다음 올리기가 실패하면 성공 안내를 지우고 실패 이유를 빨갛게", async () => {
+    const { 화면 } = 서류화면();
+    await 고객불러오기(화면, { companyName: "위들리테크" }, "위들리테크");
+    서류성공(읽은결과({ attachedToCustomer: true }));
+    let tree = await 서류고르기(화면, [가짜파일("등록증.pdf")]);
+    expect(글자(tree)).toContain("올린 서류를 고객 자료에 붙여 두었습니다");
+    서류성공(읽은결과({ attachMessage: "서류 원본을 고객 자료에 붙이지 못했습니다." }));
+    tree = await 서류고르기(화면, [가짜파일("등록증.pdf")]);
+    expect(글자(tree)).not.toContain("올린 서류를 고객 자료에 붙여 두었습니다");
+    const 안내 = 모든마디(tree).find((m) => m.props["data-doc-attach-note"] !== undefined);
+    expect(안내 && 글자(안내)).toBe("서류 원본을 고객 자료에 붙이지 못했습니다.");
+    expect(String(안내?.props.className)).toContain("text-wedly-red-ink");
+  });
+
   it("서류 응답의 번호가 불러온 번호와 같으면 열쇠를 그대로 보낸다", async () => {
     const { 화면 } = 서류화면();
     await 고객불러오기(화면, { companyName: "위들리테크", bizno: "123-81-45678" }, "위들리테크");

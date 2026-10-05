@@ -52,7 +52,7 @@ export function useDocumentUpload({ endpoint, customerKey, onResult }: UploadOpt
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [attached, setAttached] = useState(false);
-  const [attachNote, setAttachNote] = useState(""); // 못 붙였거나 일부를 뺀 이유 — 마지막으로 올린 결과 기준
+  const [attachNote, setAttachNote] = useState(""); // 못 붙였거나 일부를 뺀 이유 — attached 와 함께 마지막으로 올린 결과 기준
   const seq = useRef(0); // 목록 줄 번호
   const run = useRef(0); // 올리기 차례 번호 — reset 이 올린다
   const inflight = useRef<AbortController | null>(null);
@@ -83,8 +83,9 @@ export function useDocumentUpload({ endpoint, customerKey, onResult }: UploadOpt
         return;
       }
       setFiles((prev) => [...prev, ...j.data.files.map((result) => ({ id: ++seq.current, result }))]);
+      // 붙이기 안내는 마지막으로 올린 결과만 따른다 — 앞 성공이 남아 다음 실패와 함께 보이면 헷갈린다.
       const notice = attachNoticeOf(j.data);
-      if (notice.attached) setAttached(true);
+      setAttached(notice.attached);
       setAttachNote(notice.note);
       latest.current.onResult(j.data);
     } catch {
