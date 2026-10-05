@@ -40,7 +40,8 @@ export function valueImports(text: string, fileName = "x.tsx"): string[] {
   const sf = ts.createSourceFile("out.js", js, ts.ScriptTarget.ES2022, true, ts.ScriptKind.JS);
   const out: string[] = [];
   const literal = (e: ts.Expression | undefined) => {
-    const x = e && ts.skipPartiallyEmittedExpressions(ts.skipParentheses(e));
+    let x = e;
+    while (x && ts.isParenthesizedExpression(x)) x = x.expression;
     return x && (ts.isStringLiteral(x) || ts.isNoSubstitutionTemplateLiteral(x)) ? x.text : "?";
   };
   const visit = (n: ts.Node): void => {
