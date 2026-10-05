@@ -835,6 +835,13 @@ describe("ProfileForm — 채운 칸 세기·모름 안내·흐리게(unk) 표�
     const { 화면 } = 진단받기();
     expect(칸덩어리(화면.tree, "tax").props["data-unk"]).toBe("true");
     expect(칸덩어리(화면.tree, "nice").props["data-unk"]).toBe("true");
+    // 흐리게 = 반투명이면 글자 대비가 4.5 아래로 떨어진다(관문 axe 2.47~3.26) — 표시는 data-unk 로만, 투명도는 쓰지 않는다.
+    const 클래스들 = (t: 그림): string[] =>
+      Array.isArray(t) ? t.flatMap(클래스들)
+      : t && typeof t === "object" ? [String(t.props.className ?? ""), ...클래스들(t.props.children as 그림)]
+      : [];
+    expect(클래스들(칸덩어리(화면.tree, "corp")).join(" ")).not.toMatch(/opacity-/);
+    expect(클래스들(칸덩어리(화면.tree, "tax")).join(" ")).not.toMatch(/opacity-(?!50)/);
     칸단추누르기(화면, "tax", "없음");
     칸적기(화면, "nice", "780");
     expect(칸덩어리(화면.tree, "tax").props["data-unk"]).toBeUndefined();

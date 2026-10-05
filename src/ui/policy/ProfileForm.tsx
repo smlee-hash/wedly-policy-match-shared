@@ -67,10 +67,8 @@ const BTN_SECONDARY =
 const PICK_BASE =
   "inline-flex h-8 items-center rounded-lg border px-4 text-xs transition-colors " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wedly-accent";
-const PICK_ON = `${PICK_BASE} border-wedly-accent bg-wedly-bg-blue font-semibold text-wedly-accent`;
+const PICK_ON = `${PICK_BASE} border-wedly-accent bg-wedly-bg-blue font-semibold text-wedly-accent-ink`;
 const PICK_OFF = `${PICK_BASE} border-wedly-bd bg-white text-wedly-t2 hover:bg-wedly-bg-gray`;
-/** 「모름」 상태 칸은 흐리게 — 손을 대거나 올리면 또렷해진다. */
-const DIM = "opacity-70 transition-opacity focus-within:opacity-100 hover:opacity-100";
 const SECTION = "mt-6 flex flex-wrap items-baseline justify-between gap-2 text-base font-semibold leading-6 text-wedly-t1";
 /** 노란 안내 상자 — 서류마다 값이 달라 고르게 할 때. 대비가 낮아 테두리를 함께 둔다(상세 화면의 노란 상자와 같다). */
 const BOX_WARN = "rounded-xl border border-[var(--wedly-gold)]/30 bg-wedly-bg-yellow px-4 py-2";
@@ -275,14 +273,15 @@ function Field({
         {chip ? (
           <span className="flex flex-wrap items-center gap-2">
             <span className={LABEL}>{label}</span>
-            <span data-src={chip} className="rounded bg-wedly-bg-blue px-2 text-xs leading-[18px] text-wedly-accent">
+            <span data-src={chip} className="rounded bg-wedly-bg-blue px-2 text-xs leading-[18px] text-wedly-accent-ink">
               {chip}
             </span>
           </span>
         ) : (
           <span className={LABEL}>{label}</span>
         )}
-        <span className={`mt-1 block ${dim ? DIM : ""}`}>{children}</span>
+        {/* 「모름」 칸은 투명도로 흐리지 않는다 — 글자 대비가 4.5 아래로 떨어진다(관문 axe 2.47~3.26). 표시는 data-unk 와 「모름」 단추로만. */}
+        <span className="mt-1 block">{children}</span>
       </Tag>
       {note && <span className="mt-1 block text-xs leading-[18px] text-wedly-t2">{note}</span>}
       {error ? (

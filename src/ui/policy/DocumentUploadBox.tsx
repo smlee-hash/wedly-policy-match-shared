@@ -117,13 +117,13 @@ export function useDocumentUpload({ endpoint, customerKey, onResult }: UploadOpt
   return { files, busy, error, attached, attachNote, upload, remove, reset };
 }
 
-/** 형식 표식 바탕 — 기존 WEDLY 토큰 색만 쓴다. */
+/** 형식 표식 바탕 — 기존 WEDLY 토큰 색만, 흰 글자 대비 4.5 이상인 것만 쓴다(초록·주황은 4.36·3.58 이라 진한 색). */
 const KIND_BG: Record<FileKind, string> = {
   PDF: "bg-wedly-red",
-  XLS: "bg-wedly-green",
+  XLS: "bg-wedly-green-ink",
   HWP: "bg-wedly-accent",
   DOC: "bg-wedly-t1",
-  IMG: "bg-wedly-orange",
+  IMG: "bg-wedly-gold-ink",
   FILE: "bg-wedly-muted",
 };
 const KIND_BADGE = "inline-flex shrink-0 items-center justify-center rounded text-xs font-bold text-white";
