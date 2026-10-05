@@ -1605,6 +1605,41 @@ describe("BF11 — 검색어·탭은 80건으로 자르기 전에 서버에서 �
     expect(filterFundingData(data, { tab: "all", query: "수여식" }).unclassified).toBe(1);
   });
 
+  // 12차 리뷰 P2① — 검색을 모르는 옛 통로의 응답은 「빠진 줄이 없다」만으로 서버 건수를 믿으면 안 된다.
+  it("옛 통로 응답(검색 표식 없음)은 받은 줄로 다시 센다 — 81건 중 앞 80건이 다 맞아도 80건", async () => {
+    loadOpenAnnouncements.mockResolvedValue(many());
+    const { search: _s, ...old } = await buildFundingMap({}, NOW);
+    void _s;
+    const shown = filterFundingData(old, { tab: "all", query: "지원사업" });
+    expect(shown.groups.find((b) => b.group === "grant")!.total).toBe(80);
+    expect(shown.search).toBeUndefined();
+  });
+
+  it("다른 검색어로 받은 자료는 서버 건수를 믿지 않는다", async () => {
+    loadOpenAnnouncements.mockResolvedValue(many());
+    const data = await buildFundingMap({}, NOW, { query: "소상공인" });
+    expect(data.groups.find((b) => b.group === "grant")!.total).toBe(80);
+    // 「1차」는 1·11·21…71차 여덟 건 — 서버가 「소상공인」으로 센 80건이 아니라 받은 줄로 다시 센 수
+    const shown = filterFundingData(data, { tab: "all", query: "1차" });
+    expect(shown.groups.find((b) => b.group === "grant")!.total).toBe(8);
+    expect(shown.search).toBeUndefined();
+  });
+
+  // 12차 리뷰 P2② — 미확인 줄을 일부만 받은 옛 응답은 전체 수를 받은 줄 수로 줄이지 않는다.
+  it("옛 통로 응답에서 미확인 81건 중 80건만 받았으면 전체 수 81을 그대로 둔다", async () => {
+    loadOpenAnnouncements.mockResolvedValue(
+      Array.from({ length: 81 }, (_, i) =>
+        ann({ id: `u${i}`, url: `https://bizinfo.go.kr/u${i}`, dedupKey: `u${i}`, title: `2026년 우수기업 현판 수여식 ${i}회 안내`, agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
+      ),
+    );
+    const { search: _s, ...old } = await buildFundingMap({}, NOW);
+    void _s;
+    expect(old.unclassified).toBe(81);
+    const shown = filterFundingData(old, { tab: "all", query: "수여식" });
+    expect(shown.unclassified).toBe(81);
+    expect(sectionsOf(shown).find((s) => s.key === "unclassified")!.total).toBe(80);
+  });
+
   it("검색 전 자료를 화면이 거르면 미확인 전체 수도 남은 줄로 다시 센다", async () => {
     loadOpenAnnouncements.mockResolvedValue(parked());
     const data = await buildFundingMap({}, NOW);

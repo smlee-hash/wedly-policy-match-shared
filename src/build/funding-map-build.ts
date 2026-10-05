@@ -239,9 +239,13 @@ export interface BuildFundingMapOptions {
 const NO_FILTERS: FundingFilters = { openOnly: false, soonOnly: false, includeExcluded: false };
 
 /** 검색어·탭을 건 뒤 남는 수. 둘 다 비었으면 그대로 — 거르는 규칙은 `groupBlocks` 와 같은 두 함수다. */
+/** 조립이 실제로 건 검색 조건 — `groupBlocks`·`searchedCount` 와 같은 다듬기(앞뒤 공백 제거·모르는 탭은 전체). */
+function searchOf(rawQuery: string | undefined, rawTab: unknown): { query: string; tab: FundingTab } {
+  return { query: (rawQuery ?? "").trim(), tab: isFundingTab(rawTab) ? rawTab : "all" };
+}
+
 function searchedCount(items: FundingItem[], rawQuery: string | undefined, rawTab: unknown): number {
-  const query = (rawQuery ?? "").trim();
-  const tab: FundingTab = isFundingTab(rawTab) ? rawTab : "all";
+  const { query, tab } = searchOf(rawQuery, rawTab);
   if (query === "" && tab === "all") return items.length;
   return items.filter((it) => matchesFundingTab(it, tab) && matchesFundingQuery(it, query)).length;
 }
@@ -846,6 +850,7 @@ export interface FundingMapResult extends FundingMapData {
    * 그대로 그려야 하므로). 여기서 필수로 좁혀 두면 나중에 빠뜨렸을 때 타입검사가 잡는다.
    */
   profileEmpty: boolean;
+  search: { query: string; tab: FundingTab };
   totals: {
     /**
      * 칩을 걸기 전 전체 건수(공고 + 상시 상품 + 손 등록) — **묶고 쌍둥이 상품을 접은 뒤**의 수다
@@ -991,6 +996,8 @@ export async function buildFundingMap(
     // 화면 발 hint 가 지도에 없는 줄을 말한다.
     // 검색어·탭을 걸었으면 「조건에 맞는」 수도 그 둘을 건 뒤 수다 — 갈래 칸(groupBlocks)과 같은 잣대.
     totals: { all: allCount, filtered: searchedCount(shown, opts.query, opts.tab) },
+    // 위 건수들이 어떤 검색어·탭을 건 뒤의 수인지 — 화면이 같은 조건일 때만 이 건수를 그대로 쓴다.
+    search: searchOf(opts.query, opts.tab),
     generatedAt: now.toISOString(),
   };
 }

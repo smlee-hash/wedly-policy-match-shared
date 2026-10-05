@@ -170,21 +170,22 @@ export function searchCutText(cut: SearchCut): string {
  */
 export function filterFundingData(data: FundingMapPayload, raw: ResultConditions): FundingMapPayload {
   const c: ResultConditions = { ...raw, query: normalizeQuery(raw.query) }; // 서버에 보낸 값과 같은 검색어로 거른다
-  if (noConditions(c)) return data;
+  // 서버가 바로 이 검색어·탭을 걸어 보낸 자료면 다시 거를 것이 없다 — 서버가 80건으로 **자르기 전에** 센
+  // 건수를 그대로 둔다(실려 온 줄로 다시 세면 81건짜리 검색이 「80건 전부」가 된다).
+  if (serverSearched(data, c)) return data;
+  // 여기부터는 검색을 모르는 옛 통로이거나 다른 조건으로 받은 자료다 — 서버 조건 표식을 떼서
+  // 아래에서 다시 센 건수를 서버 건수로 착각하지 않게 한다.
+  const { search: _unused, ...rest } = data;
+  void _unused;
+  if (noConditions(c)) return data.search === undefined ? data : rest; // 옛 통로 자료는 같은 자료 그대로(다시 그리기 안 만듦)
   if (isGroupTab(c.tab) && c.query.trim() === "") {
-    return { ...data, groups: data.groups.filter((b) => b.group === c.tab) };
+    return { ...rest, groups: rest.groups.filter((b) => b.group === c.tab) };
   }
   const keep = (it: FundingItem) => matchesFundingTab(it, c.tab) && matchesQuery(it, c.query);
-  const groups = data.groups
+  const groups = rest.groups
     .filter((b) => !isGroupTab(c.tab) || b.group === c.tab)
     .map((b) => {
       const items = b.items.filter(keep);
-      const excludedItems = b.excludedItems?.filter(keep);
-      // 서버가 같은 검색어·탭을 걸어 보낸 자료면 여기서 빠지는 줄이 없다 — 그때는 서버가 **자르기 전에** 센
-      // 건수를 그대로 둔다. 실려 온 줄(갈래마다 80건)로 다시 세면 81건짜리 검색이 「80건 전부」가 된다.
-      if (items.length === b.items.length && (excludedItems?.length ?? 0) === (b.excludedItems?.length ?? 0)) {
-        return b;
-      }
       const normal = items.filter((it) => !it.unclassified);
       const next: FundingMapPayload["groups"][number] = {
         ...b,
@@ -193,19 +194,26 @@ export function filterFundingData(data: FundingMapPayload, raw: ResultConditions
         fit: normal.filter((it) => it.fitVerdict === "fit").length,
         unverified: normal.filter((it) => it.fitVerdict === "unverified").length,
         soon: normal.filter(isSoon).length,
-        excludedItems,
+        excludedItems: b.excludedItems?.filter(keep),
       };
       // 서버가 센 미확인 건수는 서버가 걸었던 조건의 수다 — 화면이 다시 거른 뒤에는 남은 줄로 다시 센다.
       delete next.unclassifiedTotal;
       return next;
     });
-  // 미확인 전체 수도 남은 갈래의 미확인 수로 맞춘다 — 서버 수를 그대로 두면 검색에서 빠진 미확인 줄까지
-  // 「N건 중 M건만 보여 드림」에 남는다.
-  const unclassified = groups.reduce(
-    (n, b) => n + (b.unclassifiedTotal ?? b.items.filter((it) => it.unclassified).length),
-    0,
-  );
-  return { ...data, groups, unclassified };
+  // 미확인 전체 수: 미확인 줄을 **다 받았으면** 남은 줄 수가 정확한 답이다(검색에서 빠진 줄을 세지 않는다).
+  // 일부만 받았으면 받지 않은 줄이 검색에 맞는지 알 수 없다 — 그때는 서버 수를 그대로 두어
+  // 「N건 중 M건만 보여 드림」 안내가 사라지지 않게 한다.
+  const received = rest.groups.reduce((n, b) => n + b.items.filter((it) => it.unclassified).length, 0);
+  const unclassified =
+    received >= rest.unclassified
+      ? groups.reduce((n, b) => n + b.items.filter((it) => it.unclassified).length, 0)
+      : rest.unclassified;
+  return { ...rest, groups, unclassified };
+}
+
+/** 받은 자료가 서버가 지금 화면 조건(다듬은 검색어·탭)을 그대로 걸어 센 것인가. */
+export function serverSearched(data: FundingMapPayload, c: ResultConditions): boolean {
+  return data.search !== undefined && data.search.tab === c.tab && data.search.query === normalizeQuery(c.query);
 }
 
 export interface DiagnosisViewOptions {
