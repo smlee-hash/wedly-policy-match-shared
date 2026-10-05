@@ -21,7 +21,7 @@ function filesUnder(dir: string): string[] {
 function valueImports(file: string): string[] {
   const text = readFileSync(file, "utf8");
   const out: string[] = [];
-  const re = /^\s*(import|export)\s+(?!type\b)[^;]*?from\s+["'](\.[^"']+)["']/gms;
+  const re = /^\s*(import|export)\s+(?!type\b)[^;]*?from\s+["'](\.[^"']+)["']/gm;
   for (const m of text.matchAll(re)) out.push(m[2]);
   for (const m of text.matchAll(/import\(\s*["'](\.[^"']+)["']\s*\)/g)) out.push(m[1]);
   return out;
