@@ -47,9 +47,18 @@ export function valueImports(text: string, fileName = "x.tsx"): string[] {
   const visit = (n: ts.Node): void => {
     if ((ts.isImportDeclaration(n) || ts.isExportDeclaration(n)) && n.moduleSpecifier) out.push(literal(n.moduleSpecifier));
     else if (ts.isCallExpression(n)) {
-      const dyn = n.expression.kind === ts.SyntaxKind.ImportKeyword;
-      const req = ts.isIdentifier(n.expression) && n.expression.text === "require";
-      if (dyn || req) out.push(literal(n.arguments[0]));
+      let callee: ts.Expression = n.expression;
+      while (ts.isParenthesizedExpression(callee)) callee = callee.expression;
+      const dyn = callee.kind === ts.SyntaxKind.ImportKeyword;
+      const req = ts.isIdentifier(callee) && callee.text === "require";
+      if (dyn || req) {
+        out.push(literal(n.arguments[0]));
+        n.arguments.forEach(visit);
+        return;
+      }
+    } else if (ts.isIdentifier(n) && n.text === "require") {
+      // 호출 말고 다른 식(별칭·넘기기)으로 쓰인 require 는 어디로 가는지 모른다 — 실패로 친다.
+      out.push("?");
     }
     ts.forEachChild(n, visit);
   };
@@ -140,6 +149,9 @@ describe("화면 부품은 수집원 명부를 브라우저 코드로 싣지 않
     expect(caught(`export{SOURCE_DIRECTORY}from"../funding/source-directory";`)).toBe(true);
     expect(caught(`export async function f() { return (await import(("../funding/source-directory"))).SOURCE_DIRECTORY; }`)).toBe(true);
     expect(caught(`const r = require("../funding/source-directory");`)).toBe(true);
+    expect(caught(`export const d = (require)("../funding/source-directory").SOURCE_DIRECTORY;`)).toBe(true);
+    expect(caught(`const q = require; export const d = q("../funding/source-directory");`)).toBe(true);
+    expect(caught(`export const d = (import)("../funding/source-directory" as string);`.replace("(import)", "import"))).toBe(true);
     expect(caught(`const p = "../funding/" + "source-directory"; export const f = () => import(p);`)).toBe(true);
     expect(caught(`import type { SourceEntry } from "../funding/source-directory";`)).toBe(false);
     expect(caught(`import { type DirectoryStatus } from "../funding/source-directory";`)).toBe(false);
