@@ -40,7 +40,7 @@ import {
   whereWords,
   type FundingItem,
 } from "../funding/funding-map";
-import { SOURCE_DIRECTORY } from "../funding/source-directory";
+import { ANNOUNCEMENT_SOURCE_LABELS } from "../funding/source-labels";
 import type { ConditionVerdict } from "../engine/structure-types";
 
 /**
@@ -179,13 +179,12 @@ function ProductDetail({ item }: { item: FundingItem }) {
 }
 
 /**
- * 공고 수집원 이름표 — **수집원 정본 명부**(`source-directory.ts`)에서 만든다.
- * 손으로 표를 또 베끼면 명부가 바뀔 때 여기만 옛 이름으로 남는다(이름표가 실제 쓰임과 어긋나던 전례).
- * 명부에 없는 id 는 그대로 보여 준다 — 지어내지 않는다.
+ * 공고 수집원 이름표 — 이름만 담은 표(`source-labels.ts`)에서 읽는다.
+ * 수집원 정본 명부(`source-directory.ts`)를 여기서 가져오면 명부 전체(상태·주소·메모)가 브라우저 코드에
+ * 실린다(2026-10-05 랩 리뷰 P1). 이름은 시험이 명부와 대조한다.
+ * 표에 없는 id 는 그대로 보여 준다 — 지어내지 않는다.
  */
-const ANN_SOURCE_LABEL: Record<string, string> = Object.fromEntries(
-  SOURCE_DIRECTORY.filter((x) => x.id).map((x) => [x.id as string, x.label]),
-);
+const ANN_SOURCE_LABEL: Readonly<Record<string, string>> = ANNOUNCEMENT_SOURCE_LABELS;
 
 /** 구성원 한 줄 — 통로(`GET /api/policy-match/announcements?dedupKey=`)가 주는 칸 중 쓰는 것만. */
 interface MemberRow {

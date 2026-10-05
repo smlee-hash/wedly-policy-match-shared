@@ -151,3 +151,21 @@ describe("수집원 명부 — 상태 5종(2026-09-05 P0)", () => {
     expect(SOURCE_DIRECTORY.find((s) => s.label === "KOCCA 금융지원정보 API")).toBeUndefined();
   });
 });
+
+describe("공고 출처 이름표(source-labels) — 명부와 같은 이름만(2026-10-05)", () => {
+  it("id 가 있는 명부 줄과 이름표가 한 글자도 다르지 않다", async () => {
+    const { ANNOUNCEMENT_SOURCE_LABELS } = await import("./source-labels");
+    const fromDirectory = Object.fromEntries(
+      SOURCE_DIRECTORY.filter((s) => s.id).map((s) => [s.id as string, s.label]),
+    );
+    expect({ ...ANNOUNCEMENT_SOURCE_LABELS }).toEqual(fromDirectory);
+  });
+
+  it("이름표 값은 글자뿐이다 — 상태·주소·메모를 싣지 않는다", async () => {
+    const { ANNOUNCEMENT_SOURCE_LABELS } = await import("./source-labels");
+    for (const v of Object.values(ANNOUNCEMENT_SOURCE_LABELS)) {
+      expect(typeof v).toBe("string");
+      expect(v).not.toMatch(/https?:\/\//);
+    }
+  });
+});
