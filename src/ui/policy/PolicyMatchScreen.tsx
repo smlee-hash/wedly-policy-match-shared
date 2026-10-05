@@ -794,13 +794,16 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
       </section>
       </div>
 
-      <SourceDirectoryPanel
-        endpoint={endpoints.sources}
-        onExport={features?.exportSources}
-        actions={slots?.sourcesActions}
-        header={slots?.sourcesHeader}
-        trailingPaddingClass={features?.sourcesTrailingPaddingClass ?? ""}
-      />
+      {/* 수집원 자료는 통로를 넘긴 앱에만 — 랩·컨설턴트 앱은 안 넘기고, ERP는 관리자에게만 넘긴다. */}
+      {endpoints.sources && (
+        <SourceDirectoryPanel
+          endpoint={endpoints.sources}
+          onExport={features?.exportSources}
+          actions={slots?.sourcesActions}
+          header={slots?.sourcesHeader}
+          trailingPaddingClass={features?.sourcesTrailingPaddingClass ?? ""}
+        />
+      )}
 
       {/* 상세 서랍 — 진단 목록에서 행을 눌렀을 때 DetailPanel(조건 맞춰 보기·AI 판정·돌파구·피드백·강사 문의)이
           그대로 열린다. 탐색 판은 오른쪽 칸에 상세를 펼치므로 여기서는 진단 판일 때만 연다. */}

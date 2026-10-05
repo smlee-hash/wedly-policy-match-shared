@@ -31,9 +31,8 @@ const LAB_ENDPOINTS: PolicyMatchEndpoints = {
   announcements: "/api/policy-match/announcements",
   announcement: (id, o) => `/api/policy-match/announcements/${encodeURIComponent(id)}${o?.noAi ? "?noAi=1" : ""}`,
   diagnose: "/api/policy-match/diagnose",
-  sources: "/api/policy-match/sources",
   verdict: "/api/policy-match/verdict",
-  // breakthrough·askInstructor·sync·prefill 없음 — 랩엔 자료실도, 고객 표도, 수집기도 없다.
+  // sources·breakthrough·askInstructor·sync·prefill 없음 — 랩엔 수집원 현황도, 자료실도, 고객 표도, 수집기도 없다.
 };
 
 const browse: BrowseBundle = {
@@ -105,6 +104,16 @@ describe("① 수집 통로가 없으면 「지금 새로 받아오기」 단추
     const erp = renderToStaticMarkup(<PolicyMatchScreen endpoints={ERP_POLICY_MATCH_ENDPOINTS} />);
     expect(lab).not.toContain("지금 새로 받아오기");
     expect(erp).toContain("지금 새로 받아오기");
+  });
+});
+
+// ── ①-2 수집원 현황 — 수집원 통로를 넘긴 화면에만(ERP 관리자) ─────────────────
+describe("①-2 수집원 통로가 없으면 「수집원 현황」 판이 없다", () => {
+  it("랩·컨설턴트 앱처럼 sources 를 안 넘기면 그 판도 그 글자도 없고, 넘기면 있다(대조군)", () => {
+    const none = renderToStaticMarkup(<PolicyMatchScreen endpoints={LAB_ENDPOINTS} features={{ exportSources: async () => {} }} />);
+    const erp = renderToStaticMarkup(<PolicyMatchScreen endpoints={ERP_POLICY_MATCH_ENDPOINTS} />);
+    expect(none).not.toContain("수집원");
+    expect(erp).toContain("수집원 현황");
   });
 });
 

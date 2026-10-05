@@ -7,15 +7,15 @@ describe("주소 계약 — 서류 올리기 통로", () => {
   });
 
   it("서류 올리기 주소는 없어도 되는 통로다 — 안 넘긴 앱은 올리기 칸이 없다", () => {
-    // 필수 통로 다섯만 있어도 계약을 지킨다(랩이 이 모양으로 넘긴다).
+    // 필수 통로 넷만 있어도 계약을 지킨다(랩이 이 모양으로 넘긴다).
     const lab: PolicyMatchEndpoints = {
       fundingMap: "/api/policy-match/funding-map",
       announcements: "/api/policy-match/announcements",
       announcement: (id) => `/api/policy-match/announcements/${id}`,
       diagnose: "/api/policy-match/diagnose",
-      sources: "/api/policy-match/sources",
     };
     expect(lab.documentPrefill).toBeUndefined();
+    expect(lab.sources).toBeUndefined();
   });
 
   it("앞서 있던 통로 주소는 그대로다", () => {

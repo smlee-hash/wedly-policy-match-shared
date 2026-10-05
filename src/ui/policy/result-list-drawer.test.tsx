@@ -483,8 +483,9 @@ describe("옮긴 자리 목록 — 기존 기능이 새 자리에 그대로 있�
     expect(화면글).toContain("aiVerdictAvailable={!!endpoints.verdict}");
   });
 
-  it("출처 목록(SourceDirectoryPanel): 「수집원 현황」 판이 화면에 있고 앱의 조각이 그대로 전해진다", () => {
+  it("출처 목록(SourceDirectoryPanel): 통로를 넘긴 앱에만 「수집원 현황」 판이 있고 앱의 조각이 그대로 전해진다", () => {
     expect(처음화면).toContain("수집원 현황");
+    expect(화면글).toContain("{endpoints.sources && (");
     for (const 줄 of [
       "endpoint={endpoints.sources}",
       "onExport={features?.exportSources}",

@@ -34,7 +34,7 @@ export type PolicyMatchEndpoints = {
   announcements: string;         // GET ?q&status&page | ?dedupKey
   announcement: (id: string, opts?: { noAi?: boolean }) => string; // GET
   diagnose: string;              // POST
-  sources: string;               // GET
+  sources?: string;              // GET — 없으면 「수집원 현황」 판 미표시(랩·컨설턴트 앱은 안 넘긴다, ERP는 관리자에게만)
   verdict?: string;              // POST — 없으면 「AI 판정」 단추 미표시
   breakthrough?: string;         // POST — 없으면 「돌파구」 미표시
   askInstructor?: string;        // POST — 없으면 「자료실에 질문 저장」 미표시
