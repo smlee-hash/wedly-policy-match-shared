@@ -1605,6 +1605,16 @@ describe("BF11 — 검색어·탭은 80건으로 자르기 전에 서버에서 �
     expect(filterFundingData(data, { tab: "all", query: "수여식" }).unclassified).toBe(1);
   });
 
+  // 13차 리뷰 P2 — 서버 자료를 그대로 쓰더라도 묶음 탭이면 고른 갈래 카드만 남는다.
+  it.each(["", "소상공인"])("묶음 탭(grant)·검색어 「%s」 — 서버가 보낸 빈 갈래 카드는 그리지 않는다", async (query) => {
+    loadOpenAnnouncements.mockResolvedValue(many());
+    const data = await buildFundingMap({}, NOW, { query, tab: "grant" });
+    expect(data.groups.length).toBeGreaterThan(1);
+    const shown = filterFundingData(data, { tab: "grant", query });
+    expect(shown.groups.map((b) => b.group)).toEqual(["grant"]);
+    expect(shown.groups[0].total).toBe(data.groups.find((b) => b.group === "grant")!.total);
+  });
+
   // 12차 리뷰 P2① — 검색을 모르는 옛 통로의 응답은 「빠진 줄이 없다」만으로 서버 건수를 믿으면 안 된다.
   it("옛 통로 응답(검색 표식 없음)은 받은 줄로 다시 센다 — 81건 중 앞 80건이 다 맞아도 80건", async () => {
     loadOpenAnnouncements.mockResolvedValue(many());

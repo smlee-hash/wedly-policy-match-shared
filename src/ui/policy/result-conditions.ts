@@ -172,7 +172,10 @@ export function filterFundingData(data: FundingMapPayload, raw: ResultConditions
   const c: ResultConditions = { ...raw, query: normalizeQuery(raw.query) }; // 서버에 보낸 값과 같은 검색어로 거른다
   // 서버가 바로 이 검색어·탭을 걸어 보낸 자료면 다시 거를 것이 없다 — 서버가 80건으로 **자르기 전에** 센
   // 건수를 그대로 둔다(실려 온 줄로 다시 세면 81건짜리 검색이 「80건 전부」가 된다).
-  if (serverSearched(data, c)) return data;
+  // 묶음 탭이면 서버가 빈 갈래까지 여섯 칸을 보내므로 고른 카드만 남긴다(건수는 손대지 않는다).
+  if (serverSearched(data, c)) {
+    return isGroupTab(c.tab) ? { ...data, groups: data.groups.filter((b) => b.group === c.tab) } : data;
+  }
   // 여기부터는 검색을 모르는 옛 통로이거나 다른 조건으로 받은 자료다 — 서버 조건 표식을 떼서
   // 아래에서 다시 센 건수를 서버 건수로 착각하지 않게 한다.
   const { search: _unused, ...rest } = data;
