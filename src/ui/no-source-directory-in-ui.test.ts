@@ -128,7 +128,7 @@ describe("화면 부품은 수집원 명부를 브라우저 코드로 싣지 않
   it("src/ui 의 어느 파일에서 값 import 를 따라가도 명부·묶음 입구에 닿지 않는다", () => {
     const hits = filesUnder(join(SRC, "ui")).flatMap((f) => forbiddenPaths(f));
     expect(hits).toEqual([]);
-  });
+  }, 60_000); // 화면 파일마다 컴파일러로 바꿔 보므로 바쁜 기계에서 5초를 넘는다.
 
   it("검사기가 우회 import 방식을 모두 잡는다", () => {
     const drawer = join(SRC, "ui", "FundingDrawer.tsx");
