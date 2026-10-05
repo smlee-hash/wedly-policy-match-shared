@@ -860,6 +860,7 @@ export default function ProfileForm({
               busy={doc.busy}
               error={doc.error}
               attached={doc.attached}
+              attachNote={doc.attachNote}
               mode={documentPrefillMode}
               onPick={(picked) => void doc.upload(picked)}
               onRemove={doc.remove}

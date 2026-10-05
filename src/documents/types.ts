@@ -111,6 +111,8 @@ export interface DocumentPrefillResult {
   files: DocumentFileResult[];
   /** 고객 자료에 원본을 붙였으면 true(ERP·컨설턴트 앱에서 고객을 불러온 상태일 때만) */
   attachedToCustomer?: boolean;
+  /** 원본을 못 붙였거나 일부 파일을 빼고 붙였을 때 그 이유(쉬운 말) — 화면이 그대로 보인다 */
+  attachMessage?: string;
 }
 
 /** 서류 올리기 제한 — 서버와 화면이 같은 값을 쓴다. */

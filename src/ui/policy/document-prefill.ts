@@ -275,6 +275,14 @@ export function fileKindOf(name: string): FileKind {
   return "FILE";
 }
 
+/**
+ * 고객 자료 붙이기 결과 → 화면 안내. 붙였으면 attached, 못 붙였거나 일부를 뺐으면 서버가 준 이유를 note 로.
+ * 고객 없이 올린 경우(랩·고객 안 불러옴)는 둘 다 비어 아무것도 안 보인다.
+ */
+export function attachNoticeOf(result: DocumentPrefillResult): { attached: boolean; note: string } {
+  return { attached: result.attachedToCustomer === true, note: result.attachMessage?.trim() ?? "" };
+}
+
 /** 올린 파일 한 줄의 상태 문구 — 읽었으면 「N칸 채움」, 아니면 서버 안내 문구(없으면 쉬운 기본 문구). */
 export function fileStatusText(file: DocumentFileResult): string {
   if (file.status === "read" || file.status === "read-by-ai") return `${file.fields.length}칸 채움`;

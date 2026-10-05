@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyDocumentFields,
+  attachNoticeOf,
   checkUploadSelection,
   choiceOptionLabel,
   fileKindOf,
@@ -286,5 +287,26 @@ describe("fileKindOf·fileStatusText — 올린 파일 목록 한 줄", () => {
     expect(fileStatusText(파일({ status: "no-fields", docType: "unknown" }))).toBe("모르는 서류");
     expect(fileStatusText(파일({ status: "failed" }))).toContain("읽지 못");
     expect(fileStatusText(파일({ status: "too-large" }))).toContain("20MB");
+  });
+});
+
+describe("고객 자료 붙이기 안내 — 서버가 붙였는지·못 붙인 이유", () => {
+  it("붙였으면 붙였다고만 알린다", () => {
+    expect(attachNoticeOf(결과({ attachedToCustomer: true }))).toEqual({ attached: true, note: "" });
+  });
+  it("붙이지 못했고 이유가 오면 그 이유를 보인다", () => {
+    expect(attachNoticeOf(결과({ attachMessage: "고객을 하나로 찾지 못해 서류 원본을 붙이지 못했습니다." }))).toEqual({
+      attached: false,
+      note: "고객을 하나로 찾지 못해 서류 원본을 붙이지 못했습니다.",
+    });
+  });
+  it("붙였어도 일부 파일을 뺀 이유가 오면 함께 보인다", () => {
+    expect(attachNoticeOf(결과({ attachedToCustomer: true, attachMessage: "빈 파일 1개는 붙이지 않았습니다." }))).toEqual({
+      attached: true,
+      note: "빈 파일 1개는 붙이지 않았습니다.",
+    });
+  });
+  it("고객 없이 올렸으면(랩·고객 안 불러옴) 아무것도 알리지 않는다", () => {
+    expect(attachNoticeOf(결과({}))).toEqual({ attached: false, note: "" });
   });
 });

@@ -12,6 +12,7 @@ import {
 import type { DocumentPrefillResponse } from "./endpoints";
 import {
   FORMAT_CARDS,
+  attachNoticeOf,
   READABLE_DOCUMENT_LABELS,
   checkUploadSelection,
   fileKindOf,
@@ -51,6 +52,7 @@ export function useDocumentUpload({ endpoint, customerKey, onResult }: UploadOpt
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [attached, setAttached] = useState(false);
+  const [attachNote, setAttachNote] = useState(""); // 못 붙였거나 일부를 뺀 이유 — 마지막으로 올린 결과 기준
   const seq = useRef(0); // 목록 줄 번호
   const run = useRef(0); // 올리기 차례 번호 — reset 이 올린다
   const inflight = useRef<AbortController | null>(null);
@@ -81,7 +83,9 @@ export function useDocumentUpload({ endpoint, customerKey, onResult }: UploadOpt
         return;
       }
       setFiles((prev) => [...prev, ...j.data.files.map((result) => ({ id: ++seq.current, result }))]);
-      if (j.data.attachedToCustomer) setAttached(true);
+      const notice = attachNoticeOf(j.data);
+      if (notice.attached) setAttached(true);
+      setAttachNote(notice.note);
       latest.current.onResult(j.data);
     } catch {
       if (mine !== run.current) return; // 끊은 요청의 오류는 알리지 않는다
@@ -106,9 +110,10 @@ export function useDocumentUpload({ endpoint, customerKey, onResult }: UploadOpt
     setFiles([]);
     setError("");
     setAttached(false);
+    setAttachNote("");
   };
 
-  return { files, busy, error, attached, upload, remove, reset };
+  return { files, busy, error, attached, attachNote, upload, remove, reset };
 }
 
 /** 형식 표식 바탕 — 기존 WEDLY 토큰 색만 쓴다. */
@@ -128,13 +133,15 @@ interface BoxProps {
   error: string;
   /** 올린 서류를 고객 자료에 붙여 뒀다고 서버가 알렸는가 */
   attached: boolean;
+  /** 못 붙였거나 일부 파일을 빼고 붙인 이유 — 비면 안 보인다 */
+  attachNote?: string;
   /** 안내 방식 — attach(기본): 고객 자료에 붙여 둠 · lab: 저장 안 함, 사진은 글자 있는 PDF로 */
   mode?: "attach" | "lab";
   onPick: (files: File[]) => void;
   onRemove: (id: number) => void;
 }
 
-export default function DocumentUploadBox({ files, busy, error, attached, mode = "attach", onPick, onRemove }: BoxProps) {
+export default function DocumentUploadBox({ files, busy, error, attached, attachNote = "", mode = "attach", onPick, onRemove }: BoxProps) {
   const [hot, setHot] = useState(false);
   const lab = mode === "lab";
   const { maxFiles, maxFileBytes, acceptExtensions } = DOCUMENT_UPLOAD_LIMITS;
@@ -265,6 +272,11 @@ export default function DocumentUploadBox({ files, busy, error, attached, mode =
       </p>
       {!lab && attached && (
         <p className="mt-1 text-xs leading-[18px] text-wedly-green-ink">올린 서류를 고객 자료에 붙여 두었습니다</p>
+      )}
+      {!lab && attachNote && (
+        <p data-doc-attach-note className={`mt-1 text-xs leading-[18px] ${attached ? "text-wedly-t2" : "text-wedly-red-ink"}`}>
+          {attachNote}
+        </p>
       )}
     </div>
   );
