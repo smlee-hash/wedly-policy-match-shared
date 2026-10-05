@@ -53,7 +53,7 @@ export default function ResultDrawer({ open, title, onClose, children }: Props) 
       <div data-drawer="backdrop" className="absolute inset-0 bg-black/30" onClick={onClose} aria-hidden="true" />
       <div ref={panelRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} className={DRAWER_PANEL_CLASS}>
         <div className="flex shrink-0 items-start gap-3 border-b border-wedly-bd px-4 py-3">
-          <h2 className="line-clamp-2 min-w-0 flex-1 break-keep text-base font-semibold leading-6 text-wedly-t1">{title}</h2>
+          <h2 className="line-clamp-2 min-w-0 flex-1 break-keep text-wedly-section font-semibold text-wedly-t1">{title}</h2>
           <button type="button" onClick={onClose} className={BTN_CLOSE}>
             닫기
           </button>
