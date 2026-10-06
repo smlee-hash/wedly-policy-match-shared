@@ -54,6 +54,34 @@ export function verdictCountsOf(items: readonly FundingItem[]): Record<VerdictTa
   return counts;
 }
 
+/**
+ * 서버가 자르기 **전에** 센 판정별 개수 — 갈래 칸의 fit·unverified·excluded(찾기어를 건 요청이면 건 뒤 수).
+ * 받은 줄은 갈래마다 앞쪽 N건뿐이라 화면이 받은 줄로 세면 「어려움 480」처럼 실제보다 적게 보인다.
+ * 「종류 미확인」 줄은 서버 셈에 없으므로 화면은 받은 줄 수와 이 값 중 큰 쪽을 쓴다(`oneListViewOf`).
+ */
+export interface ServerVerdictCounts {
+  tab: Record<VerdictTab, number>;
+  byGroup: Record<FundingGroup, Record<VerdictTab, number>>;
+}
+
+export function serverVerdictCountsOf(data: FundingMapPayload | null): ServerVerdictCounts | null {
+  if (!data) return null;
+  const zero = (): Record<VerdictTab, number> => ({ fit: 0, unverified: 0, excluded: 0 });
+  const tab = zero();
+  const byGroup = Object.fromEntries(FUNDING_GROUPS.map((g) => [g, zero()])) as Record<FundingGroup, Record<VerdictTab, number>>;
+  for (const b of data.groups) {
+    const g = byGroup[b.group];
+    if (!g) continue;
+    g.fit += b.fit;
+    g.unverified += b.unverified;
+    g.excluded += b.excluded;
+    tab.fit += b.fit;
+    tab.unverified += b.unverified;
+    tab.excluded += b.excluded;
+  }
+  return { tab, byGroup };
+}
+
 /** 처음 보이는 탭 — 지원 가능, 그게 0건이면 확인 필요. */
 export function defaultVerdictTab(counts: Record<VerdictTab, number>): VerdictTab {
   return counts.fit > 0 ? "fit" : "unverified";
@@ -260,15 +288,36 @@ export interface OneListView {
   selected: FundingItem | null;
   /** 지금 탭이 0건일 때 다른 탭에 찾은 건수(0건 탭은 뺀다). */
   otherTabs: Array<{ tab: VerdictTab; label: string; count: number }>;
+  /** 지금 탭·칩의 실제 개수보다 받은 줄이 적으면 { 받은 수, 실제 수 } — 「앞쪽 N건만 불러왔어요」 안내. */
+  cut: { loaded: number; total: number } | null;
 }
 
-/** 받은 배열 + 상태 + 서버에 물은 찾기어 → 그릴 모양. 순수 함수. */
-export function oneListViewOf(items: FundingItem[], state: OneListState, askedQuery = ""): OneListView {
+/**
+ * 받은 배열 + 상태 + 서버에 물은 찾기어 → 그릴 모양. 순수 함수.
+ * `server` 가 있으면 탭·칩 숫자는 받은 줄 수와 서버가 자르기 전에 센 수 중 큰 쪽이다(`serverVerdictCountsOf`).
+ */
+export function oneListViewOf(
+  items: FundingItem[],
+  state: OneListState,
+  askedQuery = "",
+  server: ServerVerdictCounts | null = null,
+): OneListView {
   const searched = searchItems(items, askedQuery);
-  const counts = verdictCountsOf(searched);
+  const loadedCounts = verdictCountsOf(searched);
+  const counts: Record<VerdictTab, number> = server
+    ? {
+        fit: Math.max(loadedCounts.fit, server.tab.fit),
+        unverified: Math.max(loadedCounts.unverified, server.tab.unverified),
+        excluded: Math.max(loadedCounts.excluded, server.tab.excluded),
+      }
+    : loadedCounts;
   const tab = state.tab ?? defaultVerdictTab(counts);
   const tabItems = searched.filter((it) => verdictTabOf(it) === tab);
-  const chips = chipsOf(tabItems);
+  const chips = chipsOf(tabItems).map((c) => {
+    if (!server) return c;
+    const real = c.key === "all" ? counts[tab] : server.byGroup[c.key][tab];
+    return { ...c, count: Math.max(c.count, real) };
+  });
   const chip: ChipKey = chips.some((c) => c.key === state.chip && (c.key === "all" || c.count > 0)) ? state.chip : "all";
   const list = sortOneList(filterByChip(tabItems, chip), state.sort);
   const pageCount = pageCountOf(list.length);
@@ -281,5 +330,12 @@ export function oneListViewOf(items: FundingItem[], state: OneListState, askedQu
           tab: t.key, label: TAB_LABEL[t.key], count: counts[t.key],
         }))
       : [];
-  return { tab, counts, chips, chip, list, page, pageCount, pageItems, selected, otherTabs };
+  const chipTotal = chips.find((c) => c.key === chip)?.count ?? list.length;
+  const cut = list.length < chipTotal ? { loaded: list.length, total: chipTotal } : null;
+  return { tab, counts, chips, chip, list, page, pageCount, pageItems, selected, otherTabs, cut };
+}
+
+/** 받은 줄이 실제보다 적을 때의 안내 한 줄. */
+export function cutNoticeOf(cut: { loaded: number; total: number }): string {
+  return `${cut.total.toLocaleString("ko-KR")}건 중 추천 순 앞쪽 ${cut.loaded.toLocaleString("ko-KR")}건만 불러왔어요 · 공고 이름으로 찾으면 나머지도 찾아져요`;
 }

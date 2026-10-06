@@ -14,9 +14,9 @@ import { GROUP_TONE_TILE, cardFooterOf, type FundingMapPayload } from "../Fundin
 import { staleErrorText } from "./ResultGroupList";
 import {
   INITIAL_ONE_LIST_STATE, ONE_LIST_SORTS, VERDICT_TABS, ddayBadgeOf, defaultVerdictTab, flattenFundingItems,
-  groupTagOf, kindTagOf, lineTextOf, oneListReducer, oneListViewOf, searchItems, sourceNameOf, unknownNoticeOf,
+  cutNoticeOf, groupTagOf, kindTagOf, lineTextOf, oneListReducer, oneListViewOf, searchItems, serverVerdictCountsOf, sourceNameOf, unknownNoticeOf,
   verdictCountsOf, verdictTabOf,
-  type ChipKey, type OneListSort, type OneListState, type VerdictTab,
+  type ChipKey, type OneListSort, type OneListState, type ServerVerdictCounts, type VerdictTab,
 } from "./result-one-list";
 
 const FIELD =
@@ -104,6 +104,8 @@ function OneListRow({ item, selected, onSelect, footer }: {
 export interface ResultOneListViewProps {
   /** 평평하게 편 자료. 아직 못 받았으면 null(불러오는 중 뼈대 · 오류 상자). */
   items: FundingItem[] | null;
+  /** 서버가 자르기 전에 센 판정별 개수 — 탭·칩 숫자와 「앞쪽 N건만」 안내에 쓴다. 없으면 받은 줄로 센다. */
+  serverCounts?: ServerVerdictCounts | null;
   state: OneListState;
   /** 찾기 칸에 보이는 글 · 거르기에 쓰는(서버에 물은) 글 — 입력이 멈춘 뒤 따라간다. */
   query: string;
@@ -130,11 +132,11 @@ export interface ResultOneListViewProps {
 }
 
 export function ResultOneListView({
-  items, state, query, askedQuery, loading, error, unknownCount,
+  items, serverCounts = null, state, query, askedQuery, loading, error, unknownCount,
   onRetry, onTab, onChip, onQuery, onSort, onPage, onSelect, onFill, onEdit, renderRowFooter, renderDetail,
 }: ResultOneListViewProps) {
   const hasData = items !== null;
-  const view = oneListViewOf(items ?? [], state, askedQuery);
+  const view = oneListViewOf(items ?? [], state, askedQuery, serverCounts);
   const notice = hasData
     ? unknownNoticeOf({ unverifiedCount: view.counts.unverified, unknownFieldCount: unknownCount })
     : null;
@@ -237,6 +239,11 @@ export function ResultOneListView({
           <div
             className={`p-2 min-[821px]:min-h-0 min-[821px]:flex-1 min-[821px]:overflow-y-auto ${loading ? "opacity-60" : ""}`}
           >
+            {hasData && view.cut && (
+              <p data-area="list-cut-notice" className="mx-1 mb-2 rounded-lg bg-wedly-bg-gray px-3 py-2 text-wedly-hint text-wedly-t2">
+                {cutNoticeOf(view.cut)}
+              </p>
+            )}
             {error && hasData && (
               // 옛 자료가 남아 있어도 새로 받기가 실패한 것은 알린다 — 안 알리면 낡은 목록을 최신으로 오해한다.
               <div
@@ -369,12 +376,13 @@ export default function ResultOneList({
 }: Props) {
   const [state, dispatch] = useReducer(oneListReducer, INITIAL_ONE_LIST_STATE);
   const items = useMemo(() => (data ? flattenFundingItems(data) : null), [data]);
+  const serverCounts = useMemo(() => serverVerdictCountsOf(data), [data]);
 
   // 처음 받은 자료로 기본 탭(지원 가능, 0건이면 확인 필요)을 못 박는다 — 이후 찾기로 숫자가 바뀌어도 탭이 저절로 움직이지 않는다.
   useEffect(() => {
     if (!items || state.tab !== null) return;
-    dispatch({ type: "pinTab", tab: defaultVerdictTab(verdictCountsOf(searchItems(items, askedQuery))) });
-  }, [items, state.tab, askedQuery]);
+    dispatch({ type: "pinTab", tab: defaultVerdictTab(oneListViewOf(items, INITIAL_ONE_LIST_STATE, askedQuery, serverCounts).counts) });
+  }, [items, serverCounts, state.tab, askedQuery]);
 
   // 찾기어가 바뀌면 1쪽으로.
   useEffect(() => {
@@ -384,6 +392,7 @@ export default function ResultOneList({
   return (
     <ResultOneListView
       items={items}
+      serverCounts={serverCounts}
       state={state}
       query={query}
       askedQuery={askedQuery}

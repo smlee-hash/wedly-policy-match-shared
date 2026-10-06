@@ -36,7 +36,7 @@ import { ERP_POLICY_MATCH_ENDPOINTS, type PolicyMatchEndpoints } from "./endpoin
 import {
   RESULT_PAGE_SIZE, chipsOf, ddayBadgeOf, defaultVerdictTab, filterByChip, flattenFundingItems, kindTagOf,
   oneListReducer, oneListViewOf, pageCountOf, pageSlice, searchItems, sortOneList, unknownNoticeOf,
-  verdictCountsOf, type OneListState,
+  verdictCountsOf, serverVerdictCountsOf, cutNoticeOf, type OneListState,
 } from "./result-one-list";
 
 /**
@@ -603,3 +603,48 @@ function 기본속성(items: FundingItem[] | null) {
     renderDetail: (_it: FundingItem | null) => <div data-detail="stub" />,
   };
 }
+
+// ── 서버가 자르기 전에 센 개수 ─────────────────────────────────────────
+describe("탭·칩 숫자 — 받은 앞쪽 N건이 아니라 서버가 센 실제 개수", () => {
+  const 블록 = (group: "grant" | "policy", fit: number, unverified: number, excluded: number, items: FundingItem[]) =>
+    ({ group, total: fit + unverified, fit, unverified, excluded, soon: 0, items, truncated: true, excludedItems: [] }) as unknown as FundingMapPayload["groups"][number];
+  const 받은 = [
+    mk({ id: "a:1", group: "grant" }),
+    mk({ id: "a:2", group: "grant", fitVerdict: "excluded" }),
+    mk({ id: "a:3", group: "policy", fitVerdict: "excluded" }),
+  ];
+  const data = { groups: [블록("grant", 3, 0, 900, []), 블록("policy", 0, 0, 120, [])] } as unknown as FundingMapPayload;
+  const server = serverVerdictCountsOf(data)!;
+
+  it("갈래 칸의 fit·unverified·excluded 를 더한다", () => {
+    expect(server.tab).toEqual({ fit: 3, unverified: 0, excluded: 1020 });
+    expect(server.byGroup.policy.excluded).toBe(120);
+    expect(serverVerdictCountsOf(null)).toBeNull();
+  });
+
+  it("탭·칩 숫자는 받은 수와 서버 수 중 큰 쪽이고, 받은 줄이 모자라면 잘림 안내를 낸다", () => {
+    const v = oneListViewOf(받은, { ...처음상태, tab: "excluded" }, "", server);
+    expect(v.counts).toEqual({ fit: 3, unverified: 0, excluded: 1020 });
+    expect(v.chips.find((c) => c.key === "all")?.count).toBe(1020);
+    expect(v.chips.find((c) => c.key === "policy")?.count).toBe(120);
+    expect(v.list).toHaveLength(2);
+    expect(v.cut).toEqual({ loaded: 2, total: 1020 });
+    expect(cutNoticeOf(v.cut!)).toBe("1,020건 중 추천 순 앞쪽 2건만 불러왔어요 · 공고 이름으로 찾으면 나머지도 찾아져요");
+  });
+
+  it("서버 수가 없거나 다 받았으면 받은 줄로 세고 안내가 없다", () => {
+    const v = oneListViewOf(받은, { ...처음상태, tab: "excluded" }, "");
+    expect(v.counts.excluded).toBe(2);
+    expect(v.cut).toBeNull();
+  });
+
+  it("그림: 탭 숫자에 실제 개수, 목록 위에 잘림 안내", () => {
+    const html = 글자(
+      renderToStaticMarkup(
+        <ResultOneListView {...기본속성(받은)} serverCounts={server} state={{ ...처음상태, tab: "excluded" }} query="" askedQuery="" />,
+      ),
+    );
+    expect(html).toContain("1,020");
+    expect(html).toContain('data-area="list-cut-notice"');
+  });
+});
