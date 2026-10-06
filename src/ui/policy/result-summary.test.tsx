@@ -293,13 +293,15 @@ describe("채우기 — 왼쪽 첫 모름 칸으로 초점", () => {
   });
 });
 
-describe("두 칸 배치 — 왼쪽 고정 패널·안쪽 스크롤·진단 단추 고정", () => {
-  it("화면: 왼쪽 회사 정보 패널은 넓은 화면에서 붙어 있고, 결과 영역이 따로 있다", () => {
+describe("배치 — 옆 칸 패널(side)은 그대로, 화면은 두 단계(회사 정보 가운데 넓은 폼)", () => {
+  it("화면: 처음에는 회사 정보 폼이 본문 가운데(최대 880px)에 있고, 결과 영역은 아직 없다", () => {
     const html = renderToStaticMarkup(<PolicyMatchScreen endpoints={ERP_POLICY_MATCH_ENDPOINTS} />);
     expect(html).toContain('data-area="company-panel"');
-    expect(html).toContain('data-area="results"');
-    expect(html).toMatch(/data-area="company-panel"[^>]*class="[^"]*min-\[821px\]:sticky/);
-    expect(html).toContain("min-[821px]:grid-cols-");
+    expect(html).toMatch(/data-area="company-panel"[^>]*class="[^"]*max-w-\[880px\]/);
+    // 옛 두 칸(380px 옆 칸 + 결과) 배치는 없어졌다
+    expect(html).not.toContain("min-[821px]:sticky");
+    expect(html).not.toContain("min-[821px]:grid-cols-");
+    expect(html).not.toContain('data-area="results"');
   });
 
   it("폼: 칸 묶음은 안쪽에서 스크롤하고, 매칭 진단 단추는 스크롤 밖 바닥에 있다", () => {
@@ -314,12 +316,12 @@ describe("두 칸 배치 — 왼쪽 고정 패널·안쪽 스크롤·진단 단�
     expect(html.slice(foot)).toContain("매칭 진단");
   });
 
-  it("결과 영역에는 진단 전에 요약 탭·도구 줄이 없다(탐색 모드는 기존 그대로)", () => {
+  it("진단 전에는 요약 탭·도구 줄이 없고, 전체 공고 탐색의 검색·새로 받아오기도 없어졌다", () => {
     const html = renderToStaticMarkup(<PolicyMatchScreen endpoints={ERP_POLICY_MATCH_ENDPOINTS} />);
     expect(html).not.toContain("지금 신청 가능한 것만");
     expect(html).not.toContain("7일 안 마감");
-    // 탐색의 기존 검색·새로 받아오기는 그대로
-    expect(html).toContain("공고명·기관·지원대상 검색");
-    expect(html).toContain("지금 새로 받아오기");
+    // 전체 공고 탐색(browse)은 두 단계 개편에서 없어졌다
+    expect(html).not.toContain("공고명·기관·지원대상 검색");
+    expect(html).not.toContain("지금 새로 받아오기");
   });
 });

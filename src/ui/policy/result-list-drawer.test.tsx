@@ -368,7 +368,7 @@ describe("화면 배선 — 행 → 서랍", () => {
   });
 
   it("서랍은 진단 판일 때만 열리고, 닫는 손잡이는 상태를 거짓으로 돌린다", () => {
-    expect(화면글).toContain('open={drawerOpen && mode === "diagnosed"}');
+    expect(화면글).toContain('open={drawerOpen && step === "result"}');
     expect(화면글).toContain("onClose={closeDrawer}");
     expect(화면글).toContain("const closeDrawer = useCallback(() => setDrawerOpen(false), []);");
   });
@@ -379,9 +379,9 @@ describe("화면 배선 — 행 → 서랍", () => {
     expect(화면글).toContain("onOpen={openRow}");
   });
 
-  it("판을 갈아타거나 새로 진단하면 서랍은 닫힌다", () => {
-    expect(화면글).toMatch(/const changeMode = useCallback\(\(m: ListMode\) => \{\s*setMode\(m\);\s*setDrawerOpen\(false\);/);
-    expect(화면글).toContain("onModeChange={changeMode}");
+  it("회사 정보로 돌아가거나 새로 진단하면 서랍은 닫힌다", () => {
+    expect(화면글).toMatch(/const goCompany = useCallback\(\(\) => \{\s*setStep\("company"\);\s*setDrawerOpen\(false\);/);
+    expect(화면글).toContain("onEdit={goCompany}");
     expect(화면글).toMatch(/setSelectedId\(first\?\.announcementId \?\? ""\);\s*setDrawerOpen\(false\);/);
   });
 
@@ -426,10 +426,11 @@ describe("옮긴 자리 목록 — 기존 기능이 새 자리에 그대로 있�
     expect(src).toContain("saveEndpoint={endpoints.askInstructor}");
   });
 
-  it("피드백: 서랍의 상세 · 지도 카드 · 탐색 목록 세 자리 모두에 같은 조각이 배선돼 있다", () => {
+  it("피드백: 서랍의 상세 · 지도 카드 · 결과 목록 행 세 자리 모두에 같은 조각이 배선돼 있다", () => {
+    // 옛 「전체 공고 탐색」 목록(ResultList)의 자리는 없어졌다 — 그 자리가 쓰던 조각은 결과 목록 행이 이어받는다.
     expect(서랍범위).toContain("verdictFeedback={verdictFeedback}");
     expect(화면글).toContain("renderCardFooter={mapCardFooter}");
-    expect(화면글).toMatch(/<ResultList[\s\S]*?verdictFeedback=\{verdictFeedback\}[\s\S]*?\/>/);
+    expect(화면글).toContain("renderRowFooter={rowFooter}");
   });
 
   it("진단→목록 전환 시 행 피드백 호출: 조각을 받은 앱은 공고 줄마다 place:card 로 부르고, 못 받은 앱은 줄만 그린다(BF2 ⑤)", () => {
@@ -478,7 +479,7 @@ describe("옮긴 자리 목록 — 기존 기능이 새 자리에 그대로 있�
     expect(줄).toContain("한눈에");
     expect(줄).toContain("목록");
     expect(화면글).toContain("<FundingMap");
-    expect(화면글).toContain("showsMap(mode, mapUi.view)");
+    expect(화면글).toContain('showsMap("diagnosed", mapUi.view)');
     expect(화면글).toContain("<FundingDrawer");
     expect(화면글).toContain("aiVerdictAvailable={!!endpoints.verdict}");
   });
@@ -497,27 +498,29 @@ describe("옮긴 자리 목록 — 기존 기능이 새 자리에 그대로 있�
     }
   });
 
-  it("지금 새로 받아오기(sync): 수집 통로가 있는 앱에만 단추가 있다", () => {
-    expect(처음화면).toContain("지금 새로 받아오기");
-    const { sync: _sync, ...통로 } = ERP_POLICY_MATCH_ENDPOINTS;
-    expect(renderToStaticMarkup(<PolicyMatchScreen endpoints={통로} />)).not.toContain("지금 새로 받아오기");
-    expect(화면글).toContain("onManualSync={endpoints.sync ? refresh : undefined}");
+  it("지금 새로 받아오기(sync): 전체 공고 목록이 없어져 화면에서 단추도 배선도 없어졌다", () => {
+    // 두 단계 개편(2026-10-05 사장님 승인) — 회사 없이 전체 공고를 둘러보는 판이 없어졌다. endpoints.sync 타입은 남는다.
+    expect(처음화면).not.toContain("지금 새로 받아오기");
+    expect(화면글).not.toContain("onManualSync");
+    expect(화면글).not.toContain("endpoints.sync");
   });
 
-  it("공고 탐색(browse): 처음 화면이 탐색이고 검색 칸·수집 시각 줄·목록이 있다", () => {
-    expect(처음화면).toContain("공고명·기관·지원대상 검색");
-    expect(처음화면).toContain("아직 수집 전");
-    expect(처음화면).toContain("조건에 맞는 공고가 없습니다");
-    // 진단 판에서 탐색으로 돌아가는 길
+  it("공고 탐색(browse): 없어졌다 — 처음 화면에 검색 칸·수집 시각 줄·목록이 없고, 돌아가는 길도 없다", () => {
+    expect(처음화면).not.toContain("공고명·기관·지원대상 검색");
+    expect(처음화면).not.toContain("아직 수집 전");
+    expect(처음화면).not.toContain("조건에 맞는 공고가 없습니다");
+    expect(화면글).not.toContain("endpoints.announcements");
+    expect(화면글).not.toContain("onBrowseAll=");
+    // 돌아가는 길을 안 넘기면 목록은 그 단추를 안 그린다 / 넘기면(다른 앱이 쓰면) 그린다(대조군)
+    expect(목록그림({ onBrowseAll: undefined })).not.toContain("전체 공고 탐색");
     expect(목록그림()).toContain("전체 공고 탐색");
-    expect(화면글).toContain("onBrowseAll={browseAll}");
   });
 
-  it("회사 정보 쪽: 고객 불러오기·서류 올리기·매칭 진단이 왼쪽 패널에 있다", () => {
+  it("회사 정보 쪽: 고객 불러오기·서류 올리기·매칭 결과 보기가 본문 가운데 넓은 폼에 있다", () => {
     expect(처음화면).toContain('data-area="company-panel"');
     expect(처음화면).toContain("기존 고객 검색");
     expect(처음화면).toContain("서류를 올리면 칸을 채워 드려요");
-    expect(처음화면).toContain("매칭 진단");
+    expect(처음화면).toContain("매칭 결과 보기 →");
     expect(화면글).toContain("prefillEndpoint={endpoints.prefill}");
     expect(화면글).toContain("documentPrefillEndpoint={endpoints.documentPrefill}");
     expect(화면글).toContain("documentPrefillMode={features?.documentPrefillMode}");
@@ -535,7 +538,8 @@ describe("옮긴 자리 목록 — 기존 기능이 새 자리에 그대로 있�
 
   it("요약 탭·모름 띠·도구 줄은 결과 위에 그대로 있다", () => {
     expect(화면글).toContain("<ResultSummaryBar");
-    expect(화면글).toContain("onFill={() => setFillNonce((n) => n + 1)}");
+    // 폼은 ① 회사 정보에 있다 — 「채우기」는 그리로 돌아가(goCompany) 첫 모름 칸으로 초점을 준다.
+    expect(화면글).toMatch(/onFill=\{\(\) => \{\s*goCompany\(\);[^}]*setFillNonce\(\(n\) => n \+ 1\);\s*\}\}/);
   });
 
   it("회사 정보 쪽에는 드롭다운(select)이 없다 — 정렬 select 는 결과 도구 줄에만", () => {

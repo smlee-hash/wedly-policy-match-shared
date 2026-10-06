@@ -94,6 +94,13 @@ interface Props {
   onStatusChange?: (status: ProfileFormStatus) => void;
   /** 올라가면 접혀 있어도 펴고 첫 「모름」 칸으로 초점을 준다(결과 위 띠의 「채우기」). 0 은 아직 안 누름. */
   focusUnknownNonce?: number;
+  /**
+   * 놓는 자리 — side(기본): 옆 칸 고정 패널(안쪽 스크롤·바닥 「매칭 진단」). 다른 앱이 쓰던 모양 그대로다.
+   * wide: 본문 가운데 넓은 폼(① 회사 정보 단계) — 머리·접기 없이 고객 불러오기가 맨 위, 바닥에 「N칸 채움」과 「매칭 결과 보기 →」.
+   */
+  layout?: "side" | "wide";
+  /** 새로 고침 뒤 복원할 회사 정보 — 처음 한 번만 칸에 채운다(고객 불러오기와 같은 길). 없으면 빈 폼이다. */
+  initialProfile?: BusinessProfile | null;
 }
 
 /** 폼 바깥(결과 위 띠)이 알아야 하는 칸 현황. */
@@ -408,8 +415,9 @@ function ChipGroup({
 
 export default function ProfileForm({
   onDiagnose, diagnosing, prefillEndpoint, reviewCount, documentPrefillEndpoint, documentPrefillMode,
-  onStatusChange, focusUnknownNonce,
+  onStatusChange, focusUnknownNonce, layout = "side", initialProfile,
 }: Props) {
+  const wide = layout === "wide";
   const [open, setOpen] = useState(true);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -754,9 +762,19 @@ export default function ProfileForm({
     const ok = await onDiagnose(deriveProfileFlags(buildProfile()));
     // 쌓이는 좁은 화면에서만 접는다 — 넓은 화면은 패널이 왼쪽에 서 있어 접을 이유가 없다.
     // 창이 없는 곳(서버 그리기·시험)은 예전처럼 접는다. 「조건 수정」으로 다시 편다.
+    // 넓은 폼(wide)은 성공하면 화면이 결과 단계로 넘어가므로 접지 않는다 — 돌아오면 펼친 채 그대로다.
     const stacked = typeof window === "undefined" || window.innerWidth <= STACK_MAX_PX;
-    if (ok && stacked) setOpen(false);
+    if (ok && stacked && !wide) setOpen(false);
   };
+
+  // 새로 고침 뒤 복원 — 저장해 둔 회사 정보를 처음 한 번만 칸에 채운다(고객 불러오기와 같은 길).
+  // 값은 늦게(첫 그림 뒤) 올 수 있어 이 효과는 매번 돌되, 한 번 채웠으면 다시 덮지 않는다.
+  const initialApplied = useRef(false);
+  useEffect(() => {
+    if (initialApplied.current || !initialProfile) return;
+    initialApplied.current = true;
+    applyCustomer(initialProfile, "");
+  });
 
   // 칸 현황을 바깥에 알린다 — 부모가 같은 수로 띠를 그린다.
   useEffect(() => {
@@ -816,17 +834,25 @@ export default function ProfileForm({
     // 스크롤하며(아래 body), 매칭 진단 단추는 스크롤 밖 바닥(footer)에 붙여 둔다. 좁은 화면은 그냥 쌓인다.
     <div
       ref={rootRef}
-      className="flex flex-col rounded-2xl border border-wedly-bd bg-white shadow-sm min-[821px]:max-h-[calc(100vh-2rem)]"
+      data-layout={layout}
+      className={
+        wide
+          ? "flex flex-col rounded-2xl border border-wedly-bd bg-white shadow-sm"
+          : "flex flex-col rounded-2xl border border-wedly-bd bg-white shadow-sm min-[821px]:max-h-[calc(100vh-2rem)]"
+      }
     >
-      <div className="flex flex-wrap items-center gap-2 p-4">
-        <span className="text-base font-semibold leading-6 text-wedly-t1">사업자 정보</span>
-        <span className="text-xs leading-[18px] text-wedly-muted">
-          입력하면 자격이 맞는 지원정책을 찾아 드립니다
-        </span>
-        <button type="button" onClick={() => setOpen((v) => !v)} className={`ml-auto ${BTN_SECONDARY}`}>
-          {open ? "접기" : "조건 수정"}
-        </button>
-      </div>
+      {/* 넓은 폼은 제목·안내를 화면(단계 머리)이 이미 그렸고 접을 일도 없어 머리줄을 두지 않는다. */}
+      {!wide && (
+        <div className="flex flex-wrap items-center gap-2 p-4">
+          <span className="text-base font-semibold leading-6 text-wedly-t1">사업자 정보</span>
+          <span className="text-xs leading-[18px] text-wedly-muted">
+            입력하면 자격이 맞는 지원정책을 찾아 드립니다
+          </span>
+          <button type="button" onClick={() => setOpen((v) => !v)} className={`ml-auto ${BTN_SECONDARY}`}>
+            {open ? "접기" : "조건 수정"}
+          </button>
+        </div>
+      )}
 
       {!open && (
         // 접힌 상태에서도 바로 다시 돌릴 수 있어야 한다 — 공고 읽기가 진행 중이면 결과가 늘어난다.
@@ -851,8 +877,14 @@ export default function ProfileForm({
       {open && (
         <>
           {/* 칸 묶음 — 길면 이 안에서만 스크롤한다(바닥 진단 단추는 밖) */}
-          <div data-panel="body" className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
-          {/* 서류 올리기 — 통로(documentPrefillEndpoint)를 안 넘긴 앱에는 이 칸이 아예 없다. 맨 위에 둔다. */}
+          <div
+            data-panel="body"
+            className={wide ? "px-6 pb-6 pt-2" : "min-h-0 flex-1 overflow-y-auto px-4 pb-4"}
+          >
+          {/* 넓은 폼은 기존 고객 불러오기가 맨 위다(서류 올리기보다 먼저). 옆 칸 패널은 예전 순서 그대로. */}
+          {wide && prefill.active && <CustomerPrefill prefill={prefill} />}
+
+          {/* 서류 올리기 — 통로(documentPrefillEndpoint)를 안 넘긴 앱에는 이 칸이 아예 없다. */}
           {documentPrefillEndpoint && (
             <DocumentUploadBox
               files={doc.files}
@@ -867,7 +899,7 @@ export default function ProfileForm({
           )}
 
           {/* 통로를 안 넘긴 앱(랩)에는 이 줄이 아예 없다 — 있지도 않은 고객 표를 약속하지 않는다. */}
-          {prefill.active && <CustomerPrefill prefill={prefill} />}
+          {!wide && prefill.active && <CustomerPrefill prefill={prefill} />}
 
           {/* 구역 소제목 — 첫 구역 오른쪽에 채운 칸 수와 모름 칸 수를 보인다 */}
           <div className={SECTION}>
@@ -1134,7 +1166,37 @@ export default function ProfileForm({
 
           </div>
 
-          {/* 바닥 고정 — 칸 묶음이 스크롤돼도 주 행동은 늘 보인다 */}
+          {wide ? (
+            // 넓은 폼의 바닥 — 채운 칸 수(막대 포함)와 주 단추 「매칭 결과 보기 →」. 기존 진단 단추와 같은 동작이다.
+            <div data-panel="footer" className="flex flex-wrap items-center gap-4 border-t border-wedly-bd px-6 py-4">
+              <div className="min-w-0 flex-1 basis-64">
+                <span className="text-xs leading-[18px] text-wedly-muted">
+                  {`${filled.length}칸 중 ${filledCount}칸 채움 — 채울수록 「확인 필요」가 줄어요`}
+                </span>
+                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-wedly-bg-gray">
+                  <div
+                    data-meter="fill"
+                    className="h-full rounded-full bg-wedly-accent"
+                    style={{ width: `${Math.round((filledCount / filled.length) * 100)}%` }}
+                  />
+                </div>
+                {docFileCount > 0 && docFilledCount > 0 && (
+                  <span className="mt-1 block text-xs font-semibold leading-[18px] text-wedly-t1">
+                    {`서류 ${docFileCount}개에서 ${docFilledCount}칸을 채웠어요. 확인하고 진행하세요`}
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => void runDiagnose()}
+                disabled={diagnosing}
+                className={BTN_PRIMARY}
+              >
+                {diagnosing ? "진단 중…" : "매칭 결과 보기 →"}
+              </button>
+            </div>
+          ) : (
+          // 바닥 고정 — 칸 묶음이 스크롤돼도 주 행동은 늘 보인다
           <div data-panel="footer" className="flex shrink-0 flex-wrap items-center gap-4 border-t border-wedly-bd p-4">
             <button
               type="button"
@@ -1155,6 +1217,7 @@ export default function ProfileForm({
               </span>
             )}
           </div>
+          )}
         </>
       )}
     </div>

@@ -2,28 +2,33 @@
 
 // 지원정책 매칭 — 상태 관리와 배치만 맡는다(그리는 일은 조각들이 나눠 한다).
 // 화면의 주인공은 「사업자 정보 입력 → 매칭」이다(2026-08-22 사장님 결정 2번).
-// 넓은 화면(>820px)은 두 칸이다 — 왼쪽 회사 정보 고정 패널(안쪽 스크롤·진단 단추 바닥 고정), 오른쪽 결과.
-// 오른쪽은 위에서부터 요약 탭·「모름 → 확인 필요」 띠·도구 줄, 그 아래 판이 갈린다.
-//  · 탐색(browse) — 좌 결과 목록 / 우 공고 상세. **여기는 바뀌지 않는다**(탐색 회귀 금지).
-//  · 진단(diagnosed) — 「한눈에」는 전폭 자금 조달 지도 + 서랍, 「목록」은 묶음별 접기·펴기 목록이다.
-//    두 판은 도구 줄의 보기 단추(목록 / 한눈에)로 갈아탄다.
+// 두 단계다(2026-10-05 사장님 승인) — ① 회사 정보 → ② 매칭 결과. 회사 없이 전체 공고를 둘러보는 판은 없다.
+//  · ① 회사 정보 — 본문 가운데 넓은 폼(ProfileForm layout="wide"). 「매칭 결과 보기 →」가 진단을 돌린다.
+//  · ② 매칭 결과 — 진단이 성공해야만 열린다. 위에 회사 요약 줄, 아래에 요약 탭·「모름 → 확인 필요」 띠·도구 줄과
+//    「한눈에」(전폭 자금 조달 지도 + 서랍) / 「목록」(묶음별 접기·펴기)이다(결과 본문은 다음 묶음에서 바뀐다).
+// 단계는 주소의 `?step=result` 에, 입력한 회사 정보는 sessionStorage 에만 둔다(step-state.ts) —
+// 결과 단계에서 새로 고침하면 저장해 둔 값으로 진단을 다시 돌리고, 값이 없거나 깨졌으면 ① 로 돌아간다.
+// 폼은 단계를 오가도 **계속 그려 두고** 숨기기만 한다 — 「회사 정보 고치기」로 돌아와도 입력값이 남는다.
 // 목록의 행을 누르면 오른쪽 서랍(820px 이하는 아래에서 올라오는 창)에 공고 상세(DetailPanel)가 열린다 —
 // 정밀 판정·돌파구·피드백·강사 문의가 전부 그 안에 그대로 있다. 닫기·Esc·바깥 누르기로 닫는다.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 // 거르개(칩)·펼침을 한 자리에서 옮기는 규칙 — 상세창 레일(FundingRecommendPanel)과 **같은 함수**를
 // 쓴다. 이 규칙을 여기 다시 적으면 두 화면이 갈라진다(레일에서 이미 겪은 결함).
 import { nextFundingState } from "../FundingRecommendPanel";
-import { syncUserMessage } from "../../engine/types";
 import type { BusinessProfile } from "../../engine/match-engine";
 import type { FundingFilters, FundingItem, FundingSort } from "../../funding/funding-map";
 import type { FundingGroup } from "../../funding/funding-group";
 import ProfileForm, { type ProfileFormStatus } from "./ProfileForm";
-import ResultList from "./ResultList";
 import ResultGroupList, { SearchCutNotice } from "./ResultGroupList";
+import { CompanySummaryBar, StepBar } from "./StepHeader";
+import {
+  bootPlanOf, clearStoredProfile, searchWithStep, sessionStorageOrNull, stepOfSearch, writeStoredProfile,
+  readStoredProfile, type Step,
+} from "./step-state";
 import ResultDrawer from "./ResultDrawer";
 import ResultSummaryBar from "./ResultSummaryBar";
 import {
-  FUNDING_QUERY_DELAY_MS, WIDE_TOP_N_MAX, clipQuery, filterDiagnosis, filterFundingData, fundingSearchOf, reviewCountOf,
+  FUNDING_QUERY_DELAY_MS, WIDE_TOP_N_MAX, clipQuery, filterFundingData, fundingSearchOf, reviewCountOf,
   searchCutOf,
   type SummaryTab,
 } from "./result-conditions";
@@ -36,7 +41,7 @@ import type {
 } from "./endpoints";
 import { SCREEN_PROFILE_SOURCE } from "./endpoints";
 
-/** 탐색(1단계) 목록 한 줄 — announcements 통로 응답 그대로. */
+/** 전체 공고 목록 한 줄 — announcements 통로 응답 그대로. 이 화면은 더 부르지 않는다(`ResultList` 를 따로 쓰는 쪽을 위해 남긴다). */
 export interface Row {
   id: string;
   source: string;
@@ -98,12 +103,24 @@ export interface Diagnosis {
   droppedByRegion?: number;
 }
 
+/**
+ * 목록 판 이름. 이 화면은 이제 「진단」 판(diagnosed)만 쓴다 — 전체 공고 탐색(browse)은 두 단계 개편에서 없어졌다.
+ * 타입은 `ResultList`·`DetailPanel` 이 쓰고 있어 그대로 남긴다.
+ */
 export type ListMode = "browse" | "diagnosed";
 
 /** 진단 결과를 보는 두 판 — 「지도」(전폭 자금 조달 지도)와 「목록·상세」(기존 두 컬럼). */
 export type DiagnosedView = "map" | "list";
 
-const NARROW_MAX_PX = 1024; // lg 미만 = 세로로 쌓인 화면 — 고르면 상세로 데려간다
+/** 주소 한 칸을 바꾼다 — 다른 쿼리·해시는 그대로 두고 `step` 만 만진다. 창이 없는 곳(서버 그리기·시험)은 아무것도 안 한다. */
+function writeStepToAddress(step: Step, how: "push" | "replace"): void {
+  if (typeof window === "undefined") return;
+  const { pathname, search, hash } = window.location;
+  const url = `${pathname}${searchWithStep(search, step)}${hash}`;
+  // 앞 상태(window.history.state)를 그대로 넘긴다 — 틀(Next 라우터)이 거기에 표식을 달아 두기 때문이다.
+  if (how === "push") window.history.pushState(window.history.state, "", url);
+  else window.history.replaceState(window.history.state, "", url);
+}
 
 // ── 자금 조달 지도 배선 ────────────────────────────────────────────────
 // 거르기(칩)·줄 세우기(정렬)·상위 N 은 **서버가** 한다(리뷰 대장 #11) — 화면이 다시 거르면
@@ -372,31 +389,22 @@ export interface PolicyMatchScreenProps {
 }
 
 export default function PolicyMatchScreen({ endpoints, slots, features }: PolicyMatchScreenProps) {
-  // ── 탐색(1단계) 상태 — 회귀 금지 ──────────────────────────────────────
-  const [rows, setRows] = useState<Row[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [qInput, setQInput] = useState("");
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState("open");
-  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  // ── 단계 상태 — 첫 진입은 늘 ① 회사 정보다(주소·저장값 읽기는 아래 첫 그림 뒤 효과가 한다) ──
+  const [step, setStep] = useState<Step>("company");
   const [notice, setNotice] = useState("");
-  const [reloadNonce, setReloadNonce] = useState(0);
-  const loadSeq = useRef(0);
+  // 새로 고침 뒤 복원할 회사 정보 — 넓은 폼이 처음 한 번 칸에 채운다. 「다른 회사」는 폼을 새로 만든다(formKey).
+  const [restoredProfile, setRestoredProfile] = useState<BusinessProfile | null>(null);
+  const [formKey, setFormKey] = useState(0);
 
   // ── 진단(2단계) 상태 ─────────────────────────────────────────────────
-  const [mode, setMode] = useState<ListMode>("browse");
   const [profile, setProfile] = useState<BusinessProfile>({});
   // 진단 회차. 진단을 다시 돌릴 때마다 올라간다 — 상세의 AI 판정이 앞 회차 값을 물고 있지 않게 한다.
   const [profileNonce, setProfileNonce] = useState(0);
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
   const [diagnosing, setDiagnosing] = useState(false);
   const [selectedId, setSelectedId] = useState("");
-  // 상세 서랍이 열려 있나 — 진단 목록·지도에서 공고를 눌렀을 때만 참이 된다(탐색은 오른쪽 칸에 그대로 펼친다).
+  // 상세 서랍이 열려 있나 — 진단 목록·지도에서 공고를 눌렀을 때만 참이 된다.
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const detailRef = useRef<HTMLDivElement | null>(null);
 
   // ── 자금 조달 지도(3단계) 상태 ────────────────────────────────────────
   const [fundingData, setFundingData] = useState<FundingMapPayload | null>(null);
@@ -452,31 +460,6 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
   const [formStatus, setFormStatus] = useState<ProfileFormStatus | null>(null);
   const [fillNonce, setFillNonce] = useState(0);
 
-  const load = useCallback(async (pageToUse: number, qToUse: string, statusToUse: string) => {
-    const seq = ++loadSeq.current;
-    setLoading(true);
-    try {
-      const p = new URLSearchParams({ q: qToUse, status: statusToUse, page: String(pageToUse) });
-      const j = await fetch(`${endpoints.announcements}?${p}`).then((r) => r.json());
-      if (seq !== loadSeq.current) return;
-      if (j?.success) {
-        setNotice(""); // 성공하면 이전 실패 문구를 지운다 — 안 지우면 일시 오류 문구가 영영 남는다(QA 발견)
-        setRows(j.data);
-        setTotal(j.total);
-        setLastSyncAt(j.lastSyncAt);
-      } else {
-        setNotice(j?.error?.message ?? "불러오기 실패");
-      }
-    } catch {
-      if (seq !== loadSeq.current) return;
-      setNotice("불러오기 실패 — 잠시 뒤 다시 시도하세요");
-    } finally {
-      if (seq === loadSeq.current) setLoading(false);
-    }
-  }, [endpoints.announcements]);
-
-  useEffect(() => { void load(page, q, status); }, [load, page, q, status, reloadNonce]);
-
   // 진단이 끝났거나(회차가 오르거나) 칩·정렬·검색어·탭이 바뀌면 지도를 서버에서 다시 받는다.
   // 검색어·탭도 서버에 실어 보낸다 — 서버가 앞쪽 N건으로 자르기 전에 거르므로 N건 밖의 공고도 찾아진다.
   useEffect(() => {
@@ -488,45 +471,11 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
     setCountData(null);
   }, [profileNonce]);
 
-  const submitSearch = useCallback(() => {
-    setPage(1);
-    setQ(qInput);
-    setReloadNonce((n) => n + 1);
-  }, [qInput]);
-
-  const refresh = useCallback(async () => {
-    if (!endpoints.sync) return; // 수집기가 없는 앱에는 이 단추 자체가 없다
-    setRefreshing(true);
-    setNotice("");
-    try {
-      const j = await fetch(endpoints.sync, { method: "POST" }).then((r) => r.json());
-      if (j?.success && j.data?.running) {
-        // 회차가 20초 안에 안 끝나면 서버가 「돌고 있다」로 답한다(통로가 요청을 붙들다 끊기던 것을 막음).
-        // 결과는 잠시 뒤 목록에 반영되므로, 다 됐다고 속이지 말고 사실대로 알린다.
-        setNotice("자료를 받아오는 중입니다 — 몇 분 걸립니다. 잠시 뒤 새로고침하면 반영된 결과가 보입니다");
-      } else if (j?.success) {
-        setNotice(syncUserMessage(j.data?.perSource ?? []));
-        setPage(1);
-        setReloadNonce((n) => n + 1);
-      } else {
-        setNotice(j?.error?.message ?? "새로고침 실패");
-      }
-    } catch {
-      setNotice("새로고침 실패");
-    } finally {
-      setRefreshing(false);
-    }
-  }, [endpoints.sync]);
-
-  /** 좁은 화면은 목록과 상세가 위아래로 쌓인다 — 고른 공고가 화면 밖이면 데려간다. */
-  const select = useCallback((id: string) => {
-    setSelectedId(id);
-    if (id && typeof window !== "undefined" && window.innerWidth < NARROW_MAX_PX) {
-      detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, []);
-
-  /** 매칭 진단 — 성공하면 진단 모드로 바꾸고 첫 공고를 열어 둔다. 성공 여부를 입력 카드에 알린다. */
+  /**
+   * 매칭 진단 — **성공해야만** 결과 단계를 연다(첫 공고를 열어 두고, 주소에 step=result 를 올리고, 회사 정보를
+   * sessionStorage 에 둔다). 실패하면 단계는 그대로다. 성공 여부를 입력 카드에 알린다.
+   * 주소가 이미 결과 단계이면(새로 고침 복원·앞으로 가기) 주소는 다시 쌓지 않는다.
+   */
   const runDiagnose = useCallback(async (p: BusinessProfile): Promise<boolean> => {
     setDiagnosing(true);
     setNotice("");
@@ -544,7 +493,11 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
       setProfile(p);
       setProfileNonce((n) => n + 1); // 이 회차 이후로는 앞 회차의 AI 판정을 쓰지 않는다
       setDiagnosis(data);
-      setMode("diagnosed");
+      setStep("result");
+      writeStoredProfile(sessionStorageOrNull(), p);
+      if (typeof window !== "undefined" && stepOfSearch(window.location.search) !== "result") {
+        writeStepToAddress("result", "push"); // 뒤로 가기로 ① 로 돌아올 수 있게 한 칸 쌓는다
+      }
       const first = data.possible[0] ?? data.uncertain[0] ?? data.impossible[0];
       setSelectedId(first?.announcementId ?? "");
       setDrawerOpen(false); // 새 회차는 서랍을 닫은 채 시작한다 — 앞 회사의 상세를 덮어 두지 않는다
@@ -587,17 +540,91 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
 
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
 
-  /** 「진단 결과 ↔ 전체 공고」 — 판을 갈아타면 상세 서랍은 닫는다(탐색은 오른쪽 칸에 상세를 펼친다). */
-  const changeMode = useCallback((m: ListMode) => {
-    setMode(m);
+  /**
+   * 「← 회사 정보 고치기」 — ① 로 돌아간다. 입력값(폼은 계속 그려 둔다)도 받아 둔 결과도 그대로 둔다.
+   * 다시 「매칭 결과 보기」를 누르면 그때 새로 진단한다. 서랍은 덮어 둔 채 넘어가지 않는다.
+   */
+  const goCompany = useCallback(() => {
+    setStep("company");
     setDrawerOpen(false);
+    dispatchMapUi({ type: "close" });
+    writeStepToAddress("company", "replace");
   }, []);
 
-  /** 「전체 공고 탐색」 — 탐색 판으로. 서랍을 덮어 둔 채 넘어가지 않는다. */
-  const browseAll = useCallback(() => {
-    changeMode("browse");
-    dispatchMapUi({ type: "close" });
-  }, [changeMode]);
+  /** 저장해 둔 값으로 결과를 다시 만든다(새로 고침 복원·앞으로 가기). 실패하면 ① 로 돌아가고 주소에서 step 을 뗀다. */
+  const rediagnose = useCallback((p: BusinessProfile) => {
+    setStep("result");
+    void runDiagnose(p).then((ok) => {
+      if (ok) return;
+      setStep("company");
+      writeStepToAddress("company", "replace");
+    });
+  }, [runDiagnose]);
+
+  /** 「다른 회사」 — 입력값·저장값·결과를 모두 비우고 ① 로. 폼은 새로 만든다(formKey). */
+  const resetCompany = useCallback(() => {
+    clearStoredProfile(sessionStorageOrNull());
+    setRestoredProfile(null);
+    setFormKey((k) => k + 1);
+    setFormStatus(null);
+    setProfile({});
+    setProfileNonce(0); // 진단 전 상태로 — 지도 재조회 효과가 멈춘다
+    setDiagnosis(null);
+    setSelectedId("");
+    setDrawerOpen(false);
+    setFundingData(null);
+    setCountData(null);
+    setFundingError("");
+    resetFundingForCompany();
+    setResultTab("all");
+    setResultQuery("");
+    setAskedQuery("");
+    setNotice("");
+    dispatchMapUi({ type: "diagnosed" });
+    setStep("company");
+    writeStepToAddress("company", "replace");
+  }, [resetFundingForCompany]);
+
+  // 첫 그림 뒤 한 번 — 주소가 결과 단계이면 저장해 둔 값으로 진단을 다시 돌린다. 값이 없거나 깨졌으면 ① 에 머문다.
+  // (첫 그림을 서버와 같게 두려고 창을 읽는 일은 효과에서 한다.)
+  const booted = useRef(false);
+  useEffect(() => {
+    if (booted.current) return;
+    booted.current = true;
+    const plan = bootPlanOf(window.location.search, sessionStorageOrNull());
+    if (plan.kind === "rediagnose") {
+      setRestoredProfile(plan.profile);
+      rediagnose(plan.profile);
+    } else if (stepOfSearch(window.location.search) === "result") {
+      writeStepToAddress("company", "replace"); // 결과 주소인데 되살릴 값이 없다 — 주소를 ① 로 맞춘다
+    }
+  }, [rediagnose]);
+
+  // 브라우저 뒤로·앞으로 가기 — 주소의 step 을 따라간다. 앞으로 가서 결과 단계가 되면 받아 둔 결과를 쓰고,
+  // 없으면 저장값으로 다시 돌린다.
+  const diagnosisRef = useRef<Diagnosis | null>(null);
+  diagnosisRef.current = diagnosis;
+  useEffect(() => {
+    const onPop = () => {
+      if (stepOfSearch(window.location.search) === "company") {
+        setStep("company");
+        setDrawerOpen(false);
+        return;
+      }
+      if (diagnosisRef.current) {
+        setStep("result");
+        return;
+      }
+      const stored = readStoredProfile(sessionStorageOrNull());
+      if (stored) rediagnose(stored);
+      else {
+        setStep("company");
+        writeStepToAddress("company", "replace");
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [rediagnose]);
 
   /** 지도 오류 상자의 「다시 시도」 — 같은 조건으로 다시 부른다. */
   const retryFunding = useCallback(() => {
@@ -652,10 +679,6 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
     () => (fundingData ? filterFundingData(fundingData, conditions) : null),
     [fundingData, conditions],
   );
-  const shownDiagnosis = useMemo(
-    () => filterDiagnosis(diagnosis, conditions, { nowOnly: fundingFilters.openOnly, sort: fundingSort }, fundingByRef),
-    [diagnosis, conditions, fundingFilters.openOnly, fundingSort, fundingByRef],
-  );
 
   // 검색어·탭은 서버가 앞쪽 N건으로 자르기 전에 걸러 주므로(위 요청) 화면이 넓게 다시 받을 일은 없다.
   // 거른 결과 자체가 한 갈래 상한(80건)을 넘을 때만 — 서버가 센 거른 뒤 건수가 실려 온 줄보다 많을 때만 알린다.
@@ -664,14 +687,30 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
   return (
     // 여백 계단(DESIGN.md §5): 구역 사이 24(space-y-6), 카드 사이 16(gap-4).
     <div className="space-y-6 p-6">
-      {/* 넓은 화면(>820px): 왼쪽 회사 정보 고정 패널 + 오른쪽 결과. 좁은 화면은 한 줄로 쌓인다.
-          패널은 화면에 붙어(sticky) 결과를 내려도 따라오고, 칸이 길면 패널 안에서만 스크롤한다(ProfileForm). */}
-      <div className="space-y-6 min-[821px]:grid min-[821px]:grid-cols-[380px_minmax(0,1fr)] min-[821px]:items-start min-[821px]:gap-6 min-[821px]:space-y-0">
-      <aside
+      {notice && (
+        // 안내 띠 — 상하 8·좌우 16, 본문 14/22. 두 단계가 함께 쓴다(진단 실패는 ① 에서도 보여야 한다).
+        <div className="rounded-xl border border-wedly-bd bg-wedly-bg-gray px-4 py-2 text-sm leading-[22px] text-wedly-t2">
+          {notice}
+        </div>
+      )}
+
+      {/* ① 회사 정보 — 본문 가운데 넓은 폼(최대 880px). 폼은 ② 에서도 계속 그려 두고 숨기기만 한다 —
+          「회사 정보 고치기」로 돌아왔을 때 입력값이 그대로 있게 하려는 것이다(폼의 입력 상태는 폼 안에 있다). */}
+      <div
         data-area="company-panel"
-        className="min-[821px]:sticky min-[821px]:top-4"
+        className={step === "company" ? "mx-auto w-full max-w-[880px] space-y-6" : "hidden"}
       >
+        <StepBar step="company" />
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold leading-7 text-wedly-t1">어떤 회사의 지원정책을 찾을까요?</h2>
+          <p className="text-sm leading-[22px] text-wedly-t2">
+            아는 칸만 채워도 됩니다. 모르는 칸은 결과에서 「확인 필요」로 따로 모아 보여 드려요.
+          </p>
+        </div>
         <ProfileForm
+          key={formKey}
+          layout="wide"
+          initialProfile={restoredProfile}
           onDiagnose={runDiagnose}
           diagnosing={diagnosing}
           prefillEndpoint={endpoints.prefill}
@@ -681,118 +720,91 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
           onStatusChange={setFormStatus}
           focusUnknownNonce={fillNonce}
         />
-      </aside>
-
-      <section data-area="results" className="min-w-0 space-y-6">
-      {notice && (
-        // 안내 띠 — 상하 8·좌우 16, 본문 14/22.
-        <div className="rounded-xl border border-wedly-bd bg-wedly-bg-gray px-4 py-2 text-sm leading-[22px] text-wedly-t2">
-          {notice}
-        </div>
-      )}
-
-      {mode === "diagnosed" && (
-        // 결과 위 한 묶음 — 요약 탭·「모름 → 확인 필요」 띠·도구 줄(보기·검색·지금 신청 가능·정렬).
-        // 보기 단추(목록 / 한눈에)가 예전 「결과 보기」 알약 자리를 이어받는다(한눈에 = 기존 자금 조달 지도).
-        <ResultSummaryBar
-          data={countData ?? fundingData}
-          tab={resultTab}
-          onTab={setResultTab}
-          unknownCount={formStatus?.unknownCount ?? null}
-          reviewCount={reviewCountOf(countData ?? fundingData, diagnosis)}
-          onFill={() => setFillNonce((n) => n + 1)}
-          view={mapUi.view}
-          onView={(v) => dispatchMapUi({ type: "view", view: v })}
-          query={resultQuery}
-          onQuery={(q) => setResultQuery(clipQuery(q))}
-          nowOnly={fundingFilters.openOnly}
-          onNowOnly={(v) => changeFundingFilters({ ...fundingFilters, openOnly: v })}
-          sort={fundingSort}
-          onSort={setFundingSort}
-        />
-      )}
-
-      {mode === "diagnosed" && <SearchCutNotice cut={searchCut} />}
-
-      {showsMap(mode, mapUi.view) ? (
-        <FundingMap
-          data={shownFunding}
-          loading={fundingLoading}
-          error={fundingError}
-          filters={fundingFilters}
-          sort={fundingSort}
-          onFiltersChange={changeFundingFilters}
-          onSortChange={setFundingSort}
-          onOpen={(item) => dispatchMapUi({ type: "open", item })}
-          onOpenDetail={openDetailFromMap}
-          onBrowseAll={browseAll}
-          onRetry={retryFunding}
-          selectedId={mapUi.openItem?.id ?? ""}
-          showExcluded={showExcluded}
-          onToggleExcluded={toggleExcluded}
-          renderCardFooter={mapCardFooter}
-        />
-      ) : mode === "diagnosed" ? (
-        // 진단 「목록」 — 묶음별 접기·펴기. 행을 누르면 아래의 상세 서랍이 열린다(오른쪽 칸을 따로 차지하지 않는다).
-        <ResultGroupList
-          data={shownFunding}
-          loading={fundingLoading}
-          error={fundingError}
-          onRetry={retryFunding}
-          diagnosis={diagnosis}
-          serverStructurizes={features?.serverStructurizes ?? true}
-          selectedKey={drawerOpen ? (fundingByRef.get(selectedId)?.id ?? "") : ""}
-          onOpen={openRow}
-          renderRowFooter={rowFooter}
-          showExcluded={showExcluded}
-          onToggleExcluded={toggleExcluded}
-          onBrowseAll={browseAll}
-        />
-      ) : (
-        /* 탐색 — 큰 화면(lg+) master-detail. 오른쪽 상세가 「내용 높이」로 자라 그 높이가 두 컬럼의 높이를
-           정한다(align stretch 기본값). 상세는 안쪽 스크롤 없이 다 펼쳐지고(길면 페이지가 스크롤),
-           왼쪽 목록은 그 높이에 맞춰지고 목록이 더 길면 목록 안에서만 스크롤한다.
-           min-h 36rem = 상세가 아주 짧아도 목록칸이 쓸 만한 최소 높이를 갖게 하는 바닥값.
-           좁은 화면(lg 미만)은 고정 높이 없이 세로로 쌓인다(모바일 잘림 방지). */
-        <div className="gap-4 space-y-4 lg:grid lg:min-h-[36rem] lg:grid-cols-12 lg:space-y-0">
-          {/* 왼쪽 컬럼은 relative — 안의 목록(ResultList)을 absolute inset-0 로 깔아 컬럼을 꽉 채운다.
-              그래야 「목록 길이」가 행 높이를 밀어 올리지 않고, 오른쪽 상세 높이에 맞춰 채워진다. */}
-          <div className="lg:col-span-5 lg:relative">
-            <ResultList
-              mode={mode}
-              onModeChange={changeMode}
-              diagnosis={shownDiagnosis}
-              selectedId={selectedId}
-              onSelect={select}
-              browse={{
-                rows, total, page, q, qInput, status, loading, refreshing, lastSyncAt,
-                setQInput, submitSearch, setStatus, setPage,
-              }}
-              announcementsEndpoint={endpoints.announcements}
-              onManualSync={endpoints.sync ? refresh : undefined}
-              verdictFeedback={verdictFeedback}
-              profile={profile}
-              serverStructurizes={features?.serverStructurizes ?? true}
-            />
-          </div>
-          <div className="lg:col-span-7" ref={detailRef}>
-            <DetailPanel
-              endpoints={endpoints}
-              parseError={features?.parseError}
-              verdictFeedback={verdictFeedback}
-              announcementId={selectedId}
-              mode={mode}
-              profile={profile}
-              profileNonce={profileNonce}
-              item={selectedItem}
-              hasDiagnosis={diagnosis !== null}
-              serverStructurizes={features?.serverStructurizes ?? true}
-            />
-          </div>
-        </div>
-      )}
-      </section>
       </div>
+
+      {/* ② 매칭 결과 — 진단이 성공해야만 열린다. 결과 본문은 지금은 기존 진단 화면 그대로다. */}
+      {step === "result" && (
+        <section data-area="results" className="min-w-0 space-y-6">
+          <StepBar step="result" />
+          {diagnosis === null ? (
+            // 새로 고침 뒤 저장해 둔 값으로 다시 돌리는 동안 — 결과가 오면 아래 본문으로 바뀐다.
+            <div
+              data-area="result-loading"
+              className="rounded-2xl border border-wedly-bd bg-white p-6 text-sm leading-[22px] text-wedly-t2 shadow-sm"
+            >
+              매칭 결과를 불러오는 중입니다…
+            </div>
+          ) : (
+            <>
+              <CompanySummaryBar
+                profile={profile}
+                unknownCount={formStatus?.unknownCount ?? null}
+                onEdit={goCompany}
+                onOther={resetCompany}
+              />
+
+              {/* 결과 위 한 묶음 — 요약 탭·「모름 → 확인 필요」 띠·도구 줄(보기·검색·지금 신청 가능·정렬).
+                  보기 단추(목록 / 한눈에)가 예전 「결과 보기」 알약 자리를 이어받는다(한눈에 = 기존 자금 조달 지도). */}
+              <ResultSummaryBar
+                data={countData ?? fundingData}
+                tab={resultTab}
+                onTab={setResultTab}
+                unknownCount={formStatus?.unknownCount ?? null}
+                reviewCount={reviewCountOf(countData ?? fundingData, diagnosis)}
+                onFill={() => {
+                  goCompany(); // 폼은 ① 에 있다 — 그리로 돌아가 첫 모름 칸으로 초점을 준다
+                  setFillNonce((n) => n + 1);
+                }}
+                view={mapUi.view}
+                onView={(v) => dispatchMapUi({ type: "view", view: v })}
+                query={resultQuery}
+                onQuery={(q) => setResultQuery(clipQuery(q))}
+                nowOnly={fundingFilters.openOnly}
+                onNowOnly={(v) => changeFundingFilters({ ...fundingFilters, openOnly: v })}
+                sort={fundingSort}
+                onSort={setFundingSort}
+              />
+
+              <SearchCutNotice cut={searchCut} />
+
+              {/* 「전체 공고로 돌아가기」 길은 없다 — 두 부품 모두 onBrowseAll 을 안 받으면 그 단추를 안 그린다. */}
+              {showsMap("diagnosed", mapUi.view) ? (
+                <FundingMap
+                  data={shownFunding}
+                  loading={fundingLoading}
+                  error={fundingError}
+                  filters={fundingFilters}
+                  sort={fundingSort}
+                  onFiltersChange={changeFundingFilters}
+                  onSortChange={setFundingSort}
+                  onOpen={(item) => dispatchMapUi({ type: "open", item })}
+                  onOpenDetail={openDetailFromMap}
+                  onRetry={retryFunding}
+                  selectedId={mapUi.openItem?.id ?? ""}
+                  showExcluded={showExcluded}
+                  onToggleExcluded={toggleExcluded}
+                  renderCardFooter={mapCardFooter}
+                />
+              ) : (
+                // 진단 「목록」 — 묶음별 접기·펴기. 행을 누르면 아래의 상세 서랍이 열린다(오른쪽 칸을 따로 차지하지 않는다).
+                <ResultGroupList
+                  data={shownFunding}
+                  loading={fundingLoading}
+                  error={fundingError}
+                  onRetry={retryFunding}
+                  diagnosis={diagnosis}
+                  serverStructurizes={features?.serverStructurizes ?? true}
+                  selectedKey={drawerOpen ? (fundingByRef.get(selectedId)?.id ?? "") : ""}
+                  onOpen={openRow}
+                  renderRowFooter={rowFooter}
+                  showExcluded={showExcluded}
+                  onToggleExcluded={toggleExcluded}
+                />
+              )}
+            </>
+          )}
+        </section>
+      )}
 
       {/* 수집원 자료는 통로를 넘긴 앱에만 — 랩·컨설턴트 앱은 안 넘기고, ERP는 관리자에게만 넘긴다. */}
       {endpoints.sources && (
@@ -806,9 +818,9 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
       )}
 
       {/* 상세 서랍 — 진단 목록에서 행을 눌렀을 때 DetailPanel(조건 맞춰 보기·AI 판정·돌파구·피드백·강사 문의)이
-          그대로 열린다. 탐색 판은 오른쪽 칸에 상세를 펼치므로 여기서는 진단 판일 때만 연다. */}
+          그대로 열린다. 결과 단계일 때만 연다. */}
       <ResultDrawer
-        open={drawerOpen && mode === "diagnosed"}
+        open={drawerOpen && step === "result"}
         title={selectedItem?.title ?? fundingByRef.get(selectedId)?.title ?? "공고 상세"}
         onClose={closeDrawer}
       >
@@ -817,7 +829,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
           parseError={features?.parseError}
           verdictFeedback={verdictFeedback}
           announcementId={selectedId}
-          mode={mode}
+          mode="diagnosed"
           profile={profile}
           profileNonce={profileNonce}
           item={selectedItem}

@@ -355,14 +355,15 @@ describe("mapUiReducer — 판 갈아타기·서랍", () => {
   });
 });
 
-describe("첫 화면(탐색) — 배선을 바꿔도 그대로 그려진다", () => {
-  it("진단 전에는 두 컬럼(목록+상세)이고 지도·판 갈아타기 알약은 없다", () => {
+describe("첫 화면(① 회사 정보) — 배선을 바꿔도 그대로 그려진다", () => {
+  it("진단 전에는 회사 정보 폼뿐이고 옛 두 컬럼(목록+상세)·지도·판 갈아타기 알약은 없다", () => {
     // Next 는 클라이언트 부품도 첫 방문에 서버에서 한 번 그린다 — 여기서 터지면 화면이 500 이 된다.
-    // 손잡이(useEffect)는 서버 그리기에서 돌지 않으므로 통로를 부르지 않는다.
+    // 손잡이(useEffect)는 서버 그리기에서 돌지 않으므로 통로를 부르지 않는다(주소·저장소 읽기도 효과 안에 있다).
     const html = renderToStaticMarkup(
       createElement(PolicyMatchScreen, { endpoints: ERP_POLICY_MATCH_ENDPOINTS }),
     );
-    expect(html).toContain("lg:grid-cols-12"); // 기존 두 컬럼 배치
-    expect(html).not.toContain("결과 보기"); // 진단 전 = 알약 없음
+    expect(html).toContain("어떤 회사의 지원정책을 찾을까요?");
+    expect(html).not.toContain("lg:grid-cols-12"); // 옛 탐색 두 컬럼 배치는 없어졌다
+    expect(html).not.toContain("한눈에"); // 진단 전 = 보기 알약 없음
   });
 });

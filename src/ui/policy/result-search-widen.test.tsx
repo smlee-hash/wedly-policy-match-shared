@@ -202,8 +202,8 @@ describe("화면 배선 — 소스 글자로 잰다", () => {
     expect(화면글).toContain("searchCutOf(fundingData, conditions)");
   });
 
-  it("진단 판일 때 목록(과 지도) 위에 안내를 둔다", () => {
-    expect(화면글).toContain('{mode === "diagnosed" && <SearchCutNotice cut={searchCut} />}');
+  it("결과 단계 안에서 목록(과 지도) 위에 안내를 둔다", () => {
+    expect(화면글).toContain("<SearchCutNotice cut={searchCut} />");
     expect(화면글.indexOf("<SearchCutNotice")).toBeLessThan(화면글.indexOf("<ResultGroupList"));
   });
 });

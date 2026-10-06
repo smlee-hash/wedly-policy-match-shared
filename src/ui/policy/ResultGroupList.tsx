@@ -177,7 +177,8 @@ interface Props {
   /** 「안 맞아서 뺀 N건 보기」를 펼친 갈래들과 그 손잡이(거르개와 한 짝이라 부모가 쥔다). */
   showExcluded: ReadonlySet<FundingGroup>;
   onToggleExcluded: (g: FundingGroup) => void;
-  onBrowseAll: () => void;
+  /** 전체 공고 둘러보기로 가는 길. 안 넘기면 「전체 공고 탐색」 단추를 안 그린다(두 단계 화면은 회사 없이 둘러보기가 없다). */
+  onBrowseAll?: () => void;
 }
 
 /** 검색어·탭으로 거르는데 받은 자료가 서버 전체보다 적을 때 목록 위에 붙이는 안내. 잘림이 없으면 아무것도 안 그린다. */
@@ -218,9 +219,11 @@ export default function ResultGroupList({
     <div data-area="result-groups" className="space-y-4" aria-busy={loading}>
       <div className="flex flex-wrap items-center gap-2">
         <DiagnosisNotice diagnosis={diagnosis} serverStructurizes={serverStructurizes} />
-        <button type="button" onClick={onBrowseAll} className={`ml-auto ${BTN_SECONDARY}`}>
-          전체 공고 탐색
-        </button>
+        {onBrowseAll && (
+          <button type="button" onClick={onBrowseAll} className={`ml-auto ${BTN_SECONDARY}`}>
+            전체 공고 탐색
+          </button>
+        )}
       </div>
 
       {error && !data && (

@@ -99,11 +99,12 @@ describe("① 수집 통로가 없으면 「지금 새로 받아오기」 단추
     expect(html).toContain("<button");
   });
 
-  it("화면째로 봐도 같다 — 랩 통로로 그린 전체 화면엔 그 글자가 없다", () => {
+  it("화면째로 봐도 같다 — 두 단계 개편으로 화면에서 전체 공고 목록이 없어져 어느 통로로 그려도 그 글자가 없다", () => {
+    // 예전엔 수집 통로가 있는 ERP 화면에만 있었다. 이제 화면은 회사 정보 단계로 열려 목록 자체가 없다.
     const lab = renderToStaticMarkup(<PolicyMatchScreen endpoints={LAB_ENDPOINTS} />);
     const erp = renderToStaticMarkup(<PolicyMatchScreen endpoints={ERP_POLICY_MATCH_ENDPOINTS} />);
     expect(lab).not.toContain("지금 새로 받아오기");
-    expect(erp).toContain("지금 새로 받아오기");
+    expect(erp).not.toContain("지금 새로 받아오기");
   });
 });
 
