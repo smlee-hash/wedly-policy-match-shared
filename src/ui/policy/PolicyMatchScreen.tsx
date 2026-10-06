@@ -395,7 +395,11 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
    * sessionStorage 에 둔다). 실패하면 단계는 그대로다. 성공 여부를 입력 카드에 알린다.
    * 주소가 이미 결과 단계이면(새로 고침 복원·앞으로 가기) 주소는 다시 쌓지 않는다.
    */
+  // 진단 회차 번호 — 「다른 회사」나 새 진단이 번호를 올리면, 그 전에 나간 진단 답은 늦게 와도 버린다.
+  // 안 버리면 비운 결과·저장값·`?step=result` 가 늦은 답으로 되살아난다(독립 리뷰 10/7).
+  const diagnoseGen = useRef(0);
   const runDiagnose = useCallback(async (p: BusinessProfile): Promise<boolean> => {
+    const gen = ++diagnoseGen.current;
     setDiagnosing(true);
     setNotice("");
     try {
@@ -404,6 +408,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile: p, profileSource: SCREEN_PROFILE_SOURCE }),
       }).then((r) => r.json());
+      if (gen !== diagnoseGen.current) return false;
       if (!j?.success) {
         setNotice(j?.error?.message ?? "진단에 실패했습니다");
         return false;
@@ -427,10 +432,10 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
       setAskedQuery("");
       return true;
     } catch {
-      setNotice("진단에 실패했습니다 — 잠시 뒤 다시 시도하세요");
+      if (gen === diagnoseGen.current) setNotice("진단에 실패했습니다 — 잠시 뒤 다시 시도하세요");
       return false;
     } finally {
-      setDiagnosing(false);
+      if (gen === diagnoseGen.current) setDiagnosing(false);
     }
   }, [endpoints.diagnose]);
 
@@ -450,8 +455,9 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
   /** 저장해 둔 값으로 결과를 다시 만든다(새로 고침 복원·앞으로 가기). 실패하면 ① 로 돌아가고 주소에서 step 을 뗀다. */
   const rediagnose = useCallback((p: BusinessProfile) => {
     setStep("result");
+    const mine = diagnoseGen.current + 1; // runDiagnose 가 곧바로 올릴 번호
     void runDiagnose(p).then((ok) => {
-      if (ok) return;
+      if (ok || diagnoseGen.current !== mine) return; // 그 사이 다른 회사·새 진단이면 손대지 않는다
       setStep("company");
       writeStepToAddress("company", "replace");
     });
@@ -459,6 +465,8 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
 
   /** 「다른 회사」 — 입력값·저장값·결과를 모두 비우고 ① 로. 폼은 새로 만든다(formKey). */
   const resetCompany = useCallback(() => {
+    diagnoseGen.current += 1; // 나가 있던 진단 답은 버린다
+    setDiagnosing(false);
     clearStoredProfile(sessionStorageOrNull());
     setRestoredProfile(null);
     setFormKey((k) => k + 1);

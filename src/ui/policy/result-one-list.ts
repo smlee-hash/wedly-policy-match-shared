@@ -72,14 +72,27 @@ export function serverVerdictCountsOf(data: FundingMapPayload | null): ServerVer
   for (const b of data.groups) {
     const g = byGroup[b.group];
     if (!g) continue;
+    // 「종류 미확인」 줄: 서버의 fit/unverified 에는 없고 excluded 에는 들어 있다. 탭은 미확인까지 더하고,
+    // 갈래 칩은 미확인을 빼고 센다(칩 거르기 `filterByChip` 이 미확인을 빼므로) — 독립 리뷰 10/7.
+    const parked = b.unclassifiedCounts ?? { fit: 0, unverified: 0, excluded: 0 };
     g.fit += b.fit;
     g.unverified += b.unverified;
-    g.excluded += b.excluded;
-    tab.fit += b.fit;
-    tab.unverified += b.unverified;
+    g.excluded += Math.max(0, b.excluded - parked.excluded);
+    tab.fit += b.fit + parked.fit;
+    tab.unverified += b.unverified + parked.unverified;
     tab.excluded += b.excluded;
   }
   return { tab, byGroup };
+}
+
+/**
+ * 지금 찾기어로 받은 답일 때만 서버 셈을 쓴다 — 찾기 요청이 실패하면 로더가 이전 답을 그대로 두는데,
+ * 그 셈을 새 찾기어 목록에 붙이면 「줄 0건 · 탭 100건」이 된다(독립 리뷰 10/7).
+ */
+export function serverCountsForQuery(data: FundingMapPayload | null, askedQuery: string): ServerVerdictCounts | null {
+  if (!data) return null;
+  if (normalizeQuery(data.search?.query ?? "") !== normalizeQuery(askedQuery)) return null;
+  return serverVerdictCountsOf(data);
 }
 
 /** 처음 보이는 탭 — 지원 가능, 그게 0건이면 확인 필요. */

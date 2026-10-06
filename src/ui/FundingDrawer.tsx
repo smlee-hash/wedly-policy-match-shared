@@ -531,6 +531,8 @@ export default function FundingDrawer({ item, onClose, onOpenDetail, aiVerdictAv
           <Badge variant="default">{kindLabel}</Badge>
           <span className={cn(DEAD_CHIP_BASE, DEAD_CHIP_TONE[dead.tone])}>{dead.chip}</span>
         </div>
+        {/* 칸 안에 그릴 때는 서랍 머리(SidePanel 제목)가 없다 — 목록 제목은 두 줄에서 잘리므로 전체 이름을 여기 둔다(독립 리뷰 10/7). */}
+        {inline && <div className="min-w-0 break-keep text-base font-semibold leading-6 text-wedly-t1">{item.title}</div>}
 
         {/* 답 네 개 — 미리보기 `.qs`. 카드 앞면·표의 같은 답과 같은 도우미(amountWords·repayWords·
             deadlineWords·whereWords)를 쓴다 — 어디서나 같은 값이 같은 글자로 읽힌다. */}

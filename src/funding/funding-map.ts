@@ -117,6 +117,12 @@ export interface FundingGroupBlock {
    */
   unclassifiedTotal?: number;
   /**
+   * 「종류 미확인」 줄의 판정별 수 — **서버가 자르기 전에 센 값**(검색어·탭을 걸었으면 건 뒤). 늘 싣는다.
+   * 위 `fit`·`unverified` 에는 미확인이 빠지고 `excluded` 에는 들어 있어서, 판정 탭이 실제 줄 수를 세려면
+   * 이 값이 필요하다(정책매칭 결과 화면 판정 탭, 2026-10-07 독립 리뷰). 옛 서버 답에는 없을 수 있다.
+   */
+  unclassifiedCounts?: { fit: number; unverified: number; excluded: number };
+  /**
    * 안 맞아서 뺀 항목 — **`includeExcluded:true` 일 때만 있다**(false 면 필드 자체가 없다: 응답 크기).
    * `items` 와 같은 정렬·같은 topN 으로 따로 잘린다 — 정상 항목과 한 상한을 나눠 갖지 않는다.
    * 잘려서 못 실은 것이 있는지는 `excluded`(전체 개수)와 이 배열 길이를 견줘 안다.
@@ -777,6 +783,11 @@ export function groupBlocks(items: FundingItem[], opts: GroupBlockOptions = {}):
     };
     // 검색어·탭을 걸었을 때만 거른 뒤 미확인 건수를 싣는다 — 안 건 요청의 응답 모양은 그대로다.
     if (searching) block.unclassifiedTotal = parked.length;
+    block.unclassifiedCounts = {
+      fit: parked.filter((it) => it.fitVerdict === "fit").length,
+      unverified: parked.filter((it) => it.fitVerdict === "unverified").length,
+      excluded: excludedMine.filter((it) => it.unclassified).length,
+    };
     if (opts.includeExcluded) block.excludedItems = sortItems(excludedMine, sort).slice(0, topN);
     return block;
   });

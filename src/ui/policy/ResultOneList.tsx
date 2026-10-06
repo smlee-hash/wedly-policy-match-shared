@@ -14,7 +14,7 @@ import { GROUP_TONE_TILE, cardFooterOf, type FundingMapPayload } from "../Fundin
 import { staleErrorText } from "./ResultGroupList";
 import {
   INITIAL_ONE_LIST_STATE, ONE_LIST_SORTS, VERDICT_TABS, ddayBadgeOf, defaultVerdictTab, flattenFundingItems,
-  cutNoticeOf, groupTagOf, kindTagOf, lineTextOf, oneListReducer, oneListViewOf, searchItems, serverVerdictCountsOf, sourceNameOf, unknownNoticeOf,
+  cutNoticeOf, groupTagOf, kindTagOf, lineTextOf, oneListReducer, oneListViewOf, searchItems, serverCountsForQuery, sourceNameOf, unknownNoticeOf,
   verdictCountsOf, verdictTabOf,
   type ChipKey, type OneListSort, type OneListState, type ServerVerdictCounts, type VerdictTab,
 } from "./result-one-list";
@@ -426,7 +426,7 @@ export default function ResultOneList({
 }: Props) {
   const [state, dispatch] = useReducer(oneListReducer, INITIAL_ONE_LIST_STATE);
   const items = useMemo(() => (data ? flattenFundingItems(data) : null), [data]);
-  const serverCounts = useMemo(() => serverVerdictCountsOf(data), [data]);
+  const serverCounts = useMemo(() => serverCountsForQuery(data, askedQuery), [data, askedQuery]);
 
   // 처음 받은 자료로 기본 탭(지원 가능, 0건이면 확인 필요)을 못 박는다 — 이후 찾기로 숫자가 바뀌어도 탭이 저절로 움직이지 않는다.
   useEffect(() => {

@@ -36,9 +36,12 @@ function validDate(value: string | null): Date | null {
 
 const ALWAYS_RE = /상시|수시|연중/;
 
-/** 지원 금액 원문의 앞부분 — 첫 쉼표·괄호·줄바꿈 앞까지, 길면 줄인다. 큰 숫자 칸에 들어갈 만큼만. */
+/**
+ * 지원 금액 원문의 앞부분 — 첫 쉼표·괄호·줄바꿈 앞까지, 길면 줄인다. 큰 숫자 칸에 들어갈 만큼만.
+ * 숫자 사이 천 단위 쉼표(「5,000만 원」)에서는 자르지 않는다 — 자르면 「최대 5」만 남는다(독립 리뷰 10/7).
+ */
 export function shortAmountOf(text: string): string {
-  const first = text.trim().split(/[\n(（,;·]/)[0].trim();
+  const first = text.trim().split(/[\n(（;·]|,(?!\d{3})/)[0].trim();
   if (!first) return "";
   return first.length > 16 ? `${first.slice(0, 16)}…` : first;
 }
@@ -259,6 +262,24 @@ export function fileNameFromDisposition(header: string | null): string | null {
 }
 
 /**
+ * 우리 통로(같은 출처)인가 — 상대 경로(`/api/...`, `//` 로 시작하는 것은 제외)이거나 지금 페이지와 출처가 같은 주소만.
+ * 외부 출처 주소는 「모두 받기」가 요청 자체를 보내지 않는다(독립 리뷰 10/7) — 그 줄의 「받기」로 연다.
+ */
+export function isOwnAttachmentUrl(url: string, origin: string | null): boolean {
+  const u = url.trim();
+  if (u.startsWith("/") && !u.startsWith("//")) return true;
+  if (!origin) return false;
+  try {
+    return new URL(u).origin === origin;
+  } catch {
+    return false;
+  }
+}
+
+/** 파일이 아닌 답(오류 페이지·JSON 오류) — 200 이어도 저장하지 않고 실패로 센다. */
+const NOT_A_FILE_RE = /html|json/i;
+
+/**
  * 첨부를 차례로 받아 저장한다 — 새 창을 연달아 열면 브라우저가 첫 창 뒤를 막고 막힌 줄도 모르므로,
  * 같은 주소(우리 통로)를 하나씩 불러 파일로 저장하고 성공·실패 개수를 돌려준다.
  * 통로가 원래 사이트로 넘겨 보내는 출처(302)나 오류 답은 실패로 센다 — 그 줄의 「받기」로 받으면 된다.
@@ -268,18 +289,26 @@ export async function downloadAttachmentsInOrder(
   deps: {
     fetchFn?: typeof fetch;
     save?: (blob: Blob, name: string) => void;
+    /** 지금 페이지 출처 — 시험에서 넣는다. 기본은 브라우저의 `location.origin`. */
+    origin?: string | null;
   } = {},
 ): Promise<DownloadAllResult> {
   const fetchFn = deps.fetchFn ?? fetch;
+  const origin = deps.origin !== undefined ? deps.origin : (globalThis.location?.origin ?? null);
   const save = deps.save ?? saveBlob;
   const targets = attachments.slice(0, DOWNLOAD_ALL_MAX);
   let saved = 0;
   let failed = 0;
   for (const a of targets) {
+    if (!isOwnAttachmentUrl(a.url, origin)) {
+      failed += 1;
+      continue;
+    }
     try {
-      const res = await fetchFn(a.url, { credentials: "same-origin" });
+      // redirect:"manual" — 통로가 원래 사이트로 넘기면(302) 따라가지 않고 opaqueredirect 로 멈춘다.
+      const res = await fetchFn(a.url, { credentials: "same-origin", redirect: "manual" });
       const type = res.headers.get("content-type") ?? "";
-      if (!res.ok || res.type === "opaqueredirect" || res.redirected || type.includes("application/json")) {
+      if (!res.ok || res.type === "opaqueredirect" || res.redirected || NOT_A_FILE_RE.test(type)) {
         failed += 1;
         continue;
       }
