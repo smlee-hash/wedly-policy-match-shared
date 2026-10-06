@@ -42,10 +42,16 @@ export default function ResultDetail({
         fitVerdict={item.fitVerdict}
         hasDiagnosis={hasDiagnosis}
         serverStructurizes={features?.serverStructurizes ?? true}
+        frame="pane"
       />
     );
   }
   // ★`aiVerdictAvailable` 은 다른 자리(「AI 판정」 단추·돌파구)와 같은 규칙이다 — 통로가 없는 앱에서는
   //  상품 본문도 AI 를 약속하지 않는다(2026-09-07 독립 리뷰 지적 3). 껍데기가 없으니 닫기는 쓰지 않는다.
-  return <FundingDrawer inline item={item} onClose={NOOP} aiVerdictAvailable={!!endpoints.verdict} />;
+  // 칸이 바닥 여백을 두지 않으므로(상세의 고정 줄이 바닥에 붙게) 상품 본문은 여기서 바닥 여백을 준다.
+  return (
+    <div className="pb-4 min-[821px]:pb-6">
+      <FundingDrawer inline item={item} onClose={NOOP} aiVerdictAvailable={!!endpoints.verdict} />
+    </div>
+  );
 }

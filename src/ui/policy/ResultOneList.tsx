@@ -6,7 +6,7 @@
 // 서버를 다시 부르지 않는다(서버에 다시 묻는 것은 찾기어가 바뀔 때뿐 — 부모가 한다).
 // 거르는 규칙은 `result-one-list.ts`(순수 함수)에 있다. 이 파일은 그리기와, 눌림을 그 규칙에 잇는 일만 한다.
 // `ResultOneListView` 는 상태를 밖에서 받아 그리기만 한다(그려서 잴 수 있다) · `ResultOneList` 가 상태를 쥔다.
-import { useEffect, useMemo, useReducer, type ReactNode } from "react";
+import { useEffect, useMemo, useReducer, useRef, type ReactNode } from "react";
 import { Skeleton } from "@wedly/ui-shared/ui";
 import { FUNDING_QUERY_MAX, type FundingItem } from "../../funding/funding-map";
 import CustomSelect from "../CustomSelect";
@@ -101,6 +101,52 @@ function OneListRow({ item, selected, onSelect, footer }: {
   );
 }
 
+
+/** 두 칸 아래 남길 틈(px) — 화면 바닥에 칸이 딱 붙지 않게. 칸 아래 앱 여백이 이보다 크면 그 여백(최대 48)을 쓴다. */
+const PANE_BOTTOM_GAP = 16;
+const PANE_BOTTOM_GAP_MAX = 48;
+
+/** 가장 가까운 세로 스크롤 조상. 없으면 null(= 창 자체가 스크롤한다). */
+function scrollParentOf(el: HTMLElement): HTMLElement | null {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const oy = getComputedStyle(p).overflowY;
+    if ((oy === "auto" || oy === "scroll") && p.scrollHeight > p.clientHeight) return p;
+  }
+  return null;
+}
+
+/**
+ * 두 칸의 위쪽 높이(`--pm-top`)를 실제로 재서 넣는다 — 앱마다 머리 띠·여백이 달라 고정값(280px)으로는
+ * 칸이 화면 아래로 넘쳐 페이지가 한 번 더 스크롤됐다. 스크롤을 맨 위로 올렸을 때의 칸 위치 + 바닥 틈.
+ * 위쪽 내용(안내 상자 등)이 생기거나 창 크기가 바뀌면 다시 잰다.
+ */
+function usePaneTop(ref: { current: HTMLElement | null }) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof window === "undefined") return;
+    const measure = () => {
+      const parent = scrollParentOf(el);
+      const rect = el.getBoundingClientRect();
+      // 스크롤을 맨 위로 올렸을 때 화면 위에서 칸까지의 거리, 그리고 칸 아래에 남은 앱 여백.
+      const scrolled = parent ? parent.scrollTop : window.scrollY;
+      const top = rect.top + scrolled;
+      const total = parent ? parent.scrollHeight : document.documentElement.scrollHeight;
+      const originTop = parent ? parent.getBoundingClientRect().top : 0;
+      const below = total - (rect.bottom - originTop + scrolled);
+      const gap = Math.min(PANE_BOTTOM_GAP_MAX, Math.max(PANE_BOTTOM_GAP, below));
+      el.style.setProperty("--pm-top", `${Math.max(0, Math.round(top + gap))}px`);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    if (ro && el.parentElement) ro.observe(el.parentElement);
+    return () => {
+      window.removeEventListener("resize", measure);
+      ro?.disconnect();
+    };
+  }, [ref]);
+}
+
 export interface ResultOneListViewProps {
   /** 평평하게 편 자료. 아직 못 받았으면 null(불러오는 중 뼈대 · 오류 상자). */
   items: FundingItem[] | null;
@@ -137,6 +183,8 @@ export function ResultOneListView({
 }: ResultOneListViewProps) {
   const hasData = items !== null;
   const view = oneListViewOf(items ?? [], state, askedQuery, serverCounts);
+  const twoPaneRef = useRef<HTMLDivElement | null>(null);
+  usePaneTop(twoPaneRef);
   const notice = hasData
     ? unknownNoticeOf({ unverifiedCount: view.counts.unverified, unknownFieldCount: unknownCount })
     : null;
@@ -226,8 +274,9 @@ export function ResultOneListView({
       )}
 
       {/* 두 칸 — 넓은 화면(>820px)은 같은 높이로 화면 아래까지(위치를 재지 않고 CSS 만으로), 좁은 화면은 위아래로 쌓고 높이 고정·안쪽 스크롤을 푼다.
-          바깥 높이 = 100dvh − 위쪽 높이(--pm-top, 기본 280px) · 최소 400px. 각 칸은 flex 세로 · 본문 min-h-0 + 안쪽 스크롤 · 아래 줄 고정. */}
+          바깥 높이 = 100dvh − 위쪽 높이(--pm-top: `usePaneTop` 이 실제로 잰 칸 위치 + 바닥 틈, 재기 전 기본 280px) · 최소 400px. 각 칸은 flex 세로 · 본문 min-h-0 + 안쪽 스크롤 · 아래 줄 고정. */}
       <div
+        ref={twoPaneRef}
         data-area="result-two-pane"
         className="grid gap-4 min-[821px]:h-[calc(100dvh-var(--pm-top,280px))] min-[821px]:min-h-[400px] min-[821px]:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] min-[821px]:grid-rows-[minmax(0,1fr)]"
       >
@@ -335,7 +384,8 @@ export function ResultOneListView({
           aria-label="공고 상세"
           className="flex flex-col overflow-hidden rounded-2xl border border-wedly-bd bg-white shadow-sm min-[821px]:min-h-0"
         >
-          <div className="p-4 min-[821px]:min-h-0 min-[821px]:flex-1 min-[821px]:overflow-y-auto min-[821px]:p-6">
+          {/* 바닥 여백은 두지 않는다 — 상세의 아래 고정 줄(sticky)이 칸 바닥에 붙게. 바닥 여백은 상세 쪽이 맡는다. */}
+          <div className="px-4 pt-4 min-[821px]:min-h-0 min-[821px]:flex-1 min-[821px]:overflow-y-auto min-[821px]:px-6 min-[821px]:pt-6">
             {view.selected ? (
               renderDetail(view.selected)
             ) : (

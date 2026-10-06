@@ -465,3 +465,40 @@ describe("글자·색 계약", () => {
     expect(src).not.toContain("고객이력");
   });
 });
+
+describe("결과 화면 오른쪽 칸(pane) — 칸 바닥 고정 · 이중 스크롤 없음", () => {
+  const 모양 = { primaryClass: "PRIMARY", secondaryClass: "SECONDARY" };
+
+  it("pane 모드 단추 줄은 칸 바닥으로 밀려(mt-auto) 붙고, card 모드는 카드 여백(-mb-4) 기준이다", () => {
+    const pane = renderToStaticMarkup(
+      <DetailActionBar url="https://example.org/notice" attachments={파일들} urlPrimary edge="pane" {...모양} />,
+    );
+    expect(pane).toContain("sticky bottom-0");
+    expect(pane).toContain("mt-auto");
+    const card = renderToStaticMarkup(
+      <DetailActionBar url="https://example.org/notice" attachments={파일들} urlPrimary {...모양} />,
+    );
+    expect(card).toContain("-mb-4");
+    expect(card).not.toContain("mt-auto");
+    expect(pane).not.toContain("-mb-4");
+  });
+
+  it("pane 모드에서 보일 단추가 없어도 바닥 여백은 남긴다", () => {
+    const html = renderToStaticMarkup(
+      <DetailActionBar url="" attachments={[]} urlPrimary={false} edge="pane" {...모양} />,
+    );
+    expect(html).toContain("h-4");
+  });
+
+  it("결과 화면은 pane 으로 그리고, pane 의 탭 본문은 안쪽 높이 제한이 없다(좁은 폭 이중 스크롤 회귀)", () => {
+    const detail = readFileSync(new URL("./ResultDetail.tsx", import.meta.url), "utf8");
+    expect(detail).toMatch(/frame="pane"/);
+    const panel = readFileSync(new URL("./DetailPanel.tsx", import.meta.url), "utf8");
+    expect(panel).toMatch(/frame === "pane" \? "mt-4 space-y-6" :/);
+    // 기본값은 card — ERP 협업 머리(policy-track-headers)가 같은 부품을 카드로 쓴다.
+    expect(panel).toMatch(/frame = "card"/);
+    const list = readFileSync(new URL("./ResultOneList.tsx", import.meta.url), "utf8");
+    expect(list).toMatch(/usePaneTop\(/);
+    expect(list).toMatch(/--pm-top/);
+  });
+});

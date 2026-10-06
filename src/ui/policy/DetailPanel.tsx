@@ -511,6 +511,12 @@ interface Props {
   parseError?: ParseError;
   /** 상세 머리에 끼울 판정 피드백 조각(랩만). 없으면 아무것도 안 그린다. */
   verdictFeedback?: (ctx: VerdictFeedbackContext) => ReactNode;
+  /**
+   * 겉모양 — `card`(기본): 스스로 흰 카드로 그린다(공동 업무 화면 등 다른 자리).
+   * `pane`: 이미 카드인 결과 화면 오른쪽 칸 안에 들어간다 — 테두리·그림자·안쪽 여백 없이 그리고,
+   * 아래 고정 줄은 칸 아래 끝에 붙는다(카드 안에 카드가 또 생기지 않게).
+   */
+  frame?: "card" | "pane";
   announcementId: string;
   mode: ListMode;
   profile: BusinessProfile;
@@ -552,7 +558,7 @@ function blockedSummary(checklist: { condition: string; status: string; note?: s
 export default function DetailPanel({
   endpoints, parseError, verdictFeedback,
   announcementId, mode, profile, profileNonce, item, hasDiagnosis, noServerAi, serverStructurizes, browseEmptyNote,
-  fitVerdict,
+  fitVerdict, frame = "card",
 }: Props) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -772,7 +778,13 @@ export default function DetailPanel({
   // 스크롤), 이 높이가 왼쪽 목록 컬럼의 높이도 정한다(부모 grid 의 align stretch).
   // 그래서 h-full·overflow-hidden 을 주지 않는다(주면 예전처럼 본문에 안쪽 스크롤이 생긴다).
   // 빈/로딩/오류 상태도 이 껍데기를 쓴다.
-  const shell = (children: ReactNode, center = false) => (
+  const shell = (children: ReactNode, center = false) =>
+    frame === "pane" ? (
+      // 칸 안에 들어갈 때 — 겉 카드 없이. 내용이 짧아도 아래 고정 줄이 칸 바닥에 오도록 칸 높이를 채운다(min-h-full).
+      <div className={center ? "flex min-h-full items-center justify-center py-10" : "flex min-h-full flex-col"}>
+        {children}
+      </div>
+    ) : (
     // center=true(빈/로딩/오류 안내)만 lg:h-full 로 부모 칸을 채워 안내를 가운데에 둔다.
     // 내용이 있는 카드는 내용 높이로 자란다 — 두 칸 같은 높이·안쪽 스크롤은 바깥 상세 칸(ResultOneList)이 맡고,
     // 칸 아래 고정 줄(sticky)이 이 카드 안에서 끝까지 붙어 있으려면 카드가 칸 높이에 갇히면 안 된다.
@@ -1033,7 +1045,8 @@ export default function DetailPanel({
         ))}
       </div>
 
-      <div className="mt-4 max-h-[calc(100vh-24rem)] space-y-6 overflow-y-auto pr-1 lg:max-h-none lg:overflow-visible">
+      {/* 칸 모드는 바깥 칸이 스크롤을 맡는다 — 안쪽에 또 높이 제한을 두면 좁은 화면·중간 폭에서 스크롤이 이중이 된다. */}
+      <div className={frame === "pane" ? "mt-4 space-y-6" : "mt-4 max-h-[calc(100vh-24rem)] space-y-6 overflow-y-auto pr-1 lg:max-h-none lg:overflow-visible"}>
         {/* 대조 결과를 보여 줄지는 **어느 목록 탭을 보고 있는가가 아니라**
             「이 공고가 이번 진단에 들어 있는가」가 정한다 — 전체 공고 탭에서 골라도
             진단된 공고면 그대로 보여 준다(2026-08-22 독립 화면 검사 2번). */}
@@ -1313,6 +1326,7 @@ export default function DetailPanel({
         urlPrimary={!hasReceiptButton}
         primaryClass={BTN_PRIMARY}
         secondaryClass={BTN_SECONDARY}
+        edge={frame}
       />
 
       {askFor && (

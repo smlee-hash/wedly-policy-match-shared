@@ -522,20 +522,28 @@ export function AttachmentRows({ attachments }: { attachments: readonly PolicyAt
  * 둘 다 없으면 줄 자체를 그리지 않는다. `urlPrimary` 가 거짓이면 원문 단추를 보조 모양으로 둔다
  * (위에 「바로 신청하러 가기」 주 단추가 있을 때 — 화면당 주 단추는 하나).
  */
-export function DetailActionBar({ url, attachments, urlPrimary, primaryClass, secondaryClass }: {
+export function DetailActionBar({ url, attachments, urlPrimary, primaryClass, secondaryClass, edge = "card" }: {
   url: string;
   attachments: readonly PolicyAttachment[];
   urlPrimary: boolean;
   primaryClass: string;
   secondaryClass: string;
+  /** `card`: 상세 카드(p-4) 안 · `pane`: 결과 화면 오른쪽 칸(바닥 여백 없는 스크롤 칸) 안 — 칸 바닥에 붙는다. */
+  edge?: "card" | "pane";
 }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const hasUrl = /^https?:\/\//i.test(url.trim());
   const hasAll = showsDownloadAll(attachments);
-  if (!hasUrl && !hasAll) return null;
+  if (!hasUrl && !hasAll) return edge === "pane" ? <div aria-hidden="true" className="h-4 shrink-0 min-[821px]:h-6" /> : null;
+  const bar =
+    edge === "pane"
+      ? "sticky bottom-0 z-10 -mx-4 mt-auto flex flex-wrap items-center gap-2 border-t border-wedly-bd bg-white px-4 py-3 min-[821px]:-mx-6 min-[821px]:px-6"
+      : "sticky bottom-0 z-10 -mx-4 -mb-4 mt-4 flex flex-wrap items-center gap-2 rounded-b-2xl border-t border-wedly-bd bg-white px-4 py-3";
   return (
-    <div className="sticky bottom-0 z-10 -mx-4 -mb-4 mt-4 flex flex-wrap items-center gap-2 rounded-b-2xl border-t border-wedly-bd bg-white px-4 py-3">
+    <>
+    {edge === "pane" && <div aria-hidden="true" className="h-6 shrink-0" />}
+    <div className={bar}>
       {hasUrl && (
         <a href={url} target="_blank" rel="noreferrer" className={urlPrimary ? primaryClass : secondaryClass}>
           공고 원문 보기
@@ -564,5 +572,6 @@ export function DetailActionBar({ url, attachments, urlPrimary, primaryClass, se
         </span>
       )}
     </div>
+    </>
   );
 }
