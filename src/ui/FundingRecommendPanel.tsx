@@ -511,6 +511,8 @@ export default function FundingRecommendPanel({
   const drawerItem = opened?.companyKey === companyKey ? opened.item : null;
   // 기업 사실 뽑기를 기다리며 다시 부른 횟수 — 회사가 바뀌거나 저장 신호·「다시 추천」이 오면 0 으로 돌린다.
   const factsPollsRef = useRef(0);
+  // 다음 자동 재조회 타이머 — 저장 신호가 오면 이것을 먼저 끊어, 저장 직후 요청과 겹쳐 두 번 부르지 않게 한다.
+  const factsPollTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // 오류 문구 규칙은 **의존 배열에 넣지 않는다** — 부모가 화살표 함수를 그 자리에서 만들어 주면
   // 매 렌더마다 새 함수라 재조회가 끝없이 돈다. 대신 늘 최신 것을 쓰도록 ref 로 받는다
@@ -525,6 +527,8 @@ export default function FundingRecommendPanel({
     let timer: ReturnType<typeof setTimeout> | undefined;
     const onSaved = () => {
       factsPollsRef.current = 0;
+      clearTimeout(factsPollTimerRef.current);
+      factsPollTimerRef.current = undefined;
       clearTimeout(timer);
       timer = setTimeout(() => setRefreshKey((k) => k + 1), 600);
     };
@@ -548,10 +552,15 @@ export default function FundingRecommendPanel({
     const ms = nextFactsPollMs(data, loading, factsPollsRef.current);
     if (ms === null) return;
     const timer = setTimeout(() => {
+      factsPollTimerRef.current = undefined;
       factsPollsRef.current += 1;
       setRefreshKey((k) => k + 1);
     }, ms);
-    return () => clearTimeout(timer);
+    factsPollTimerRef.current = timer;
+    return () => {
+      clearTimeout(timer);
+      if (factsPollTimerRef.current === timer) factsPollTimerRef.current = undefined;
+    };
   }, [data, loading]);
 
   useEffect(() => {
