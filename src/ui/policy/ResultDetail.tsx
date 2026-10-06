@@ -3,7 +3,7 @@
 // ② 매칭 결과의 오른쪽 상세 칸 본문 — 고른 항목의 종류로 갈린다.
 //  · 공고(announcement) → 기존 DetailPanel(조건 맞춰 보기·AI 판정·돌파구·피드백·강사 문의). 진단 결과는 refId 로 이어 판정 근거를 넘긴다.
 //  · 상시 상품(product) → 기존 FundingDrawer 의 본문(서랍 껍데기 없이 inline). 상품은 상세 통로가 없다.
-// 상세 칸의 재구성(요약 3칸·대조표)은 다음 묶음(C3) 몫이라 여기서는 기존 부품을 그대로 옮겨 그리기만 한다.
+// 공고 상세의 요약 3칸·대조표·일정·첨부는 DetailPanel(detail-structured)이 그린다. 목록 줄과 같은 판정(fitVerdict)을 머리 이름표로 넘긴다.
 import type { ReactNode } from "react";
 import type { BusinessProfile } from "../../engine/match-engine";
 import type { FundingItem } from "../../funding/funding-map";
@@ -39,6 +39,7 @@ export default function ResultDetail({
         profile={profile}
         profileNonce={profileNonce}
         item={diagnoseById.get(item.refId) ?? null}
+        fitVerdict={item.fitVerdict}
         hasDiagnosis={hasDiagnosis}
         serverStructurizes={features?.serverStructurizes ?? true}
       />

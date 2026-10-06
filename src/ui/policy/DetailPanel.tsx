@@ -7,7 +7,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   Check,
-  ClipboardCheck,
   Coins,
   Copy,
   FileText,
@@ -33,8 +32,8 @@ import {
   UNREADABLE_STRUCTURE_NOTE,
   type BusinessProfile,
 } from "../../engine/match-engine";
-import { conditionLabelOf, type ConditionVerdict } from "../../engine/structure-types";
-import type { VerdictResult, VerdictStatus } from "../../ai/verdict";
+import { ANNOUNCEMENT_SOURCE_LABELS } from "../../funding/source-labels";
+import type { VerdictResult } from "../../ai/verdict";
 import {
   blockedConditionsOf,
   breakthroughCapNote,
@@ -48,8 +47,13 @@ import type { PolicyMatchEndpoints, PolicyMatchFeatures, VerdictFeedbackContext 
 import { SCREEN_PROFILE_SOURCE } from "./endpoints";
 import type { DiagnoseItem, GradeKey, ListMode } from "./PolicyMatchScreen";
 import {
-  BTN_SECONDARY, clipRegion, daysLeft, ddayBadge, deadlineMetricLabel, periodLabel, PILL, PILL_NEUTRAL,
+  BTN_SECONDARY, clipRegion, daysLeft, ddayBadge, PILL, PILL_NEUTRAL,
 } from "./ResultList";
+import {
+  AttachmentRows, ConditionTable, DetailActionBar, mergeConditionRows, ScheduleBlock, scheduleOf,
+  SummaryCells, summaryCellsOf, SupportTable,
+} from "./detail-structured";
+import type { VerdictTab } from "./result-one-list";
 
 /**
  * 상세가 부르는 통로는 넷이다. **`verdict`·`breakthrough`·`askInstructor` 가 없으면
@@ -96,16 +100,11 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "source", label: "원공고" },
 ];
 
-const CHECK_FACE: Record<ConditionVerdict, { mark: string; cls: string; label: string }> = {
-  pass: { mark: "✓", cls: "text-wedly-green", label: "충족" },
-  fail: { mark: "✗", cls: "text-wedly-red", label: "미충족" },
-  unknown: { mark: "?", cls: "text-wedly-gold-ink", label: "확인 필요" },
-};
-
-const AI_STATUS_CLASS: Record<VerdictStatus, string> = {
-  충족: "text-wedly-green",
-  미충족: "text-wedly-red",
-  확인필요: "text-wedly-gold-ink",
+/** 머리 판정 이름표 — 목록 줄·탭과 같은 낱말·같은 톤(fit→지원 가능 · unverified→확인 필요 · excluded→어려움). */
+const VERDICT_TAG: Record<VerdictTab, { label: string; className: string }> = {
+  fit: { label: "지원 가능", className: "bg-wedly-bg-green text-wedly-green-ink" },
+  unverified: { label: "확인 필요", className: "bg-wedly-bg-yellow text-wedly-t1" },
+  excluded: { label: "어려움", className: "bg-wedly-bg-red text-wedly-red-ink" },
 };
 
 const GRADE_LABEL: Record<GradeKey, string> = {
@@ -191,50 +190,6 @@ const SOURCE_FACE = {
   고객이력: { label: "고객이력", box: sourceBadgeBox("고객이력"), Icon: History },
   통화: { label: "통화", box: sourceBadgeBox("통화"), Icon: Phone },
 } as const;
-
-/**
- * 라벨-값 셀 — 핵심 지표 그리드(dl)의 한 칸. dt 는 12/muted, dd 는 값.
- * strong 이면 값을 구역 소제목 층(16/600)으로 강조하고, tabular 면 숫자를 표 정렬한다.
- */
-function Metric({
-  label,
-  value,
-  strong,
-  tabular,
-  clampLong,
-}: {
-  label: string;
-  value: ReactNode;
-  strong?: boolean;
-  tabular?: boolean;
-  /** 값이 길면 두 줄만 보이고 「더 보기」로 펼친다(머리 구획 위계 보호). */
-  clampLong?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const longText = clampLong && typeof value === "string" && value.length > 60;
-  return (
-    // min-w-0: 그리드 칸이 내용 최소폭 때문에 넘쳐 값이 오른쪽에서 잘리는 것을 막는다.
-    <div className="min-w-0">
-      <dt className="text-xs leading-[18px] text-wedly-muted">{label}</dt>
-      <dd
-        className={`mt-1 break-keep break-words ${
-          strong ? "text-base font-semibold leading-6 text-wedly-t1" : "text-sm leading-[22px] text-wedly-t2"
-        }${tabular ? " tabular-nums" : ""}${longText && !open ? " line-clamp-2" : ""}`}
-      >
-        {value}
-      </dd>
-      {longText && (
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="mt-1 text-xs leading-[18px] text-wedly-accent-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wedly-accent"
-        >
-          {open ? "접기" : "전체 보기"}
-        </button>
-      )}
-    </div>
-  );
-}
 
 /**
  * 소제목+내용 행 — 소제목은 구역 소제목 층(16/600), 내용은 body(한 문장) 또는 children(점 목록 등).
@@ -574,6 +529,8 @@ interface Props {
   serverStructurizes?: boolean;
   /** item 없는 「매칭 결과」 빈 상태 문구 — 진단 버튼이 없는 화면(레일)은 실행 가능한 안내로 바꾼다. */
   browseEmptyNote?: string;
+  /** 머리 판정 이름표 — 결과 목록 줄의 판정(fitVerdict)과 같은 값. 안 주면 진단 등급(item.grade)으로 갈음한다. */
+  fitVerdict?: VerdictTab;
 }
 
 /**
@@ -595,6 +552,7 @@ function blockedSummary(checklist: { condition: string; status: string; note?: s
 export default function DetailPanel({
   endpoints, parseError, verdictFeedback,
   announcementId, mode, profile, profileNonce, item, hasDiagnosis, noServerAi, serverStructurizes, browseEmptyNote,
+  fitVerdict,
 }: Props) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -815,13 +773,13 @@ export default function DetailPanel({
   // 그래서 h-full·overflow-hidden 을 주지 않는다(주면 예전처럼 본문에 안쪽 스크롤이 생긴다).
   // 빈/로딩/오류 상태도 이 껍데기를 쓴다.
   const shell = (children: ReactNode, center = false) => (
-    // lg:h-full — 부모 컬럼(grid stretch 로 「상세 높이 = 좌우 공통 높이」를 받음)을 흰 카드가 꽉 채운다.
-    // 이게 없으면 상세가 짧을 때(빈/짧은 공고) 카드가 내용 높이에 머물러 왼쪽 목록(바닥값 36rem)과 어긋난다.
+    // center=true(빈/로딩/오류 안내)만 lg:h-full 로 부모 칸을 채워 안내를 가운데에 둔다.
+    // 내용이 있는 카드는 내용 높이로 자란다 — 두 칸 같은 높이·안쪽 스크롤은 바깥 상세 칸(ResultOneList)이 맡고,
+    // 칸 아래 고정 줄(sticky)이 이 카드 안에서 끝까지 붙어 있으려면 카드가 칸 높이에 갇히면 안 된다.
     // overflow-hidden 은 넣지 않는다 — 넣으면 본문에 안쪽 스크롤이 다시 생긴다(본문은 lg:overflow-visible).
-    // center=true 는 빈/로딩/오류 안내를 큰 카드 가운데에 둔다.
     <div
-      className={`rounded-2xl border border-wedly-bd bg-white p-4 shadow-sm lg:flex lg:h-full lg:flex-col${
-        center ? " lg:items-center lg:justify-center" : ""
+      className={`rounded-2xl border border-wedly-bd bg-white p-4 shadow-sm lg:flex lg:flex-col${
+        center ? " lg:h-full lg:items-center lg:justify-center" : ""
       }`}
     >
       {children}
@@ -857,11 +815,12 @@ export default function DetailPanel({
     ? match.humanCheck.filter((h) => h !== UNREADABLE_STRUCTURE_NOTE)
     : match.humanCheck;
   const badge = ddayBadge(detail.applyEnd, detail.applyPeriodText);
-  const deadlineMetric = deadlineMetricLabel(detail.applyEnd, detail.applyPeriodText, detail.status);
+  const now = new Date();
   const left = daysLeft(detail.applyEnd);
   // 마감일이 없는 채로 닫힌 공고(게시판 90일 규칙)도 마감으로 다룬다 — 안 그러면
   // 「마감」 목록에서 연 공고에 「바로 신청하러 가기」가 뜬다(독립 검사 5차).
   const isClosed = (left !== null && left < 0) || detail.status === "closed";
+  const hasReceiptButton = isHttpUrl(detail.receiptSiteUrl) && !isClosed;
   const regionText = clipRegion(detail.region);
   // 규모 세부(scaleItems)만 채워진 공고도 요약을 보여 준다 — 「읽는 중」으로 남겨 두면 읽은 내용이 묻힌다.
   const summaryReady = !!(
@@ -892,6 +851,42 @@ export default function DetailPanel({
   );
   /** 대조에 쓸 회사 정보가 하나라도 있는가 — 있으면 진단 없이도 체크리스트를 그린다. */
   const hasProfile = Object.values(profile ?? {}).some((v) => v !== undefined && v !== null && v !== "");
+
+  // 머리 이름표 — 결과 목록과 같은 판정(fitVerdict)이 우선, 없으면 진단 등급.
+  const headTag = fitVerdict
+    ? VERDICT_TAG[fitVerdict]
+    : item
+      ? { label: GRADE_LABEL[item.grade], className: GRADE_CLASS[item.grade] }
+      : null;
+  const sourceLabel = ANNOUNCEMENT_SOURCE_LABELS[detail.source] ?? detail.source;
+  // 요약 숫자 3칸 · 접수 일정 · 지원 표 · 첨부는 회사 정보와 무관한 공고 자료라 진단 전에도 그린다.
+  const summaryCells = summaryCellsOf({
+    supportAmountText: structure.supportAmountText,
+    applyStart: detail.applyStart,
+    applyEnd: detail.applyEnd,
+    applyPeriodText: detail.applyPeriodText,
+    now,
+  });
+  // 신청 자격 대조표 — 기계 대조(맞는 이유·조건 체크리스트)와 AI 판정 체크리스트를 한 표로(같은 조건은 한 줄).
+  const conditionRows = mergeConditionRows(match.checks, verdict?.checklist);
+  const infoBlocks = (
+    <>
+      <SupportTable
+        target={structure.aiSummary.target}
+        benefit={structure.benefitSummary || structure.aiSummary.scale}
+        amountText={structure.supportAmountText}
+      />
+      <ScheduleBlock
+        view={scheduleOf({
+          applyStart: detail.applyStart,
+          applyEnd: detail.applyEnd,
+          applyPeriodText: detail.applyPeriodText,
+          now,
+        })}
+      />
+      <AttachmentRows attachments={detail.attachments ?? []} />
+    </>
+  );
   /** 공고 원문 펼쳐 보기 — 세부 조건을 확인하려고 화면을 떠나지 않게(사장님 2026-08-30). */
   const originalText = (detail.targetText ?? "").trim();
   // 「창업벤처」 4자처럼 분류 꼬리표만 저장된 공고가 있다 — 그걸 「원문」이라 펼쳐 보이면
@@ -954,13 +949,13 @@ export default function DetailPanel({
           ① 정체 ② 핵심 지표(회색 층 라벨-값 그리드) ③ 상태 띠.
           여백: 제목→알약 8, 구획 사이 16, 탭 줄과는 24(탭이 정한다). */}
 
-      {/* ① 정체 — 제목 + 등급 뱃지 1개, 그 아래 분야·지역·직접확인 알약 줄 */}
-      <div className="flex items-start gap-2">
-        <div className="min-w-0 flex-1 break-keep text-base font-semibold leading-6 text-wedly-t1">{detail.title}</div>
-        {item && (
-          <span className={`${PILL} shrink-0 ${GRADE_CLASS[item.grade]}`}>{GRADE_LABEL[item.grade]}</span>
-        )}
+      {/* ① 정체 — 판정 이름표 · 출처 · 기관, 그 아래 제목. 그 아래 분야·지역·직접확인 알약 줄 */}
+      <div className="flex flex-wrap items-center gap-2">
+        {headTag && <span className={`${PILL} shrink-0 ${headTag.className}`}>{headTag.label}</span>}
+        {sourceLabel && <span className={`${PILL_NEUTRAL} shrink-0`}>{sourceLabel}</span>}
+        {detail.agency && <span className="min-w-0 break-keep text-xs leading-[18px] text-wedly-t2">{detail.agency}</span>}
       </div>
+      <div className="mt-2 min-w-0 break-keep text-base font-semibold leading-6 text-wedly-t1">{detail.title}</div>
       {/* 랩만 쓰는 자리 — 조각을 안 받은 앱(ERP)에서는 마디가 하나도 늘지 않는다. */}
       {verdictFeedback && (
         <div className="mt-3">
@@ -988,22 +983,9 @@ export default function DetailPanel({
         </div>
       )}
 
-      {/* ② 핵심 지표 — 회색 층 안 라벨-값 그리드. 마감·금액·기간을 한데 모아 위계를 준다. */}
-      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 rounded-xl bg-wedly-bg-gray p-4">
-        <Metric label="주관기관" value={detail.agency || "확인 필요"} />
-        <Metric
-          label="마감"
-          value={<span className={`tabular-nums ${deadlineMetric.className}`}>{deadlineMetric.label}</span>}
-        />
-        {/* 지자체 공고는 지원금액에 항목별 상한을 문단으로 적어 온다(양주시 예: 7줄).
-            머리 구획이 본문에 잡아먹혀 위계가 무너지므로 두 줄만 보이고 나머지는 펼침으로. */}
-        <Metric label="지원금액" value={structure.supportAmountText || "확인 필요"} strong tabular clampLong />
-        <Metric
-          label="신청기간"
-          value={periodLabel(detail.applyStart, detail.applyEnd, detail.applyPeriodText || "확인 필요")}
-          tabular
-        />
-      </dl>
+      {/* ② 요약 숫자 3칸 — 지원 금액 · 접수 마감 · 신청 기간. 금액은 앞부분만 짧게(원문 전체는 아래 「지원 대상·내용」 표).
+          지자체 공고는 지원금액에 항목별 상한을 문단으로 적어 오므로(양주시 예: 7줄) 머리에는 짧게만 둔다. */}
+      <SummaryCells cells={summaryCells} />
 
       {/* ③ 상태 띠 — 오늘 마감/마감됨/구조화 미완만. 파란 「N일 남음」 상자는 뺐다
           (마감 셀과 겹치고, 연파랑은 목록 선택 강조 전용 — DESIGN.md §2). */}
@@ -1023,20 +1005,15 @@ export default function DetailPanel({
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        {/* 접수 사이트가 있으면 **신청하러 가는 길**을 먼저 보여 준다 — 원공고 읽기는 그 다음.
-            주소가 없거나 주소 모양이 아니면 아무것도 늘지 않는다(현행 그대로). */}
-        {isHttpUrl(detail.receiptSiteUrl) && !isClosed && (
+      {/* 접수 사이트가 있으면 **신청하러 가는 길**을 머리에 둔다 — 원문 보기는 칸 아래 고정 줄이 맡는다.
+          주소가 없거나 주소 모양이 아니면 아무것도 늘지 않는다(현행 그대로). */}
+      {hasReceiptButton && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           <a href={detail.receiptSiteUrl} target="_blank" rel="noreferrer" className={BTN_PRIMARY}>
             바로 신청하러 가기
           </a>
-        )}
-        {detail.url && (
-          <a href={detail.url} target="_blank" rel="noreferrer" className={BTN_SECONDARY}>
-            원공고 열기
-          </a>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 탭 줄은 밑줄형 — 고른 탭만 굵게(600) + 2px 파란 밑줄, 나머지는 400 보조색. */}
       <div className="mt-6 flex flex-wrap gap-6 border-b border-wedly-bd">
@@ -1066,6 +1043,7 @@ export default function DetailPanel({
           // 진단 결과(item)는 AI 판정·돌파구 단추를 여는 열쇠일 뿐이다.
           !item && !hasProfile ? (
             <div className="space-y-4">
+              {infoBlocks}
               {humanCheckBox}
               {unreadNote}
               {originalBlock}
@@ -1077,57 +1055,14 @@ export default function DetailPanel({
             </div>
           ) : (
             <div className="space-y-4">
-              {/* 조건 체크리스트 — 기계 판정을 구분선 카드로 격리한다. 제목에 아이콘 하나만(항목 기호 ✓✗?는 그대로). */}
-              <div className="rounded-xl border border-wedly-bd/60">
-                <SummaryRow title="조건 체크리스트" icon={ClipboardCheck} iconClass="text-wedly-accent">
-                  {/* 5초 답 — 목록을 읽기 전에 「몇 개가 맞고 몇 개를 확인해야 하나」부터(심미 판정 ①). */}
-                  {match.checks.length > 0 && (
-                    <div className="mb-2 flex flex-wrap items-center gap-1.5 text-xs leading-[18px]">
-                      <span className="rounded-md bg-wedly-bg-green px-2 py-0.5 font-semibold text-wedly-green-ink tabular-nums">
-                        충족 {match.checks.filter((c) => c.verdict === "pass").length}
-                      </span>
-                      <span className="rounded-md bg-wedly-bg-yellow px-2 py-0.5 font-semibold text-wedly-t1 tabular-nums">
-                        확인 필요 {match.checks.filter((c) => c.verdict === "unknown").length}
-                      </span>
-                      <span className="rounded-md bg-wedly-bg-red px-2 py-0.5 font-semibold text-wedly-red-ink tabular-nums">
-                        미충족 {match.checks.filter((c) => c.verdict === "fail").length}
-                      </span>
-                    </div>
-                  )}
-                  {match.checks.length === 0 ? (
-                    <div className={bodyText}>
-                      {reading ? readingMessage : "기계로 대조할 조건이 없습니다 — 아래 원문을 확인하세요"}
-                    </div>
-                  ) : (
-                    // 행 간격 8. 판정 기호는 폭을 고정해 이름표·원문이 한 줄에서 시작하게 맞춘다.
-                    <ul className="mt-2 space-y-2">
-                      {match.checks.map((c, i) => {
-                        const face = CHECK_FACE[c.verdict];
-                        return (
-                          <li key={`${c.condition.rawText}-${i}`} className="flex gap-2">
-                            <span
-                              className={`w-4 shrink-0 text-center text-sm font-semibold leading-[22px] ${face.cls}`}
-                            >
-                              {face.mark}
-                            </span>
-                            <span className="min-w-0 break-keep break-words text-sm leading-[22px]">
-                              {/* 같은 원문을 쓰는 조건이 둘 있어도 라벨로 구분된다. */}
-                              <span className="font-semibold text-wedly-t2">
-                                {conditionLabelOf(c.condition.key)}:
-                              </span>{" "}
-                              <span className="text-wedly-t1">{c.condition.rawText}</span>
-                              <span className={`ml-1 text-xs leading-[18px] ${face.cls}`}>{face.label}</span>
-                              {c.note && (
-                                <span className="ml-1 text-xs leading-[18px] text-wedly-muted">— {c.note}</span>
-                              )}
-                            </span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </SummaryRow>
-              </div>
+              {/* 신청 자격 대조표 — 기계 대조(맞는 이유·조건 체크리스트)와 AI 판정 체크리스트를 한 표로 합쳤다.
+                  같은 조건이 두 번 나오지 않는다(합치는 규칙은 detail-structured 의 mergeConditionRows). */}
+              <ConditionTable
+                rows={conditionRows}
+                emptyNote={reading ? readingMessage : "기계로 대조할 조건이 없습니다 — 아래 원문을 확인하세요"}
+              />
+
+              {infoBlocks}
 
               {humanCheckBox}
               {unreadNote}
@@ -1161,21 +1096,7 @@ export default function DetailPanel({
                       </span>
                     </div>
                     <div className={bodyText}>{verdict.explanation}</div>
-                    {verdict.checklist.length > 0 && (
-                      <ul className="mt-2 space-y-2">
-                        {verdict.checklist.map((c, i) => (
-                          <li key={`${c.condition}-${i}`} className="break-keep break-words text-sm leading-[22px] text-wedly-t2">
-                            <span className={`font-semibold ${AI_STATUS_CLASS[c.status] ?? "text-wedly-t2"}`}>
-                              {c.status}
-                            </span>{" "}
-                            {c.condition}
-                            {c.note && (
-                              <span className="text-xs leading-[18px] text-wedly-muted"> — {c.note}</span>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    {/* AI 체크리스트는 위 「신청 자격 대조」 표에 합쳐져 있다 — 여기서 또 보이지 않는다. */}
                   </div>
                 )}
               </div>
@@ -1383,6 +1304,16 @@ export default function DetailPanel({
           </>
         )}
       </div>
+
+      {/* 칸 아래 고정 줄 — 어느 탭에서나 「공고 원문 보기」, 첨부가 2개 이상이면 「첨부 모두 받기」.
+          바로 신청 단추(주 단추)가 머리에 있으면 원문 단추는 보조 모양으로 둔다. */}
+      <DetailActionBar
+        url={detail.url ?? ""}
+        attachments={detail.attachments ?? []}
+        urlPrimary={!hasReceiptButton}
+        primaryClass={BTN_PRIMARY}
+        secondaryClass={BTN_SECONDARY}
+      />
 
       {askFor && (
         <AskInstructorModal
