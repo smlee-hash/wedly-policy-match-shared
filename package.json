@@ -75,6 +75,10 @@
       "types": "./src/engine/profile-summary.ts",
       "default": "./src/engine/profile-summary.ts"
     },
+    "./feedback-diff": {
+      "types": "./src/engine/feedback-diff.ts",
+      "default": "./src/engine/feedback-diff.ts"
+    },
     "./profile-derive": {
       "types": "./src/engine/profile-derive.ts",
       "default": "./src/engine/profile-derive.ts"

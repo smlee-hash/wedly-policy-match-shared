@@ -34,6 +34,7 @@ import {
   type FundingItem,
 } from "./funding-map";
 import { FUNDING_GROUPS } from "./funding-group";
+import { usedProfileSummary } from "../engine/profile-summary";
 import type { ConditionCheck, ConditionVerdict, StructuredCondition } from "../engine/structure-types";
 
 /** 기준 시각 = 한국시간 2026-09-03 10:00. 시험이 도는 컴퓨터의 시간대와 무관하게 같은 값이어야 한다. */
@@ -1279,6 +1280,44 @@ describe("profileBandWords — 「이 사업장 정보로 판정」 띠(재설�
   });
   it("빈 배열이면 빈 문자열 — 화면이 띠 자체를 안 그리게", () => {
     expect(profileBandWords([])).toBe("");
+  });
+});
+
+// 피드백과 다른 칸 알림(2026-10-06) — 요약 맨 끝에 새로 붙는 줄(기업 규모·NICE/KCB·인증·특허)은
+// bandEntry 가 그대로 통과시키므로 띠 문장이 어색하지 않은지 그대로 적어 둔다.
+describe("profileBandWords — 요약 맨 끝 새 줄(기업 규모·신용점수 기관별·인증·특허)", () => {
+  it("새 줄은 접두어를 떼거나 바꾸지 않고 그대로 이어 붙는다", () => {
+    const out = profileBandWords([
+      "지역 서울",
+      "기업 규모 소기업",
+      "신용점수 NICE 820",
+      "신용점수 KCB 790",
+      "인증 있음",
+      "특허 3건",
+    ]);
+    expect(out).toBe("이 사업장 정보로 판정: 서울 · 기업 규모 소기업 · 신용점수 NICE 820 · 신용점수 KCB 790 · 인증 있음 · 특허 3건");
+  });
+
+  it("특허 있음·없음 줄도 그대로 통과한다", () => {
+    expect(profileBandWords(["인증 없음", "특허 있음"])).toBe("이 사업장 정보로 판정: 인증 없음 · 특허 있음");
+    expect(profileBandWords(["특허 없음"])).toBe("이 사업장 정보로 판정: 특허 없음");
+  });
+
+  it("실제 요약(usedProfileSummary)을 띠로 바꾸면 값이 있는 칸만 순서대로 한 문장이 된다 — 일반 신용점수는 NICE 에 밀린다", () => {
+    const used = usedProfileSummary({
+      region: "서울",
+      industry: "음식점/카페",
+      lastYearRevenueKrw: 130_000_000,
+      creditScore: 700,
+      creditScoreNice: 820,
+      companyScale: "소기업",
+      hasCert: true,
+      patentCount: 3,
+    });
+    expect(profileBandParts(used).value).toBe(
+      "서울 · 음식점/카페 · 연매출 1.3억 · 기업 규모 소기업 · 신용점수 NICE 820 · 인증 있음 · 특허 3건",
+    );
+    expect(profileBandParts(used).value).not.toContain("신용점수 700");
   });
 });
 

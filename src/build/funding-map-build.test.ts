@@ -509,14 +509,14 @@ describe("자금 조달 지도 조립 — 두 표를 한 모양으로", () => {
   });
 
   /**
-   * ★뿌리 원인 그 자체(코덱스 2차 #1 → 3차 #3·#6) — `usedProfileSummary` 는 `companyScale`·
-   *  `hasCert`·`hasPatent` 를 **아예 요약하지 않는다**. 그 셋만 채운 회사는 요약이 빈 배열이다.
-   *  그 자리에서 화면이 「조건을 맞춰 보지 않은 목록」이라 말하면 거짓이다 — `profileEmpty` 는
-   *  거짓이라 화면이 **아무 말도 하지 않는다**(이 시험이 그 계약을 못 박는다).
+   * ★뿌리 원인 그 자체(코덱스 2차 #1 → 3차 #3·#6) — 예전 `usedProfileSummary` 는 `companyScale`·
+   *  `hasCert`·`hasPatent` 를 요약하지 않아, 그 셋만 채운 회사는 요약이 빈 배열이었다. 2026-10-06
+   *  부터 요약이 기업 규모를 싣는다. 그래도 `profileEmpty` 는 요약이 아니라 회사 정보로 정하므로
+   *  거짓이어야 한다(이 시험이 그 계약을 못 박는다).
    */
-  it("요약이 비어도 회사 정보는 있다 — 그 회사에는 profileEmpty 가 거짓이다", async () => {
+  it("기업 규모만 있는 회사 — 요약에 규모가 실리고 profileEmpty 는 거짓이다", async () => {
     const 규모만: BusinessProfile = { companyScale: "중소기업" };
-    expect(usedProfileSummary(규모만), "요약은 기업 규모를 안 담는다").toEqual([]);
+    expect(usedProfileSummary(규모만), "요약은 기업 규모를 싣는다").toEqual(["기업 규모 중소기업"]);
 
     loadOpenAnnouncements.mockResolvedValue([]);
     productFindMany.mockResolvedValue([prod({ id: "ps", targetRules: { scale: ["중소기업"] } })]);

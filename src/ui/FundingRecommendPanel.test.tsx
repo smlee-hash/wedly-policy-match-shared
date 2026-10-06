@@ -168,6 +168,7 @@ function 판(
     drawerItem?: FundingItem | null;
     showExcluded?: ReadonlySet<FundingGroup>;
     onOpenDetail?: (id: string) => void;
+    onOpenCompanyStatus?: () => void;
     onToggleExcluded?: (group: FundingGroup) => void;
   } = {},
 ): string {
@@ -184,6 +185,7 @@ function 판(
       onSortChange={() => {}}
       onOpen={() => {}}
       onOpenDetail={over.onOpenDetail}
+      onOpenCompanyStatus={over.onOpenCompanyStatus}
       onCloseDrawer={() => {}}
       onRefresh={() => {}}
       onToggleExcluded={over.onToggleExcluded ?? (() => {})}
@@ -481,6 +483,52 @@ describe("추천 정책 탭 — 자금 조달 지도", () => {
   it("raw Tailwind 색이 없다", () => {
     const html = 판({ drawerItem: 상품 });
     expect(html).not.toMatch(/(bg|text|border)-(red|green|amber|blue|gray|slate|sky|orange|yellow)-[0-9]{2,3}/);
+  });
+});
+
+/**
+ * 피드백과 다른 칸 알림(2026-10-06) — 응답의 `feedbackDiff` 와 부모가 넘긴 `onOpenCompanyStatus` 가
+ * 레일(compact)의 머리 카드까지 이어지는지. 알림 구역의 모양·글자는 `funding-map-render.test.tsx` 가 잰다.
+ * 랩이 아닌 앱(ERP·일루아)은 둘 다 안 넘기므로, 안 넘기면 기존 화면과 같아야 한다.
+ */
+describe("추천 정책 탭 — 피드백과 다른 칸 알림 배선(feedbackDiff·onOpenCompanyStatus)", () => {
+  const 알림: RecommendFundingData["feedbackDiff"] = {
+    round: 3,
+    at: "2026-10-01T03:00:00.000Z",
+    rows: [{ field: "employeeCount", label: "직원수", current: "10명", feedback: "12명" }],
+  };
+
+  it("응답에 feedbackDiff 가 있으면 레일 머리 카드에 구역이 그려지고, 좁은 폭이라 표 대신 카드다", () => {
+    const html = 판({ data: 자료({ feedbackDiff: 알림 }) });
+    expect(html).toContain("피드백 3회차(10/1)와 기업상태표 비교 · 판정에는 안 씀");
+    expect(html).toContain("다른 칸 1개 — 맞으면 상태표를 고쳐 주세요");
+    expect(html, "레일은 compact 라 표가 아니라 작은 카드여야 한다").toContain("rounded-wedly-inner");
+    expect(html).not.toContain("<table");
+  });
+
+  it("onOpenCompanyStatus 를 넘기면 `기업상태표 열기` 단추가 한 개, 안 넘기면 없다", () => {
+    expect(세기(판({ data: 자료({ feedbackDiff: 알림 }), onOpenCompanyStatus: () => {} }), "기업상태표 열기")).toBe(1);
+    expect(판({ data: 자료({ feedbackDiff: 알림 }) })).not.toContain("기업상태표 열기");
+  });
+
+  it("feedbackDiff 가 없거나 null 이면 구역도 단추도 없다 — 손잡이만 넘겨도 마찬가지(옛 통로·다른 앱 불변)", () => {
+    for (const 칸 of [undefined, null]) {
+      const html = 판({ data: 자료({ feedbackDiff: 칸 }), onOpenCompanyStatus: () => {} });
+      expect(html).not.toContain("판정에는 안 씀");
+      expect(html).not.toContain("기업상태표 열기");
+    }
+  });
+
+  it("모양이 틀린 feedbackDiff 는 없는 것으로 본다 — 화면이 터지지 않는다", () => {
+    const 이상한 = 자료();
+    (이상한 as unknown as Record<string, unknown>).feedbackDiff = { round: "3", at: 1, rows: "x" };
+    let html = "";
+    expect(() => {
+      html = 판({ data: 이상한, onOpenCompanyStatus: () => {} });
+    }).not.toThrow();
+    expect(html).not.toContain("판정에는 안 씀");
+    expect(html).not.toContain("기업상태표 열기");
+    expect(html, "지도는 그대로 그린다").toContain("안 갚아도 되는 돈");
   });
 });
 

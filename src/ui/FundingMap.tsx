@@ -27,7 +27,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Gift, Landmark, LifeBuoy, Percent, ShieldCheck, TrendingUp, type LucideIcon } from "lucide-react";
-import { IoAlertCircle, IoBusiness, IoCheckmarkCircle, IoGift, IoTime, IoTrendingDown } from "react-icons/io5";
+import { IoAlertCircle, IoBusiness, IoCheckmarkCircle, IoDocumentText, IoGift, IoTime, IoTrendingDown } from "react-icons/io5";
 import { Badge } from "./Badge";
 import CustomSelect from "./CustomSelect";
 import { EmptyState } from "@wedly/ui-shared/ui";
@@ -57,6 +57,7 @@ import {
   type FundingMapData,
   type FundingSort,
 } from "../funding/funding-map";
+import { isFeedbackDiff, type FeedbackDiff, type FeedbackDiffRow } from "../engine/feedback-diff";
 import type { FitVerdict } from "../engine/recommend-score";
 import type { ConditionVerdict } from "../engine/structure-types";
 
@@ -67,10 +68,13 @@ export type FundingView = "map" | "table";
  * `usedProfile` 은 `usedProfileSummary`(profile-summary.ts) 결과 — 머리 카드의 「판정에 쓴 정보」 띠가 읽는다.
  * **선택 칸이다**: 응답에 아예 없으면(옛 통로) 띠를 안 그리고, 빈 배열이면 「없음」 갈래로 간다
  * (`profileBandOf` — 「없는 것」과 「빈 것」은 다르다, 코덱스 2차 #2).
+ * `feedbackDiff` 는 피드백 최신 회차와 기업상태표의 다른 칸 알림이다 — **선택 칸**이고, 판정에는 안 쓴다.
+ * 없거나 null 이거나 모양이 틀리면(`isFeedbackDiff`) 머리 카드가 그 구역을 안 그린다.
  */
 export type FundingMapPayload = FundingMapData & {
   totals?: { all: number; filtered: number };
   usedProfile?: string[];
+  feedbackDiff?: FeedbackDiff | null;
 };
 
 /**
@@ -167,6 +171,14 @@ const BTN_SM =
 const LINK_BTN =
   "font-medium text-wedly-accent-ink underline-offset-2 hover:underline " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wedly-accent rounded";
+
+// 주 단추(작은 크기) — 머리 카드의 「기업상태표 열기」. 파랑 채움에 흰 글자, 모양은 BTN_SM 과 같은 rounded-lg.
+// ★`cn` 으로 다른 클래스와 합치지 않는다 — tailwind-merge 가 글자 크기 토큰(text-wedly-sub)을 글자색(text-white)과
+//  겹친다고 보고 지울 수 있다. 쓰는 자리에서 글자열을 그대로 이어 붙인다.
+const BTN_PRIMARY_SM =
+  "inline-flex items-center justify-center rounded-lg bg-wedly-accent px-3 py-1.5 " +
+  "text-wedly-sub font-semibold text-white transition-colors duration-150 ease-out hover:bg-wedly-accent-hover " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wedly-accent focus-visible:ring-offset-2";
 
 const DEAD_BASE = "shrink-0 whitespace-nowrap rounded-md border px-1.5 text-wedly-hint tabular-nums";
 /** `deadlineWords` 의 tone("red"|"green"|"plain")과 짝지은 색. */
@@ -311,6 +323,98 @@ export function kstStamp(iso: string): string {
   const t = new Date(iso).getTime();
   if (!Number.isFinite(t)) return "";
   return new Date(t + 9 * 3_600_000).toISOString().slice(0, 16).replace("T", " ");
+}
+
+/** 시각(ISO 글자)을 한국시간 「M/D」(앞 0 없음)로. 읽을 수 없는 글자면 null — 날짜 조각만 빼고 그린다. */
+function kstMonthDay(iso: string): string | null {
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return null;
+  const kst = new Date(t + 9 * 3_600_000);
+  return `${kst.getUTCMonth() + 1}/${kst.getUTCDate()}`;
+}
+
+/**
+ * 머리 카드의 「피드백과 다른 칸」 구역 — 피드백 최신 회차와 기업상태표를 견준 알림이다.
+ * ★판정에는 안 쓴다(안내 줄이 그 말을 한다). 맞으면 사람이 상태표를 고치게 `기업상태표 열기` 길만 낸다.
+ * 모양은 판정 근거 구역과 같은 틀(아이콘 타일 + 오른쪽 열)이고, 타일만 청록이다.
+ * 넓을 때는 표, 좁을 때(compact)는 줄마다 작은 카드로 쌓는다. 구분선은 부르는 쪽이 정한다.
+ * 이 저장소엔 브라우저 흉내(jsdom)가 없어 「누르면 호출」을 재려면 훅 없는 이 부품을 직접 불러
+ * 단추의 onClick 을 꺼내 봐야 하므로 내보낸다(시험 전용 — 앱은 FundingMap 을 통해서만 쓴다).
+ */
+export function FeedbackDiffSection({
+  diff,
+  compact,
+  onOpenCompanyStatus,
+}: {
+  diff: FeedbackDiff;
+  compact: boolean;
+  onOpenCompanyStatus?: () => void;
+}) {
+  const 다른칸 = diff.rows.filter((r: FeedbackDiffRow) => r.current !== null).length;
+  const 빈칸 = diff.rows.length - 다른칸;
+  // 0 인 쪽 조각은 뺀다 — 「다른 칸 0개」 같은 헛말을 안 한다.
+  const 조각: string[] = [];
+  if (다른칸 > 0) 조각.push(`다른 칸 ${다른칸}개`);
+  if (빈칸 > 0) 조각.push(`상태표에 빈 칸 ${빈칸}개`);
+  // 날짜를 못 읽으면 「(M/D)」 조각만 뺀다 — 회차 번호는 그대로 말한다.
+  const 날짜 = kstMonthDay(diff.at);
+  // 글자는 한 덩어리로 만든다 — JSX 에서 숫자와 글자를 이어 쓰면 여러 조각으로 갈라진다.
+  const 안내 = `피드백 ${diff.round}회차${날짜 ? `(${날짜})` : ""}와 기업상태표 비교 · 판정에는 안 씀`;
+  const 제목 = `${조각.join(" · ")} — 맞으면 상태표를 고쳐 주세요`;
+  const 피드백칸 = `피드백 ${diff.round}회차`;
+
+  return (
+    <div data-feedback-diff="section" className="flex items-start gap-2.5 p-3">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wedly-teal">
+        <IoDocumentText className="h-5 w-5 text-white" aria-hidden="true" />
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <p className="min-w-0 break-keep text-wedly-hint text-wedly-muted">{안내}</p>
+        <p className="min-w-0 break-keep text-wedly-sub font-semibold text-wedly-t1">{제목}</p>
+        {compact ? (
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {diff.rows.map((r, i) => (
+              <li key={`${r.field}-${i}`} className="rounded-wedly-inner border border-wedly-bd px-2 py-1.5">
+                <p className="break-keep text-wedly-sub font-semibold text-wedly-t1">{r.label}</p>
+                <p className="break-keep text-wedly-sub tabular-nums text-wedly-t2">
+                  <span className="text-wedly-hint text-wedly-muted">상태표</span> {r.current ?? "—"}
+                  {" · "}
+                  <span className="text-wedly-hint text-wedly-muted">피드백</span>{" "}
+                  <span className="font-semibold text-wedly-t1">{r.feedback}</span>
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full border-collapse text-left text-wedly-sub">
+              <thead className="bg-wedly-accent text-white text-wedly-tablehead">
+                <tr>
+                  <th scope="col" className="whitespace-nowrap px-3 py-2 font-semibold">칸</th>
+                  <th scope="col" className="whitespace-nowrap px-3 py-2 font-semibold">기업상태표</th>
+                  <th scope="col" className="whitespace-nowrap px-3 py-2 font-semibold">{피드백칸}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {diff.rows.map((r, i) => (
+                  <tr key={`${r.field}-${i}`} className="border-b border-wedly-bd">
+                    <td className="whitespace-nowrap px-3 py-2 text-wedly-t2">{r.label}</td>
+                    <td className="break-keep px-3 py-2 tabular-nums text-wedly-t2">{r.current ?? "—"}</td>
+                    <td className="break-keep px-3 py-2 font-semibold tabular-nums text-wedly-t1">{r.feedback}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {onOpenCompanyStatus && (
+          <button type="button" onClick={() => onOpenCompanyStatus()} className={`${BTN_PRIMARY_SM} mt-2 self-start`}>
+            기업상태표 열기
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function DeadChip({ item, now }: { item: FundingItem; now: Date }) {
@@ -928,6 +1032,8 @@ interface ViewProps {
   onToggleUnclassified?: () => void;
   onToggleExcluded: (group: FundingGroup) => void;
   onBrowseAll?: () => void;
+  /** 머리 카드 「피드백과 다른 칸」 구역의 `기업상태표 열기` 단추 — 없으면 단추를 안 그린다. */
+  onOpenCompanyStatus?: () => void;
 }
 
 /**
@@ -955,6 +1061,7 @@ export function FundingMapView({
   onToggleUnclassified,
   onToggleExcluded,
   onBrowseAll,
+  onOpenCompanyStatus,
 }: ViewProps) {
   // ★표 행 = 모든 갈래의 `items`(정상) + **스위치가 켜져 있으면** 모든 갈래의 `excludedItems`
   //  (순수 함수 `tableRowsOf` · 코덱스 14차 [높음], 2026-09-04). 표 위 손잡이가 뒤집는 값이
@@ -1012,8 +1119,12 @@ export function FundingMapView({
   //  옛 통로는 이 칸을 아예 안 싣는다 — 그럴 땐 `profileBandOf` 가 아무 말도 하지 않는다.
   const band = profileBandOf(data.usedProfile, data.profileEmpty);
   const gap = gapParts(data.profileGaps);
-  // 머리 카드는 **할 말이 있을 때만** 그린다. 판정 근거도 빈칸 힌트도 없으면 카드 자체를 안 그린다.
-  const 머리카드 = band !== null || gap !== null;
+  // ★피드백 알림은 통로를 건너온 값이라 모양을 먼저 확인한다 — 틀리면 없는 것으로 보고 구역을 안 그린다.
+  //  줄이 0개인 알림도 그릴 말이 없으니 안 그린다.
+  const rawFeedbackDiff = data.feedbackDiff;
+  const feedbackDiff = isFeedbackDiff(rawFeedbackDiff) && rawFeedbackDiff.rows.length > 0 ? rawFeedbackDiff : null;
+  // 머리 카드는 **할 말이 있을 때만** 그린다. 판정 근거도 피드백 알림도 빈칸 힌트도 없으면 카드 자체를 안 그린다.
+  const 머리카드 = band !== null || feedbackDiff !== null || gap !== null;
   // 카드 위쪽(판정 근거 구역 또는 손잡이 줄)이 그려졌나 — 구분선을 그릴지 정한다.
   const 위줄 = band !== null || Boolean(headerAction);
 
@@ -1149,9 +1260,16 @@ export function FundingMapView({
           ) : (
             headerAction && <div className="flex justify-end p-3">{headerAction}</div>
           )}
-          {gap && (
+          {/* 피드백과 다른 칸 알림 — 판정 근거 구역 다음, 빈칸 힌트 앞. 판정에는 안 쓰는 알림이다. */}
+          {feedbackDiff && (
             <>
               {위줄 && <div className="border-t border-wedly-bd/60" />}
+              <FeedbackDiffSection diff={feedbackDiff} compact={compact} onOpenCompanyStatus={onOpenCompanyStatus} />
+            </>
+          )}
+          {gap && (
+            <>
+              {(위줄 || feedbackDiff !== null) && <div className="border-t border-wedly-bd/60" />}
               <div className="flex items-start gap-2.5 p-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wedly-gold">
                   <IoAlertCircle className="h-5 w-5 text-wedly-navy" aria-hidden="true" />
@@ -1392,6 +1510,11 @@ export interface FundingMapProps {
   onOpenDetail?: (announcementId: string) => void;
   /** 「전체 공고 탐색」 — /policy-match 만 넘긴다(상세창 추천 탭엔 갈 곳이 없다). */
   onBrowseAll?: () => void;
+  /**
+   * 머리 카드 「피드백과 다른 칸」 구역의 `기업상태표 열기` 단추 — 기업상태표를 여는 앱이 넘긴다.
+   * 안 넘기면 단추를 안 그린다(누르면 아무 일도 안 하는 단추를 두지 않는다).
+   */
+  onOpenCompanyStatus?: () => void;
   selectedId: string;
   /** 통합 상세창 추천 탭: 갈래 2열 · 상위 3건 고정. */
   compact?: boolean;
@@ -1433,6 +1556,7 @@ export default function FundingMap({
   onOpen,
   onOpenDetail,
   onBrowseAll,
+  onOpenCompanyStatus,
   selectedId,
   compact = false,
   onRetry,
@@ -1541,6 +1665,7 @@ export default function FundingMap({
         onToggleUnclassified={() => setUnclassifiedExpanded((prev) => !prev)}
         onToggleExcluded={onToggleExcluded}
         onBrowseAll={onBrowseAll}
+        onOpenCompanyStatus={onOpenCompanyStatus}
       />
     </div>
   );

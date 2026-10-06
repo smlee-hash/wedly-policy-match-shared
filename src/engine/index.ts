@@ -14,6 +14,7 @@
  *   region-augment             ← match-engine · rule-extract · structure-types
  *   recommend-score            ← structure-types
  *   profile-summary            ← match-engine
+ *   feedback-diff              ← match-engine · profile-summary
  *   profile-derive             ← match-engine · sigungu
  *   wedly-category · types     ← 아무것도 안 부른다
  *
@@ -35,6 +36,7 @@ export * from "./rule-extract";
 export * from "./region-augment";
 export * from "./recommend-score";
 export * from "./profile-summary";
+export * from "./feedback-diff";
 export * from "./profile-derive";
 export * from "./wedly-category";
 export * from "./types";

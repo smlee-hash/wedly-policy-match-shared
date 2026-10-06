@@ -19,6 +19,7 @@ import FundingDrawer from "./FundingDrawer";
 import FundingMap, { type FundingMapPayload } from "./FundingMap";
 import type { FundingFilters, FundingItem, FundingSort } from "../funding/funding-map";
 import type { FundingGroup } from "../funding/funding-group";
+import type { FeedbackDiff } from "../engine/feedback-diff";
 
 /** `GET /api/policy-match/funding-map` 응답 = 지도 자료 + 「누구로 대조했는지」. */
 export type RecommendFundingData = FundingMapPayload & {
@@ -26,6 +27,11 @@ export type RecommendFundingData = FundingMapPayload & {
   matchedCompany?: string | null;
   /** 대조에 실제로 쓴 회사 정보의 사람 말 요약(`usedProfileSummary`). */
   usedProfile?: string[];
+  /**
+   * 피드백 최신 회차와 기업상태표의 다른 칸 알림 — 판정에는 안 쓴다. **선택 칸**이라 옛 통로 응답은 그대로 그린다.
+   * 지도 머리 카드가 그리기 전에 `isFeedbackDiff` 로 모양을 확인하고, 아니면 없는 것으로 본다.
+   */
+  feedbackDiff?: FeedbackDiff | null;
 };
 
 /** 상세창 레일은 자리가 좁다 — 갈래마다 상위 3건만 받는다(계획서 리뷰 대장 #22 응답 크기). */
@@ -293,6 +299,8 @@ export interface RecommendPanelProps {
   onSortChange: (sort: FundingSort) => void;
   onOpen: (item: FundingItem) => void;
   onOpenDetail?: (announcementId: string) => void;
+  /** 머리 카드 「피드백과 다른 칸」 구역의 `기업상태표 열기` — 안 넘기면 단추를 안 그린다. */
+  onOpenCompanyStatus?: () => void;
   onCloseDrawer: () => void;
   onRefresh: () => void;
   onToggleExcluded: (group: FundingGroup) => void;
@@ -314,6 +322,7 @@ export function RecommendPanel({
   onSortChange,
   onOpen,
   onOpenDetail,
+  onOpenCompanyStatus,
   onCloseDrawer,
   onRefresh,
   onToggleExcluded,
@@ -334,6 +343,7 @@ export function RecommendPanel({
         onSortChange={onSortChange}
         onOpen={onOpen}
         onOpenDetail={onOpenDetail}
+        onOpenCompanyStatus={onOpenCompanyStatus}
         selectedId={drawerItem?.id ?? ""}
         compact
         showExcluded={showExcluded}
@@ -440,6 +450,7 @@ export default function FundingRecommendPanel({
   bizno,
   companyName,
   onOpenDetail,
+  onOpenCompanyStatus,
   endpoint = "/api/policy-match/funding-map",
   buildQuery = fundingMapQuery,
   parseError = () => LOAD_ERROR,
@@ -448,6 +459,8 @@ export default function FundingRecommendPanel({
   bizno?: string;
   companyName?: string;
   onOpenDetail?: (id: string) => void;
+  /** 「피드백과 다른 칸」 구역의 `기업상태표 열기` 손잡이 — 기업상태표를 여는 앱이 넘긴다. 안 넘기면 단추가 없다. */
+  onOpenCompanyStatus?: () => void;
   /** 조회 통로 주소 — 앱마다 다를 수 있어 밖에서 받는다(기본은 지금 ERP 가 쓰는 주소). */
   endpoint?: string;
   /** 조회 문자열을 만드는 규칙 — 기본은 지금처럼 사업자번호+상호를 함께 싣는다(`fundingMapQuery`). */
@@ -539,6 +552,7 @@ export default function FundingRecommendPanel({
         else setOpened({ companyKey, item: it });
       }}
       onOpenDetail={onOpenDetail}
+      onOpenCompanyStatus={onOpenCompanyStatus}
       onToggleExcluded={onToggleExcluded}
       onCloseDrawer={() => setOpened(null)}
       onRefresh={() => setRefreshKey((k) => k + 1)}

@@ -13,9 +13,11 @@ import FundingMap, {
   tableRowsOf,
   unclassifiedGroupItems,
   GROUP_TONE_TILE,
+  FeedbackDiffSection,
   type FundingCardFooter,
   type FundingMapPayload,
 } from "./FundingMap";
+import type { FeedbackDiff } from "../engine/feedback-diff";
 import FundingDrawer, { isTileOverflowing, shouldShowExpandButton, tileValueClass } from "./FundingDrawer";
 import { FUNDING_GROUPS, FUNDING_GROUP_META, type FundingGroup } from "../funding/funding-group";
 import {
@@ -216,6 +218,8 @@ function 그린다(
     now?: Date;
     headerAction?: ReactNode;
     onBrowseAll?: () => void;
+    /** 「피드백과 다른 칸」 구역의 기업상태표 열기 — 안 주면 단추가 없다. */
+    onOpenCompanyStatus?: () => void;
     /** 카드 바닥 앱 조각(랩의 판정 피드백) — 안 주면 undefined 그대로 FundingMapView 에 간다. */
     renderCardFooter?: FundingCardFooter;
   } = {},
@@ -242,6 +246,7 @@ function 그린다(
       onToggleUnclassified={() => {}}
       onToggleExcluded={() => {}}
       onBrowseAll={over.onBrowseAll}
+      onOpenCompanyStatus={over.onOpenCompanyStatus}
     />,
   );
 }
@@ -260,6 +265,7 @@ function 지도(
     now?: Date;
     onOpenDetail?: (announcementId: string) => void;
     onBrowseAll?: () => void;
+    onOpenCompanyStatus?: () => void;
     onRetry?: () => void;
   } = {},
 ): string {
@@ -278,6 +284,7 @@ function 지도(
       onOpen={() => {}}
       onOpenDetail={over.onOpenDetail}
       onBrowseAll={over.onBrowseAll}
+      onOpenCompanyStatus={over.onOpenCompanyStatus}
       onRetry={over.onRetry}
       showExcluded={over.showExcluded ?? new Set<FundingGroup>()}
       onToggleExcluded={() => {}}
@@ -1851,6 +1858,8 @@ describe("자금 조달 지도 — 그려서 재기", () => {
    *  요약하지 않는다. 그 셋만 채운 회사는 요약이 빈 배열인데, 그 자리에서 「조건을 맞춰 보지 않은
    *  목록」이라 말하면 거짓이다. 판정 엔진이 「견줘 봤다」를 기록하지 않으므로 그 반대도 단정 못 한다
    *  — 그래서 화면은 **아무 말도 하지 않는다**(띠도, 단정도 없다).
+   *  ※2026-10-06 — 그 셋(기업 규모·인증·특허)은 이제 요약에 실리지만, 요약에 안 싣는 칸(예: orgTypes)만
+   *   채운 회사는 여전히 같은 모양의 응답(요약 빈 배열 + profileEmpty 거짓)이 나온다. 이 시험은 그 응답을 잰다.
    */
   it("⑪-f 요약이 비었지만 회사 정보는 있으면 띠도 단정도 없다(3차 #C)", () => {
     const html = 그린다({ data: 자료(항목8, { usedProfile: [], profileGaps: [], profileEmpty: false }) });
@@ -2247,6 +2256,285 @@ describe("자금 조달 지도 — 그려서 재기", () => {
     expect(html, "옮긴 줄이 어디에도 없다").toContain("스마트상점 기술보급사업 3차");
     expect(html.indexOf("스마트상점 기술보급사업 3차"), "옮긴 줄이 갈래 카드 안에 남았다").toBeGreaterThan(
       html.lastIndexOf('data-group="invest"'),
+    );
+  });
+});
+
+/**
+ * 피드백과 다른 칸 알림(2026-10-06 승인 시안) — 머리 카드 안, 판정 근거 구역 다음·빈칸 힌트 앞에
+ * 청록 문서 타일 + 안내 줄 + 파란 머리 표 + 「기업상태표 열기」 단추. 판정에는 안 쓰는 알림이다.
+ * 랩 앱은 `feedbackDiff`·`onOpenCompanyStatus` 를 안 넘기므로 ★기존 시험 전부가(위 describe 블록)
+ * 이 인자 없이 그대로 돈다는 사실 자체가 「안 넘기면 불변」의 증거다.
+ */
+describe("자금 조달 지도 — 피드백과 다른 칸 알림(머리 카드)", () => {
+  // 한국 시각 2026-10-01 01:00 (UTC 로는 9/30 16:00) — 날짜가 한국 시각으로 바뀌는지 같이 잰다.
+  const 진단: FeedbackDiff = {
+    round: 2,
+    at: "2026-09-30T16:00:00.000Z",
+    rows: [
+      { field: "employeeCount", label: "직원수", current: "10명", feedback: "12명" },
+      { field: "creditScoreNice", label: "신용점수(NICE)", current: null, feedback: "820" },
+      { field: "hasCert", label: "인증", current: "없음", feedback: "있음" },
+    ],
+  };
+  const 구역표식 = 'data-feedback-diff="section"';
+  const 구분선 = 'class="border-t border-wedly-bd/60"';
+  const 세기 = (html: string, 낱말: string): number => html.split(낱말).length - 1;
+
+  /** 알림 구역만 — 다음 구분선(빈칸 힌트 앞) 또는 카드 끝까지. 카드 밖 글자와 섞이면 껍데기 시험이 된다. */
+  function 구역(html: string): string {
+    const 카드 = 머리카드(html);
+    const i = 카드.indexOf(구역표식);
+    expect(i, "알림 구역이 머리 카드 안에 없다").toBeGreaterThan(-1);
+    const 시작 = 카드.lastIndexOf("<div", i);
+    const 다음선 = 카드.indexOf(`<div ${구분선}`, i);
+    return 카드.slice(시작, 다음선 === -1 ? undefined : 다음선);
+  }
+
+  const 자료에 = (over: Partial<FundingMapPayload>) => 자료(항목8, over);
+
+  it("① 구역이 그려진다 — 안내 줄·굵은 줄·세 줄의 칸 이름과 값이 모두 머리 카드 안에 있다", () => {
+    const html = 그린다({ data: 자료에({ feedbackDiff: 진단 }) });
+    const 칸 = 구역(html);
+    expect(칸).toContain("피드백 2회차(10/1)와 기업상태표 비교 · 판정에는 안 씀");
+    expect(칸).toContain("다른 칸 2개 · 상태표에 빈 칸 1개 — 맞으면 상태표를 고쳐 주세요");
+    for (const 글 of ["직원수", "10명", "12명", "신용점수(NICE)", "820", "인증", "없음", "있음"]) expect(칸).toContain(`>${글}<`);
+    expect(세기(html, 구역표식), "구역이 한 번만 그려져야 한다").toBe(1);
+  });
+
+  it("② 자리 — 판정 근거 구역 다음, 빈칸 힌트 앞이다", () => {
+    const 카드 = 머리카드(그린다({ data: 자료에({ feedbackDiff: 진단 }) }));
+    const i근거 = 카드.indexOf("판정에 쓴 정보");
+    const i알림 = 카드.indexOf(구역표식);
+    const i힌트 = 카드.indexOf(gapParts(["신용점수", "기존 대출 유무"])!.title);
+    expect(i근거, "판정 근거 구역이 없다").toBeGreaterThan(-1);
+    expect(i알림, "알림이 판정 근거보다 앞이다").toBeGreaterThan(i근거);
+    expect(i힌트, "빈칸 힌트가 알림보다 앞이다").toBeGreaterThan(i알림);
+  });
+
+  it("③ 모양 — 기존 구역과 같은 틀, 청록 문서 타일, 안내 줄은 hint 층 muted, 굵은 줄은 sub 층 t1", () => {
+    const 칸 = 구역(그린다({ data: 자료에({ feedbackDiff: 진단 }) }));
+    expect(칸).toContain('class="flex items-start gap-2.5 p-3"');
+    expect(칸).toContain('class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wedly-teal"');
+    expect(칸, "문서 아이콘(svg)이 없다").toContain("<svg");
+    expect(칸).toContain('class="flex min-w-0 flex-1 flex-col gap-0.5"');
+    expect(칸).toContain(
+      '<p class="min-w-0 break-keep text-wedly-hint text-wedly-muted">피드백 2회차(10/1)와 기업상태표 비교 · 판정에는 안 씀</p>',
+    );
+    expect(칸).toContain(
+      '<p class="min-w-0 break-keep text-wedly-sub font-semibold text-wedly-t1">다른 칸 2개 · 상태표에 빈 칸 1개 — 맞으면 상태표를 고쳐 주세요</p>',
+    );
+  });
+
+  it("④ 날짜는 한국 시각 M/D 에 앞 0 이 없다 — UTC 날짜가 아니다", () => {
+    const 날짜 = (at: string) => 구역(그린다({ data: 자료에({ feedbackDiff: { ...진단, at } }) }));
+    expect(날짜("2026-09-30T16:00:00.000Z")).toContain("피드백 2회차(10/1)와");
+    expect(날짜("2026-03-04T15:30:00.000Z")).toContain("피드백 2회차(3/5)와");
+    expect(날짜("2026-12-31T15:00:00.000Z")).toContain("피드백 2회차(1/1)와");
+  });
+
+  it("⑤ 시각을 못 읽는 글자면 날짜 조각만 빠진다 — 구역은 그대로 그린다", () => {
+    const 칸 = 구역(그린다({ data: 자료에({ feedbackDiff: { ...진단, at: "어제쯤" } }) }));
+    expect(칸).toContain("피드백 2회차와 기업상태표 비교 · 판정에는 안 씀");
+    expect(칸).not.toContain("NaN");
+    expect(칸).not.toContain("undefined");
+  });
+
+  it("⑥ 굵은 줄은 0 인 쪽 조각을 뺀다 — 다른 칸만 / 빈 칸만", () => {
+    const 다른만 = 구역(
+      그린다({
+        data: 자료에({
+          feedbackDiff: { ...진단, rows: [{ field: "hasCert", label: "인증", current: "없음", feedback: "있음" }] },
+        }),
+      }),
+    );
+    expect(다른만).toContain(">다른 칸 1개 — 맞으면 상태표를 고쳐 주세요<");
+    expect(다른만).not.toContain("빈 칸");
+
+    const 빈만 = 구역(
+      그린다({
+        data: 자료에({
+          feedbackDiff: { ...진단, rows: [{ field: "hasCert", label: "인증", current: null, feedback: "있음" }] },
+        }),
+      }),
+    );
+    expect(빈만).toContain(">상태표에 빈 칸 1개 — 맞으면 상태표를 고쳐 주세요<");
+    expect(빈만).not.toContain("다른 칸");
+  });
+
+  it("⑦ 넓을 때는 표 — 파란 머리 띠 `칸 | 기업상태표 | 피드백 N회차`, 칸 이름 t2·nowrap, 값 tabular-nums, 빈 값은 —, 피드백 값은 굵게", () => {
+    const 칸 = 구역(그린다({ data: 자료에({ feedbackDiff: 진단 }) }));
+    expect(칸).toContain("<table");
+    expect(칸).toContain('<thead class="bg-wedly-accent text-white text-wedly-tablehead">');
+    const 머리 = [...칸.matchAll(/<th [^>]*>([^<]*)<\/th>/g)].map((m) => m[1]);
+    expect(머리).toEqual(["칸", "기업상태표", "피드백 2회차"]);
+    expect(칸).toContain('<th scope="col" class="whitespace-nowrap px-3 py-2 font-semibold">칸</th>');
+    expect(칸).toContain('<tr class="border-b border-wedly-bd">');
+    expect(세기(칸, '<tr class="border-b border-wedly-bd">'), "줄마다 행 하나").toBe(3);
+    expect(칸).toContain('<td class="whitespace-nowrap px-3 py-2 text-wedly-t2">직원수</td>');
+    expect(칸).toContain('<td class="break-keep px-3 py-2 tabular-nums text-wedly-t2">10명</td>');
+    expect(칸).toContain('<td class="break-keep px-3 py-2 font-semibold tabular-nums text-wedly-t1">12명</td>');
+    expect(칸, "상태표가 빈 칸은 —").toContain('<td class="break-keep px-3 py-2 tabular-nums text-wedly-t2">—</td>');
+    expect(칸, "넓을 때는 작은 카드로 쌓지 않는다").not.toContain("rounded-wedly-inner");
+  });
+
+  it("⑧ 좁을 때(compact)는 표 대신 줄마다 작은 카드 — 위 칸 이름 굵게, 아래 `상태표 값 · 피드백 값`", () => {
+    const 칸 = 구역(그린다({ data: 자료에({ feedbackDiff: 진단 }), compact: true }));
+    expect(칸, "좁은데 표가 그려졌다").not.toContain("<table");
+    expect(칸).not.toContain("<th");
+    expect(세기(칸, 'class="rounded-wedly-inner border border-wedly-bd px-2 py-1.5"'), "줄마다 카드 하나").toBe(3);
+    expect(칸).toContain('<p class="break-keep text-wedly-sub font-semibold text-wedly-t1">직원수</p>');
+    expect(칸).toContain('<span class="text-wedly-hint text-wedly-muted">상태표</span> 10명');
+    expect(칸).toContain('<span class="text-wedly-hint text-wedly-muted">피드백</span> <span class="font-semibold text-wedly-t1">12명</span>');
+    expect(칸, "상태표가 빈 칸은 —").toContain('<span class="text-wedly-hint text-wedly-muted">상태표</span> —');
+    // 안내 줄·굵은 줄은 compact 에서도 같다
+    expect(칸).toContain("피드백 2회차(10/1)와 기업상태표 비교 · 판정에는 안 씀");
+    expect(칸).toContain("다른 칸 2개 · 상태표에 빈 칸 1개 — 맞으면 상태표를 고쳐 주세요");
+  });
+
+  it("⑨ 피드백이 없거나(undefined) null 이면 구역이 없고, 머리 카드는 이 칸이 없을 때와 글자 하나까지 같다", () => {
+    const 기준 = 그린다({ data: 자료에({}) });
+    expect(기준).not.toContain(구역표식);
+    for (const v of [undefined, null]) {
+      const html = 그린다({ data: 자료에({ feedbackDiff: v }) });
+      expect(html, `feedbackDiff=${String(v)}`).not.toContain(구역표식);
+      expect(html).not.toContain("판정에는 안 씀");
+      expect(머리카드(html), "칸이 없을 때와 머리 카드가 달라졌다").toBe(머리카드(기준));
+    }
+  });
+
+  it("⑩ 모양이 틀린 값이면 없는 것으로 본다 — 터지지도 않는다", () => {
+    const 틀림: unknown[] = [
+      "알림",
+      42,
+      [],
+      {},
+      { ...진단, round: "2" },
+      { ...진단, round: 1.5 },
+      { ...진단, at: 20261001 },
+      { ...진단, rows: null },
+      { ...진단, rows: [{ field: 1, label: "인증", current: null, feedback: "있음" }] },
+      { ...진단, rows: [{ field: "hasCert", label: "인증", current: 3, feedback: "있음" }] },
+      { ...진단, rows: [진단.rows[0], null] },
+      { ...진단, rows: Array.from({ length: 21 }, () => 진단.rows[0]) },
+    ];
+    for (const v of 틀림) {
+      const 자 = 자료에({});
+      (자 as unknown as Record<string, unknown>).feedbackDiff = v;
+      let html = "";
+      expect(() => {
+        html = 그린다({ data: 자 });
+      }, `${JSON.stringify(v)} 에 화면이 죽는다`).not.toThrow();
+      expect(html, `${JSON.stringify(v)} 를 그렸다`).not.toContain(구역표식);
+      expect(html, "지도는 그대로 그린다").toContain("안 갚아도 되는 돈");
+    }
+  });
+
+  it("⑪ 줄이 0개인 알림은 그릴 말이 없어 구역이 없다", () => {
+    const html = 그린다({ data: 자료에({ feedbackDiff: { ...진단, rows: [] } }) });
+    expect(html).not.toContain(구역표식);
+    expect(html).not.toContain("맞으면 상태표를 고쳐 주세요");
+  });
+
+  it("⑫ 머리 카드를 그리는 조건에 이 구역이 든다 — 판정 근거도 빈칸 힌트도 없어도 알림만으로 카드가 선다", () => {
+    const 알림만 = 자료에({ usedProfile: [], profileEmpty: false, profileGaps: [], feedbackDiff: 진단 });
+    const html = 그린다({ data: 알림만 });
+    expect(html, "근거도 힌트도 없는데 알림이 안 그려졌다").toContain(구역표식);
+    expect(머리카드(html), "카드 안에 판정 근거 구역이 끼었다").not.toContain("판정에 쓴 정보");
+    expect(세기(머리카드(html), 구분선), "위에 그려진 것이 없으면 구분선도 없다").toBe(0);
+
+    // 알림도 없으면 카드 자체가 없다(기존 규칙 그대로)
+    const 아무것도 = 자료에({ usedProfile: [], profileEmpty: false, profileGaps: [] });
+    expect(그린다({ data: 아무것도 }).indexOf('class="rounded-xl border border-wedly-bd bg-white')).toBe(-1);
+  });
+
+  it("⑬ 구분선 — 위에 그려진 것이 있으면 `border-t border-wedly-bd/60`, 없으면 없다", () => {
+    // 근거 + 알림 + 힌트 → 선 둘(근거|알림, 알림|힌트)
+    expect(세기(머리카드(그린다({ data: 자료에({ feedbackDiff: 진단 }) })), 구분선)).toBe(2);
+    // 근거 없음 + 알림 + 힌트 → 알림이 맨 위라 선은 힌트 앞 하나
+    const 근거없음 = 자료에({ usedProfile: [], profileEmpty: false, feedbackDiff: 진단 });
+    expect(세기(머리카드(그린다({ data: 근거없음 })), 구분선)).toBe(1);
+    // 근거 없음 + 손잡이 줄 + 알림 → 손잡이 줄이 위에 있으니 알림 앞에 선
+    const 손잡이만 = 자료에({ usedProfile: [], profileEmpty: false, profileGaps: [], feedbackDiff: 진단 });
+    expect(
+      세기(머리카드(그린다({ data: 손잡이만, headerAction: <button type="button">다시 추천</button> })), 구분선),
+    ).toBe(1);
+    // 알림 없음 → 기존대로 근거|힌트 선 하나
+    expect(세기(머리카드(그린다({ data: 자료에({}) })), 구분선)).toBe(1);
+  });
+
+  it("⑭ 단추 `기업상태표 열기` — onOpenCompanyStatus 가 있을 때만 그려지고, 구역 안 맨 아래에 앉는다", () => {
+    const 없음 = 그린다({ data: 자료에({ feedbackDiff: 진단 }) });
+    expect(없음, "손잡이를 안 넘겼는데 단추가 있다").not.toContain("기업상태표 열기");
+    expect(구역(없음), "구역 안에 단추 마디가 남았다").not.toContain("<button");
+
+    const 있음 = 그린다({ data: 자료에({ feedbackDiff: 진단 }), onOpenCompanyStatus: () => {} });
+    const 칸 = 구역(있음);
+    expect(칸).toContain(">기업상태표 열기</button>");
+    expect(세기(있음, "기업상태표 열기"), "단추는 한 개").toBe(1);
+    expect(칸.indexOf("기업상태표 열기"), "단추가 표 아래에 있어야 한다").toBeGreaterThan(칸.indexOf("</table>"));
+    // 주 단추 — 파랑 채움 + 흰 글자, 작은 크기(rounded-lg)
+    const 단추 = 조각(칸, "기업상태표 열기", "<button");
+    expect(단추).toContain("bg-wedly-accent");
+    expect(단추).toContain("text-white");
+    expect(단추).toContain("rounded-lg");
+    expect(단추).toContain('type="button"');
+
+    // compact 에서도 같다(표 대신 카드 아래)
+    const 좁음 = 구역(그린다({ data: 자료에({ feedbackDiff: 진단 }), compact: true, onOpenCompanyStatus: () => {} }));
+    expect(좁음).toContain(">기업상태표 열기</button>");
+  });
+
+  it("⑮ 단추를 누르면 onOpenCompanyStatus 가 인자 없이 한 번 불린다 — 넓은 보기·좁은 보기 모두", () => {
+    /** 훅 없는 부품을 직접 불러 만든 요소 나무에서 마디를 모두 꺼낸다(jsdom 이 없어 직접 누를 수 없다). */
+    function* 마디들(node: unknown): Generator<{ type: unknown; props: Record<string, unknown> }> {
+      if (Array.isArray(node)) {
+        for (const c of node) yield* 마디들(c);
+        return;
+      }
+      if (typeof node !== "object" || node === null) return;
+      const el = node as { type?: unknown; props?: Record<string, unknown> };
+      if (!el.props) return;
+      yield { type: el.type, props: el.props };
+      yield* 마디들(el.props.children);
+    }
+    for (const compact of [false, true]) {
+      const 누름 = vi.fn();
+      const 나무 = FeedbackDiffSection({ diff: 진단, compact, onOpenCompanyStatus: 누름 });
+      const 단추들 = [...마디들(나무)].filter((m) => m.type === "button");
+      expect(단추들, `compact=${compact}`).toHaveLength(1);
+      expect(누름).not.toHaveBeenCalled();
+      (단추들[0].props.onClick as () => void)();
+      expect(누름).toHaveBeenCalledTimes(1);
+      expect(누름).toHaveBeenCalledWith();
+    }
+    // 손잡이가 없으면 단추 마디 자체가 없다
+    const 나무 = FeedbackDiffSection({ diff: 진단, compact: false });
+    expect([...마디들(나무)].filter((m) => m.type === "button")).toHaveLength(0);
+  });
+
+  it("⑯ 껍데기(FundingMap)가 onOpenCompanyStatus 를 머리 카드까지 이어 준다", () => {
+    expect(지도({ data: 자료에({ feedbackDiff: 진단 }), onOpenCompanyStatus: () => {} })).toContain(">기업상태표 열기</button>");
+    expect(지도({ data: 자료에({ feedbackDiff: 진단 }), compact: true, onOpenCompanyStatus: () => {} })).toContain(
+      ">기업상태표 열기</button>",
+    );
+    expect(지도({ data: 자료에({ feedbackDiff: 진단 }) })).not.toContain("기업상태표 열기");
+    // 알림이 없으면 손잡이를 줘도 단추가 없다 — 알림 구역의 단추다
+    expect(지도({ data: 자료에({}), onOpenCompanyStatus: () => {} })).not.toContain("기업상태표 열기");
+  });
+
+  it("⑰ raw 색(hex·bg-red-500 류)이 없고 그림자도 없다 — wedly 토큰만, 기존 머리 카드 그림자는 그대로", () => {
+    const html = 그린다({ data: 자료에({ feedbackDiff: 진단 }), onOpenCompanyStatus: () => {} });
+    for (const 모양 of [false, true]) {
+      const 칸 = 구역(그린다({ data: 자료에({ feedbackDiff: 진단 }), compact: 모양, onOpenCompanyStatus: () => {} }));
+      expect(칸, "hex 색").not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+      expect(칸, "raw 팔레트 색").not.toMatch(
+        /\b(?:bg|text|border|ring|fill|stroke)-(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone)-\d{2,3}\b/,
+      );
+      expect(칸, "구역에 그림자가 생겼다").not.toContain("shadow");
+    }
+    expect(머리카드(html), "기존 머리 카드 그림자가 바뀌었다").toContain(
+      "shadow-[0_1px_2px_rgba(10,34,68,0.05),0_6px_18px_rgba(10,34,68,0.08)]",
     );
   });
 });
