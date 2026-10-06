@@ -130,6 +130,33 @@ const 상품_손등록 = mk({
 const 서랍 = (item: FundingItem | null, onOpenDetail?: (id: string) => void): string =>
   renderToStaticMarkup(<FundingDrawer item={item} onClose={() => {}} onOpenDetail={onOpenDetail} now={NOW} />);
 
+describe("서랍 본문만 그리기(inline) — 결과 화면의 오른쪽 상세 칸이 상품을 그릴 때", () => {
+  const 본문 = (item: FundingItem) =>
+    renderToStaticMarkup(<FundingDrawer item={item} onClose={() => {}} now={NOW} inline />);
+
+  it("서랍 껍데기(dialog) 없이 같은 본문(머리·답 네 개·조건 목록)만 그린다", () => {
+    const html = 본문(상품_은행);
+    expect(html).not.toContain('role="dialog"');
+    expect(html).toContain("얼마까지");
+    expect(html).toContain("어디에 신청");
+    expect(html).toContain(">상시 상품<");
+    expect(html).toContain(FUNDING_GROUP_META.bank.name);
+  });
+
+  it("대조군 — 기본(inline 아님)은 예전처럼 서랍 껍데기에 싸여 있고, 본문 글자는 inline 과 같다", () => {
+    const shell = 서랍(상품_은행);
+    expect(shell).toContain('role="dialog"');
+    for (const 글 of ["얼마까지", "어디에 신청", "케이뱅크 앱"]) {
+      expect(shell).toContain(글);
+      expect(본문(상품_은행)).toContain(글);
+    }
+  });
+
+  it("item 이 없으면 inline 이어도 아무것도 안 그린다", () => {
+    expect(renderToStaticMarkup(<FundingDrawer item={null} onClose={() => {}} inline />)).toBe("");
+  });
+});
+
 describe("자금 조달 지도 서랍(재설계 §G3) — 서랍 머리", () => {
   it("갈래 딱지(흰 칩+색 점)·종류(공고/상시 상품)·마감 딱지가 그려진다", () => {
     const html = 서랍(공고_무상);

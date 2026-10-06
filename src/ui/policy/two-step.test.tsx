@@ -372,7 +372,9 @@ describe("배선 — 단계는 진단 성공일 때만 열리고, 고치기·다
   it("「회사 정보 고치기」는 단계만 되돌리고 입력값·결과·저장값을 비우지 않는다", () => {
     const body = 몸통(화면글, "const goCompany", "}, []);");
     expect(body).toContain('setStep("company")');
-    expect(body).toContain('writeStepToAddress("company", "replace")');
+    // 주소는 쌓는다(push) — replace 로 덮으면 고친 뒤 다시 결과를 보고 뒤로 가기를 눌렀을 때 회사 정보 화면이 두 번 연속 나온다(C2).
+    expect(body).toContain('writeStepToAddress("company", "push")');
+    expect(body).not.toContain('writeStepToAddress("company", "replace")');
     for (const 비우기 of ["setDiagnosis(null)", "clearStoredProfile", "setFormKey", "setProfile(", "setFundingData(null)"]) {
       expect(body, `고치기가 ${비우기} 를 한다`).not.toContain(비우기);
     }
@@ -387,11 +389,12 @@ describe("배선 — 단계는 진단 성공일 때만 열리고, 고치기·다
   });
 
   it("「다른 회사」는 입력값·sessionStorage·결과를 모두 비우고 회사 정보로 간다", () => {
-    const body = 몸통(화면글, "const resetCompany", "}, [resetFundingForCompany]);");
+    const body = 몸통(화면글, "const resetCompany", "}, []);");
+    // 고른 줄·탭·쪽은 결과 목록(ResultOneList)이 쥐고 진단 회차 `key` 로 새로 만들어지므로 여기서 따로 비우지 않는다(C2).
     for (const 줄 of [
       "clearStoredProfile(sessionStorageOrNull())", "setRestoredProfile(null)", "setFormKey((k) => k + 1)",
       "setProfile({})", "setProfileNonce(0)", "setDiagnosis(null)", "setFundingData(null)", "setCountData(null)",
-      "setSelectedId(\"\")", "setDrawerOpen(false)", 'setStep("company")', 'writeStepToAddress("company", "replace")',
+      'setResultQuery("")', 'setAskedQuery("")', 'setStep("company")', 'writeStepToAddress("company", "replace")',
     ]) {
       expect(body, `다른 회사가 ${줄} 를 안 한다`).toContain(줄);
     }
@@ -426,10 +429,15 @@ describe("배선 — 단계는 진단 성공일 때만 열리고, 고치기·다
     expect(body).toContain("readStoredProfile(sessionStorageOrNull())");
   });
 
-  it("전체 공고 둘러보기로 돌아가는 길을 두 부품 어디에도 안 넘긴다 — 그 단추는 안 그려진다", () => {
+  it("전체 공고 둘러보기로 돌아가는 길이 없다 — 결과 본문은 목록 하나(ResultOneList)이고 지도 전환·묶음 목록은 안 쓴다", () => {
     expect(화면글).not.toContain("onBrowseAll=");
-    expect(화면글).toContain("<FundingMap");
-    expect(화면글).toContain("<ResultGroupList");
+    expect(화면글).toContain("<ResultOneList");
+    expect(화면글).not.toMatch(/<FundingMap[\s/>]/);
+    expect(화면글).not.toContain("<ResultGroupList");
+  });
+
+  it("진단을 새로 돌리면 결과 목록을 새로 만든다 — 진단 회차(profileNonce)를 key 로 준다", () => {
+    expect(화면글).toMatch(/<ResultOneList\s+key=\{profileNonce\}/);
   });
 
   it("ResultList·endpoints.announcements 는 지우지 않았다(일루아·앱이 쓴다)", () => {

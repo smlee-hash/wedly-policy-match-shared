@@ -194,16 +194,17 @@ describe("그래도 잘리면 목록 위에 안내한다", () => {
 describe("화면 배선 — 소스 글자로 잰다", () => {
   const 화면글 = readFileSync(new URL("PolicyMatchScreen.tsx", import.meta.url), "utf8");
 
-  // BF3 ⑤ — 검색어·탭을 서버가 자르기 전에 걸러 주므로 화면은 더는 건수를 넓혀 다시 받지 않는다(위 판단 함수는 남겨 둔다).
-  it("지도 자료 요청에 검색어·탭을 싣고, 넓게 다시 받지 않으며, 안내는 거른 뒤 건수로만 한다", () => {
-    expect(화면글).toContain("sort: fundingSort, ...askedSearch");
+  // BF3 ⑤ — 검색어를 서버가 자르기 전에 걸러 주므로 화면은 더는 건수를 넓혀 다시 받지 않는다(위 판단 함수는 남겨 둔다).
+  // C2 — 탭은 서버 조건이 아니다(탭 거르기는 받아 둔 배열을 화면이 거른다). 서버에 싣는 것은 찾기어뿐이다.
+  it("목록 자료 요청에 찾기어를 싣고, 넓게 다시 받지 않으며, 안내는 거른 뒤 건수로만 한다", () => {
+    expect(화면글).toContain("sort: ONE_LIST_SERVER_SORT, ...askedSearch");
     expect(화면글).not.toContain("widerTopN(");
     expect(화면글).not.toContain("setFundingTopN");
     expect(화면글).toContain("searchCutOf(fundingData, conditions)");
   });
 
-  it("결과 단계 안에서 목록(과 지도) 위에 안내를 둔다", () => {
+  it("결과 단계 안에서 결과 목록 위에 안내를 둔다", () => {
     expect(화면글).toContain("<SearchCutNotice cut={searchCut} />");
-    expect(화면글.indexOf("<SearchCutNotice")).toBeLessThan(화면글.indexOf("<ResultGroupList"));
+    expect(화면글.indexOf("<SearchCutNotice")).toBeLessThan(화면글.indexOf("<ResultOneList"));
   });
 });

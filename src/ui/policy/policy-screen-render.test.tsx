@@ -294,10 +294,16 @@ describe("④-감시선 — 통로 조건이 코드에서 사라지면 걸린다
    * 그 함수를 아래에서 실제로 호출한다(껍데기 배선이면 이 시험이 깨진다).
    */
   it("PolicyMatchScreen → DetailPanel 로 serverStructurizes 가 실제로 배선된다 (기본 true·AI 판정 단추는 그대로 noServerAi 만 본다)", () => {
+    // C2 — DetailPanel 을 고르는 자리가 화면에서 ResultDetail(상세 칸)로 옮겨 갔다. 화면은 features 를 통째로 넘긴다.
     const screenSrc = 읽기("PolicyMatchScreen.tsx");
-    expect(screenSrc, "PolicyMatchScreen 이 serverStructurizes 를 DetailPanel 로 안 넘긴다 — 랩이 「읽는 중」을 못 끈다")
+    const detailSrcOfScreen = 읽기("ResultDetail.tsx");
+    expect(screenSrc, "PolicyMatchScreen 이 features 를 상세 칸으로 안 넘긴다 — 랩이 「읽는 중」을 못 끈다")
+      .toContain("features={features}");
+    expect(detailSrcOfScreen, "ResultDetail 이 serverStructurizes 를 DetailPanel 로 안 넘긴다 — 랩이 「읽는 중」을 못 끈다")
       .toContain("serverStructurizes={features?.serverStructurizes ?? true}");
     expect(screenSrc, "PolicyMatchScreen 이 DetailPanel 에 noServerAi 를 넘긴다 — 그러면 랩의 AI 판정 단추까지 숨는다")
+      .not.toContain("noServerAi=");
+    expect(detailSrcOfScreen, "ResultDetail 이 DetailPanel 에 noServerAi 를 넘긴다 — 그러면 랩의 AI 판정 단추까지 숨는다")
       .not.toContain("noServerAi=");
 
     const detailSrc = 읽기("DetailPanel.tsx");
@@ -491,20 +497,29 @@ describe("⑥ 지도 카드의 판정 피드백 자료 — diagnoseIndex·mapVer
  * `mode==="diagnosed"` 이후에만 뜨는데 기본값은 "browse" 라 정적 렌더 한 번으론 못 지나간다.
  * 그래서 배선(누가 무엇을 넘기는가)을 소스 문자열로 감시한다.
  */
-describe("⑥-감시선 — PolicyMatchScreen 이 slots.verdictFeedback 을 지도로도 넘긴다", () => {
+describe("⑥-감시선 — PolicyMatchScreen 이 slots.verdictFeedback 을 결과 목록 줄(place:card)로 넘긴다", () => {
   const 폴더 = new URL(".", import.meta.url);
   const 읽기 = (name: string) => readFileSync(new URL(name, 폴더), "utf8");
 
-  it("지도(FundingMap)에 renderCardFooter={mapCardFooter} 가 배선돼 있고, 그 조각은 place:map 이다", () => {
+  // C2 — 「한눈에」 지도 보기를 이 화면에서 뺐으므로 지도 카드 바닥(place:"map")에 조각을 끼우던 배선은 없어졌다.
+  //  같은 조각은 결과 목록 줄 안(place:"card")으로 이어졌다. mapVerdictContext(place:"map")는 export 로 남는다(다른 쪽이 쓴다).
+  it("결과 목록에 renderRowFooter={rowFooter} 가 배선돼 있고, 그 조각은 place:card 이다", () => {
     const src = 읽기("PolicyMatchScreen.tsx");
-    expect(src, "FundingMap 에 renderCardFooter 를 안 넘긴다").toContain("renderCardFooter={mapCardFooter}");
-    expect(src, "mapCardFooter 가 slots.verdictFeedback 을 안 쓴다").toContain(
+    expect(src, "결과 목록에 renderRowFooter 를 안 넘긴다").toContain("renderRowFooter={rowFooter}");
+    expect(src, "rowFooter 가 slots.verdictFeedback 을 안 쓴다").toContain(
       "const verdictFeedback = slots?.verdictFeedback;",
     );
-    expect(src, "mapCardFooter 가 verdictFeedback 을 안 부른다").toMatch(
-      /verdictFeedback\(mapVerdictContext\(item, \{ byId: diagnoseById, profile \}\)\)/,
+    expect(src, "rowFooter 가 verdictFeedback 을 안 부른다").toMatch(
+      /verdictFeedback\(listVerdictContext\(item, \{ byId: diagnoseById, profile \}\)\)/,
     );
-    expect(src, "카드 바닥 자리가 「map」으로 못박혀 있지 않다").toContain('place: "map"');
+    expect(src, "목록 줄 자리가 「card」로 못박혀 있지 않다").toContain('place: "card"');
+    expect(src, "지도 카드 배선이 화면에 남아 있다").not.toContain("renderCardFooter");
+  });
+
+  it("대조군 — mapVerdictContext(place:map)는 export 로 남아 있다", () => {
+    const src = 읽기("PolicyMatchScreen.tsx");
+    expect(src).toContain("export function mapVerdictContext(");
+    expect(src).toContain('place: "map"');
   });
 });
 

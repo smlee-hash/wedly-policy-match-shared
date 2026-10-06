@@ -100,7 +100,8 @@ describe("BF4-4 검색어 100자 — 입력·화면 거르기·서버 요청이 
   it("화면 배선: 입력 상태는 clipQuery 로, 요청 조건은 fundingSearchOf 로 만든다", () => {
     const 화면글 = readFileSync(new URL("./PolicyMatchScreen.tsx", import.meta.url), "utf8");
     expect(화면글).toContain("onQuery={(q) => setResultQuery(clipQuery(q))}");
-    expect(화면글).toContain("fundingSearchOf({ tab: resultTab, query: askedQuery })");
+    // C2 — 탭은 서버 조건이 아니다(탭 거르기는 클라이언트 배열 거르기). 서버 조건은 찾기어뿐.
+    expect(화면글).toContain('fundingSearchOf({ tab: "all", query: askedQuery })');
   });
 });
 
@@ -127,14 +128,15 @@ describe("BF4-5 탭이 골라진 채 다시 진단해도 요약 탭 건수가 �
     expect(건수(서버(재요청))).toMatchObject({ all: 2, grant: 1, bank: 1 });
   });
 
-  it("화면 배선: 진단이 성공하면 탭·검색어를 처음으로 되돌린다", () => {
+  it("화면 배선: 진단이 성공하면 찾기어를 처음으로 되돌리고, 탭·칩은 목록을 key 로 새로 만들어 되돌린다", () => {
     const 화면글 = readFileSync(new URL("./PolicyMatchScreen.tsx", import.meta.url), "utf8");
     const start = 화면글.indexOf("const runDiagnose");
     const 몸 = 화면글.slice(start, 화면글.indexOf("}, [endpoints.diagnose", start));
     expect(start).toBeGreaterThan(0);
-    expect(몸).toContain('setResultTab("all")');
     expect(몸).toContain('setResultQuery("")');
     expect(몸).toContain('setAskedQuery("")');
+    // 탭 상태는 목록 부품이 쥐고 진단 회차(profileNonce)를 key 로 받아 새 회차마다 새로 시작한다(기본 탭 = 지원 가능).
+    expect(화면글).toMatch(/<ResultOneList\s+key=\{profileNonce\}/);
   });
 });
 

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import PolicyMatchScreen, { listVerdictContext, type Diagnosis } from "./PolicyMatchScreen";
+import PolicyMatchScreen, { listVerdictContext, mapUiReducer, showsMap, type Diagnosis } from "./PolicyMatchScreen";
 import ProfileForm from "./ProfileForm";
 import ResultSummaryBar from "./ResultSummaryBar";
 import ResultGroupList, {
@@ -367,28 +367,32 @@ describe("화면 배선 — 행 → 서랍", () => {
     expect(html).not.toContain('data-area="detail-drawer"');
   });
 
-  it("서랍은 진단 판일 때만 열리고, 닫는 손잡이는 상태를 거짓으로 돌린다", () => {
-    expect(화면글).toContain('open={drawerOpen && step === "result"}');
-    expect(화면글).toContain("onClose={closeDrawer}");
-    expect(화면글).toContain("const closeDrawer = useCallback(() => setDrawerOpen(false), []);");
+  // C2 — 결과 목록 하나로 합치기: 상세는 오른쪽 칸에 열리고, 서랍(ResultDrawer)·지도 서랍은 이 화면에서 안 쓴다.
+  it("상세는 서랍이 아니라 오른쪽 칸 — 화면은 ResultDrawer 를 안 쓰고, 부품 파일·export 는 남아 있다", () => {
+    expect(화면글).not.toContain("<ResultDrawer");
+    expect(화면글).not.toContain("closeDrawer");
+    expect(typeof ResultDrawer).toBe("function");
+    expect(readFileSync(new URL("ResultDrawer.tsx", import.meta.url), "utf8")).toContain("export default function ResultDrawer");
   });
 
-  it("공고 행은 상세 서랍을 열고, 상시 상품 행은 기존 항목 서랍을 연다", () => {
-    expect(화면글).toMatch(/item\.kind === "announcement"\) \{\s*setSelectedId\(item\.refId\);\s*setDrawerOpen\(true\);/);
-    expect(화면글).toContain('dispatchMapUi({ type: "open", item })');
-    expect(화면글).toContain("onOpen={openRow}");
+  it("줄을 누르면 고른 줄이 바뀌어 상세 칸이 따라간다(공고·상품 모두 같은 길)", () => {
+    const 목록글 = readFileSync(new URL("ResultOneList.tsx", import.meta.url), "utf8");
+    expect(목록글).toContain("onClick={() => onSelect(item.id)}");
+    expect(목록글).toContain('onSelect={(id) => dispatch({ type: "select", id })}');
+    expect(목록글).toContain("renderDetail(view.selected)");
   });
 
-  it("회사 정보로 돌아가거나 새로 진단하면 서랍은 닫힌다", () => {
-    expect(화면글).toMatch(/const goCompany = useCallback\(\(\) => \{\s*setStep\("company"\);\s*setDrawerOpen\(false\);/);
+  it("회사 정보로 돌아가면 단계만 바꾸고, 새로 진단하면 목록을 새로 만든다", () => {
+    expect(화면글).toMatch(/const goCompany = useCallback\(\(\) => \{\s*setStep\("company"\);/);
     expect(화면글).toContain("onEdit={goCompany}");
-    expect(화면글).toMatch(/setSelectedId\(first\?\.announcementId \?\? ""\);\s*setDrawerOpen\(false\);/);
+    expect(화면글).toMatch(/<ResultOneList\s+key=\{profileNonce\}/);
   });
 
-  it("지도 서랍의 「상세·AI 판정 열기」는 목록 판으로 건너가 상세 서랍을 연다", () => {
-    expect(화면글).toMatch(
-      /openDetailFromMap = useCallback\(\(announcementId: string\) => \{\s*dispatchMapUi\(\{ type: "detail" \}\);\s*setSelectedId\(announcementId\);\s*setDrawerOpen\(true\);/,
-    );
+  it("지도 쪽 export(showsMap·mapUiReducer)는 남아 있지만 화면은 쓰지 않는다", () => {
+    expect(typeof showsMap).toBe("function");
+    expect(typeof mapUiReducer).toBe("function");
+    expect(화면글).not.toContain("mapUiReducer, INITIAL_MAP_UI");
+    expect(화면글).not.toContain("useReducer");
   });
 });
 
@@ -399,22 +403,31 @@ describe("화면 배선 — 행 → 서랍", () => {
  */
 describe("옮긴 자리 목록 — 기존 기능이 새 자리에 그대로 있다", () => {
   const 화면글 = readFileSync(new URL("PolicyMatchScreen.tsx", import.meta.url), "utf8");
-  const 서랍범위 = 화면글.slice(화면글.indexOf("<ResultDrawer"), 화면글.indexOf("</ResultDrawer>"));
+  // 상세 칸 본문은 ResultDetail 이 그린다 — 공고는 DetailPanel, 상품은 FundingDrawer 본문(inline).
+  const 상세글 = readFileSync(new URL("ResultDetail.tsx", import.meta.url), "utf8");
   const 처음화면 = renderToStaticMarkup(<PolicyMatchScreen endpoints={ERP_POLICY_MATCH_ENDPOINTS} />);
 
-  it("서랍 안에 DetailPanel 이 있고 통로·오류 문구·피드백 조각·회차를 그대로 받는다", () => {
-    expect(서랍범위).toContain("<DetailPanel");
+  it("상세 칸에 DetailPanel 이 있고 통로·오류 문구·피드백 조각·회차를 그대로 받는다", () => {
+    expect(상세글).toContain("<DetailPanel");
     for (const 줄 of [
       "endpoints={endpoints}",
       "parseError={features?.parseError}",
       "verdictFeedback={verdictFeedback}",
-      "announcementId={selectedId}",
+      "announcementId={item.refId}",
       "profile={profile}",
       "profileNonce={profileNonce}",
-      "item={selectedItem}",
+      "item={diagnoseById.get(item.refId) ?? null}",
       "serverStructurizes={features?.serverStructurizes ?? true}",
     ]) {
-      expect(서랍범위, `서랍 안 DetailPanel 에 ${줄} 이 없다`).toContain(줄);
+      expect(상세글, `상세 칸 DetailPanel 에 ${줄} 이 없다`).toContain(줄);
+    }
+    // 화면은 그 값들을 ResultDetail 로 넘긴다
+    expect(화면글).toContain("<ResultDetail");
+    for (const 줄 of [
+      "endpoints={endpoints}", "features={features}", "verdictFeedback={verdictFeedback}", "profile={profile}",
+      "profileNonce={profileNonce}", "diagnoseById={diagnoseById}", "hasDiagnosis={diagnosis !== null}",
+    ]) {
+      expect(화면글, `화면이 ResultDetail 에 ${줄} 을 안 넘긴다`).toContain(줄);
     }
   });
 
@@ -426,11 +439,11 @@ describe("옮긴 자리 목록 — 기존 기능이 새 자리에 그대로 있�
     expect(src).toContain("saveEndpoint={endpoints.askInstructor}");
   });
 
-  it("피드백: 서랍의 상세 · 지도 카드 · 결과 목록 행 세 자리 모두에 같은 조각이 배선돼 있다", () => {
-    // 옛 「전체 공고 탐색」 목록(ResultList)의 자리는 없어졌다 — 그 자리가 쓰던 조각은 결과 목록 행이 이어받는다.
-    expect(서랍범위).toContain("verdictFeedback={verdictFeedback}");
-    expect(화면글).toContain("renderCardFooter={mapCardFooter}");
+  it("피드백: 상세 칸 · 결과 목록 줄 두 자리에 같은 조각이 배선돼 있다(지도 카드 자리는 지도와 함께 없어졌다)", () => {
+    // 옛 「전체 공고 탐색」 목록(ResultList)의 자리는 없어졌다 — 그 자리가 쓰던 조각은 결과 목록 줄이 이어받는다.
+    expect(상세글).toContain("verdictFeedback={verdictFeedback}");
     expect(화면글).toContain("renderRowFooter={rowFooter}");
+    expect(화면글).not.toContain("renderCardFooter");
   });
 
   it("진단→목록 전환 시 행 피드백 호출: 조각을 받은 앱은 공고 줄마다 place:card 로 부르고, 못 받은 앱은 줄만 그린다(BF2 ⑤)", () => {
@@ -463,13 +476,14 @@ describe("옮긴 자리 목록 — 기존 기능이 새 자리에 그대로 있�
       place: "card",
     });
 
-    // 배선: 목록 판이 조각을 이어 받고, 조각 만드는 자리가 listVerdictContext 를 쓴다
-    const 목록범위 = 화면글.slice(화면글.indexOf("<ResultGroupList"), 화면글.indexOf("/>", 화면글.indexOf("<ResultGroupList")));
+    // 배선: 결과 목록이 조각을 이어 받고, 조각 만드는 자리가 listVerdictContext 를 쓴다
+    const 목록범위 = 화면글.slice(화면글.indexOf("<ResultOneList"), 화면글.indexOf("/>", 화면글.indexOf("<ResultOneList")));
     expect(목록범위).toContain("renderRowFooter={rowFooter}");
     expect(화면글).toContain("verdictFeedback(listVerdictContext(item, { byId: diagnoseById, profile }))");
   });
 
-  it("자금 조달 지도: 「한눈에」 보기 단추와 FundingMap·지도 서랍이 있다", () => {
+  it("자금 조달 지도: 「한눈에」 보기 단추·FundingMap·지도 서랍은 이 화면에서 뺐다(부품 파일은 남는다)", () => {
+    // 부품(ResultSummaryBar)은 그대로 한눈에 전환을 그릴 수 있다 — 다른 쪽이 쓸 수 있게 남긴 것이다.
     const 줄 = renderToStaticMarkup(
       <ResultSummaryBar
         data={자료()} tab="all" onTab={() => {}} unknownCount={0} onFill={() => {}} view="list" onView={() => {}}
@@ -477,11 +491,13 @@ describe("옮긴 자리 목록 — 기존 기능이 새 자리에 그대로 있�
       />,
     );
     expect(줄).toContain("한눈에");
-    expect(줄).toContain("목록");
-    expect(화면글).toContain("<FundingMap");
-    expect(화면글).toContain('showsMap("diagnosed", mapUi.view)');
-    expect(화면글).toContain("<FundingDrawer");
-    expect(화면글).toContain("aiVerdictAvailable={!!endpoints.verdict}");
+    // 화면은 그 부품들을 안 쓴다
+    for (const 없어야 of ["<FundingMap ", "<FundingMap\n", "<FundingMap>", "<FundingDrawer", "<ResultSummaryBar", "<ResultGroupList", "mapUi.view"]) {
+      expect(화면글, `${없어야} 가 화면에 남아 있다`).not.toContain(없어야);
+    }
+    // 상품 본문의 AI 문구 규칙은 이제 ResultDetail 이 지킨다(funding-drawer-wiring.test.tsx 가 넘기는 값을 잰다)
+    expect(화면글).not.toContain("aiVerdictAvailable");
+    expect(상세글).toContain("aiVerdictAvailable={!!endpoints.verdict}");
   });
 
   it("출처 목록(SourceDirectoryPanel): 통로를 넘긴 앱에만 「수집원 현황」 판이 있고 앱의 조각이 그대로 전해진다", () => {
@@ -527,22 +543,27 @@ describe("옮긴 자리 목록 — 기존 기능이 새 자리에 그대로 있�
   });
 
   it("slots·features 확장점이 모두 화면 글에서 쓰인다", () => {
+    // 상세 칸에 쓰는 두 값(serverStructurizes·parseError)은 ResultDetail 이 읽는다 — 화면은 features 를 통째로 넘긴다.
     for (const 이름 of [
       "slots?.verdictFeedback", "slots?.sourcesActions", "slots?.sourcesHeader",
-      "features?.serverStructurizes", "features?.parseError", "features?.exportSources",
-      "features?.sourcesTrailingPaddingClass", "features?.documentPrefillMode",
+      "features?.exportSources", "features?.sourcesTrailingPaddingClass", "features?.documentPrefillMode",
     ]) {
       expect(화면글, `${이름} 이 화면에서 안 쓰인다`).toContain(이름);
     }
+    for (const 이름 of ["features?.serverStructurizes", "features?.parseError"]) {
+      expect(상세글, `${이름} 이 상세 칸에서 안 쓰인다`).toContain(이름);
+    }
+    expect(화면글).toContain("features={features}");
   });
 
-  it("요약 탭·모름 띠·도구 줄은 결과 위에 그대로 있다", () => {
-    expect(화면글).toContain("<ResultSummaryBar");
+  it("모름 칸 안내·찾기·정렬·판정 탭은 결과 위에 있고, 「그 칸 채우기」는 회사 정보로 돌아가 첫 빈 칸에 초점을 준다", () => {
+    expect(화면글).toContain("<ResultOneList");
     // 폼은 ① 회사 정보에 있다 — 「채우기」는 그리로 돌아가(goCompany) 첫 모름 칸으로 초점을 준다.
     expect(화면글).toMatch(/onFill=\{\(\) => \{\s*goCompany\(\);[^}]*setFillNonce\(\(n\) => n \+ 1\);\s*\}\}/);
+    expect(화면글).toContain("focusUnknownNonce={fillNonce}");
   });
 
-  it("회사 정보 쪽에는 드롭다운(select)이 없다 — 정렬 select 는 결과 도구 줄에만", () => {
+  it("회사 정보 쪽에는 드롭다운(select)이 없다 — 정렬은 기존 CustomSelect(결과 도구 줄)", () => {
     const 폼 = renderToStaticMarkup(
       <ProfileForm
         onDiagnose={async () => true}
@@ -553,13 +574,20 @@ describe("옮긴 자리 목록 — 기존 기능이 새 자리에 그대로 있�
     );
     expect(폼).not.toContain("<select");
     expect(readFileSync(new URL("ProfileForm.tsx", import.meta.url), "utf8")).not.toContain("<select");
+    const 목록글 = readFileSync(new URL("ResultOneList.tsx", import.meta.url), "utf8");
+    expect(목록글).toContain("<CustomSelect");
+    expect(목록글).not.toContain("<select");
+    // 옛 도구 줄 부품은 그대로 남아 있다(이 화면은 안 쓴다)
     expect(readFileSync(new URL("ResultSummaryBar.tsx", import.meta.url), "utf8")).toContain("<select");
   });
 });
 
 describe("바뀐 파일에는 시안 파일(_ref)을 가져다 쓰지 않는다", () => {
   it("새 부품 셋의 import 줄에 _ref 가 없다", () => {
-    for (const 이름 of ["ResultGroupList.tsx", "ResultDrawer.tsx", "PolicyMatchScreen.tsx"]) {
+    for (const 이름 of [
+      "ResultGroupList.tsx", "ResultDrawer.tsx", "PolicyMatchScreen.tsx", "ResultOneList.tsx", "ResultDetail.tsx",
+      "result-one-list.ts",
+    ]) {
       const src = readFileSync(new URL(이름, import.meta.url), "utf8");
       const imports = src.split("\n").filter((l) => /^\s*(import|export)\b.*\bfrom\b/.test(l));
       expect(imports.some((l) => l.includes("_ref")), `${이름} 가 _ref 를 가져온다`).toBe(false);

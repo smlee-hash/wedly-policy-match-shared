@@ -496,9 +496,14 @@ interface Props {
   aiVerdictAvailable?: boolean;
   /** 마감 계산 기준 시각 — 생략하면 지금(new Date()). 시험이 고정값을 넣는다(FundingMap 과 같은 규칙). */
   now?: Date;
+  /**
+   * true 면 서랍 껍데기(SidePanel) 없이 본문만 그린다 — 결과 화면의 오른쪽 상세 칸이 상품을 그릴 때 쓴다.
+   * 기본 false 라 다른 앱의 서랍은 한 글자도 안 바뀐다. 껍데기가 없으니 닫기·Esc·바깥 누르기는 없다(`onClose` 는 안 쓴다).
+   */
+  inline?: boolean;
 }
 
-export default function FundingDrawer({ item, onClose, onOpenDetail, aiVerdictAvailable = true, now }: Props) {
+export default function FundingDrawer({ item, onClose, onOpenDetail, aiVerdictAvailable = true, now, inline = false }: Props) {
   if (!item) return null;
   const effectiveNow = now ?? new Date();
   // ★종류를 못 가른 줄은 **갈래 이름을 쓰지 않는다**(코덱스 반려 1, 2026-09-05). 미확인 줄은 갈래
@@ -518,8 +523,7 @@ export default function FundingDrawer({ item, onClose, onOpenDetail, aiVerdictAv
     ["어디에 신청", whereWords(item)],
   ];
 
-  return (
-    <SidePanel open onClose={onClose} title={item.title} widthClass="sm:max-w-3xl">
+  const body = (
       <div className="flex flex-col gap-3">
         {/* 서랍 머리 — 갈래 딱지(흰 칩+색 점) · 종류(공고/상시 상품) · 마감 딱지(계약 §G3). */}
         <div className="flex flex-wrap items-center gap-2">
@@ -594,6 +598,12 @@ export default function FundingDrawer({ item, onClose, onOpenDetail, aiVerdictAv
           />
         )}
       </div>
+  );
+
+  if (inline) return body;
+  return (
+    <SidePanel open onClose={onClose} title={item.title} widthClass="sm:max-w-3xl">
+      {body}
     </SidePanel>
   );
 }

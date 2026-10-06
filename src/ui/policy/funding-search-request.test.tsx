@@ -152,18 +152,19 @@ describe("앞의 N건 안내는 서버가 센 거른 뒤 건수가 여전히 많
 describe("화면 배선 — 입력이 멈춘 뒤 300ms, 소스 글자로 잰다", () => {
   const 화면글 = readFileSync(new URL("PolicyMatchScreen.tsx", import.meta.url), "utf8");
 
-  it("검색어는 300ms 뒤에 서버 조건으로 넘어가고, 탭은 바로 넘어간다", () => {
+  it("찾기어는 300ms 뒤에 서버 조건으로 넘어간다 — 탭은 서버 조건이 아니라 항상 「전체」다(탭 거르기는 클라이언트)", () => {
     expect(FUNDING_QUERY_DELAY_MS).toBe(300);
     expect(화면글).toContain("setTimeout(() => setAskedQuery(resultQuery), FUNDING_QUERY_DELAY_MS)");
-    expect(화면글).toContain("fundingSearchOf({ tab: resultTab, query: askedQuery })");
+    expect(화면글).toContain('fundingSearchOf({ tab: "all", query: askedQuery })');
   });
 
-  it("조건이 바뀌면 지도를 다시 요청하고, 「다시 시도」도 같은 조건을 쓴다", () => {
+  it("찾기어가 바뀌면 목록 자료를 다시 요청하고, 「다시 시도」도 같은 조건을 쓴다", () => {
     expect(화면글.match(/\.\.\.askedSearch/g)).toHaveLength(2);
-    expect(화면글).toContain("fundingSort, askedSearch]");
+    expect(화면글).toContain("profile, askedSearch]");
+    expect(화면글).toContain("profileNonce, profile, askedSearch]");
   });
 
-  it("조건 없이 받은 자료로 요약 탭 건수를 센다(탭을 눌러도 다른 탭 건수가 0 이 되지 않는다)", () => {
-    expect(화면글).toContain("data={countData ?? fundingData}");
+  it("찾기어 없이 받은 자료로 폼 바닥의 「확인 필요 M건」을 센다(찾기어를 걸어도 건수가 줄지 않는다)", () => {
+    expect(화면글).toContain("reviewCount={reviewCountOf(countData ?? fundingData, diagnosis)}");
   });
 });
