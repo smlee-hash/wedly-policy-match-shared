@@ -32,7 +32,27 @@ export type RecommendFundingData = FundingMapPayload & {
    * 지도 머리 카드가 그리기 전에 `isFeedbackDiff` 로 모양을 확인하고, 아니면 없는 것으로 본다.
    */
   feedbackDiff?: FeedbackDiff | null;
+  /**
+   * 화면에 보이는 가장 늦은 피드백 회차의 기업 사실 뽑기가 아직 안 끝났다(서버가 응답 뒤에 뽑는 중이거나 다시 시도할 차례).
+   * true 면 패널이 `FACTS_POLL_MS` 마다 다시 불러와 끝나는 대로 알림을 채운다. **선택 칸** — 없으면 다시 부르지 않는다.
+   */
+  feedbackFactsPending?: boolean;
 };
+
+/** 기업 사실 뽑기를 기다리며 다시 부르는 간격 — 뽑기 한 번은 최대 3분(원문 읽기 2분 + AI 1분)이다. */
+export const FACTS_POLL_MS = 30_000;
+/** 한 번의 기다림(회사가 바뀌거나 저장 신호·「다시 추천」이 오기 전까지)에서 다시 부르는 횟수 상한 — 30초 × 20 = 10분. */
+export const FACTS_POLL_MAX = 20;
+
+/**
+ * 다음 자동 재조회까지 기다릴 시간(ms). 다시 부르지 않으면 null.
+ * 서버가 「아직 뽑는 중」이라고 했고(`feedbackFactsPending === true`) 상한 안일 때만 부른다 — 칸이 없거나
+ * 다른 값이면(옛 통로·다른 앱) 다시 부르지 않는다. 조회 중(loading)에는 앞 자료로 판단하지 않는다.
+ */
+export function nextFactsPollMs(data: RecommendFundingData | null, loading: boolean, polls: number): number | null {
+  if (loading || !data || data.feedbackFactsPending !== true) return null;
+  return polls < FACTS_POLL_MAX ? FACTS_POLL_MS : null;
+}
 
 /** 상세창 레일은 자리가 좁다 — 갈래마다 상위 3건만 받는다(계획서 리뷰 대장 #22 응답 크기). */
 export const COMPACT_TOP_N = 3;
@@ -489,6 +509,8 @@ export default function FundingRecommendPanel({
   const { companyKey, requestKey } = fundingFetchKeys({ endpoint, bizno, companyName, refreshKey, query });
   const { data, error, loading } = viewState(result, requestKey, companyKey);
   const drawerItem = opened?.companyKey === companyKey ? opened.item : null;
+  // 기업 사실 뽑기를 기다리며 다시 부른 횟수 — 회사가 바뀌거나 저장 신호·「다시 추천」이 오면 0 으로 돌린다.
+  const factsPollsRef = useRef(0);
 
   // 오류 문구 규칙은 **의존 배열에 넣지 않는다** — 부모가 화살표 함수를 그 자리에서 만들어 주면
   // 매 렌더마다 새 함수라 재조회가 끝없이 돈다. 대신 늘 최신 것을 쓰도록 ref 로 받는다
@@ -502,6 +524,7 @@ export default function FundingRecommendPanel({
     // 칸을 연달아 채우면 신호가 몰린다 — 600ms 로 묶어 재대조를 한 번만(적대 리뷰 사소1).
     let timer: ReturnType<typeof setTimeout> | undefined;
     const onSaved = () => {
+      factsPollsRef.current = 0;
       clearTimeout(timer);
       timer = setTimeout(() => setRefreshKey((k) => k + 1), 600);
     };
@@ -516,7 +539,20 @@ export default function FundingRecommendPanel({
   // 둘 다 바꿀 것이 없으면 **같은 값**을 돌려주므로 다시 그리기·재조회가 헛돌지 않는다.
   useEffect(() => {
     resetForCompany();
+    factsPollsRef.current = 0;
   }, [companyKey, resetForCompany]);
+
+  // 피드백 회차의 기업 사실을 서버가 아직 뽑는 중이면 끝날 때까지 다시 부른다 — 끝나면(또는 상한이면) 멈춘다.
+  // 다시 부르는 조회가 서버에 「다시 시도할 회차」를 또 맡기므로, 실패한 첫 시도의 재시도도 이 길로 돈다.
+  useEffect(() => {
+    const ms = nextFactsPollMs(data, loading, factsPollsRef.current);
+    if (ms === null) return;
+    const timer = setTimeout(() => {
+      factsPollsRef.current += 1;
+      setRefreshKey((k) => k + 1);
+    }, ms);
+    return () => clearTimeout(timer);
+  }, [data, loading]);
 
   useEffect(() => {
     if (!bizno && !companyName) return;
@@ -555,7 +591,10 @@ export default function FundingRecommendPanel({
       onOpenCompanyStatus={onOpenCompanyStatus}
       onToggleExcluded={onToggleExcluded}
       onCloseDrawer={() => setOpened(null)}
-      onRefresh={() => setRefreshKey((k) => k + 1)}
+      onRefresh={() => {
+        factsPollsRef.current = 0;
+        setRefreshKey((k) => k + 1);
+      }}
     />
   );
 }

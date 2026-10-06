@@ -2,12 +2,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import FundingRecommendPanel, {
   COMPACT_TOP_N,
+  FACTS_POLL_MAX,
+  FACTS_POLL_MS,
   LOAD_ERROR,
   ProfileNotice,
   RecommendPanel,
   fundingFetchKeys,
   fundingMapQuery,
   isAbortError,
+  nextFactsPollMs,
   nextFundingState,
   openTargetOf,
   resetExcludedForCompany,
@@ -904,3 +907,26 @@ describe("추천 정책 탭 — 재조회 연타로 요청이 쌓이지 않는�
  *   상세창 레일을 그리는 **앱 부품**이라 이 보관함(설계서 §2 「패키지 밖(앱 몫)」)에 오지 않는다.
  *   그 2건은 ERP 저장소에 그대로 남긴다.
  */
+
+describe("추천 정책 탭 — 피드백 기업 사실을 뽑는 중이면 다시 부르기(feedbackFactsPending)", () => {
+  const base = { feedbackDiff: null } as unknown as RecommendFundingData;
+  it("서버가 뽑는 중이라고 하면 30초 뒤 다시 부른다", () => {
+    expect(nextFactsPollMs({ ...base, feedbackFactsPending: true }, false, 0)).toBe(FACTS_POLL_MS);
+    expect(FACTS_POLL_MS).toBe(30_000);
+  });
+  it("다 뽑았거나 칸이 없거나(옛 통로·다른 앱) 모양이 틀리면 다시 부르지 않는다", () => {
+    expect(nextFactsPollMs({ ...base, feedbackFactsPending: false }, false, 0)).toBeNull();
+    expect(nextFactsPollMs(base, false, 0)).toBeNull();
+    expect(nextFactsPollMs({ ...base, feedbackFactsPending: "true" as unknown as boolean }, false, 0)).toBeNull();
+    expect(nextFactsPollMs(null, false, 0)).toBeNull();
+  });
+  it("조회 중에는 앞 자료로 판단하지 않는다 — 응답이 오면 그때 다시 정한다", () => {
+    expect(nextFactsPollMs({ ...base, feedbackFactsPending: true }, true, 0)).toBeNull();
+  });
+  it("상한(20번 = 10분)에 닿으면 멈춘다 — 끝내 못 뽑는 회차가 요청을 끝없이 만들지 않는다", () => {
+    expect(nextFactsPollMs({ ...base, feedbackFactsPending: true }, false, FACTS_POLL_MAX - 1)).toBe(FACTS_POLL_MS);
+    expect(nextFactsPollMs({ ...base, feedbackFactsPending: true }, false, FACTS_POLL_MAX)).toBeNull();
+    // 상한은 서버 최악(시도 2번 × (원문 2분 + AI 1분) = 6분)과 첫 조회 지연을 넉넉히 덮는다.
+    expect(FACTS_POLL_MS * FACTS_POLL_MAX).toBeGreaterThanOrEqual(2 * (120_000 + 60_000) + 4 * 60_000);
+  });
+});
