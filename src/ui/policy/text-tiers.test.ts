@@ -20,7 +20,9 @@ describe("정책매칭 화면 부품의 글자 층", () => {
         const hit = tag?.[0] ?? (theadRow ? theadRow[0] : null);
         if (!hit) return;
         if (RAW_SIZE.test(hit)) bad.push(`${f}:${i + 1} 층 밖 크기`);
-        if (tag && !/className=\{[^"]/.test(hit) && !/text-wedly-(section|sub|tablehead|page|value)/.test(hit)) {
+        // 클래스를 상수·식으로 넘겨도(className={SECTION_TITLE}) 층 클래스는 태그에 글자 그대로 있어야 한다 —
+        // 앱 쪽 검사도 태그 글자만 읽는다.
+        if (tag && !/text-wedly-(section|sub|tablehead|page|value)/.test(hit)) {
           bad.push(`${f}:${i + 1} 층 클래스 없음`);
         }
       });
