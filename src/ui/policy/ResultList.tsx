@@ -525,7 +525,8 @@ export default function ResultList({
                     <div className="flex flex-wrap items-center gap-2">
                       {/* 출처·분야는 분류라 회색 한 톤 — 색이 뜻을 갖는 자리는 D-day 뿐이다. */}
                       {showSources && <span className={PILL_NEUTRAL}>{SOURCE_LABEL[r.source] ?? r.source}</span>}
-                      {count >= 2 && (
+                      {/* 「외 N건」 = 같은 공고의 수집원별 묶음 — 관리자만 연다(2026-10-07 사장님 결정). */}
+                      {showSources && count >= 2 && (
                         <button
                           type="button"
                           aria-expanded={expanded}
@@ -549,7 +550,7 @@ export default function ResultList({
                     </div>
                     {meta && <div className="mt-1 truncate text-xs leading-[18px] text-wedly-muted">{meta}</div>}
                   </div>
-                  {count >= 2 && expanded && (
+                  {showSources && count >= 2 && expanded && (
                     loadingKeys.has(r.dedupKey)
                       ? <div className="pl-6 py-2 text-xs text-wedly-muted">묶음 불러오는 중…</div>
                       : membersCache[r.dedupKey] === undefined

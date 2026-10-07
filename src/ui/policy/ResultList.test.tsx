@@ -161,9 +161,10 @@ function browseRow(over: Partial<Row> & Pick<Row, "id" | "dedupKey">): Row {
 }
 
 describe("ResultList — browse 서버 묶음 표시", () => {
-  function renderBrowse(rows: Row[], selectedId = "") {
+  function renderBrowse(rows: Row[], selectedId = "", showSources = true) {
     return renderToStaticMarkup(
       <ResultList
+        showSources={showSources}
         mode="browse"
         onModeChange={() => {}}
         diagnosis={null}
@@ -180,6 +181,12 @@ describe("ResultList — browse 서버 묶음 표시", () => {
     expect(html).toContain("외 2건");
     // 카드가 div[role=button] 이고 그 안의 「외 N건」은 진짜 button 이다
     expect(html).toContain('role="button"');
+  });
+
+  it("관리자가 아니면(기본) 「외 N건」 단추가 없다 — 수집원별 묶음은 관리자만(10/7 재리뷰)", () => {
+    const html = renderBrowse([browseRow({ id: "a", dedupKey: "k", groupCount: 3, groupIds: ["a", "b", "c"] })], "", false);
+    expect(html).not.toContain("외 2건");
+    expect(html).not.toContain("aria-expanded");
   });
 
   it("groupCount 1(또는 없음)이면 알약이 없다", () => {

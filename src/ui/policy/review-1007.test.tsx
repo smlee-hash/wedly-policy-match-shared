@@ -177,4 +177,23 @@ describe("재리뷰 10/7 — 남은 두 지적", () => {
     expect(ex.counts.excluded).toBe(3);
     expect(ex.chips.find((c) => c.key === "grant")?.count ?? 0).toBe(0);
   });
+
+  it("옛 서버 답에서 미확인 줄이 상한 밖으로 잘려 안 보여도 서버 셈을 쓰지 않는다(재리뷰 10/7 세 번째)", () => {
+    const items = [
+      ...Array.from({ length: GROUP_TOP_N }, (_, i) => item({ refId: `e${i}`, fitVerdict: "excluded", score: 1000 - i })),
+      ...Array.from({ length: 3 }, (_, i) => item({ refId: `x${i}`, fitVerdict: "excluded", unclassified: true, score: 1 })),
+    ];
+    const p = payloadOf(items);
+    for (const b of p.groups) delete (b as { unclassifiedCounts?: unknown }).unclassifiedCounts;
+    expect(serverVerdictCountsOf(p)).toBeNull();
+    const ex = oneListViewOf(flat(p), { ...INITIAL_ONE_LIST_STATE, tab: "excluded" }, "", serverVerdictCountsOf(p));
+    expect(ex.chips.find((c) => c.key === "grant")?.count ?? 0, "칩은 실제로 받은 분류된 줄 수를 넘지 않는다")
+      .toBeLessThanOrEqual(GROUP_TOP_N);
+  });
+
+  it("새 서버 답(모든 갈래에 미확인 집계 칸)은 서버 셈을 그대로 쓴다", () => {
+    const p = payloadOf([item({ refId: "a" })]);
+    expect(p.groups.every((b) => b.unclassifiedCounts)).toBe(true);
+    expect(serverVerdictCountsOf(p)).not.toBeNull();
+  });
 });

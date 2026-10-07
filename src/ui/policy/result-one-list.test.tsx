@@ -609,9 +609,10 @@ function 기본속성(items: FundingItem[] | null) {
 }
 
 // ── 서버가 자르기 전에 센 개수 ─────────────────────────────────────────
+// 새 서버는 모든 갈래에 미확인 집계 칸(unclassifiedCounts)을 싣는다 — 꾸민 답도 그 모양을 따른다.
 describe("탭·칩 숫자 — 받은 앞쪽 N건이 아니라 서버가 센 실제 개수", () => {
   const 블록 = (group: "grant" | "policy", fit: number, unverified: number, excluded: number, items: FundingItem[]) =>
-    ({ group, total: fit + unverified, fit, unverified, excluded, soon: 0, items, truncated: true, excludedItems: [] }) as unknown as FundingMapPayload["groups"][number];
+    ({ group, total: fit + unverified, fit, unverified, excluded, soon: 0, items, truncated: true, excludedItems: [], unclassifiedCounts: { fit: 0, unverified: 0, excluded: 0 } }) as unknown as FundingMapPayload["groups"][number];
   const 받은 = [
     mk({ id: "a:1", group: "grant" }),
     mk({ id: "a:2", group: "grant", fitVerdict: "excluded" }),

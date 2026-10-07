@@ -66,11 +66,10 @@ export interface ServerVerdictCounts {
 
 export function serverVerdictCountsOf(data: FundingMapPayload | null): ServerVerdictCounts | null {
   if (!data) return null;
-  // 미확인 집계 칸이 없는 옛 서버 답(배포 중 열려 있던 탭)은 서버 셈을 쓰지 않는다 — 실린 줄로 보충해도
-  // 미확인이 80건을 넘으면 잘린 만큼 틀린다(재리뷰 10/7 두 번). 받은 줄로만 세면 탭·칩·목록이 서로 맞는다.
-  const hasParked = (b: FundingMapPayload["groups"][number]) =>
-    [...b.items, ...(b.excludedItems ?? [])].some((it) => it.unclassified);
-  if (data.groups.some((b) => !b.unclassifiedCounts && hasParked(b))) return null;
+  // 미확인 집계 칸이 없는 옛 서버 답(배포 중 열려 있던 탭)은 서버 셈을 쓰지 않는다. 새 서버는 모든 갈래에
+  // 이 칸을 싣는다(`groupBlocks`). 실린 줄로 보충하면 미확인 줄이 상한 밖으로 잘렸을 때 틀린다(재리뷰 10/7 세 번).
+  // 받은 줄로만 세면 탭·칩·목록이 서로 맞는다.
+  if (data.groups.some((b) => !b.unclassifiedCounts)) return null;
   const zero = (): Record<VerdictTab, number> => ({ fit: 0, unverified: 0, excluded: 0 });
   const tab = zero();
   const byGroup = Object.fromEntries(FUNDING_GROUPS.map((g) => [g, zero()])) as Record<FundingGroup, Record<VerdictTab, number>>;
