@@ -266,11 +266,11 @@ export function fileNameFromDisposition(header: string | null): string | null {
  * 외부 출처 주소는 「모두 받기」가 요청 자체를 보내지 않는다(독립 리뷰 10/7) — 그 줄의 「받기」로 연다.
  */
 export function isOwnAttachmentUrl(url: string, origin: string | null): boolean {
-  const u = url.trim();
-  if (u.startsWith("/") && !u.startsWith("//")) return true;
-  if (!origin) return false;
+  // 글자 모양으로 판단하지 않고 브라우저와 같은 URL 규칙으로 풀어 본다 — `/\\outside.example`·`//outside`
+  // 같은 변형은 겉보기엔 상대 경로지만 브라우저가 외부 주소로 푼다(재리뷰 10/7).
+  const base = origin ?? "https://own.invalid";
   try {
-    return new URL(u).origin === origin;
+    return new URL(url.trim(), base).origin === new URL(base).origin;
   } catch {
     return false;
   }

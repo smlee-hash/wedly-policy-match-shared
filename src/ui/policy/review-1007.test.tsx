@@ -141,3 +141,39 @@ describe("⑦ 칸 안 상품 상세에도 전체 상품명이 있다", () => {
     expect(src).toMatch(/\{inline && <div[^>]*>\{item\.title\}<\/div>\}/);
   });
 });
+
+describe("재리뷰 10/7 — 남은 두 지적", () => {
+  it("겉보기만 상대 경로인 외부 주소는 우리 통로가 아니다", () => {
+    const o = "https://erp.example";
+    expect(isOwnAttachmentUrl("/\\outside.example/a.pdf", o)).toBe(false);
+    expect(isOwnAttachmentUrl("/\\outside.example/a.pdf", null)).toBe(false);
+    expect(isOwnAttachmentUrl("\\\\outside.example/a.pdf", o)).toBe(false);
+    expect(isOwnAttachmentUrl("/api/files/1", o)).toBe(true);
+    expect(isOwnAttachmentUrl("/api/files/1", null)).toBe(true);
+  });
+
+  it("외부로 풀리는 첨부는 모두 받기가 요청하지 않는다", async () => {
+    const fetchImpl = vi.fn();
+    const r = await downloadAttachmentsInOrder(
+      [{ name: "a.pdf", url: "/\\outside.example/a.pdf" }] as never,
+      { fetchFn: fetchImpl as never, save: () => {}, origin: "https://erp.example" },
+    );
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(r).toEqual({ saved: 0, failed: 1, skipped: 0 });
+  });
+
+  it("미확인 집계 칸이 없는 옛 서버 답 — 탭은 모자라지 않고 칩은 빈 목록에 숫자를 달지 않는다", () => {
+    const items = [
+      ...Array.from({ length: 100 }, (_, i) => item({ refId: `c${i}`, fitVerdict: "unverified", score: 1000 - i })),
+      ...Array.from({ length: 10 }, (_, i) => item({ refId: `u${i}`, fitVerdict: "unverified", unclassified: true })),
+      ...Array.from({ length: 3 }, (_, i) => item({ refId: `x${i}`, fitVerdict: "excluded", unclassified: true })),
+    ];
+    const p = payloadOf(items);
+    for (const b of p.groups) delete (b as { unclassifiedCounts?: unknown }).unclassifiedCounts;
+    const v = oneListViewOf(flat(p), { ...INITIAL_ONE_LIST_STATE, tab: "unverified" }, "", serverVerdictCountsOf(p));
+    expect(v.counts.unverified).toBe(110);
+    const ex = oneListViewOf(flat(p), { ...INITIAL_ONE_LIST_STATE, tab: "excluded" }, "", serverVerdictCountsOf(p));
+    expect(ex.counts.excluded).toBe(3);
+    expect(ex.chips.find((c) => c.key === "grant")?.count ?? 0).toBe(0);
+  });
+});
