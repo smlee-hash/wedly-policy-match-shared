@@ -245,16 +245,19 @@ function memberWhen(m: MemberRow, now: Date): string {
  * ★훅은 이 부품 안에만 둔다. `FundingDrawer` 는 `item` 이 없으면 먼저 빠져나가는데(조기 반환),
  *  그 위아래로 훅이 갈리면 화면이 통째로 죽는다(빌드·시험이 전부 초록이라 못 잡는 자리).
  */
-function GroupMembers({
+export function GroupMembers({
   dedupKey,
   count,
   repId,
   onOpenDetail,
+  repLabel = "지도에 실린 줄",
 }: {
   dedupKey: string;
   count: number;
   repId: string;
   onOpenDetail?: (announcementId: string) => void;
+  /** 대표 줄 이름표 — ② 매칭 결과의 한 목록은 「목록에 실린 줄」로 넘긴다. */
+  repLabel?: string;
 }) {
   const [rows, setRows] = useState<MemberRow[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -310,7 +313,7 @@ function GroupMembers({
                 {/* 순번 — 제목까지 똑같은 묶음에서 유일한 구별 단서다(탐색 목록과 같은 규칙). */}
                 <Badge variant="default" className="tabular-nums">{i + 1}</Badge>
                 <Badge variant="default">{ANN_SOURCE_LABEL[m.source] ?? m.source ?? "출처 미상"}</Badge>
-                {m.id === repId && <Badge variant="blue">지도에 실린 줄</Badge>}
+                {m.id === repId && <Badge variant="blue">{repLabel}</Badge>}
                 <span className="ml-auto shrink-0 tabular-nums text-wedly-hint text-wedly-t2">
                   {memberWhen(m, now)}
                 </span>
@@ -525,7 +528,7 @@ export default function FundingDrawer({ item, onClose, onOpenDetail, aiVerdictAv
     ["얼마까지", amountWords(item)],
     [repay.label, repay.value],
     ["언제까지", dead.long],
-    ["어디에 신청", whereWords(item)],
+    ["어디에 신청", whereWords(item, showSources)],
   ];
 
   const body = (

@@ -367,10 +367,13 @@ describe("자금 조달 지도 서랍(재설계 §G3) — 낱말 규칙(기호·
     expect(html).not.toContain("미분류");
   });
 
-  it("묶인 다른 수집원이 있어도 「외 N곳」이 아니라 「N곳에 더 게시」로 말한다", () => {
-    const html = 서랍({ ...공고_무상, groupSources: 3, groupCount: 3, dedupKey: "묶음열쇠|서울" });
+  it("묶인 다른 수집원이 있어도 「외 N곳」이 아니라 「N곳에 더 게시」로 말한다 — 관리자 서랍에서만", () => {
+    const 묶음 = { ...공고_무상, groupSources: 3, groupCount: 3, dedupKey: "묶음열쇠|서울" };
+    const html = 관리자서랍(묶음);
     expect(html).not.toMatch(/외 \d+곳/);
     expect(html).toContain("2곳에 더 게시");
+    // 직원 서랍에는 수집원 수가 안 나온다.
+    expect(서랍(묶음)).not.toContain("곳에 더 게시");
   });
 
   it("raw Tailwind 색이 없다", () => {

@@ -3,12 +3,15 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
-import { GROUP_TOP_N, groupBlocks, type FundingItem } from "../../funding/funding-map";
+import { GROUP_TOP_N, groupBlocks, topPerVerdict, whereWords, type FundingItem } from "../../funding/funding-map";
 import type { FundingMapPayload } from "../FundingMap";
 import { downloadAttachmentsInOrder, isOwnAttachmentUrl, shortAmountOf } from "./detail-structured";
 import {
   INITIAL_ONE_LIST_STATE, oneListViewOf, serverCountsForQuery, serverVerdictCountsOf,
 } from "./result-one-list";
+import {
+  PROFILE_STORAGE_KEY, bootPlanOf, dropUnscopedProfile, readStoredProfile, scopedProfileStorage, writeStoredProfile,
+} from "./step-state";
 
 function item(over: Partial<FundingItem> & { refId: string }): FundingItem {
   return {
@@ -195,5 +198,83 @@ describe("재리뷰 10/7 — 남은 두 지적", () => {
     const p = payloadOf([item({ refId: "a" })]);
     expect(p.groups.every((b) => b.unclassifiedCounts)).toBe(true);
     expect(serverVerdictCountsOf(p)).not.toBeNull();
+  });
+});
+
+describe("ERP 독립 리뷰 10/7 — P1 사용자 간 저장값·P2 세 건", () => {
+  it("맞음 80건 + 확인 필요 1건 → 확인 필요 탭이 빈 목록이 아니다(판정마다 따로 80건)", () => {
+    const items = [
+      ...Array.from({ length: 80 }, (_, i) => item({ refId: `f${i}`, fitVerdict: "fit", score: 10_000 - i })),
+      item({ refId: "u0", fitVerdict: "unverified", score: 1 }),
+    ];
+    const p = payloadOf(items);
+    const v = oneListViewOf(flat(p), { ...INITIAL_ONE_LIST_STATE, tab: "unverified" }, "", serverVerdictCountsOf(p));
+    expect(v.counts.unverified).toBe(1);
+    expect(v.list.map((x) => x.refId)).toEqual(["u0"]);
+    const fit = oneListViewOf(flat(p), { ...INITIAL_ONE_LIST_STATE, tab: "fit" }, "", serverVerdictCountsOf(p));
+    expect(fit.list.length).toBe(80);
+  });
+
+  it("topPerVerdict — 순서를 지키며 판정마다 앞 N건만", () => {
+    const sorted = [
+      item({ refId: "a", fitVerdict: "fit" }), item({ refId: "b", fitVerdict: "unverified" }),
+      item({ refId: "c", fitVerdict: "fit" }), item({ refId: "d", fitVerdict: "unverified" }),
+      item({ refId: "e", fitVerdict: "fit" }),
+    ];
+    expect(topPerVerdict(sorted, 2).map((x) => x.refId)).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("한 판정만 상한을 넘어도 truncated", () => {
+    const items = [
+      ...Array.from({ length: 3 }, (_, i) => item({ refId: `f${i}`, fitVerdict: "fit" })),
+      ...Array.from({ length: GROUP_TOP_N + 1 }, (_, i) => item({ refId: `u${i}`, fitVerdict: "unverified" })),
+    ];
+    const grant = groupBlocks(items).find((b) => b.group === "grant")!;
+    expect(grant.truncated).toBe(true);
+    expect(grant.items.length).toBe(3 + GROUP_TOP_N);
+  });
+
+  function 가짜저장소() {
+    const m = new Map<string, string>();
+    return {
+      m,
+      getItem: (k: string) => m.get(k) ?? null,
+      setItem: (k: string, v: string) => void m.set(k, v),
+      removeItem: (k: string) => void m.delete(k),
+    };
+  }
+
+  it("저장값은 사용자마다 따로 — 앞사람이 남긴 고객 정보를 다른 사람이 읽지 못한다", () => {
+    const raw = 가짜저장소();
+    const a = scopedProfileStorage(raw, "user-a")!;
+    writeStoredProfile(a, { companyName: "앞 사용자 고객", employeeCount: 3 } as never);
+    expect(readStoredProfile(a)).not.toBeNull();
+    expect(readStoredProfile(scopedProfileStorage(raw, "user-b"))).toBeNull();
+    expect(bootPlanOf("?step=result", scopedProfileStorage(raw, "user-b")).kind).toBe("company");
+    expect(bootPlanOf("?step=result", a).kind).toBe("rediagnose");
+    // 이름 없는 옛 칸에는 쓰지 않는다
+    expect(raw.m.has(PROFILE_STORAGE_KEY)).toBe(false);
+  });
+
+  it("사용자 구분값이 없으면 저장·복원을 아예 안 한다", () => {
+    expect(scopedProfileStorage(가짜저장소(), undefined)).toBeNull();
+    expect(scopedProfileStorage(가짜저장소(), "  ")).toBeNull();
+    expect(scopedProfileStorage(null, "user-a")).toBeNull();
+  });
+
+  it("옛 이름 없는 칸은 지운다", () => {
+    const raw = 가짜저장소();
+    raw.setItem(PROFILE_STORAGE_KEY, "{}");
+    dropUnscopedProfile(raw);
+    expect(raw.m.has(PROFILE_STORAGE_KEY)).toBe(false);
+    expect(() => dropUnscopedProfile(null)).not.toThrow();
+  });
+
+  it("추천 카드·표의 「어디에 신청」은 수집원 수를 드러내지 않는다 — 서랍만 관리자에게", () => {
+    const 지도글 = readFileSync(new URL("../FundingMap.tsx", import.meta.url), "utf8");
+    const 서랍글 = readFileSync(new URL("../FundingDrawer.tsx", import.meta.url), "utf8");
+    for (const m of 지도글.matchAll(/whereWords\(([^)]*)\)/g)) expect(m[1], "지도 카드가 수집원 수를 켠다").not.toContain(",");
+    expect(서랍글).toContain("whereWords(item, showSources)");
+    expect(whereWords(item({ refId: "w", agency: "접수기관", groupSources: 3 }))).toBe("접수기관");
   });
 });

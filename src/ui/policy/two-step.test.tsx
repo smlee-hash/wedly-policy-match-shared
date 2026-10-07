@@ -348,7 +348,7 @@ describe("배선 — 단계는 진단 성공일 때만 열리고, 고치기·다
     const body = 몸통(화면글, "const runDiagnose", "}, [endpoints.diagnose");
     const 실패끝 = body.indexOf("return false");
     expect(실패끝).toBeGreaterThan(-1);
-    for (const 줄 of ['setStep("result")', "writeStoredProfile(sessionStorageOrNull(), p)", 'writeStepToAddress("result", "push")']) {
+    for (const 줄 of ['setStep("result")', "writeStoredProfile(profileStore(), p)", 'writeStepToAddress("result", "push")']) {
       expect(body, `${줄} 이 runDiagnose 에 없다`).toContain(줄);
       expect(body.indexOf(줄), `${줄} 이 실패 처리보다 앞에 있다`).toBeGreaterThan(실패끝);
     }
@@ -389,10 +389,10 @@ describe("배선 — 단계는 진단 성공일 때만 열리고, 고치기·다
   });
 
   it("「다른 회사」는 입력값·sessionStorage·결과를 모두 비우고 회사 정보로 간다", () => {
-    const body = 몸통(화면글, "const resetCompany", "}, []);");
+    const body = 몸통(화면글, "const resetCompany", "}, [profileStore]);");
     // 고른 줄·탭·쪽은 결과 목록(ResultOneList)이 쥐고 진단 회차 `key` 로 새로 만들어지므로 여기서 따로 비우지 않는다(C2).
     for (const 줄 of [
-      "clearStoredProfile(sessionStorageOrNull())", "setRestoredProfile(null)", "setFormKey((k) => k + 1)",
+      "clearStoredProfile(profileStore())", "setRestoredProfile(null)", "setFormKey((k) => k + 1)",
       "setProfile({})", "setProfileNonce(0)", "setDiagnosis(null)", "setFundingData(null)", "setCountData(null)",
       'setResultQuery("")', 'setAskedQuery("")', 'setStep("company")', 'writeStepToAddress("company", "replace")',
     ]) {
@@ -402,8 +402,11 @@ describe("배선 — 단계는 진단 성공일 때만 열리고, 고치기·다
   });
 
   it("새로 고침 복원 — 첫 그림 뒤 한 번 bootPlanOf 로 읽고, 되살릴 값이 없으면 주소를 회사 정보로 맞춘다", () => {
-    const body = 몸통(화면글, "const booted = useRef(false)", "}, [rediagnose]);");
-    expect(body).toContain("bootPlanOf(window.location.search, sessionStorageOrNull())");
+    const body = 몸통(화면글, "const booted = useRef(false)", "}, [rediagnose, profileStore]);");
+    expect(body).toContain("bootPlanOf(window.location.search, profileStore())");
+    // 옛 이름 없는 저장값(사용자 구분 없음)은 시작할 때 지운다 — 다른 사람 고객이 되살아나지 않게(리뷰 P1)
+    expect(body.indexOf("dropUnscopedProfile(sessionStorageOrNull())")).toBeGreaterThan(-1);
+    expect(body.indexOf("dropUnscopedProfile(sessionStorageOrNull())")).toBeLessThan(body.indexOf("bootPlanOf("));
     expect(body).toContain("setRestoredProfile(plan.profile)");
     expect(body).toContain("rediagnose(plan.profile)");
     expect(body).toContain('writeStepToAddress("company", "replace")');
@@ -414,9 +417,13 @@ describe("배선 — 단계는 진단 성공일 때만 열리고, 고치기·다
   });
 
   it("복원 진단이 실패하면 회사 정보로 돌아가고 주소에서 step 을 뗀다", () => {
-    const body = 몸통(화면글, "const rediagnose", "}, [runDiagnose]);");
+    const body = 몸통(화면글, "const rediagnose", "}, [runDiagnose, profileStore]);");
     expect(body).toContain("void runDiagnose(p).then((ok) => {");
     expect(body).toContain('setStep("company")');
+    // 복원 진단이 실패(권한 없음 포함)하면 되살린 입력값·저장값도 지운다 — 남이 본 고객이 칸에 남지 않게(리뷰 P1)
+    for (const 줄 of ["clearStoredProfile(profileStore())", "setRestoredProfile(null)", "setFormKey((k) => k + 1)"]) {
+      expect(body, `복원 실패가 ${줄} 를 안 한다`).toContain(줄);
+    }
     expect(body).toContain('writeStepToAddress("company", "replace")');
   });
 
@@ -426,7 +433,7 @@ describe("배선 — 단계는 진단 성공일 때만 열리고, 고치기·다
     const body = 몸통(화면글, "const onPop = () => {", 'window.addEventListener("popstate"');
     expect(body).toContain('stepOfSearch(window.location.search) === "company"');
     expect(body).toContain('setStep("company")');
-    expect(body).toContain("readStoredProfile(sessionStorageOrNull())");
+    expect(body).toContain("readStoredProfile(profileStore())");
   });
 
   it("전체 공고 둘러보기로 돌아가는 길이 없다 — 결과 본문은 목록 하나(ResultOneList)이고 지도 전환·묶음 목록은 안 쓴다", () => {

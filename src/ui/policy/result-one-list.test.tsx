@@ -21,6 +21,7 @@ vi.mock("../FundingDrawer", () => ({
     drawerProps.push(p);
     return null;
   },
+  GroupMembers: () => null,
 }));
 
 import { FUNDING_GROUP_META } from "../../funding/funding-group";
@@ -321,6 +322,18 @@ describe("목록 줄 — 이름표 넷 · 제목 두 줄 · 기관·기간·금�
     expect(html).toMatch(/text-wedly-red-ink[^>]*>D-5</);
   });
 
+  it("여러 수집원에 묶인 공고는 관리자 줄에만 「외 N건」이 따로 붙는다(10/7 리뷰 P2)", () => {
+    const item = mk({ id: "a:1", deadline: 날짜(5), groupCount: 3, dedupKey: "묶음|서울" });
+    const 관리자 = 글자(renderToStaticMarkup(<ResultOneListView {...기본속성([item])} showSources />));
+    expect(관리자).toMatch(/data-group-count[^>]*>외 2건</);
+    const 직원 = 글자(renderToStaticMarkup(<ResultOneListView {...기본속성([item])} />));
+    expect(직원).not.toContain("data-group-count");
+    expect(직원).not.toMatch(/외 \d+건/);
+    // 한 건뿐이면 관리자에게도 안 붙는다
+    const 혼자 = 글자(renderToStaticMarkup(<ResultOneListView {...기본속성([mk({ id: "a:2", deadline: 날짜(5), groupCount: 1 })])} showSources />));
+    expect(혼자).not.toContain("data-group-count");
+  });
+
   it("고른 줄은 강조 테두리 — 처음엔 목록 첫 항목이 골라져 있다", () => {
     const items = [mk({ id: "a:1", deadline: 날짜(2) }), mk({ id: "a:2", deadline: 날짜(9) })];
     const html = 글자(renderToStaticMarkup(<ResultOneListView {...기본속성(items)} />));
@@ -395,6 +408,31 @@ describe("상세 칸 — 공고는 DetailPanel, 상품은 FundingDrawer 본문",
     });
     expect(detailProps[0].item).toMatchObject({ announcementId: "1" });
     expect(detailProps[0].profile).toEqual({ employeeCount: 3 });
+  });
+
+  it("관리자 상세에만 같은 공고의 다른 수집본 묶음(GroupMembers)을 넘긴다(10/7 리뷰 P2)", () => {
+    const 묶인공고 = mk({ id: "a:1", deadline: 날짜(2), groupCount: 3, dedupKey: "묶음|서울" });
+    const 그림 = (showSourceNames: boolean, item: FundingItem = 묶인공고) => {
+      detailProps.length = 0;
+      renderToStaticMarkup(
+        <ResultDetail
+          item={item}
+          endpoints={ERP_POLICY_MATCH_ENDPOINTS}
+          features={{ showSourceNames }}
+          profile={{}}
+          profileNonce={1}
+          diagnoseById={new Map()}
+          hasDiagnosis
+        />,
+      );
+      return detailProps[0];
+    };
+    const 관리자 = 그림(true);
+    expect(관리자.showSources).toBe(true);
+    const group = 관리자.sourceGroup as { props: Record<string, unknown> };
+    expect(group.props).toMatchObject({ dedupKey: "묶음|서울", count: 3, repId: "1", repLabel: "목록에 실린 줄" });
+    expect(그림(false).sourceGroup).toBeUndefined();
+    expect(그림(true, mk({ id: "a:2", deadline: 날짜(2), groupCount: 1, dedupKey: "x" })).sourceGroup).toBeUndefined();
   });
 
   it("진단 목록에 없는 공고면 판정 근거(item)는 null 로 넘긴다(지어내지 않는다)", () => {

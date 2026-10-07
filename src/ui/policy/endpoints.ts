@@ -121,6 +121,12 @@ export type PolicyMatchFeatures = {
    * (2026-10-07 사장님 결정). 기본 false. ERP 는 관리자에게만 true, 랩·컨설턴트 앱은 넘기지 않는다.
    */
   showSourceNames?: boolean;
+  /**
+   * 입력한 회사 정보를 새로 고침 복원용으로 sessionStorage 에 둘 때 쓰는 **사용자 구분값**(로그인한 사용자 id).
+   * 같은 탭에서 로그아웃 뒤 다른 사람이 들어와도 앞사람의 고객 정보가 되살아나지 않게 사용자마다 칸을 나눈다
+   * (2026-10-07 독립 리뷰 P1). 안 넘기면 저장·복원을 아예 하지 않는다.
+   */
+  profileStorageScope?: string;
 };
 
 /**

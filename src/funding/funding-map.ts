@@ -650,6 +650,20 @@ function deadRank(d: FundingDeadline): number {
   return d.dDay < 0 ? 99_999 : d.dDay;
 }
 
+/**
+ * 정렬된 줄에서 판정(맞음·확인 필요·안 맞음)마다 앞 N건씩만 남긴다 — 순서는 그대로.
+ * 한 상한을 나눠 가지면 「맞음」이 N건을 다 채운 갈래에서 「확인 필요」가 통째로 잘려,
+ * ② 매칭 결과의 확인 필요 탭이 건수는 있는데 목록이 비는 일이 생긴다(2026-10-07 독립 리뷰).
+ */
+export function topPerVerdict(sorted: FundingItem[], topN: number): FundingItem[] {
+  const seen: Partial<Record<FitVerdict, number>> = {};
+  return sorted.filter((it) => {
+    const n = seen[it.fitVerdict] ?? 0;
+    seen[it.fitVerdict] = n + 1;
+    return n < topN;
+  });
+}
+
 export function sortItems(items: FundingItem[], sort: FundingSort): FundingItem[] {
   const list = [...items];
   if (sort === "dead") return list.sort((a, b) => deadRank(a.deadline) - deadRank(b.deadline));
@@ -778,8 +792,9 @@ export function groupBlocks(items: FundingItem[], opts: GroupBlockOptions = {}):
       // 미확인 줄은 **뒤에 따로** 잘려 붙는다 — 카드와 「종류 미확인」 블록은 서로 다른 상자라 한 상한을
       // 나눠 갖지 않는다(`excludedItems` 와 같은 규칙). 한 상한을 나누면 갈래가 꽉 찬 순간 미확인 블록이
       // 조용히 비고, 섞어 세우면 미확인이 카드 앞자리를 차지한다.
-      items: [...sortItems(carded, sort).slice(0, topN), ...sortItems(parked, sort).slice(0, topN)],
-      truncated: carded.length > topN,
+      items: [...topPerVerdict(sortItems(carded, sort), topN), ...topPerVerdict(sortItems(parked, sort), topN)],
+      truncated: carded.filter((it) => it.fitVerdict === "fit").length > topN
+        || carded.filter((it) => it.fitVerdict === "unverified").length > topN,
     };
     // 검색어·탭을 걸었을 때만 거른 뒤 미확인 건수를 싣는다 — 안 건 요청의 응답 모양은 그대로다.
     if (searching) block.unclassifiedTotal = parked.length;
@@ -872,9 +887,10 @@ export function deadlineWords(
  *  질문에 창구를 안 알려 주면 그 줄은 뜻이 없다. `where` 가 비었을 때만 기관으로 내려오고,
  *  둘 다 없으면 정직하게 「기관 미기재」.
  */
-export function whereWords(it: FundingItem): string {
+export function whereWords(it: FundingItem, showSources = false): string {
   const base = it.where?.trim() || it.agency?.trim() || "기관 미기재";
-  if (it.groupSources && it.groupSources > 1) return `${base} (${it.groupSources - 1}곳에 더 게시)`;
+  // 「N곳에 더 게시」는 수집원 수라 관리자 화면에서만 붙인다(2026-10-07 출처는 관리자만 결정).
+  if (showSources && it.groupSources && it.groupSources > 1) return `${base} (${it.groupSources - 1}곳에 더 게시)`;
   return base;
 }
 

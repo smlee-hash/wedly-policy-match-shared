@@ -7,7 +7,7 @@
 import type { ReactNode } from "react";
 import type { BusinessProfile } from "../../engine/match-engine";
 import type { FundingItem } from "../../funding/funding-map";
-import FundingDrawer from "../FundingDrawer";
+import FundingDrawer, { GroupMembers } from "../FundingDrawer";
 import DetailPanel from "./DetailPanel";
 import type { PolicyMatchEndpoints, PolicyMatchFeatures, VerdictFeedbackContext } from "./endpoints";
 import type { DiagnoseItem } from "./PolicyMatchScreen";
@@ -29,6 +29,12 @@ export default function ResultDetail({
   hasDiagnosis: boolean;
 }) {
   if (item.kind === "announcement") {
+    const showSources = features?.showSourceNames ?? false;
+    // 관리자만 — 여러 수집원에 올라온 같은 공고를 수집원별로 펼쳐 본다(2026-10-07 출처는 관리자만 결정).
+    const sourceGroup =
+      showSources && (item.groupCount ?? 0) >= 2 && item.dedupKey ? (
+        <GroupMembers dedupKey={item.dedupKey} count={item.groupCount ?? 0} repId={item.refId} repLabel="목록에 실린 줄" />
+      ) : undefined;
     return (
       <DetailPanel
         endpoints={endpoints}
@@ -43,7 +49,8 @@ export default function ResultDetail({
         hasDiagnosis={hasDiagnosis}
         serverStructurizes={features?.serverStructurizes ?? true}
         frame="pane"
-        showSources={features?.showSourceNames ?? false}
+        showSources={showSources}
+        sourceGroup={sourceGroup}
       />
     );
   }

@@ -21,8 +21,8 @@ import ProfileForm, { type ProfileFormStatus } from "./ProfileForm";
 import { SearchCutNotice } from "./ResultGroupList";
 import { CompanySummaryBar, StepBar } from "./StepHeader";
 import {
-  bootPlanOf, clearStoredProfile, searchWithStep, sessionStorageOrNull, stepOfSearch, writeStoredProfile,
-  readStoredProfile, type Step,
+  bootPlanOf, clearStoredProfile, dropUnscopedProfile, scopedProfileStorage, searchWithStep, sessionStorageOrNull,
+  stepOfSearch, writeStoredProfile, readStoredProfile, type Step,
 } from "./step-state";
 import ResultOneList from "./ResultOneList";
 import ResultDetail from "./ResultDetail";
@@ -328,6 +328,9 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
   // 새로 고침 뒤 복원할 회사 정보 — 넓은 폼이 처음 한 번 칸에 채운다. 「다른 회사」는 폼을 새로 만든다(formKey).
   const [restoredProfile, setRestoredProfile] = useState<BusinessProfile | null>(null);
   const [formKey, setFormKey] = useState(0);
+  // 회사 정보 저장소 — 로그인한 사용자마다 칸을 나눈다. 구분값이 없으면 저장·복원을 하지 않는다(null).
+  const storageScope = features?.profileStorageScope;
+  const profileStore = useCallback(() => scopedProfileStorage(sessionStorageOrNull(), storageScope), [storageScope]);
 
   // ── 진단(2단계) 상태 ─────────────────────────────────────────────────
   const [profile, setProfile] = useState<BusinessProfile>({});
@@ -418,7 +421,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
       setProfileNonce((n) => n + 1); // 이 회차 이후로는 앞 회차의 AI 판정을 쓰지 않는다
       setDiagnosis(data);
       setStep("result");
-      writeStoredProfile(sessionStorageOrNull(), p);
+      writeStoredProfile(profileStore(), p);
       if (typeof window !== "undefined" && stepOfSearch(window.location.search) !== "result") {
         writeStepToAddress("result", "push"); // 뒤로 가기로 ① 로 돌아올 수 있게 한 칸 쌓는다
       }
@@ -437,7 +440,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
     } finally {
       if (gen === diagnoseGen.current) setDiagnosing(false);
     }
-  }, [endpoints.diagnose]);
+  }, [endpoints.diagnose, profileStore]);
 
   /**
    * 「← 회사 정보 고치기」 — ① 로 돌아간다. 입력값(폼은 계속 그려 둔다)도 받아 둔 결과도 그대로 둔다.
@@ -458,16 +461,20 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
     const mine = diagnoseGen.current + 1; // runDiagnose 가 곧바로 올릴 번호
     void runDiagnose(p).then((ok) => {
       if (ok || diagnoseGen.current !== mine) return; // 그 사이 다른 회사·새 진단이면 손대지 않는다
+      // 되살린 값으로 진단을 못 했으면(권한 없음 포함) 되살린 입력값·저장값도 지운다 — 남기면 화면에 앞의 고객 정보가 남는다.
+      clearStoredProfile(profileStore());
+      setRestoredProfile(null);
+      setFormKey((k) => k + 1);
       setStep("company");
       writeStepToAddress("company", "replace");
     });
-  }, [runDiagnose]);
+  }, [runDiagnose, profileStore]);
 
   /** 「다른 회사」 — 입력값·저장값·결과를 모두 비우고 ① 로. 폼은 새로 만든다(formKey). */
   const resetCompany = useCallback(() => {
     diagnoseGen.current += 1; // 나가 있던 진단 답은 버린다
     setDiagnosing(false);
-    clearStoredProfile(sessionStorageOrNull());
+    clearStoredProfile(profileStore());
     setRestoredProfile(null);
     setFormKey((k) => k + 1);
     setFormStatus(null);
@@ -482,7 +489,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
     setNotice("");
     setStep("company");
     writeStepToAddress("company", "replace");
-  }, []);
+  }, [profileStore]);
 
   // 첫 그림 뒤 한 번 — 주소가 결과 단계이면 저장해 둔 값으로 진단을 다시 돌린다. 값이 없거나 깨졌으면 ① 에 머문다.
   // (첫 그림을 서버와 같게 두려고 창을 읽는 일은 효과에서 한다.)
@@ -490,14 +497,15 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
   useEffect(() => {
     if (booted.current) return;
     booted.current = true;
-    const plan = bootPlanOf(window.location.search, sessionStorageOrNull());
+    dropUnscopedProfile(sessionStorageOrNull());
+    const plan = bootPlanOf(window.location.search, profileStore());
     if (plan.kind === "rediagnose") {
       setRestoredProfile(plan.profile);
       rediagnose(plan.profile);
     } else if (stepOfSearch(window.location.search) === "result") {
       writeStepToAddress("company", "replace"); // 결과 주소인데 되살릴 값이 없다 — 주소를 ① 로 맞춘다
     }
-  }, [rediagnose]);
+  }, [rediagnose, profileStore]);
 
   // 브라우저 뒤로·앞으로 가기 — 주소의 step 을 따라간다. 앞으로 가서 결과 단계가 되면 받아 둔 결과를 쓰고,
   // 없으면 저장값으로 다시 돌린다.
@@ -513,7 +521,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
         setStep("result");
         return;
       }
-      const stored = readStoredProfile(sessionStorageOrNull());
+      const stored = readStoredProfile(profileStore());
       if (stored) rediagnose(stored);
       else {
         setStep("company");
@@ -522,7 +530,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, [rediagnose]);
+  }, [rediagnose, profileStore]);
 
   /** 목록 오류 상자의 「다시 시도」 — 같은 조건으로 다시 부른다. */
   const retryFunding = useCallback(() => {

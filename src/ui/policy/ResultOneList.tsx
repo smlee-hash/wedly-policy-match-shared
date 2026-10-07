@@ -76,6 +76,12 @@ function OneListRow({ item, selected, onSelect, footer, showSource }: {
               {sourceNameOf(item)}
             </span>
           )}
+          {/* 같은 공고가 여러 줄로 수집된 묶음 — 이름표가 잘려도 건수는 보이게 따로 둔다. 관리자만. */}
+          {showSource && (item.groupCount ?? 0) >= 2 && (
+            <span data-group-count className="shrink-0 text-wedly-hint tabular-nums text-wedly-t2">
+              외 {(item.groupCount ?? 0) - 1}건
+            </span>
+          )}
           <span className="rounded-md bg-wedly-bg-gray px-1.5 py-0.5 text-wedly-hint font-bold text-wedly-t2">
             {kindTagOf(item)}
           </span>

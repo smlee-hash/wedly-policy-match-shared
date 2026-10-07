@@ -981,10 +981,12 @@ describe("deadlineWords — 마감 딱지/펼침 글자(재설계 계약 G1④)"
 describe("whereWords — 어디에 신청", () => {
   it("agency 그대로, groupSources 2 이상이면 「(N-1곳에 더 게시)」를 덧붙인다", () => {
     expect(whereWords(mkItem({ agency: "서울시청", where: "" }))).toBe("서울시청");
-    expect(whereWords(mkItem({ agency: "서울시청", where: "", groupSources: 3 }))).toBe("서울시청 (2곳에 더 게시)");
+    expect(whereWords(mkItem({ agency: "서울시청", where: "", groupSources: 3 }), true)).toBe("서울시청 (2곳에 더 게시)");
+    // 관리자가 아니면(기본) 수집원 수를 드러내지 않는다(10/7 출처=관리자만, 리뷰 P2)
+    expect(whereWords(mkItem({ agency: "서울시청", where: "", groupSources: 3 }))).toBe("서울시청");
   });
   it("groupSources 가 1 이하면 덧붙이지 않는다", () => {
-    expect(whereWords(mkItem({ agency: "서울시청", where: "", groupSources: 1 }))).toBe("서울시청");
+    expect(whereWords(mkItem({ agency: "서울시청", where: "", groupSources: 1 }), true)).toBe("서울시청");
   });
   it("agency 가 비어 있으면(공백뿐이어도) 「기관 미기재」", () => {
     expect(whereWords(mkItem({ agency: "", where: "" }))).toBe("기관 미기재");
@@ -998,7 +1000,7 @@ describe("whereWords — 어디에 신청", () => {
   it("where(접수 창구)가 있으면 그것을 먼저 쓴다 — 없을 때만 agency(11차 #7)", () => {
     expect(whereWords(mkItem({ where: "케이뱅크 앱", agency: "케이뱅크" }))).toBe("케이뱅크 앱");
     expect(whereWords(mkItem({ where: "  ", agency: "케이뱅크" }))).toBe("케이뱅크");
-    expect(whereWords(mkItem({ where: "케이뱅크 앱", agency: "케이뱅크", groupSources: 2 }))).toBe(
+    expect(whereWords(mkItem({ where: "케이뱅크 앱", agency: "케이뱅크", groupSources: 2 }), true)).toBe(
       "케이뱅크 앱 (1곳에 더 게시)",
     );
   });

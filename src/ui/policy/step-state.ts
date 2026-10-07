@@ -38,6 +38,30 @@ export function sessionStorageOrNull(): ProfileStorage | null {
   }
 }
 
+/**
+ * 사용자마다 나눈 저장소 — 열쇠 뒤에 `:사용자 구분값` 을 붙여 읽고 쓴다. 구분값이 없으면 null(저장·복원 안 함).
+ * 같은 탭에서 로그아웃 뒤 다른 사람이 들어와도 앞사람이 입력한 고객 정보를 읽지 못한다(2026-10-07 독립 리뷰 P1).
+ */
+export function scopedProfileStorage(storage: ProfileStorage | null, scope: string | undefined): ProfileStorage | null {
+  const who = scope?.trim();
+  if (!storage || !who) return null;
+  const keyOf = (k: string) => `${k}:${who}`;
+  return {
+    getItem: (k) => storage.getItem(keyOf(k)),
+    setItem: (k, v) => storage.setItem(keyOf(k), v),
+    removeItem: (k) => storage.removeItem(keyOf(k)),
+  };
+}
+
+/** 사용자 구분 없이 저장하던 옛 칸을 지운다 — 이 판 전에 남은 값이 누구 것인지 알 수 없어서다. */
+export function dropUnscopedProfile(storage: ProfileStorage | null): void {
+  try {
+    storage?.removeItem(PROFILE_STORAGE_KEY);
+  } catch {
+    /* 지울 수 없어도 사용자별 칸만 읽으므로 되살아나지 않는다 */
+  }
+}
+
 /** 값이 진단 입력으로 쓸 수 있는 모양인가 — 글자·숫자·참거짓·글자 목록만 허용한다. */
 function isProfileValue(v: unknown): boolean {
   if (typeof v === "string" || typeof v === "boolean") return true;

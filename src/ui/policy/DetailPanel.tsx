@@ -510,6 +510,11 @@ interface Props {
    * (2026-10-07 사장님 결정, 10/5 「수집원 현황」과 같은 기준). 기본 false: 앱이 관리자에게만 켠다.
    */
   showSources?: boolean;
+  /**
+   * 정보 구역 맨 아래에 붙일 「같은 공고 N건(수집원별)」 조각 — 관리자 화면의 ② 매칭 결과만 넘긴다.
+   * 안 넘기면 아무것도 안 그린다.
+   */
+  sourceGroup?: ReactNode;
   /** 이 부품이 부를 통로 넷. 없는 통로의 단추·문구는 그리지 않는다. */
   endpoints: DetailEndpoints;
   /** 응답 오류를 사람 말로 — 안 넘기면 ERP 규약 그대로. */
@@ -563,7 +568,7 @@ function blockedSummary(checklist: { condition: string; status: string; note?: s
 export default function DetailPanel({
   endpoints, parseError, verdictFeedback,
   announcementId, mode, profile, profileNonce, item, hasDiagnosis, noServerAi, serverStructurizes, browseEmptyNote,
-  fitVerdict, frame = "card", showSources = false,
+  fitVerdict, frame = "card", showSources = false, sourceGroup,
 }: Props) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -902,6 +907,7 @@ export default function DetailPanel({
         })}
       />
       <AttachmentRows attachments={detail.attachments ?? []} />
+      {showSources && sourceGroup}
     </>
   );
   /** 공고 원문 펼쳐 보기 — 세부 조건을 확인하려고 화면을 떠나지 않게(사장님 2026-08-30). */
