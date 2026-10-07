@@ -21,7 +21,11 @@ vi.mock("../FundingDrawer", () => ({
     drawerProps.push(p);
     return null;
   },
+}));
+vi.mock("../funding-group-members", () => ({
   GroupMembers: () => null,
+  LINK_BTN: "",
+  PANEL: "",
 }));
 
 import { FUNDING_GROUP_META } from "../../funding/funding-group";

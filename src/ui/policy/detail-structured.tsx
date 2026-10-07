@@ -16,7 +16,6 @@ import { dDayOf } from "../../funding/funding-map";
 /** 값이 없을 때 쓰는 말 — 칸을 비우지도, 값을 지어내지도 않는다. */
 export const CHECK_ORIGINAL = "공고 원문 확인";
 
-const SECTION_TITLE = "text-base font-semibold leading-6 text-wedly-t1";
 const FOCUS_RING =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wedly-accent focus-visible:ring-offset-2";
 
@@ -354,7 +353,7 @@ function BlockTitle({ icon: Icon, tile, ink, title, aside }: {
       <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${tile}`}>
         <Icon className={`h-4 w-4 ${ink}`} />
       </span>
-      <h3 className={SECTION_TITLE}>{title}</h3>
+      <h3 className="text-wedly-sub font-semibold text-wedly-t1">{title}</h3>
       {aside !== undefined && <span className="ml-auto text-xs leading-[18px] text-wedly-t2">{aside}</span>}
     </div>
   );
@@ -405,8 +404,8 @@ export function ConditionTable({ rows, emptyNote }: { rows: readonly ConditionRo
       ) : (
         <div className="overflow-x-auto rounded-[14px] border border-wedly-bd/60">
           <table className="w-full border-collapse text-left text-sm leading-[22px]">
-            <thead>
-              <tr className="bg-wedly-bg-gray text-xs leading-[18px] text-wedly-t2">
+            <thead className="text-wedly-tablehead">
+              <tr className="bg-wedly-bg-gray text-wedly-t2">
                 <th scope="col" className="px-3 py-2 font-semibold">공고 조건</th>
                 <th scope="col" className="w-24 px-3 py-2 font-semibold">판정</th>
                 <th scope="col" className="px-3 py-2 font-semibold">이 회사 값 · 근거</th>

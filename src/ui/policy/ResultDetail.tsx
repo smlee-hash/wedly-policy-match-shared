@@ -7,7 +7,8 @@
 import type { ReactNode } from "react";
 import type { BusinessProfile } from "../../engine/match-engine";
 import type { FundingItem } from "../../funding/funding-map";
-import FundingDrawer, { GroupMembers } from "../FundingDrawer";
+import FundingDrawer from "../FundingDrawer";
+import { GroupMembers } from "../funding-group-members";
 import DetailPanel from "./DetailPanel";
 import type { PolicyMatchEndpoints, PolicyMatchFeatures, VerdictFeedbackContext } from "./endpoints";
 import type { DiagnoseItem } from "./PolicyMatchScreen";

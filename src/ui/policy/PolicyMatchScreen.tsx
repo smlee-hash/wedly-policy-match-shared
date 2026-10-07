@@ -590,7 +590,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
       >
         <StepBar step="company" />
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold leading-7 text-wedly-t1">어떤 회사의 지원정책을 찾을까요?</h2>
+          <h2 className="text-wedly-section font-semibold text-wedly-t1">어떤 회사의 지원정책을 찾을까요?</h2>
           <p className="text-sm leading-[22px] text-wedly-t2">
             아는 칸만 채워도 됩니다. 모르는 칸은 결과에서 「확인 필요」로 따로 모아 보여 드려요.
           </p>
