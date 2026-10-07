@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { GROUP_TOP_N, groupBlocks, topPerVerdict, whereWords, type FundingItem } from "../../funding/funding-map";
 import type { FundingMapPayload } from "../FundingMap";
-import { downloadAttachmentsInOrder, isOwnAttachmentUrl, shortAmountOf } from "./detail-structured";
+import { downloadAttachmentsInOrder, isOwnAttachmentUrl, scheduleOf, shortAmountOf, summaryCellsOf } from "./detail-structured";
 import {
   INITIAL_ONE_LIST_STATE, oneListViewOf, serverCountsForQuery, serverVerdictCountsOf,
 } from "./result-one-list";
@@ -276,5 +276,32 @@ describe("ERP 독립 리뷰 10/7 — P1 사용자 간 저장값·P2 세 건", ()
     for (const m of 지도글.matchAll(/whereWords\(([^)]*)\)/g)) expect(m[1], "지도 카드가 수집원 수를 켠다").not.toContain(",");
     expect(서랍글).toContain("whereWords(item, showSources)");
     expect(whereWords(item({ refId: "w", agency: "접수기관", groupSources: 3 }))).toBe("접수기관");
+  });
+});
+
+describe("ERP 재리뷰 10/7 — P2 두 건", () => {
+  it("어려움 탭: 종류 미확인 80건이 앞서 있어도 무상지원금 1건이 목록에서 사라지지 않는다", () => {
+    const items = [
+      ...Array.from({ length: GROUP_TOP_N }, (_, i) =>
+        item({ refId: `u${i}`, fitVerdict: "excluded", unclassified: true, score: 10_000 - i })),
+      item({ refId: "g0", fitVerdict: "excluded", score: 1 }),
+    ];
+    const p = payloadOf(items);
+    const v = oneListViewOf(flat(p), { ...INITIAL_ONE_LIST_STATE, tab: "excluded", chip: "grant" }, "", serverVerdictCountsOf(p));
+    expect(v.chips.find((c) => c.key === "grant")?.count).toBe(1);
+    expect(v.list.map((x) => x.refId)).toEqual(["g0"]);
+  });
+
+  it("「상시접수(예산 소진 시까지)」는 마감일 없는 상시가 아니라 예산 소진 시 마감으로 안내한다", () => {
+    const now = new Date("2026-10-07T03:00:00Z");
+    const text = "상시접수(예산 소진 시까지)";
+    const cells = summaryCellsOf({ supportAmountText: "", applyStart: null, applyEnd: null, applyPeriodText: text, now });
+    expect(cells[1].value).toBe("예산 소진 시");
+    expect(cells[1].sub).not.toContain("마감일 없음");
+    const s = scheduleOf({ applyStart: null, applyEnd: null, applyPeriodText: text, now });
+    expect(s).toEqual({ kind: "line", text: expect.stringContaining("예산") });
+    expect(JSON.stringify(s)).not.toContain("마감일이 없어요");
+    // 진짜 상시는 그대로
+    expect(summaryCellsOf({ supportAmountText: "", applyStart: null, applyEnd: null, applyPeriodText: "상시 접수", now })[1].value).toBe("상시");
   });
 });

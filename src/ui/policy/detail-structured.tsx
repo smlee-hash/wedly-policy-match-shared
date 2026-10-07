@@ -11,7 +11,7 @@ import { formatPolicyDate } from "../../engine/types";
 import type { ConditionCheck, ConditionVerdict } from "../../engine/structure-types";
 import { conditionLabelOf } from "../../engine/structure-types";
 import type { VerdictResult } from "../../ai/verdict";
-import { dDayOf } from "../../funding/funding-map";
+import { dDayOf, deadlineOfAnnouncement } from "../../funding/funding-map";
 
 /** 값이 없을 때 쓰는 말 — 칸을 비우지도, 값을 지어내지도 않는다. */
 export const CHECK_ORIGINAL = "공고 원문 확인";
@@ -34,6 +34,10 @@ function validDate(value: string | null): Date | null {
 }
 
 const ALWAYS_RE = /상시|수시|연중/;
+/** 「상시접수(예산 소진 시까지)」처럼 예산 조건이 붙은 원문 — 목록의 마감 분류와 같은 함수로 판정해 상시로 뭉개지 않는다. */
+function isBudgetPeriod(applyPeriodText: string, now: Date): boolean {
+  return deadlineOfAnnouncement(null, applyPeriodText, now).kind === "budget";
+}
 
 /**
  * 지원 금액 원문의 앞부분 — 첫 쉼표·괄호·줄바꿈 앞까지, 길면 줄인다. 큰 숫자 칸에 들어갈 만큼만.
@@ -76,6 +80,8 @@ export function summaryCellsOf(input: {
       sub: formatPolicyDate(applyEnd),
       hot: left >= 0 && left <= 7,
     };
+  } else if (isBudgetPeriod(applyPeriodText, now)) {
+    deadline = { label: "접수 마감", value: "예산 소진 시", sub: "예산이 떨어지면 마감" };
   } else if (ALWAYS_RE.test(applyPeriodText)) {
     deadline = { label: "접수 마감", value: "상시", sub: "마감일 없음" };
   } else {
@@ -211,6 +217,7 @@ export function scheduleOf(input: {
       };
     }
   }
+  if (!end && isBudgetPeriod(applyPeriodText, now)) return { kind: "line", text: "예산 소진 시 마감 — 예산이 떨어지면 일찍 끝날 수 있어요." };
   if (!end && ALWAYS_RE.test(applyPeriodText)) return { kind: "line", text: "상시 접수 — 마감일이 없어요." };
   if (end) {
     const left = dDayOf(end, now);

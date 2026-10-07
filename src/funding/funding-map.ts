@@ -803,7 +803,14 @@ export function groupBlocks(items: FundingItem[], opts: GroupBlockOptions = {}):
       unverified: parked.filter((it) => it.fitVerdict === "unverified").length,
       excluded: excludedMine.filter((it) => it.unclassified).length,
     };
-    if (opts.includeExcluded) block.excludedItems = sortItems(excludedMine, sort).slice(0, topN);
+    // 분류된 줄과 「종류 미확인」 줄은 상한을 따로 쓴다(위 items 와 같은 규칙, 10/7 ERP 재리뷰 P2) —
+    // 한 상한을 나누면 미확인 80건이 앞서 있을 때 분류된 공고가 잘려 칩 「1건」·목록 0건이 된다.
+    if (opts.includeExcluded) {
+      block.excludedItems = [
+        ...sortItems(excludedMine.filter((it) => !it.unclassified), sort).slice(0, topN),
+        ...sortItems(excludedMine.filter((it) => it.unclassified), sort).slice(0, topN),
+      ];
+    }
     return block;
   });
 }
