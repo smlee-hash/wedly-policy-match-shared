@@ -290,7 +290,13 @@ export function dDayOf(end: Date, now: Date): number {
   return Math.round((kstDayStart(end) - kstDayStart(now)) / DAY_MS);
 }
 
-const BUDGET_RE = /예산\s*소진|소진\s*시|소진시/;
+// 「예산이 소진될 때까지」「예산의 소진 시」처럼 조사·활용형이 붙는 원문도 같은 뜻이다(10/7 공용 재리뷰).
+const BUDGET_RE = /예산\s*(?:이|의)?\s*소진|소진\s*(?:시|될|되면|되는|때)/;
+
+/** 기간 원문에 예산 소진 조건이 붙어 있나 — 마감 날짜가 함께 있어도(조기 마감) 참이다. */
+export function hasBudgetCondition(periodText: string): boolean {
+  return BUDGET_RE.test((periodText ?? "").replace(/\s+/g, " "));
+}
 const ALWAYS_RE = /상시|수시|연중|기한\s*없음|제한\s*없음/;
 const CLOSED_RE = /마감|접수\s*종료|종료됨|중단/;
 const YMD_RE = /(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/;
@@ -805,11 +811,12 @@ export function groupBlocks(items: FundingItem[], opts: GroupBlockOptions = {}):
     };
     // 분류된 줄과 「종류 미확인」 줄은 상한을 따로 쓴다(위 items 와 같은 규칙, 10/7 ERP 재리뷰 P2) —
     // 한 상한을 나누면 미확인 80건이 앞서 있을 때 분류된 공고가 잘려 칩 「1건」·목록 0건이 된다.
+    // 자른 뒤 다시 한 번 정렬한다 — 그냥 이어 붙이면 미확인 줄이 마감이 더 가까워도 뒤로 밀린다(추천 카드는 받은 순서대로 그린다).
     if (opts.includeExcluded) {
-      block.excludedItems = [
+      block.excludedItems = sortItems([
         ...sortItems(excludedMine.filter((it) => !it.unclassified), sort).slice(0, topN),
         ...sortItems(excludedMine.filter((it) => it.unclassified), sort).slice(0, topN),
-      ];
+      ], sort);
     }
     return block;
   });

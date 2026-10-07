@@ -11,7 +11,7 @@ import { formatPolicyDate } from "../../engine/types";
 import type { ConditionCheck, ConditionVerdict } from "../../engine/structure-types";
 import { conditionLabelOf } from "../../engine/structure-types";
 import type { VerdictResult } from "../../ai/verdict";
-import { dDayOf, deadlineOfAnnouncement } from "../../funding/funding-map";
+import { dDayOf, hasBudgetCondition } from "../../funding/funding-map";
 
 /** 값이 없을 때 쓰는 말 — 칸을 비우지도, 값을 지어내지도 않는다. */
 export const CHECK_ORIGINAL = "공고 원문 확인";
@@ -34,10 +34,8 @@ function validDate(value: string | null): Date | null {
 }
 
 const ALWAYS_RE = /상시|수시|연중/;
-/** 「상시접수(예산 소진 시까지)」처럼 예산 조건이 붙은 원문 — 목록의 마감 분류와 같은 함수로 판정해 상시로 뭉개지 않는다. */
-function isBudgetPeriod(applyPeriodText: string, now: Date): boolean {
-  return deadlineOfAnnouncement(null, applyPeriodText, now).kind === "budget";
-}
+/** 예산 소진 조건 — 목록의 마감 분류와 같은 판정(`hasBudgetCondition`)을 써서 상시로 뭉개지 않는다. */
+const BUDGET_NOTE = "예산 소진 시 조기 마감";
 
 /**
  * 지원 금액 원문의 앞부분 — 첫 쉼표·괄호·줄바꿈 앞까지, 길면 줄인다. 큰 숫자 칸에 들어갈 만큼만.
@@ -77,10 +75,10 @@ export function summaryCellsOf(input: {
     deadline = {
       label: "접수 마감",
       value: left < 0 ? "마감" : left === 0 ? "D-DAY" : `D-${left}`,
-      sub: formatPolicyDate(applyEnd),
+      sub: hasBudgetCondition(applyPeriodText) ? `${formatPolicyDate(applyEnd)} · ${BUDGET_NOTE}` : formatPolicyDate(applyEnd),
       hot: left >= 0 && left <= 7,
     };
-  } else if (isBudgetPeriod(applyPeriodText, now)) {
+  } else if (hasBudgetCondition(applyPeriodText)) {
     deadline = { label: "접수 마감", value: "예산 소진 시", sub: "예산이 떨어지면 마감" };
   } else if (ALWAYS_RE.test(applyPeriodText)) {
     deadline = { label: "접수 마감", value: "상시", sub: "마감일 없음" };
@@ -188,7 +186,7 @@ export function conditionSummaryOf(counts: RowCounts): string {
 }
 
 export type ScheduleView =
-  | { kind: "bar"; startText: string; endText: string; todayText: string; percent: number }
+  | { kind: "bar"; startText: string; endText: string; todayText: string; percent: number; note?: string }
   | { kind: "line"; text: string };
 
 /** 접수 일정 — 시작·마감 날짜가 둘 다 있으면 막대, 상시·날짜 모름이면 한 줄. */
@@ -214,16 +212,18 @@ export function scheduleOf(input: {
         endText: monthDay(applyEnd),
         todayText: left < 0 ? `오늘 ${today} · 접수 마감` : `오늘 ${today} · 마감까지 ${left}일`,
         percent,
+        ...(hasBudgetCondition(applyPeriodText) ? { note: `${BUDGET_NOTE} — 예산이 떨어지면 마감일보다 일찍 끝날 수 있어요.` } : {}),
       };
     }
   }
-  if (!end && isBudgetPeriod(applyPeriodText, now)) return { kind: "line", text: "예산 소진 시 마감 — 예산이 떨어지면 일찍 끝날 수 있어요." };
+  if (!end && hasBudgetCondition(applyPeriodText)) return { kind: "line", text: "예산 소진 시 마감 — 예산이 떨어지면 일찍 끝날 수 있어요." };
   if (!end && ALWAYS_RE.test(applyPeriodText)) return { kind: "line", text: "상시 접수 — 마감일이 없어요." };
   if (end) {
     const left = dDayOf(end, now);
     return {
       kind: "line",
-      text: left < 0 ? `마감 ${monthDay(applyEnd)} · 접수가 끝났어요.` : `마감 ${monthDay(applyEnd)} · 마감까지 ${left}일`,
+      text: (left < 0 ? `마감 ${monthDay(applyEnd)} · 접수가 끝났어요.` : `마감 ${monthDay(applyEnd)} · 마감까지 ${left}일`)
+        + (left >= 0 && hasBudgetCondition(applyPeriodText) ? ` · ${BUDGET_NOTE}` : ""),
     };
   }
   return { kind: "line", text: "접수 일정은 공고 원문에서 확인하세요." };
@@ -504,6 +504,7 @@ export function ScheduleBlock({ view }: { view: ScheduleView }) {
                 style={{ left: `${view.percent}%` }}
               />
             </div>
+            {view.note ? <p className="mt-2 text-xs leading-[18px] text-wedly-t2">{view.note}</p> : null}
           </>
         ) : (
           <div className="text-sm leading-[22px] text-wedly-t1">{view.text}</div>

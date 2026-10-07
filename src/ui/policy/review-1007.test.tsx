@@ -3,7 +3,7 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
-import { GROUP_TOP_N, groupBlocks, topPerVerdict, whereWords, type FundingItem } from "../../funding/funding-map";
+import { GROUP_TOP_N, deadlineOfAnnouncement, groupBlocks, topPerVerdict, whereWords, type FundingItem } from "../../funding/funding-map";
 import type { FundingMapPayload } from "../FundingMap";
 import { downloadAttachmentsInOrder, isOwnAttachmentUrl, scheduleOf, shortAmountOf, summaryCellsOf } from "./detail-structured";
 import {
@@ -303,5 +303,43 @@ describe("ERP 재리뷰 10/7 — P2 두 건", () => {
     expect(JSON.stringify(s)).not.toContain("마감일이 없어요");
     // 진짜 상시는 그대로
     expect(summaryCellsOf({ supportAmountText: "", applyStart: null, applyEnd: null, applyPeriodText: "상시 접수", now })[1].value).toBe("상시");
+  });
+});
+
+describe("ERP 재리뷰 10/7 — 공용 재리뷰 P2 세 건", () => {
+  const now = new Date("2026-10-07T03:00:00Z");
+
+  it("「예산이 소진될 때까지」처럼 조사·활용형이 붙어도 예산 소진으로 읽는다(목록 분류와 상세 모두)", () => {
+    for (const text of ["상시접수(예산이 소진될 때까지)", "예산 소진 시까지", "예산의 소진 시 마감", "상시(소진 시 마감)"]) {
+      expect(deadlineOfAnnouncement(null, text, now).kind).toBe("budget");
+      const cells = summaryCellsOf({ supportAmountText: "", applyStart: null, applyEnd: null, applyPeriodText: text, now });
+      expect(cells[1].value).toBe("예산 소진 시");
+      expect(JSON.stringify(scheduleOf({ applyStart: null, applyEnd: null, applyPeriodText: text, now }))).not.toContain("마감일이 없어요");
+    }
+    expect(deadlineOfAnnouncement(null, "상시 접수", now).kind).toBe("always");
+  });
+
+  it("마감 날짜와 예산 조건이 함께 있으면 날짜를 유지하면서 조기 마감 안내도 붙인다", () => {
+    const text = "2026-10-01 ~ 2026-12-31 (예산 소진 시 조기 마감)";
+    const input = { applyStart: "2026-10-01T00:00:00Z", applyEnd: "2026-12-31T14:59:59Z", applyPeriodText: text, now };
+    const cells = summaryCellsOf({ supportAmountText: "", ...input });
+    expect(cells[1].value).toMatch(/^D-\d+$/);
+    expect(cells[1].sub).toContain("예산 소진 시 조기 마감");
+    const s = scheduleOf(input);
+    expect(s.kind).toBe("bar");
+    expect(s.kind === "bar" && s.note).toContain("예산");
+    // 예산 조건이 없으면 안내도 없다
+    const plain = scheduleOf({ ...input, applyPeriodText: "2026-10-01 ~ 2026-12-31" });
+    expect(plain.kind === "bar" && plain.note).toBeFalsy();
+    expect(summaryCellsOf({ supportAmountText: "", ...input, applyPeriodText: "" })[1].sub).not.toContain("예산");
+  });
+
+  it("어려움 줄을 나눠 자른 뒤에도 고른 정렬(마감순)이 지켜진다", () => {
+    const items = [
+      item({ refId: "c20", fitVerdict: "excluded", deadline: { kind: "date", date: "2026-10-27", text: "", dDay: 20 } }),
+      item({ refId: "u1", fitVerdict: "excluded", unclassified: true, deadline: { kind: "date", date: "2026-10-08", text: "", dDay: 1 } }),
+    ];
+    const grant = groupBlocks(items, { includeExcluded: true, sort: "dead" }).find((b) => b.group === "grant")!;
+    expect(grant.excludedItems!.map((x) => x.refId)).toEqual(["u1", "c20"]);
   });
 });
