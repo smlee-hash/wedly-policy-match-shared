@@ -293,7 +293,7 @@ function 지도(
 }
 
 const 서랍 = (item: FundingItem | null, onOpenDetail?: (id: string) => void): string =>
-  renderToStaticMarkup(<FundingDrawer item={item} onClose={() => {}} onOpenDetail={onOpenDetail} />);
+  renderToStaticMarkup(<FundingDrawer item={item} onClose={() => {}} onOpenDetail={onOpenDetail} showSources />);
 
 /**
  * 머리 카드(판정 근거 + 빈칸 힌트)만 잘라 낸다 — 바로 아래 「한눈에 4칸」 격자 앞에서 끊는다.

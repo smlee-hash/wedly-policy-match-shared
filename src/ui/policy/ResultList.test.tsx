@@ -252,9 +252,21 @@ describe("출처 이름표 — 기관 정식 명칭으로 통일(독립 검사 4
         members={[browseRow({ id: "rep", dedupKey: "k" }), browseRow({ id: "m", dedupKey: "k", source })]}
         selectedId=""
         onSelect={() => {}}
+        showSources
       />,
     );
   }
+  it("관리자가 아니면(기본) 묶음 구성원 줄에 출처 이름표가 없다", () => {
+    const html = renderToStaticMarkup(
+      <GroupMembers
+        repId="rep"
+        members={[browseRow({ id: "rep", dedupKey: "k" }), browseRow({ id: "m", dedupKey: "k", source: "seoultp" })]}
+        selectedId=""
+        onSelect={() => {}}
+      />,
+    );
+    expect(html).not.toContain("서울테크노파크");
+  });
   it("서울TP 는 다른 테크노파크와 같은 규칙으로 적는다(로마자 줄임말 금지)", () => {
     const html = labelOf("seoultp");
     expect(html).toContain("서울테크노파크");

@@ -307,8 +307,12 @@ describe("목록 줄 — 이름표 넷 · 제목 두 줄 · 기관·기간·금�
 
   it("그림: 출처·종류·갈래·판정 이름표, 두 줄 제목, 기관·기간·금액, 빨간 D-day 토큰", () => {
     const item = mk({ id: "a:1", title: "2026년 창업도약패키지", deadline: 날짜(5) });
-    const html = 글자(renderToStaticMarkup(<ResultOneListView {...기본속성([item])} />));
+    const html = 글자(renderToStaticMarkup(<ResultOneListView {...기본속성([item])} showSources />));
     expect(html).toContain("K-Startup");
+    // 관리자가 아니면(기본) 출처 이름표만 빠지고 나머지 이름표는 그대로다(2026-10-07 관리자만 결정).
+    const 직원 = 글자(renderToStaticMarkup(<ResultOneListView {...기본속성([item])} />));
+    expect(직원).not.toContain("K-Startup");
+    expect(직원).toMatch(/data-row="a:1"[\s\S]*지원 가능/);
     expect(html).toContain("공고");
     expect(html).toContain(FUNDING_GROUP_META.grant.name);
     expect(html).toMatch(/data-row="a:1"[\s\S]*지원 가능/);

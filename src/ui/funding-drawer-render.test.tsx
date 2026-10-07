@@ -129,6 +129,9 @@ const 상품_손등록 = mk({
 
 const 서랍 = (item: FundingItem | null, onOpenDetail?: (id: string) => void): string =>
   renderToStaticMarkup(<FundingDrawer item={item} onClose={() => {}} onOpenDetail={onOpenDetail} now={NOW} />);
+/** 관리자 화면 — 출처 이름표·「수집원별」을 켠 서랍(2026-10-07 관리자만 결정). */
+const 관리자서랍 = (item: FundingItem | null, onOpenDetail?: (id: string) => void): string =>
+  renderToStaticMarkup(<FundingDrawer item={item} onClose={() => {}} onOpenDetail={onOpenDetail} now={NOW} showSources />);
 
 describe("서랍 본문만 그리기(inline) — 결과 화면의 오른쪽 상세 칸이 상품을 그릴 때", () => {
   const 본문 = (item: FundingItem) =>
@@ -401,11 +404,11 @@ describe("자금 조달 지도 서랍(재설계 §G3) — 유지되는 기능(�
   });
 
   it("상품 서랍은 출처 이름표 · 대상 원문을 보여 준다(접두어 붙은 실제 출처 id)", () => {
-    expect(서랍(상품_은행)).toContain("케이뱅크");
-    expect(서랍(상품_투자), "product-tips").toContain("TIPS");
-    expect(서랍(상품_손등록), "manual 은 접두어가 없다").toContain("손 등록 명부");
+    expect(관리자서랍(상품_은행)).toContain("케이뱅크");
+    expect(관리자서랍(상품_투자), "product-tips").toContain("TIPS");
+    expect(관리자서랍(상품_손등록), "manual 은 접두어가 없다").toContain("손 등록 명부");
     expect(서랍(상품_손등록)).toContain("개인사업자 · 사업기간 3개월 이상"); // 대상 원문
-    expect(서랍({ ...상품_은행, source: "product-새출처" }), "모르는 출처는 지어내지 않는다").toContain(
+    expect(관리자서랍({ ...상품_은행, source: "product-새출처" }), "모르는 출처는 지어내지 않는다").toContain(
       "product-새출처",
     );
     expect(서랍(상품_은행, () => {}), "상품 서랍에는 공고용 단추가 없다").not.toContain("상세·AI 판정 열기");
@@ -413,11 +416,21 @@ describe("자금 조달 지도 서랍(재설계 §G3) — 유지되는 기능(�
 
   it("묶인 공고가 2건 이상이면 「같은 공고 N건(수집원별)」 자리를 그린다", () => {
     const 묶인 = { ...공고_무상, groupCount: 3, groupSources: 2, dedupKey: "묶음열쇠|서울" };
-    const html = 서랍(묶인, () => {});
+    const html = 관리자서랍(묶인, () => {});
     expect(html).toContain("같은 공고 3건");
     expect(html).toContain("수집원별");
     expect(html, "받기 전에는 불러오는 중이라고 말한다").toContain("불러오는 중");
-    expect(서랍(공고_무상, () => {}), "안 묶였으면 자리 자체가 없다").not.toContain("같은 공고");
+    expect(관리자서랍(공고_무상, () => {}), "안 묶였으면 자리 자체가 없다").not.toContain("같은 공고");
+  });
+
+  it("관리자가 아니면(기본) 출처 이름표·「같은 공고 N건(수집원별)」을 그리지 않는다", () => {
+    const 상품 = 서랍(상품_은행);
+    expect(상품).not.toContain(">출처<");
+    expect(서랍(상품_손등록), "출처 값도 안 나온다").not.toContain("손 등록 명부");
+    expect(상품, "대상 원문은 그대로").toContain("취급기관");
+    const 묶인 = 서랍({ ...공고_무상, groupCount: 3, groupSources: 2, dedupKey: "묶음열쇠|서울" }, () => {});
+    expect(묶인).not.toContain("수집원별");
+    expect(묶인).not.toContain("같은 공고 3건");
   });
 });
 

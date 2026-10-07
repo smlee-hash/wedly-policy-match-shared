@@ -645,6 +645,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
                 onEdit={goCompany}
                 renderRowFooter={rowFooter}
                 renderDetail={renderDetail}
+                showSources={features?.showSourceNames ?? false}
               />
             </>
           )}

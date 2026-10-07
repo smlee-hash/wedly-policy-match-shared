@@ -505,6 +505,11 @@ export function AskInstructorModal({
 }
 
 interface Props {
+  /**
+   * 출처(수집원) 이름표와 「같은 공고 N건(수집원별)」을 그릴지 — 수집원 자료는 관리자만 본다
+   * (2026-10-07 사장님 결정, 10/5 「수집원 현황」과 같은 기준). 기본 false: 앱이 관리자에게만 켠다.
+   */
+  showSources?: boolean;
   /** 이 부품이 부를 통로 넷. 없는 통로의 단추·문구는 그리지 않는다. */
   endpoints: DetailEndpoints;
   /** 응답 오류를 사람 말로 — 안 넘기면 ERP 규약 그대로. */
@@ -558,7 +563,7 @@ function blockedSummary(checklist: { condition: string; status: string; note?: s
 export default function DetailPanel({
   endpoints, parseError, verdictFeedback,
   announcementId, mode, profile, profileNonce, item, hasDiagnosis, noServerAi, serverStructurizes, browseEmptyNote,
-  fitVerdict, frame = "card",
+  fitVerdict, frame = "card", showSources = false,
 }: Props) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -870,7 +875,7 @@ export default function DetailPanel({
     : item
       ? { label: GRADE_LABEL[item.grade], className: GRADE_CLASS[item.grade] }
       : null;
-  const sourceLabel = ANNOUNCEMENT_SOURCE_LABELS[detail.source] ?? detail.source;
+  const sourceLabel = showSources ? (ANNOUNCEMENT_SOURCE_LABELS[detail.source] ?? detail.source) : "";
   // 요약 숫자 3칸 · 접수 일정 · 지원 표 · 첨부는 회사 정보와 무관한 공고 자료라 진단 전에도 그린다.
   const summaryCells = summaryCellsOf({
     supportAmountText: structure.supportAmountText,

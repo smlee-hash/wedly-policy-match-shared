@@ -302,6 +302,8 @@ export function ProfileNotice({
 }
 
 export interface RecommendPanelProps {
+  /** 서랍의 출처 이름표·「같은 공고 N건(수집원별)」 — 관리자만(2026-10-07). 기본 false. */
+  showSources?: boolean;
   data: RecommendFundingData | null;
   loading: boolean;
   error: string;
@@ -346,6 +348,7 @@ export function RecommendPanel({
   onCloseDrawer,
   onRefresh,
   onToggleExcluded,
+  showSources = false,
 }: RecommendPanelProps) {
   return (
     <div>
@@ -390,7 +393,7 @@ export function RecommendPanel({
             : "자동 대조 결과입니다 — 최종 자격은 공고 원문에서 확인하세요."}
         </p>
       )}
-      <FundingDrawer item={drawerItem} onClose={onCloseDrawer} onOpenDetail={onOpenDetail} />
+      <FundingDrawer item={drawerItem} onClose={onCloseDrawer} onOpenDetail={onOpenDetail} showSources={showSources} />
     </div>
   );
 }
@@ -475,6 +478,7 @@ export default function FundingRecommendPanel({
   buildQuery = fundingMapQuery,
   parseError = () => LOAD_ERROR,
   refreshEventName = "wedly:company-status-saved",
+  showSources = false,
 }: {
   bizno?: string;
   companyName?: string;
@@ -495,6 +499,8 @@ export default function FundingRecommendPanel({
   parseError?: (json: unknown) => string;
   /** 기업상태표 저장 신호 이름 — 기본은 ERP `COMPANY_STATUS_SAVED_EVENT` 와 같은 값. */
   refreshEventName?: string;
+  /** 서랍의 출처 이름표·「같은 공고 N건(수집원별)」 — 수집원 자료는 관리자만 본다(2026-10-07). 기본 false. */
+  showSources?: boolean;
 }) {
   // 거르개·펼침은 훅 하나가 쥔다 — 날 것 설정 함수는 그 안에만 있다(위 `useFundingFilterState` 주석).
   const { filters, showExcluded, onFiltersChange, onToggleExcluded, resetForCompany } = useFundingFilterState();
@@ -583,6 +589,7 @@ export default function FundingRecommendPanel({
 
   return (
     <RecommendPanel
+      showSources={showSources}
       data={data}
       loading={loading}
       error={error}

@@ -146,13 +146,13 @@ function AnnouncementDetailLink({
   );
 }
 
-function ProductDetail({ item }: { item: FundingItem }) {
+function ProductDetail({ item, showSource }: { item: FundingItem; showSource: boolean }) {
   const rows: Array<[string, string]> = [
     ["취급기관", item.agency || "—"],
     ["신청처", item.where || "—"],
     ["접수기간", item.deadline.text || "상시"],
-    ["출처", PRODUCT_SOURCE_LABEL[item.source] ?? item.source],
   ];
+  if (showSource) rows.push(["출처", PRODUCT_SOURCE_LABEL[item.source] ?? item.source]);
   return (
     <div className={PANEL}>
       <h3 className="text-wedly-sub font-semibold text-wedly-t1">상품 정보</h3>
@@ -501,9 +501,14 @@ interface Props {
    * 기본 false 라 다른 앱의 서랍은 한 글자도 안 바뀐다. 껍데기가 없으니 닫기·Esc·바깥 누르기는 없다(`onClose` 는 안 쓴다).
    */
   inline?: boolean;
+  /**
+   * 출처(수집원) 이름표와 「같은 공고 N건(수집원별)」을 그릴지 — 수집원 자료는 관리자만 본다
+   * (2026-10-07 사장님 결정, 10/5 「수집원 현황」과 같은 기준). 기본 false: 앱이 관리자에게만 켠다.
+   */
+  showSources?: boolean;
 }
 
-export default function FundingDrawer({ item, onClose, onOpenDetail, aiVerdictAvailable = true, now, inline = false }: Props) {
+export default function FundingDrawer({ item, onClose, onOpenDetail, aiVerdictAvailable = true, now, inline = false, showSources = false }: Props) {
   if (!item) return null;
   const effectiveNow = now ?? new Date();
   // ★종류를 못 가른 줄은 **갈래 이름을 쓰지 않는다**(코덱스 반려 1, 2026-09-05). 미확인 줄은 갈래
@@ -586,12 +591,12 @@ export default function FundingDrawer({ item, onClose, onOpenDetail, aiVerdictAv
         {item.kind === "announcement" ? (
           <AnnouncementDetailLink item={item} onOpenDetail={onOpenDetail} aiVerdictAvailable={aiVerdictAvailable} />
         ) : (
-          <ProductDetail item={item} />
+          <ProductDetail item={item} showSource={showSources} />
         )}
 
         {/* 묶인 다른 수집본(코덱스 #2) — 열쇠가 있어야 물을 수 있어 둘 다 있을 때만 그린다.
             서버는 묶을 때 둘을 함께 싣는다(빈 열쇠로는 애초에 묶지 않는다). */}
-        {item.kind === "announcement" && (item.groupCount ?? 0) >= 2 && item.dedupKey && (
+        {showSources && item.kind === "announcement" && (item.groupCount ?? 0) >= 2 && item.dedupKey && (
           <GroupMembers
             dedupKey={item.dedupKey}
             count={item.groupCount ?? 0}

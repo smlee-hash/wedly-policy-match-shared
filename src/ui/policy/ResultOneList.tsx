@@ -45,8 +45,9 @@ const VERDICT_TAG: Record<VerdictTab, { label: string; className: string }> = {
   excluded: { label: "어려움", className: "bg-wedly-bg-red text-wedly-red-ink" },
 };
 
-function OneListRow({ item, selected, onSelect, footer }: {
+function OneListRow({ item, selected, onSelect, footer, showSource }: {
   item: FundingItem;
+  showSource: boolean;
   selected: boolean;
   onSelect: (id: string) => void;
   footer: ReactNode;
@@ -70,9 +71,11 @@ function OneListRow({ item, selected, onSelect, footer }: {
         className="block w-full rounded-[14px] px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-wedly-accent"
       >
         <span className="mb-1 flex flex-wrap items-center gap-1.5">
-          <span className="max-w-[10rem] truncate rounded-full border border-wedly-bd bg-white px-2 py-0.5 text-wedly-hint text-wedly-t1">
-            {sourceNameOf(item)}
-          </span>
+          {showSource && (
+            <span className="max-w-[10rem] truncate rounded-full border border-wedly-bd bg-white px-2 py-0.5 text-wedly-hint text-wedly-t1">
+              {sourceNameOf(item)}
+            </span>
+          )}
           <span className="rounded-md bg-wedly-bg-gray px-1.5 py-0.5 text-wedly-hint font-bold text-wedly-t2">
             {kindTagOf(item)}
           </span>
@@ -148,6 +151,11 @@ function usePaneTop(ref: { current: HTMLElement | null }) {
 }
 
 export interface ResultOneListViewProps {
+  /**
+   * 출처(수집원) 이름표와 「같은 공고 N건(수집원별)」을 그릴지 — 수집원 자료는 관리자만 본다
+   * (2026-10-07 사장님 결정, 10/5 「수집원 현황」과 같은 기준). 기본 false: 앱이 관리자에게만 켠다.
+   */
+  showSources?: boolean;
   /** 평평하게 편 자료. 아직 못 받았으면 null(불러오는 중 뼈대 · 오류 상자). */
   items: FundingItem[] | null;
   /** 서버가 자르기 전에 센 판정별 개수 — 탭·칩 숫자와 「앞쪽 N건만」 안내에 쓴다. 없으면 받은 줄로 센다. */
@@ -179,7 +187,7 @@ export interface ResultOneListViewProps {
 
 export function ResultOneListView({
   items, serverCounts = null, state, query, askedQuery, loading, error, unknownCount,
-  onRetry, onTab, onChip, onQuery, onSort, onPage, onSelect, onFill, onEdit, renderRowFooter, renderDetail,
+  onRetry, onTab, onChip, onQuery, onSort, onPage, onSelect, onFill, onEdit, renderRowFooter, renderDetail, showSources = false,
 }: ResultOneListViewProps) {
   const hasData = items !== null;
   const view = oneListViewOf(items ?? [], state, askedQuery, serverCounts);
@@ -352,6 +360,7 @@ export function ResultOneListView({
                 item={it}
                 selected={view.selected?.id === it.id}
                 onSelect={onSelect}
+                showSource={showSources}
                 footer={cardFooterOf(it, renderRowFooter)}
               />
             ))}
@@ -401,6 +410,11 @@ export function ResultOneListView({
 }
 
 interface Props {
+  /**
+   * 출처(수집원) 이름표와 「같은 공고 N건(수집원별)」을 그릴지 — 수집원 자료는 관리자만 본다
+   * (2026-10-07 사장님 결정, 10/5 「수집원 현황」과 같은 기준). 기본 false: 앱이 관리자에게만 켠다.
+   */
+  showSources?: boolean;
   /** fundingMap 응답. 아직 못 받았으면 null. */
   data: FundingMapPayload | null;
   loading: boolean;
@@ -422,7 +436,7 @@ interface Props {
  * 눌림은 전부 `oneListReducer`(순수 함수)를 지난다 — 탭을 바꾸면 칩은 「전체」·쪽은 1쪽 같은 규칙이 한 자리에 있다.
  */
 export default function ResultOneList({
-  data, loading, error, onRetry, query, askedQuery, onQuery, unknownCount, onFill, onEdit, renderRowFooter, renderDetail,
+  data, loading, error, onRetry, query, askedQuery, onQuery, unknownCount, onFill, onEdit, renderRowFooter, renderDetail, showSources = false,
 }: Props) {
   const [state, dispatch] = useReducer(oneListReducer, INITIAL_ONE_LIST_STATE);
   const items = useMemo(() => (data ? flattenFundingItems(data) : null), [data]);
@@ -441,6 +455,7 @@ export default function ResultOneList({
 
   return (
     <ResultOneListView
+      showSources={showSources}
       items={items}
       serverCounts={serverCounts}
       state={state}

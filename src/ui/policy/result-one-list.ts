@@ -64,14 +64,13 @@ export interface ServerVerdictCounts {
   byGroup: Record<FundingGroup, Record<VerdictTab, number>>;
 }
 
-function parkedCountsOf(b: FundingMapPayload["groups"][number]): { fit: number; unverified: number; excluded: number } {
-  const n = (list: readonly FundingItem[] | undefined, v: FundingItem["fitVerdict"]) =>
-    (list ?? []).filter((it) => it.unclassified && it.fitVerdict === v).length;
-  return { fit: n(b.items, "fit"), unverified: n(b.items, "unverified"), excluded: n(b.excludedItems, "excluded") };
-}
-
 export function serverVerdictCountsOf(data: FundingMapPayload | null): ServerVerdictCounts | null {
   if (!data) return null;
+  // 미확인 집계 칸이 없는 옛 서버 답(배포 중 열려 있던 탭)은 서버 셈을 쓰지 않는다 — 실린 줄로 보충해도
+  // 미확인이 80건을 넘으면 잘린 만큼 틀린다(재리뷰 10/7 두 번). 받은 줄로만 세면 탭·칩·목록이 서로 맞는다.
+  const hasParked = (b: FundingMapPayload["groups"][number]) =>
+    [...b.items, ...(b.excludedItems ?? [])].some((it) => it.unclassified);
+  if (data.groups.some((b) => !b.unclassifiedCounts && hasParked(b))) return null;
   const zero = (): Record<VerdictTab, number> => ({ fit: 0, unverified: 0, excluded: 0 });
   const tab = zero();
   const byGroup = Object.fromEntries(FUNDING_GROUPS.map((g) => [g, zero()])) as Record<FundingGroup, Record<VerdictTab, number>>;
@@ -80,9 +79,7 @@ export function serverVerdictCountsOf(data: FundingMapPayload | null): ServerVer
     if (!g) continue;
     // 「종류 미확인」 줄: 서버의 fit/unverified 에는 없고 excluded 에는 들어 있다. 탭은 미확인까지 더하고,
     // 갈래 칩은 미확인을 빼고 센다(칩 거르기 `filterByChip` 이 미확인을 빼므로) — 독립 리뷰 10/7.
-    // 이 칸이 없는 옛 서버 답이면 실려 온 미확인 줄로 센다(갈래마다 앞 80건까지라 하한값) — 0 으로 두면
-    // 탭이 모자라고 칩이 빈 목록에 숫자를 단다(재리뷰 10/7).
-    const parked = b.unclassifiedCounts ?? parkedCountsOf(b);
+    const parked = b.unclassifiedCounts ?? { fit: 0, unverified: 0, excluded: 0 };
     g.fit += b.fit;
     g.unverified += b.unverified;
     g.excluded += Math.max(0, b.excluded - parked.excluded);

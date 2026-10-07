@@ -116,6 +116,11 @@ export type PolicyMatchFeatures = {
    * 안내와 사진 형식 카드의 「글자 있는 PDF로」 표시. `endpoints.documentPrefill` 이 있을 때만 쓴다.
    */
   documentPrefillMode?: "attach" | "lab";
+  /**
+   * 출처(수집원) 이름표·「같은 공고 N건(수집원별)」을 보일지 — 수집원 자료는 관리자만 본다
+   * (2026-10-07 사장님 결정). 기본 false. ERP 는 관리자에게만 true, 랩·컨설턴트 앱은 넘기지 않는다.
+   */
+  showSourceNames?: boolean;
 };
 
 /**

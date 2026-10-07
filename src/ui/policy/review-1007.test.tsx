@@ -162,7 +162,7 @@ describe("재리뷰 10/7 — 남은 두 지적", () => {
     expect(r).toEqual({ saved: 0, failed: 1, skipped: 0 });
   });
 
-  it("미확인 집계 칸이 없는 옛 서버 답 — 탭은 모자라지 않고 칩은 빈 목록에 숫자를 달지 않는다", () => {
+  it("미확인 집계 칸이 없는 옛 서버 답 — 서버 셈을 버리고 받은 줄로 세어 탭·칩·목록이 서로 맞는다", () => {
     const items = [
       ...Array.from({ length: 100 }, (_, i) => item({ refId: `c${i}`, fitVerdict: "unverified", score: 1000 - i })),
       ...Array.from({ length: 10 }, (_, i) => item({ refId: `u${i}`, fitVerdict: "unverified", unclassified: true })),
@@ -170,8 +170,9 @@ describe("재리뷰 10/7 — 남은 두 지적", () => {
     ];
     const p = payloadOf(items);
     for (const b of p.groups) delete (b as { unclassifiedCounts?: unknown }).unclassifiedCounts;
+    expect(serverVerdictCountsOf(p), "옛 답에는 서버 셈을 쓰지 않는다").toBeNull();
     const v = oneListViewOf(flat(p), { ...INITIAL_ONE_LIST_STATE, tab: "unverified" }, "", serverVerdictCountsOf(p));
-    expect(v.counts.unverified).toBe(110);
+    expect(v.counts.unverified, "받은 줄(80+10)과 탭이 맞는다").toBe(90);
     const ex = oneListViewOf(flat(p), { ...INITIAL_ONE_LIST_STATE, tab: "excluded" }, "", serverVerdictCountsOf(p));
     expect(ex.counts.excluded).toBe(3);
     expect(ex.chips.find((c) => c.key === "grant")?.count ?? 0).toBe(0);

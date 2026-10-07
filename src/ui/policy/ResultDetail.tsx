@@ -43,6 +43,7 @@ export default function ResultDetail({
         hasDiagnosis={hasDiagnosis}
         serverStructurizes={features?.serverStructurizes ?? true}
         frame="pane"
+        showSources={features?.showSourceNames ?? false}
       />
     );
   }
@@ -51,7 +52,7 @@ export default function ResultDetail({
   // 칸이 바닥 여백을 두지 않으므로(상세의 고정 줄이 바닥에 붙게) 상품 본문은 여기서 바닥 여백을 준다.
   return (
     <div className="pb-4 min-[821px]:pb-6">
-      <FundingDrawer inline item={item} onClose={NOOP} aiVerdictAvailable={!!endpoints.verdict} />
+      <FundingDrawer inline item={item} onClose={NOOP} aiVerdictAvailable={!!endpoints.verdict} showSources={features?.showSourceNames ?? false} />
     </div>
   );
 }

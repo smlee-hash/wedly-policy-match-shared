@@ -171,6 +171,11 @@ export interface BrowseBundle {
 }
 
 interface Props {
+  /**
+   * 출처(수집원) 이름표와 「같은 공고 N건(수집원별)」을 그릴지 — 수집원 자료는 관리자만 본다
+   * (2026-10-07 사장님 결정, 10/5 「수집원 현황」과 같은 기준). 기본 false: 앱이 관리자에게만 켠다.
+   */
+  showSources?: boolean;
   mode: ListMode;
   onModeChange: (m: ListMode) => void;
   diagnosis: Diagnosis | null;
@@ -207,8 +212,8 @@ function selectionClass(selected: boolean): string {
     : "border-wedly-bd/60 bg-white hover:bg-wedly-bg-gray";
 }
 
-export function GroupMembers({ repId, members, selectedId, onSelect }: {
-  repId: string; members: Row[]; selectedId: string | null; onSelect: (id: string) => void;
+export function GroupMembers({ repId, members, selectedId, onSelect, showSources = false }: {
+  repId: string; members: Row[]; selectedId: string | null; onSelect: (id: string) => void; showSources?: boolean;
 }) {
   const rest = members.filter((m) => m.id !== repId);
   if (rest.length === 0) return null;
@@ -226,7 +231,7 @@ export function GroupMembers({ repId, members, selectedId, onSelect }: {
             <div className="flex flex-wrap items-center gap-2">
               {/* 순번 — 같은 공고가 글자까지 똑같이 반복되는 묶음(울산형)에서 유일한 구별 단서다(독립 검사 지적). */}
               <span className={`${PILL_NEUTRAL} tabular-nums`}>{i + 1}</span>
-              <span className={PILL_NEUTRAL}>{SOURCE_LABEL[m.source] ?? m.source}</span>
+              {showSources && <span className={PILL_NEUTRAL}>{SOURCE_LABEL[m.source] ?? m.source}</span>}
               {m.category && <span className={PILL_NEUTRAL}>{m.category}</span>}
               <span className={`ml-auto tabular-nums ${badge.className}`}>{badge.label}</span>
             </div>
@@ -274,7 +279,7 @@ export function DiagnosisNotice({ diagnosis, serverStructurizes = true }: {
 
 export default function ResultList({
   mode, onModeChange, diagnosis, selectedId, onSelect, browse, announcementsEndpoint,
-  onManualSync, verdictFeedback, profile, serverStructurizes = true,
+  onManualSync, verdictFeedback, profile, serverStructurizes = true, showSources = false,
 }: Props) {
   // 고른 묶음은 「어느 진단 결과에서 골랐는지」와 함께 기억한다.
   // 진단을 새로 돌리면 저절로 아래 기본값(결과가 들어 있는 첫 묶음)으로 돌아간다 — 빈 탭을 보여 주지 않는다.
@@ -519,7 +524,7 @@ export default function ResultList({
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       {/* 출처·분야는 분류라 회색 한 톤 — 색이 뜻을 갖는 자리는 D-day 뿐이다. */}
-                      <span className={PILL_NEUTRAL}>{SOURCE_LABEL[r.source] ?? r.source}</span>
+                      {showSources && <span className={PILL_NEUTRAL}>{SOURCE_LABEL[r.source] ?? r.source}</span>}
                       {count >= 2 && (
                         <button
                           type="button"
@@ -557,7 +562,7 @@ export default function ResultList({
                             </button>
                           </div>
                         )
-                        : <GroupMembers repId={r.id} members={membersCache[r.dedupKey] ?? []} selectedId={selectedId} onSelect={onSelect} />
+                        : <GroupMembers repId={r.id} members={membersCache[r.dedupKey] ?? []} selectedId={selectedId} onSelect={onSelect} showSources={showSources} />
                   )}
                 </div>
               );
