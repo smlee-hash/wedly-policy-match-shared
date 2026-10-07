@@ -258,6 +258,15 @@ describe("단계 표시·요약 줄 부품", () => {
     expect(b.indexOf("aria-current")).toBeGreaterThan(b.indexOf("회사 정보"));
   });
 
+  it("단계 이름 글자는 흐린 글자(muted)를 쓰지 않는다 — 단계 표시는 연파랑 화면 바닥 위라 muted 는 대비 4.22 로 기준 4.5 미달(10/7 axe 실측)", () => {
+    for (const step of ["company", "result"] as const) {
+      const html = renderToStaticMarkup(<StepBar step={step} />);
+      const labels = [...html.matchAll(/<span class="([^"]*)">(회사 정보|매칭 결과)<\/span>/g)];
+      expect(labels).toHaveLength(2);
+      for (const [, cls] of labels) expect(cls).not.toContain("text-wedly-muted");
+    }
+  });
+
   it("요약 줄: 상호·값 칩·모름 N칸·두 단추", () => {
     const html = 글자(
       renderToStaticMarkup(

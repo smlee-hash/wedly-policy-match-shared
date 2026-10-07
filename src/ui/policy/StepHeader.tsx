@@ -26,12 +26,13 @@ function StepDot({ n, state }: { n: number; state: "on" | "done" | "todo" }) {
   );
 }
 
-/** 「1 회사 정보 — 2 매칭 결과」. 결과 단계에서는 1 이 ✓ 로 바뀐다. */
+/** 「1 회사 정보 — 2 매칭 결과」. 결과 단계에서는 1 이 ✓ 로 바뀐다.
+ *  아직 단계 이름은 t2 — 이 줄은 연파랑 화면 바닥 위라 muted 는 대비 4.22(기준 4.5 미달, 10/7 axe). */
 export function StepBar({ step }: { step: Step }) {
   const first = step === "company" ? "on" : "done";
   const second = step === "result" ? "on" : "todo";
   const label = (state: "on" | "done" | "todo") =>
-    `text-sm font-semibold leading-[22px] ${state === "todo" ? "text-wedly-muted" : "text-wedly-t1"}`;
+    `text-sm font-semibold leading-[22px] ${state === "todo" ? "text-wedly-t2" : "text-wedly-t1"}`;
   return (
     <ol data-area="step-bar" aria-label="진행 단계" className="flex items-center gap-2">
       <li className="flex items-center gap-2" aria-current={step === "company" ? "step" : undefined}>
