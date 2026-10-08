@@ -1,0 +1,620 @@
+/* 승인 v5 회사 정보 폼. side 배치는 이 이름 공간 밖의 기존 클래스를 그대로 쓴다.
+ * ERP의 스크롤 틀은 --policy-match-sticky-top으로 실제 상단 내비게이션 높이를 더할 수 있다.
+ * 색은 소비 앱의 기존 WEDLY 토큰/별칭만 사용한다.
+ */
+.policy-match-screen {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+}
+.policy-match-company,
+.policy-profile-wide {
+  width: 100%;
+  min-width: 0;
+}
+.policy-profile-wide {
+  overflow: visible;
+}
+.policy-match-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.policy-match-intro-copy {
+  min-width: 0;
+}
+.policy-match-intro-copy h2 {
+  font-size: 14.5px;
+  line-height: 20px;
+}
+.policy-match-intro-copy p {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.policy-match-intro [data-area="step-bar"] {
+  flex-shrink: 0;
+  gap: 12px;
+}
+.policy-match-intro [data-area="step-bar"] li {
+  gap: 6px;
+}
+.policy-match-intro [data-area="step-bar"] li > span:last-child {
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 400;
+}
+.policy-match-intro [data-area="step-bar"] li[aria-current="step"] > span:last-child {
+  color: var(--wedly-accent-ink);
+  font-weight: 600;
+}
+.policy-match-intro [data-area="step-bar"] li[aria-hidden] {
+  width: 24px;
+  height: 1px;
+}
+.policy-match-intro [data-area="step-bar"] li:not([aria-current]) > span:first-child {
+  background-color: var(--wedly-bg-gray);
+  border-color: var(--wedly-bg-gray);
+  color: var(--wedly-t2);
+}
+.policy-profile-wide .policy-profile-action {
+  border-color: var(--wedly-bd);
+  background-color: var(--color-white);
+  position: sticky;
+  top: var(--policy-match-sticky-top, 12px);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  margin-bottom: 16px;
+  padding: 16px 24px;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 20px;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--wedly-navy) 5%, transparent),
+    0 6px 18px color-mix(in srgb, var(--wedly-navy) 8%, transparent);
+}
+.policy-profile-wide .policy-profile-progress {
+  flex: 1;
+  min-width: 0;
+}
+.policy-profile-wide .policy-profile-progress-copy {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.policy-profile-wide .policy-profile-progress-label {
+  color: var(--wedly-navy);
+  margin-right: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.policy-profile-wide .policy-profile-count {
+  color: var(--wedly-accent-ink);
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.policy-profile-wide .policy-profile-total {
+  color: var(--wedly-t2);
+  font-size: 13px;
+}
+.policy-profile-wide .policy-profile-remaining {
+  color: var(--wedly-t2);
+  margin-left: auto;
+  font-size: 12px;
+}
+.policy-profile-wide .policy-profile-meter {
+  border-color: var(--wedly-muted);
+  background-color: var(--wedly-bg-gray);
+  height: 10px;
+  display: flex;
+  gap: 3px;
+  margin-top: 8px;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.policy-profile-wide [data-meter-segment] {
+  background-color: var(--wedly-bg-gray);
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+.policy-profile-wide [data-meter-segment][data-done="true"] {
+  background-color: var(--wedly-accent);
+}
+.policy-profile-wide .policy-profile-progress-help {
+  color: var(--wedly-t2);
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 16px;
+}
+.policy-profile-wide .policy-profile-doc-summary {
+  color: var(--wedly-t1);
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+}
+.policy-profile-wide .policy-profile-match {
+  border-color: var(--wedly-accent);
+  background-color: var(--wedly-accent);
+  color: var(--color-white);
+  height: auto;
+  min-height: 52px;
+  min-width: 220px;
+  flex-shrink: 0;
+  gap: 8px;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 14px;
+  padding: 14px 24px;
+  font-size: 14.5px;
+  line-height: 20px;
+  box-shadow: 0 4px 6px -1px color-mix(in srgb, var(--wedly-navy) 10%, transparent);
+}
+.policy-profile-wide .policy-profile-match:hover {
+  background-color: var(--wedly-accent-hover);
+}
+.policy-profile-wide .policy-profile-match svg,
+.policy-profile-wide .policy-profile-import-title svg,
+.policy-profile-wide .policy-profile-section-head > svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  stroke-width: 1.7;
+}
+.policy-profile-wide .policy-profile-card {
+  border-color: var(--wedly-bd);
+  background-color: var(--color-white);
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--wedly-bd);
+  border-radius: 20px;
+  overflow: clip;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--wedly-navy) 5%, transparent),
+    0 6px 18px color-mix(in srgb, var(--wedly-navy) 8%, transparent);
+}
+.policy-profile-wide .policy-profile-imports {
+  border-color: var(--wedly-bd);
+  background-color: var(--wedly-bg-gray);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 16px;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+.policy-profile-wide .policy-profile-import:only-child {
+  grid-column: 1 / -1;
+}
+.policy-profile-wide .policy-profile-import {
+  background-color: var(--color-white);
+  min-width: 0;
+  padding: 16px;
+  border-radius: 16px;
+}
+.policy-profile-wide .policy-profile-import-title {
+  color: var(--wedly-navy);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.policy-profile-wide .policy-profile-import-title svg,
+.policy-profile-wide .policy-profile-upload-icon,
+.policy-profile-wide .policy-profile-section-head > svg {
+  color: var(--wedly-accent-ink);
+}
+.policy-profile-wide .policy-profile-search-row {
+  display: flex;
+  gap: 8px;
+}
+.policy-profile-wide .policy-profile-search-input {
+  background-color: var(--wedly-bg-page);
+  border-color: var(--wedly-bd);
+  height: 44px;
+  flex: 1;
+  min-width: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.policy-profile-wide .policy-profile-search-button {
+  background-color: var(--wedly-navy);
+  border-color: var(--wedly-navy);
+  color: var(--color-white);
+  height: 44px;
+  min-width: 64px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.policy-profile-wide .policy-profile-search-button:hover {
+  background-color: var(--wedly-accent-ink);
+}
+.policy-profile-wide .policy-profile-import-hint {
+  color: var(--wedly-t2);
+  margin-top: 7px;
+  font-size: 11px;
+  line-height: 16px;
+}
+.policy-profile-wide .policy-profile-dropzone {
+  background-color: var(--wedly-bg-page);
+  border-color: color-mix(in srgb, var(--wedly-accent) 40%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: left;
+}
+.policy-profile-wide .policy-profile-dropzone:hover {
+  background-color: var(--wedly-bg-page);
+}
+.policy-profile-wide .policy-profile-dropzone.bg-wedly-bg-blue {
+  background-color: var(--wedly-bg-blue);
+  border-color: var(--wedly-accent);
+}
+.policy-profile-wide .policy-profile-upload-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  stroke-width: 1.7;
+}
+.policy-profile-wide .policy-profile-drop-copy {
+  color: var(--wedly-t1);
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.policy-profile-wide .policy-profile-drop-copy strong,
+.policy-profile-wide .policy-profile-drop-copy > span {
+  display: block;
+}
+.policy-profile-wide .policy-profile-drop-copy strong {
+  font-weight: 600;
+}
+.policy-profile-wide .policy-profile-drop-copy > span {
+  color: var(--wedly-t2);
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 16px;
+}
+.policy-profile-wide .policy-profile-file-action {
+  border-color: var(--wedly-bd);
+  background-color: var(--wedly-bg-page);
+  color: var(--wedly-accent-ink);
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.policy-profile-wide .policy-profile-upload-info {
+  color: var(--wedly-t2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 16px;
+}
+.policy-profile-wide .policy-profile-upload-info details {
+  max-width: 100%;
+  min-width: 0;
+}
+.policy-profile-wide .policy-profile-upload-info summary {
+  color: var(--wedly-accent-ink);
+  cursor: pointer;
+}
+.policy-profile-wide .policy-profile-section {
+  display: grid;
+  grid-template-columns: 136px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 24px;
+  min-width: 0;
+  padding: 20px 24px;
+}
+.policy-profile-wide .policy-profile-section + .policy-profile-section {
+  border-color: var(--wedly-bd);
+  border-top-width: 1px;
+  border-top-style: solid;
+}
+.policy-profile-wide .policy-profile-section-head {
+  background-color: var(--wedly-bg-page);
+  border-color: var(--wedly-bd);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: start;
+  gap: 8px;
+  width: calc(100% + 24px);
+  margin: -20px 0 -20px -24px;
+  padding: 20px 18px;
+  border-right-width: 1px;
+  border-right-style: solid;
+}
+.policy-profile-wide .policy-profile-section-head h3 {
+  color: var(--wedly-navy);
+  font-weight: 600;
+}
+.policy-profile-wide .policy-profile-section-count {
+  color: var(--wedly-t2);
+  display: block;
+  width: 100%;
+  padding-left: 26px;
+  font-size: 11px;
+  line-height: 18px;
+}
+.policy-profile-wide .policy-profile-section-count strong {
+  color: var(--wedly-navy);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.policy-profile-wide .policy-profile-section[data-complete="true"] .policy-profile-section-count strong,
+.policy-profile-wide .policy-profile-section-count [aria-label="모두 입력"] {
+  color: var(--wedly-green-ink);
+}
+.policy-profile-wide .policy-profile-section:focus-within .policy-profile-section-head {
+  background-color: var(--wedly-bg-blue);
+  box-shadow: inset 3px 0 0 var(--wedly-accent);
+}
+.policy-profile-wide .policy-profile-section:focus-within h3 {
+  color: var(--wedly-accent-ink);
+}
+.policy-profile-wide .policy-profile-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-self: start;
+  gap: 16px;
+  min-width: 0;
+}
+.policy-profile-wide .policy-profile-field {
+  grid-column: auto;
+  min-width: 0;
+}
+.policy-profile-wide .policy-profile-conflict {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.policy-profile-wide .policy-profile-label {
+  color: var(--wedly-navy);
+  margin-bottom: 6px;
+  font-size: 12px;
+  line-height: 16px;
+}
+.policy-profile-wide .policy-profile-control {
+  margin-top: 0;
+}
+.policy-profile-wide .policy-profile-input-row {
+  position: relative;
+  display: block;
+}
+.policy-profile-wide .policy-profile-field input {
+  background-color: var(--wedly-bg-page);
+  border-color: var(--wedly-bd);
+  color: var(--wedly-navy);
+  width: 100%;
+  height: 40px;
+  min-width: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 20px;
+}
+.policy-profile-wide .policy-profile-input-row:has(.policy-profile-unit) input {
+  padding-right: 45px;
+}
+.policy-profile-wide .policy-profile-unit {
+  color: var(--wedly-t2);
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  pointer-events: none;
+  font-size: 11px;
+  line-height: 16px;
+}
+.policy-profile-wide input::placeholder {
+  color: var(--wedly-t2);
+  opacity: 1;
+}
+.policy-profile-wide .policy-profile-field[data-filled="true"] input {
+  background-color: var(--color-white);
+  font-weight: 600;
+}
+.policy-profile-wide .policy-profile-field input:focus {
+  background-color: var(--color-white);
+  border-color: var(--wedly-accent);
+  outline: 2px solid var(--wedly-bg-blue);
+  outline-offset: 0;
+}
+.policy-profile-wide .policy-profile-field input[aria-invalid="true"] {
+  border-color: var(--wedly-red-ink);
+}
+.policy-profile-wide .policy-profile-segments {
+  border-color: var(--wedly-bd);
+  background-color: var(--wedly-bg-gray);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 2px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 40px;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 8px;
+  padding: 3px;
+}
+.policy-profile-wide .policy-profile-segments button {
+  color: var(--wedly-t2);
+  height: auto;
+  min-height: 32px;
+  border-color: transparent;
+  border-radius: 5px;
+  background: transparent;
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 20px;
+}
+.policy-profile-wide .policy-profile-segments button:hover {
+  background-color: var(--wedly-bg-blue);
+}
+.policy-profile-wide .policy-profile-segments button[aria-pressed="true"] {
+  border-color: var(--wedly-bd);
+  background-color: var(--color-white);
+  color: var(--wedly-navy);
+  font-weight: 600;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--wedly-navy) 5%, transparent);
+}
+.policy-profile-wide .policy-profile-segments button[aria-pressed="true"]:not([data-value=""]) {
+  border-color: color-mix(in srgb, var(--wedly-accent) 40%, transparent);
+  background-color: var(--wedly-bg-blue);
+  color: var(--wedly-accent-ink);
+}
+.policy-profile-wide .policy-profile-certs {
+  gap: 6px;
+}
+.policy-profile-wide .policy-profile-certs button {
+  height: auto;
+  min-height: 40px;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 20px;
+}
+.policy-profile-wide .policy-profile-certs button::before {
+  border-color: var(--wedly-muted);
+  background-color: var(--color-white);
+  content: '';
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 3px;
+}
+.policy-profile-wide .policy-profile-certs button[aria-pressed="true"]::before {
+  border-color: var(--wedly-accent);
+  background-color: var(--wedly-accent);
+  color: var(--color-white);
+  content: '✓';
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  line-height: 12px;
+}
+.policy-profile-wide .policy-profile-field input,
+.policy-profile-wide .policy-profile-field button {
+  scroll-margin-top: calc(var(--policy-match-sticky-top, 12px) + 140px);
+  scroll-margin-bottom: 24px;
+}
+.policy-profile-wide .policy-profile-field > span {
+  font-size: 11px;
+  line-height: 16px;
+}
+@media (max-width: 1000px) {
+  .policy-match-intro {
+    display: block;
+  }
+  .policy-match-intro [data-area="step-bar"] {
+    margin-top: 12px;
+    margin-bottom: 12px;
+  }
+  .policy-profile-wide .policy-profile-section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .policy-profile-wide .policy-profile-section-head {
+    width: calc(100% + 48px);
+    margin: -20px -24px 0;
+    padding: 12px 24px;
+    border-right-width: 0;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+  }
+  .policy-profile-wide .policy-profile-section-count {
+    width: auto;
+    margin-left: auto;
+    padding-left: 0;
+  }
+}
+@media (max-width: 760px) {
+  .policy-match-intro-copy p {
+    font-size: 12px;
+  }
+  .policy-profile-wide .policy-profile-action {
+    top: var(--policy-match-sticky-top, 8px);
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+  .policy-profile-wide .policy-profile-progress {
+    flex-basis: 100%;
+  }
+  .policy-profile-wide .policy-profile-progress-label {
+    margin-right: 4px;
+    font-size: 12px;
+  }
+  .policy-profile-wide .policy-profile-remaining {
+    font-size: 11px;
+  }
+  .policy-profile-wide .policy-profile-match {
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    padding: 12px 16px;
+  }
+  .policy-profile-wide .policy-profile-imports {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px;
+  }
+  .policy-profile-wide .policy-profile-import {
+    padding: 14px;
+  }
+  .policy-profile-wide .policy-profile-file-action {
+    display: none;
+  }
+  .policy-profile-wide .policy-profile-section {
+    padding: 20px;
+  }
+  .policy-profile-wide .policy-profile-section-head {
+    width: calc(100% + 40px);
+    margin: -20px -20px 0;
+    padding: 12px 20px;
+  }
+  .policy-profile-wide .policy-profile-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .policy-profile-wide .policy-profile-field input,
+  .policy-profile-wide .policy-profile-field button {
+    scroll-margin-top: calc(var(--policy-match-sticky-top, 8px) + 175px);
+  }
+}
+@media (max-width: 380px) {
+  .policy-profile-wide .policy-profile-section {
+    padding: 16px;
+  }
+  .policy-profile-wide .policy-profile-section-head {
+    width: calc(100% + 32px);
+    margin: -16px -16px 0;
+    padding: 12px 16px;
+  }
+  .policy-profile-wide .policy-profile-upload-icon {
+    display: none;
+  }
+}

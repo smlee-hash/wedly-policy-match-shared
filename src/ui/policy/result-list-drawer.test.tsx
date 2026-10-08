@@ -535,8 +535,8 @@ describe("옮긴 자리 목록 — 기존 기능이 새 자리에 그대로 있�
   it("회사 정보 쪽: 고객 불러오기·서류 올리기·매칭 결과 보기가 본문 가운데 넓은 폼에 있다", () => {
     expect(처음화면).toContain('data-area="company-panel"');
     expect(처음화면).toContain("기존 고객 검색");
-    expect(처음화면).toContain("서류를 올리면 칸을 채워 드려요");
-    expect(처음화면).toContain("매칭 결과 보기 →");
+    expect(처음화면).toContain('aria-label="서류 파일 고르기"');
+    expect(처음화면).toContain("매칭 결과 보기");
     expect(화면글).toContain("prefillEndpoint={endpoints.prefill}");
     expect(화면글).toContain("documentPrefillEndpoint={endpoints.documentPrefill}");
     expect(화면글).toContain("documentPrefillMode={features?.documentPrefillMode}");

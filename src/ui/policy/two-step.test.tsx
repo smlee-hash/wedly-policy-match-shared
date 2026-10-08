@@ -210,11 +210,12 @@ describe("첫 렌더 — ① 회사 정보. 전체 공고 목록이 없고 annou
     expect(html).toContain("회사 정보");
     expect(html).toContain("매칭 결과");
     expect(html).toContain("어떤 회사의 지원정책을 찾을까요?");
-    expect(html).toContain("아는 칸만 채워도 됩니다. 모르는 칸은 결과에서 「확인 필요」로 따로 모아 보여 드려요.");
+    expect(html).toContain("아는 정보만 채워도 됩니다. 모르는 조건은 결과에서 ‘확인 필요’로 표시합니다.");
     expect(html).toContain("기존 고객 검색"); // 고객 불러오기
-    expect(html).toContain("15칸 중 0칸 채움 — 채울수록 「확인 필요」가 줄어요");
-    expect(html).toContain("매칭 결과 보기 →");
-    expect(html).toMatch(/data-area="company-panel"[^>]*class="[^"]*max-w-\[880px\]/);
+    expect(html).toContain("남은 정보 15개");
+    expect(html).toContain("매칭 결과 보기");
+    expect(html).toMatch(/data-area="company-panel"[^>]*class="[^"]*policy-match-company/);
+    expect(html).not.toContain("max-w-[880px]");
   });
 
   it("결과 단계 부품은 아직 없다 — 요약 줄·고치기·다른 회사·요약 탭", () => {
@@ -228,7 +229,7 @@ describe("첫 렌더 — ① 회사 정보. 전체 공고 목록이 없고 annou
   it("세 앱 공통 — 고객 표가 없는 랩 통로에서도 터지지 않고 불러오기 칸만 없다", () => {
     const { prefill: _p, documentPrefill: _d, ...랩통로 } = ERP_POLICY_MATCH_ENDPOINTS;
     const html = 글자(renderToStaticMarkup(<PolicyMatchScreen endpoints={랩통로} />));
-    expect(html).toContain("매칭 결과 보기 →");
+    expect(html).toContain("매칭 결과 보기");
     expect(html).not.toContain("기존 고객 검색");
   });
 
@@ -308,13 +309,15 @@ describe("ProfileForm layout — wide 는 ① 단계용, 기본 side 는 다른 
       ),
     );
 
-  it("wide: 고객 불러오기가 서류 올리기보다 위, 바닥은 「N칸 채움」과 「매칭 결과 보기 →」", () => {
+  it("wide: 맨 위 현황과 주 행동 다음에 고객·서류 모듈이 있다", () => {
     const html = 폼({ layout: "wide" });
     expect(html).toContain('data-layout="wide"');
     expect(html.indexOf("기존 고객 검색")).toBeGreaterThan(-1);
-    expect(html.indexOf("기존 고객 검색")).toBeLessThan(html.indexOf("서류를 올리면 칸을 채워 드려요"));
-    expect(html).toContain("15칸 중 0칸 채움 — 채울수록 「확인 필요」가 줄어요");
-    expect(html).toContain("매칭 결과 보기 →");
+    expect(html.indexOf("기존 고객 검색")).toBeLessThan(html.indexOf("서류로 채우기"));
+    expect(html.indexOf("입력한 정보")).toBeLessThan(html.indexOf("기존 고객 검색"));
+    expect(html.match(/data-meter-segment/g)).toHaveLength(15);
+    expect(html).toContain("남은 정보 15개");
+    expect(html).toContain("매칭 결과 보기");
     expect(html).not.toContain("매칭 진단");
     expect(html).not.toContain("조건 수정");
     expect(html).not.toContain("overflow-y-auto"); // 안쪽 스크롤 없음 — 본문이 넓게 펼쳐진다
@@ -323,12 +326,12 @@ describe("ProfileForm layout — wide 는 ① 단계용, 기본 side 는 다른 
   it("wide: 진단 중이면 단추 글자가 바뀌고 눌리지 않는다", () => {
     const html = 폼({ layout: "wide", diagnosing: true });
     expect(html).toContain("진단 중…");
-    expect(html).not.toContain("매칭 결과 보기 →");
+    expect(html).not.toContain("매칭 결과 보기");
   });
 
   it("wide 도 기존 칸·서류 올리기 칸·모름 표식은 그대로 있다", () => {
     const html = 폼({ layout: "wide" });
-    for (const t of ["상호", "사업자번호", "사업장 주소", "작년 연매출", "직원 수", "신용점수 NICE", "서류를 올리면 칸을 채워 드려요"]) {
+    for (const t of ["상호", "사업자번호", "사업장 주소", "작년 연매출", "직원 수", "신용점수 NICE", "서류로 채우기"]) {
       expect(html, t).toContain(t);
     }
     expect(html).toContain('data-unk="true"');
@@ -339,7 +342,7 @@ describe("ProfileForm layout — wide 는 ① 단계용, 기본 side 는 다른 
     expect(html).toContain('data-layout="side"');
     expect(html.indexOf("서류를 올리면 칸을 채워 드려요")).toBeLessThan(html.indexOf("기존 고객 검색"));
     expect(html).toContain("매칭 진단");
-    expect(html).not.toContain("매칭 결과 보기 →");
+    expect(html).not.toContain("매칭 결과 보기");
     expect(html).toContain("overflow-y-auto");
   });
 });
@@ -391,7 +394,7 @@ describe("배선 — 단계는 진단 성공일 때만 열리고, 고치기·다
   });
 
   it("폼은 단계를 오가도 계속 그려 숨기기만 한다 — 그래야 입력값이 남는다", () => {
-    expect(화면글).toMatch(/data-area="company-panel"\s+className=\{step === "company" \? "[^"]*max-w-\[880px\][^"]*" : "hidden"\}/);
+    expect(화면글).toMatch(/data-area="company-panel"\s+className=\{step === "company" \? "[^"]*policy-match-company[^"]*" : "hidden"\}/);
     expect(화면글).not.toMatch(/step === "company" && \(\s*<ProfileForm/);
     expect(화면글).toContain('layout="wide"');
     expect(화면글).toContain("key={formKey}");

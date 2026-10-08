@@ -111,6 +111,8 @@ export function forbiddenPaths(start: string, override: Record<string, string> =
       hits.push(path.join(" → "));
       continue;
     }
+    // CSS는 실행 코드가 아니다. 선택자의 import 글자를 TypeScript 호출로 해석하지 않는다.
+    if (f.endsWith(".css")) continue;
     const text = override[f] ?? readFileSync(f, "utf8");
     for (const spec of valueImports(text, f)) {
       if (spec === "?") {
@@ -161,5 +163,7 @@ describe("화면 부품은 수집원 명부를 브라우저 코드로 싣지 않
     expect(caught(`export type { SourceEntry } from "../funding/source-directory";`)).toBe(false);
     expect(caught(`// import { SOURCE_DIRECTORY } from "../funding/source-directory";`)).toBe(false);
     expect(caught(`import { ANNOUNCEMENT_SOURCE_LABELS } from "../funding/source-labels";`)).toBe(false);
+    expect(caught(`import "./policy/ProfileForm.css";`)).toBe(false);
+    expect(caught(`import "./policy/ProfileForm.css"; import "../funding/source-directory";`)).toBe(true);
   });
 });

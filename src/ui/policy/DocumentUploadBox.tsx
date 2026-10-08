@@ -4,6 +4,7 @@
 // 이 파일은 「올리는 일」(useDocumentUpload)과 「그리는 일」(DocumentUploadBox)만 한다.
 // 읽은 결과를 칸에 합치는 일은 ProfileForm 이 한다(applyDocumentFields).
 import { useRef, useState, type DragEvent } from "react";
+import { Upload } from "lucide-react";
 import {
   DOCUMENT_UPLOAD_LIMITS,
   type DocumentFileResult,
@@ -129,6 +130,8 @@ const KIND_BG: Record<FileKind, string> = {
 const KIND_BADGE = "inline-flex shrink-0 items-center justify-center rounded text-xs font-bold text-white";
 
 interface BoxProps {
+  /** 넓은 회사 정보 폼의 가져오기 모듈 — 기존 안내·결과·제한은 유지한다. */
+  compact?: boolean;
   files: UploadedFile[];
   busy: boolean;
   error: string;
@@ -142,52 +145,19 @@ interface BoxProps {
   onRemove: (id: number) => void;
 }
 
-export default function DocumentUploadBox({ files, busy, error, attached, attachNote = "", mode = "attach", onPick, onRemove }: BoxProps) {
+export default function DocumentUploadBox({ files, busy, error, attached, attachNote = "", mode = "attach", compact = false, onPick, onRemove }: BoxProps) {
   const [hot, setHot] = useState(false);
   const lab = mode === "lab";
-  const { maxFiles, maxFileBytes, acceptExtensions } = DOCUMENT_UPLOAD_LIMITS;
+  const { maxFiles, maxFileBytes, maxTotalBytes, acceptExtensions } = DOCUMENT_UPLOAD_LIMITS;
 
   const pick = (list: File[]) => {
     if (busy) return;
     onPick(list);
   };
 
-  return (
-    <div data-k="documents" className="mt-4">
-      {/* 칸 전체가 눌러 고르는 자리 — 안의 숨은 입력이 키보드로도 닿고, 끌어 놓기도 여기서 받는다. */}
-      <label
-        className={`block cursor-pointer rounded-xl border-[1.5px] border-dashed p-4 text-center transition-colors focus-within:ring-2 focus-within:ring-wedly-accent ${
-          hot ? "border-wedly-accent bg-wedly-bg-blue" : "border-wedly-accent/40 bg-wedly-bg-gray"
-        }`}
-        onDragOver={(e: DragEvent<HTMLLabelElement>) => {
-          e.preventDefault();
-          setHot(true);
-        }}
-        onDragLeave={() => setHot(false)}
-        onDrop={(e: DragEvent<HTMLLabelElement>) => {
-          e.preventDefault();
-          setHot(false);
-          pick(Array.from(e.dataTransfer?.files ?? []));
-        }}
-      >
-        <span className="block text-sm font-semibold leading-[22px] text-wedly-t1">서류를 올리면 칸을 채워 드려요</span>
-        <span className="mt-1 block text-xs leading-[18px] text-wedly-t2">
-          여기로 끌어 놓거나 눌러서 고르세요 · 여러 개 한 번에
-        </span>
-        <input
-          type="file"
-          multiple
-          accept={acceptExtensions.join(",")}
-          disabled={busy}
-          className="sr-only"
-          onChange={(e) => {
-            const picked = Array.from(e.target.files ?? []);
-            e.target.value = ""; // 같은 파일을 다시 골라도 변경으로 잡히게 비운다
-            pick(picked);
-          }}
-        />
-
-        <span className="mt-4 grid grid-cols-5 gap-1.5">
+  const formatInfo = (
+    <>
+      <span className="mt-4 grid grid-cols-5 gap-1.5">
           {FORMAT_CARDS.map((c) => (
             <span
               key={c.kind}
@@ -219,7 +189,76 @@ export default function DocumentUploadBox({ files, busy, error, attached, attach
             </span>
           ))}
         </span>
+    </>
+  );
+
+  return (
+    <div data-k="documents" data-compact={compact || undefined} className={compact ? "policy-profile-upload" : "mt-4"}>
+      {/* 칸 전체가 눌러 고르는 자리 — 안의 숨은 입력이 키보드로도 닿고, 끌어 놓기도 여기서 받는다. */}
+      <label
+        className={`${compact ? "policy-profile-dropzone " : ""}block cursor-pointer rounded-xl border-[1.5px] border-dashed p-4 text-center transition-colors focus-within:ring-2 focus-within:ring-wedly-accent ${
+          hot ? "border-wedly-accent bg-wedly-bg-blue" : "border-wedly-accent/40 bg-wedly-bg-gray"
+        }`}
+        onDragOver={(e: DragEvent<HTMLLabelElement>) => {
+          e.preventDefault();
+          setHot(true);
+        }}
+        onDragLeave={() => setHot(false)}
+        onDrop={(e: DragEvent<HTMLLabelElement>) => {
+          e.preventDefault();
+          setHot(false);
+          pick(Array.from(e.dataTransfer?.files ?? []));
+        }}
+      >
+        {compact ? (
+          <>
+            <Upload aria-hidden="true" className="policy-profile-upload-icon" />
+            <span className="policy-profile-drop-copy">
+              <strong>서류를 끌어 놓거나 파일을 골라 주세요</strong>
+              <span>PDF · 엑셀 · 한글(HWPX) · 워드 · 이미지 등</span>
+            </span>
+            <span className="policy-profile-file-action">파일 고르기</span>
+          </>
+        ) : (
+          <>
+            <span className="block text-sm font-semibold leading-[22px] text-wedly-t1">서류를 올리면 칸을 채워 드려요</span>
+            <span className="mt-1 block text-xs leading-[18px] text-wedly-t2">
+              여기로 끌어 놓거나 눌러서 고르세요 · 여러 개 한 번에
+            </span>
+          </>
+        )}
+        <input
+          type="file"
+          multiple
+          accept={acceptExtensions.join(",")}
+          disabled={busy}
+          aria-label="서류 파일 고르기"
+          className="sr-only"
+          onChange={(e) => {
+            const picked = Array.from(e.target.files ?? []);
+            e.target.value = ""; // 같은 파일을 다시 골라도 변경으로 잡히게 비운다
+            pick(picked);
+          }}
+        />
+
+        {!compact && formatInfo}
+
       </label>
+      {compact && (
+        <div className="policy-profile-upload-info">
+          <span>{`한 번에 ${maxFiles}개 · 파일당 ${maxFileBytes / MB}MB · 합계 ${maxTotalBytes / MB}MB`}</span>
+          <details>
+            <summary>지원 서류·저장 안내</summary>
+            {formatInfo}
+            <p data-doc-note={mode} className="mt-2 text-xs leading-[18px] text-wedly-t2">
+              {lab
+                ? "서류를 저장하지 않아요. 사진·스캔본은 글자 있는 PDF로 올려 주세요"
+                : "고객을 불러온 상태면 올린 서류를 그 고객 자료에 붙여 둡니다"}
+            </p>
+          </details>
+        </div>
+      )}
+
 
       {busy && (
         <div role="status" className="mt-2 text-xs leading-[18px] text-wedly-t2">
@@ -266,11 +305,13 @@ export default function DocumentUploadBox({ files, busy, error, attached, attach
         </ul>
       )}
 
+      {!compact && (
       <p data-doc-note={mode} className="mt-2 text-xs leading-[18px] text-wedly-t2">
         {lab
           ? "서류를 저장하지 않아요. 사진·스캔본은 글자 있는 PDF로 올려 주세요"
           : "고객을 불러온 상태면 올린 서류를 그 고객 자료에 붙여 둡니다"}
       </p>
+      )}
       {!lab && attached && (
         <p className="mt-1 text-xs leading-[18px] text-wedly-green-ink">올린 서류를 고객 자료에 붙여 두었습니다</p>
       )}

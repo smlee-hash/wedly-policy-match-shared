@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import React from "react";
-import ProfileForm from "./ProfileForm";
+import ProfileForm, { type ProfileFormStatus } from "./ProfileForm";
 import type { BusinessProfile } from "../../engine/match-engine";
 import { DOCUMENT_UPLOAD_LIMITS, type DocumentPrefillResult } from "../../documents/types";
 
@@ -23,12 +23,15 @@ type 마디 = { type: unknown; props: Record<string, unknown> };
 type 그림 = 마디 | string | number | null | 그림[];
 
 class 손React {
+  constructor(private readonly 효과실행 = false) {}
+
   /** 부품 한 자리(자리이름)마다의 상태 칸. 화면에서 빠지면 통째로 버린다 = 사라짐. */
   private 칸 = new Map<string, unknown[]>();
   private 이번에본 = new Set<string>();
   private 지금칸: unknown[] = [];
   private 지금자리 = 0;
   private 뿌리: React.ReactElement | null = null;
+  private 효과: Array<() => void> = [];
   tree: 그림 = null;
 
   private 살림 = {
@@ -49,7 +52,7 @@ class 손React {
     },
     useMemo: (fn: () => unknown) => fn(),
     useCallback: (fn: unknown) => fn,
-    useEffect: () => {},
+    useEffect: (fn: () => void) => { if (this.효과실행) this.효과.push(fn); },
     useLayoutEffect: () => {},
   };
 
@@ -62,10 +65,12 @@ class 손React {
     try {
       this.뿌리 = el;
       this.이번에본.clear();
+      this.효과 = [];
       this.tree = this.그리기(el, "0");
       for (const 자리 of [...this.칸.keys()]) {
         if (!this.이번에본.has(자리)) this.칸.delete(자리);
       }
+      for (const fn of this.효과) fn();
       return this.tree;
     } finally {
       REACT_INTERNALS.H = 앞살림;
@@ -242,9 +247,11 @@ async function 고객불러오기(화면: 손React, data: BusinessProfile, 검�
 function 엔터로불러오기(화면: 손React): 그림 {
   const input = 칸찾기(화면.tree, 검색안내);
   if (!input) throw new Error("기존 고객 검색 칸이 화면에 없다");
-  (input.props.onKeyDown as (e: { key: string; nativeEvent: { isComposing: boolean } }) => void)({
+  (input.props.onKeyDown as (e: unknown) => void)({
     key: "Enter",
     nativeEvent: { isComposing: false },
+    preventDefault: () => {},
+    stopPropagation: () => {},
   });
   return 화면.다시그리기();
 }
@@ -317,6 +324,133 @@ function 진단하기(화면: 손React, 받은: BusinessProfile[]): BusinessProf
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+// 승인 v5: 실제 입력과 유효값으로만 현황을 센다. DOM 크기는 별도 브라우저 대조가 맡는다.
+function 넓은폼(props: Partial<Parameters<typeof ProfileForm>[0]> = {}) {
+  const 상태: ProfileFormStatus[] = [];
+  const 받은: BusinessProfile[] = [];
+  const 화면 = new 손React(true);
+  화면.render(<ProfileForm
+    layout="wide" diagnosing={false} prefillEndpoint="/api/prefill"
+    onStatusChange={(status) => 상태.push(status)}
+    onDiagnose={async (profile) => { 받은.push(profile); return false; }}
+    {...props}
+  />);
+  화면.다시그리기(); // 초기 복원이 있으면 효과에서 채운 뒤의 실제 입력을 본다.
+  return { 화면, 상태, 받은 };
+}
+
+function 현황대조(화면: 손React, 상태: ProfileFormStatus[], 기대: number[]) {
+  const 마디들 = [...모든마디(화면.tree)];
+  const 수 = 기대.reduce((sum, n) => sum + n, 0);
+  const 막대 = 마디들.find((node) => node.props.role === "progressbar")!;
+  expect(막대.props["aria-valuenow"]).toBe(수);
+  expect(막대.props["aria-valuemax"]).toBe(15);
+  expect(마디들.filter((node) => node.props["data-meter-segment"] !== undefined && node.props["data-done"] === true)).toHaveLength(수);
+  expect(마디들.filter((node) => node.props["data-filled"] === true)).toHaveLength(수);
+  const 구역 = 마디들.filter((node) => node.props["data-section-count"] !== undefined);
+  expect(구역.map((node) => node.props["data-completed"])).toEqual(기대);
+  expect(상태.at(-1)).toEqual({ filledCount: 수, total: 15, unknownCount: 15 - 수 });
+}
+
+describe("ProfileForm v5 — 전체·구역·입력 바탕이 같은 유효값을 쓴다", () => {
+  it("공백·읽지 못한 주소·짧은 사업자번호·범위 밖 점수는 채움으로 세지 않고 0은 센다", () => {
+    const { 화면, 상태, 받은 } = 넓은폼();
+    현황대조(화면, 상태, [0, 0, 0, 0]);
+    칸적기(화면, "name", "   ");
+    칸적기(화면, "address", "주소 확인 전");
+    칸적기(화면, "bizno", "123");
+    칸적기(화면, "nice", "1200");
+    칸적기(화면, "kcb", "299");
+    현황대조(화면, 상태, [0, 0, 0, 0]);
+    for (const key of ["bizno", "nice", "kcb"]) {
+      expect(칸덩어리(화면.tree, key).props["data-filled"]).toBe(false);
+      expect(칸덩어리(화면.tree, key).props["data-unk"]).toBe("true");
+      expect(칸입력(화면.tree, key).props["aria-invalid"]).toBe(true);
+    }
+    for (const key of ["revenue", "employees", "loan", "patent"]) 칸적기(화면, key, "0");
+    현황대조(화면, 상태, [0, 2, 1, 1]);
+    칸단추누르기(화면, "tax", "없음");
+    칸단추누르기(화면, "cert", "없음");
+    현황대조(화면, 상태, [0, 2, 1, 3]);
+    const certSection = [...모든마디(화면.tree)].find((node) => node.props["data-section"] === "cert")!;
+    expect(certSection.props["data-complete"]).toBe(true);
+    누르기(화면, "매칭 결과 보기");
+    expect(받은[0]).toMatchObject({ lastYearRevenueKrw: 0, employeeCount: 0, existingLoanBalanceManwon: 0, patentCount: 0, taxDelinquent: false, hasCert: false });
+    expect(받은[0].bizno).toBeUndefined();
+    expect(받은[0].creditScoreNice).toBeUndefined();
+    expect(받은[0].creditScoreKcb).toBeUndefined();
+    칸적기(화면, "nice", "300");
+    칸적기(화면, "kcb", "1000");
+    현황대조(화면, 상태, [0, 2, 3, 3]);
+    칸단추누르기(화면, "cert", "없음");
+    현황대조(화면, 상태, [0, 2, 3, 2]);
+  });
+
+  it("옛 지역과 인증·특허·대출 상태도 전체·구역·입력 표시와 진단에 그대로 반영한다", () => {
+    const { 화면, 상태, 받은 } = 넓은폼({ initialProfile: {
+      companyName: "지역고객", region: "경기", regionSigungu: "안양시",
+      hasCert: true, hasPatent: true, hasExistingLoan: true,
+    } });
+    현황대조(화면, 상태, [2, 0, 1, 2]);
+    expect(칸값(화면.tree, "address")).toBe("");
+    expect(칸글자(화면.tree, "address")).toContain("지역 조건: 경기 · 안양시");
+    for (const key of ["address", "cert", "patent", "loan"]) {
+      expect(칸덩어리(화면.tree, key).props["data-filled"]).toBe(true);
+      expect(칸덩어리(화면.tree, key).props["data-unk"]).toBeUndefined();
+    }
+    누르기(화면, "매칭 결과 보기");
+    expect(받은[0]).toMatchObject({ region: "경기", regionSigungu: "안양시", hasCert: true, hasPatent: true, hasExistingLoan: true });
+    칸적기(화면, "address", "주소 확인 전");
+    칸적기(화면, "loan", "");
+    칸적기(화면, "patent", "");
+    칸단추누르기(화면, "cert", "벤처");
+    칸단추누르기(화면, "cert", "벤처");
+    현황대조(화면, 상태, [1, 0, 0, 0]);
+  });
+
+  it("15개를 모두 채운 뒤 비우면 해당 구역과 전체 상태가 함께 줄어든다", () => {
+    const { 화면, 상태 } = 넓은폼();
+    for (const [key, value] of [
+      ["name", "고객회사"], ["bizno", "1238145678"], ["industry", "제조업"], ["address", "경기 화성시"], ["founded", "2019-03-20"],
+      ["revenue", "0"], ["employees", "0"], ["loan", "0"], ["nice", "300"], ["kcb", "1000"], ["patent", "0"],
+    ]) 칸적기(화면, key, value);
+    칸단추누르기(화면, "scale", "중소기업");
+    칸단추누르기(화면, "tax", "없음");
+    칸단추누르기(화면, "cert", "없음");
+    현황대조(화면, 상태, [6, 3, 3, 3]);
+    칸적기(화면, "employees", "");
+    칸단추누르기(화면, "corp", "모름");
+    현황대조(화면, 상태, [5, 2, 3, 3]);
+  });
+});
+
+describe("ProfileForm v5 — 검색 Enter는 매칭하지 않는다", () => {
+  it.each([
+    { isComposing: false, keyCode: 13, calls: 1 },
+    { isComposing: true, keyCode: 13, calls: 0 },
+    { isComposing: false, keyCode: 229, calls: 0 },
+  ])("조합=$isComposing · 키코드=$keyCode에서 기본 제출을 막는다", async ({ isComposing, keyCode, calls }) => {
+    const fetchSpy = vi.fn(async () => ({ json: async () => ({ success: true, data: { companyName: "찾은고객" } }) }));
+    vi.stubGlobal("fetch", fetchSpy);
+    const { 화면, 받은 } = 넓은폼();
+    적기(화면, 검색안내, "찾은고객");
+    const search = 칸찾기(화면.tree, 검색안내)!;
+    const preventDefault = vi.fn();
+    const stopPropagation = vi.fn();
+    (search.props.onKeyDown as (event: unknown) => void)({ key: "Enter", nativeEvent: { isComposing, keyCode }, preventDefault, stopPropagation });
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(stopPropagation).toHaveBeenCalledOnce();
+    expect(fetchSpy).toHaveBeenCalledTimes(calls);
+    expect(받은).toHaveLength(0);
+    if (calls) {
+      await 불러온뒤그리기(화면, "찾은고객");
+      expect(fetchSpy).toHaveBeenCalledWith("/api/prefill?query=%EC%B0%BE%EC%9D%80%EA%B3%A0%EA%B0%9D");
+      누르기(화면, "매칭 결과 보기");
+      expect(받은[0].companyName).toBe("찾은고객");
+    }
+  });
 });
 
 describe("ProfileForm — 시군구는 칸 없이 통과시킨다(리뷰 F1)", () => {

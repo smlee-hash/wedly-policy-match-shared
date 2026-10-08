@@ -3,7 +3,8 @@
 // 사업자 정보 입력 — 이 화면의 주인공. 여기서 넣은 값이 매칭 진단의 입력이 된다.
 // 모르는 칸은 「모름」으로 두면 그 조건은 「확인 필요」로 분류된다(모름을 통과로 치지 않는다).
 // 칸은 값의 모양에 맞게 받는다(2026-10-05 사장님 지시) — 글자·숫자(쉼표·단위)·날짜·단추·칩. 셀렉트는 쓰지 않는다.
-import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
+import { ArrowRight, Building2, ChartNoAxesColumnIncreasing, FileText, Search, ShieldCheck } from "lucide-react";
 import { isCorporationByBizno, type BusinessProfile } from "../../engine/match-engine";
 import { CERT_TYPE_NAMES, deriveProfileFlags, readRegionFromAddress } from "../../engine/profile-derive";
 import type { DocumentFieldKey, DocumentPrefillResult, DocumentType } from "../../documents/types";
@@ -21,6 +22,7 @@ import {
   type DocumentChoice,
   type FormFieldKey,
 } from "./document-prefill";
+import "./ProfileForm.css";
 
 /**
  * 시도 — 고객 불러오기 응답의 옛 소재지(region)가 대조 엔진의 지역 사전과 같은 줄임말일 때만 쓴다
@@ -42,6 +44,15 @@ const TAX_OPTIONS = [["", "모름"], ["no", "없음"], ["yes", "있음"]] as con
 
 /** 예/아니오/모름 — 빈 값이 「모름」이다. */
 type Tri = "" | "yes" | "no";
+
+type ProfileFieldKey = FormFieldKey | "name" | "loan" | "nice" | "kcb";
+
+const PROFILE_SECTIONS = [
+  { key: "basic", title: "기본 정보", Icon: Building2, fields: ["name", "bizno", "corp", "industry", "address", "founded"] },
+  { key: "scale", title: "규모", Icon: ChartNoAxesColumnIncreasing, fields: ["revenue", "employees", "scale"] },
+  { key: "credit", title: "신용·대출", Icon: ChartNoAxesColumnIncreasing, fields: ["loan", "nice", "kcb"] },
+  { key: "cert", title: "체납·인증", Icon: ShieldCheck, fields: ["tax", "cert", "patent"] },
+] as const;
 
 // ── 화면 계약(DESIGN.md) ────────────────────────────────────────────────
 // 글자 4층: 구역 소제목 16/600 · 본문 14/400(줄간 22) · 메타·도움말 12/400(줄간 18).
@@ -217,29 +228,37 @@ function useCustomerPrefill(
  * 기존 고객 검색 한 줄 — **통로가 있는 앱에서만** 그려진다(ProfileForm 이 조건부로 그린다).
  * 상태와 불러오는 코드는 부모가 든다(위 `useCustomerPrefill`) — 이 부품은 그리기만 한다.
  */
-function CustomerPrefill({ prefill }: { prefill: CustomerPrefillState }) {
+function CustomerPrefill({ prefill, compact = false }: { prefill: CustomerPrefillState; compact?: boolean }) {
   const { query, setQuery, prefilling, prefillNote, loadCustomer } = prefill;
 
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-2">
+    <div className={compact ? "policy-profile-customer" : "mt-4 flex flex-wrap items-center gap-2"}>
+      {compact && <h3 className="policy-profile-import-title text-wedly-section"><Search aria-hidden="true" />기존 고객 불러오기</h3>}
+      <div className={compact ? "policy-profile-search-row" : "contents"}>
       <input
+        aria-label="고객 상호 또는 사업자번호"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.nativeEvent.isComposing) void loadCustomer();
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          e.stopPropagation();
+          if (!e.nativeEvent.isComposing && e.nativeEvent.keyCode !== 229) void loadCustomer();
         }}
         placeholder="기존 고객 검색 (사업자번호 또는 상호)"
-        className={`${INPUT_BASE} w-72 max-w-full`}
+        className={`${INPUT_BASE} ${compact ? "policy-profile-search-input" : "w-72 max-w-full"}`}
       />
       <button
         type="button"
         onClick={() => void loadCustomer()}
         disabled={prefilling}
-        className={BTN_SECONDARY}
+        className={compact ? `policy-profile-search-button ${BTN_SECONDARY}` : BTN_SECONDARY}
       >
-        {prefilling ? "불러오는 중…" : "불러오기"}
+        {prefilling ? "불러오는 중…" : compact ? "찾기" : "불러오기"}
       </button>
-      {prefillNote && <span className="text-xs leading-[18px] text-wedly-t2">{prefillNote}</span>}
+      </div>
+      {compact && <p className="policy-profile-import-hint">등록된 고객이면 보유 정보를 바로 불러옵니다.</p>}
+      {prefillNote && <span role="status" className="text-xs leading-[18px] text-wedly-t2">{prefillNote}</span>}
     </div>
   );
 }
@@ -251,7 +270,7 @@ function CustomerPrefill({ prefill }: { prefill: CustomerPrefillState }) {
  * 이름표를 눌렀을 때 첫 단추가 눌린다.
  */
 function Field({
-  k, label, chip, wide, group, dim, help, helpAccent, note, error, children,
+  k, label, chip, wide, group, dim, filled, help, helpAccent, note, error, children,
 }: {
   k: string;
   label: string;
@@ -261,6 +280,8 @@ function Field({
   group?: boolean;
   /** 모름이라 흐리게 보일 칸인가 */
   dim?: boolean;
+  /** 넓은 폼의 공통 유효값 판정 — 현황·구역 수·입력 바탕 모두 이 값을 쓴다. */
+  filled?: boolean;
   help?: string;
   /** 도움말이 「읽은 결과」일 때(지역 조건·금액) 파랑 글자 */
   helpAccent?: boolean;
@@ -271,7 +292,12 @@ function Field({
 }) {
   const Tag = group ? "div" : "label";
   return (
-    <div data-k={k} data-unk={dim ? "true" : undefined} className={wide ? "sm:col-span-2" : undefined}>
+    <div
+      data-k={k}
+      data-filled={filled}
+      data-unk={(filled === undefined ? dim : !filled) ? "true" : undefined}
+      className={`policy-profile-field${wide ? " sm:col-span-2" : ""}`}
+    >
       <Tag
         className="block"
         role={group ? "group" : undefined}
@@ -279,16 +305,16 @@ function Field({
       >
         {chip ? (
           <span className="flex flex-wrap items-center gap-2">
-            <span className={LABEL}>{label}</span>
+            <span className={`policy-profile-label ${LABEL}`}>{label}</span>
             <span data-src={chip} className="rounded bg-wedly-bg-blue px-2 text-xs leading-[18px] text-wedly-accent-ink">
               {chip}
             </span>
           </span>
         ) : (
-          <span className={LABEL}>{label}</span>
+          <span className={`policy-profile-label ${LABEL}`}>{label}</span>
         )}
         {/* 「모름」 칸은 투명도로 흐리지 않는다 — 글자 대비가 4.5 아래로 떨어진다(관문 axe 2.47~3.26). 표시는 data-unk 와 「모름」 단추로만. */}
-        <span className="mt-1 block">{children}</span>
+        <span className="policy-profile-control mt-1 block">{children}</span>
       </Tag>
       {note && <span className="mt-1 block text-xs leading-[18px] text-wedly-t2">{note}</span>}
       {error ? (
@@ -317,7 +343,7 @@ function ChoiceBox({
 }) {
   const handOn = choice.hand !== undefined && sameFieldValue(choice.field, choice.hand, current);
   return (
-    <div data-conflict={choice.field} className={`sm:col-span-2 ${BOX_WARN}`}>
+    <div data-conflict={choice.field} className={`policy-profile-conflict sm:col-span-2 ${BOX_WARN}`}>
       <span className="block text-xs font-semibold leading-[18px] text-wedly-gold-ink">{choiceTitle(choice)}</span>
       <span className="mt-1 flex flex-wrap gap-1">
         {choice.hand !== undefined && (
@@ -356,9 +382,9 @@ function certChipsOf(list: unknown): string[] {
 /** 입력 한 줄 — 뒤에 단위(만원·명·건·점)가 붙을 수 있다. */
 function InputRow({ suffix, ...input }: { suffix?: string } & InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <span className="flex items-center gap-2">
+    <span className="policy-profile-input-row flex items-center gap-2">
       <input {...input} className={`${INPUT_BASE} min-w-0 flex-1`} />
-      {suffix && <span className="shrink-0 text-xs leading-[18px] text-wedly-muted">{suffix}</span>}
+      {suffix && <span className="policy-profile-unit shrink-0 text-xs leading-[18px] text-wedly-muted">{suffix}</span>}
     </span>
   );
 }
@@ -372,12 +398,13 @@ function Segmented({
   onPick: (v: string) => void;
 }) {
   return (
-    <span className="flex flex-wrap gap-1">
+    <span className="policy-profile-segments flex flex-wrap gap-1">
       {options.map(([v, text]) => (
         <button
           key={v || "unknown"}
           type="button"
           aria-pressed={value === v}
+          data-value={v}
           onClick={() => onPick(v)}
           className={value === v ? PICK_ON : PICK_OFF}
         >
@@ -397,7 +424,7 @@ function ChipGroup({
   onToggle: (name: string) => void;
 }) {
   return (
-    <span className="flex flex-wrap gap-1">
+    <span className="policy-profile-certs flex flex-wrap gap-1">
       {names.map((name) => (
         <button
           key={name}
@@ -502,23 +529,24 @@ export default function ProfileForm({
       : "";
 
   /** 칸마다 「채웠나」 — 15칸. 범위 밖 신용점수·10자리가 안 되는 사업자번호는 진단에 안 담기므로 안 센다. */
-  const filled = [
-    companyName.trim() !== "",
-    biznoDigits.length === 10,
-    isCorp !== "",
-    industry.trim() !== "",
-    regionText !== "",
-    foundedDate !== "",
-    revenueNum !== undefined,
-    employeeNum !== undefined,
-    companyScale !== "",
-    taxDelinquent !== "",
-    certTypes.length > 0 || legacyHasCert !== undefined,
-    patentNum !== undefined || legacyHasPatent !== undefined,
-    loanNum !== undefined || legacyHasLoan !== undefined,
-    niceScore !== undefined,
-    kcbScore !== undefined,
-  ];
+  const filledFields: Record<ProfileFieldKey, boolean> = {
+    name: companyName.trim() !== "",
+    bizno: biznoDigits.length === 10,
+    corp: isCorp !== "",
+    industry: industry.trim() !== "",
+    address: regionText !== "",
+    founded: foundedDate !== "",
+    revenue: revenueNum !== undefined,
+    employees: employeeNum !== undefined,
+    scale: companyScale !== "",
+    tax: taxDelinquent !== "",
+    cert: certTypes.length > 0 || legacyHasCert !== undefined,
+    patent: patentNum !== undefined || legacyHasPatent !== undefined,
+    loan: loanNum !== undefined || legacyHasLoan !== undefined,
+    nice: niceScore !== undefined,
+    kcb: kcbScore !== undefined,
+  };
+  const filled = Object.values(filledFields);
   const filledCount = filled.filter(Boolean).length;
   const unknownCount = filled.length - filledCount;
 
@@ -823,11 +851,354 @@ export default function ProfileForm({
   };
   // 그 칸의 「서류마다 달라요」 노란 상자 — 칸 아래 전폭으로 끼운다.
   const nowProfile = buildProfileWithRaw(); // 쓰던 원문이 있는 칸은 「직접 넣은 값」 단추가 눌린 것으로 보인다
-  const choiceFor = (form: FormFieldKey) => {
+  const choiceFor = (form: ProfileFieldKey) => {
+    if (form === "name" || form === "loan" || form === "nice" || form === "kcb") return null;
     const c = choices.find((x) => formFieldOf(x.field) === form);
     return c ? <ChoiceBox choice={c} current={nowProfile[c.field]} onPick={(i) => pickChoice(c, i)} /> : null;
   };
   const docFilledCount = docFilled.length;
+
+  // 두 배치가 같은 입력·손수정·서류 선택 함수를 쓴다. 넓은 폼만 구역을 네 줄로 배치한다.
+  const fieldNodes: Record<ProfileFieldKey, ReactNode> = {
+    name: (
+      <Field k="name" filled={wide ? filledFields.name : undefined} label="상호" wide>
+        <InputRow
+          value={companyName}
+          onChange={(e) => {
+            setCompanyName(e.target.value);
+            // 상호만 다른 회사로 고치면 **앞 고객의 번호가 그대로 실려 나간다**.
+            // 손으로 고치는 순간 사업자번호를 비운다 — 불러오기로는 다시 채워진다
+            // (2026-08-22 독립 화면 검사 5번).
+            setBizno("");
+            dropOrigin("bizno");
+            setCustomerKey(""); // 다른 회사로 고쳤으니 서류를 앞 고객 자료에 붙이지 않는다
+            doc.reset(); // 올리는 중이던 서류는 끊고 늦게 오는 답은 버린다. 올린 파일 목록도 비운다(고객을 새로 불러올 때와 같은 길)
+          }}
+          placeholder="예: 가상테크"
+        />
+      </Field>
+    ),
+    bizno: (
+      <Field
+        k="bizno" filled={wide ? filledFields.bizno : undefined}
+        label="사업자번호"
+        chip={chipOf("bizno")}
+        error={
+          biznoDigits.length > 0 && biznoDigits.length < 10
+            ? "10자리를 모두 넣어 주세요 — 지금은 모름으로 처리됩니다"
+            : undefined
+        }
+      >
+        <InputRow
+          aria-invalid={biznoDigits.length > 0 && biznoDigits.length < 10 || undefined}
+          inputMode="numeric"
+          maxLength={12}
+          value={bizno}
+          onChange={(e) => {
+            const masked = maskBizno(e.target.value);
+            setBiznoValue(masked); // 불러온 번호에서 벗어나면 열쇠도 비운다(서류가 번호를 바꿀 때와 같은 길)
+            hand("bizno");
+            // 10자리가 되면 번호 가운데 두 자리로 법인·개인을 맞춘다(못 가르면 모름).
+            if (masked.replace(/\D/g, "").length === 10) {
+              const byBizno = isCorporationByBizno(masked);
+              setIsCorp(byBizno === null ? "" : byBizno ? "yes" : "no");
+              dropOrigin("isCorporation"); // 번호가 맞춘 값이라 서류 출처가 아니다
+            }
+          }}
+          placeholder="000-00-00000"
+        />
+      </Field>
+    ),
+    corp: (
+      <Field k="corp" filled={wide ? filledFields.corp : undefined} label="법인·개인" chip={chipOf("corp")} group dim={isCorp === ""} help="사업자번호를 넣으면 자동">
+        <Segmented
+          options={CORP_OPTIONS}
+          value={isCorp}
+          onPick={(v) => {
+            setIsCorp(v as Tri);
+            hand("isCorporation");
+          }}
+        />
+      </Field>
+    ),
+    industry: (
+      <Field k="industry" filled={wide ? filledFields.industry : undefined} label="주업종" chip={chipOf("industry")} wide>
+        <InputRow
+          value={industry}
+          onChange={(e) => {
+            setIndustry(e.target.value);
+            hand("industry");
+          }}
+          placeholder="예: 전자부품 제조업"
+        />
+      </Field>
+    ),
+    address: (
+      <Field
+        k="address" filled={wide ? filledFields.address : undefined}
+        label="사업장 주소"
+        chip={chipOf("address")}
+        wide
+        help={regionText ? `지역 조건: ${regionText}` : "주소를 넣으면 시도·시군구를 읽어 지역 조건에 씁니다"}
+        helpAccent={regionText !== ""}
+      >
+        <InputRow
+          value={businessAddress}
+          onChange={(e) => {
+            setBusinessAddress(e.target.value);
+            // 사람이 주소를 직접 고치면 불러온 옛 소재지와 어긋난다 — 비운다(리뷰 F1).
+            setRegion("");
+            setRegionSigungu("");
+            hand("businessAddress", "region", "regionSigungu");
+          }}
+          placeholder="예: 경기 화성시 동탄대로 000"
+        />
+      </Field>
+    ),
+    founded: (
+      <Field k="founded" filled={wide ? filledFields.founded : undefined} label="설립일(개업일)" chip={chipOf("founded")}>
+        <InputRow
+          type="date"
+          value={foundedDate}
+          onChange={(e) => {
+            setFoundedDate(e.target.value);
+            hand("foundedDate");
+          }}
+        />
+      </Field>
+    ),
+    revenue: (
+      <Field
+        k="revenue" filled={wide ? filledFields.revenue : undefined}
+        label="작년 연매출"
+        chip={chipOf("revenue")}
+        help={revenueNum !== undefined ? `= ${manwonToKorean(revenueNum)}` : "세금 신고 매출 기준"}
+        helpAccent={revenueNum !== undefined}
+      >
+        <InputRow
+          inputMode="numeric"
+          value={revenueManwon}
+          onChange={(e) => {
+            setRevenueManwon(formatCount(e.target.value));
+            hand("lastYearRevenueKrw");
+          }}
+          placeholder="예: 120,000"
+          suffix="만원"
+        />
+      </Field>
+    ),
+    employees: (
+      <Field k="employees" filled={wide ? filledFields.employees : undefined} label="직원 수" chip={chipOf("employees")} help="4대보험 가입 인원">
+        <InputRow
+          inputMode="numeric"
+          value={employeeCount}
+          onChange={(e) => {
+            setEmployeeCount(formatCount(e.target.value));
+            hand("employeeCount");
+          }}
+          placeholder="예: 8"
+          suffix="명"
+        />
+      </Field>
+    ),
+    scale: (
+      <Field k="scale" filled={wide ? filledFields.scale : undefined} label="기업 규모" chip={chipOf("scale")} wide group dim={companyScale === ""}>
+        <Segmented
+          options={SCALE_OPTIONS}
+          value={companyScale}
+          onPick={(v) => {
+            setCompanyScale(v);
+            hand("companyScale");
+          }}
+        />
+      </Field>
+    ),
+    tax: (
+      <Field k="tax" filled={wide ? filledFields.tax : undefined} label="세금·4대보험 체납" chip={chipOf("tax")} wide group dim={taxDelinquent === ""}>
+        <Segmented
+          options={TAX_OPTIONS}
+          value={taxDelinquent}
+          onPick={(v) => {
+            setTaxDelinquent(v as Tri);
+            hand("taxDelinquent");
+          }}
+        />
+      </Field>
+    ),
+    cert: (
+      <Field
+        k="cert" filled={wide ? filledFields.cert : undefined}
+        label="보유 인증 (여러 개 고르기)"
+        chip={chipOf("cert")}
+        wide
+        group
+        dim={certTypes.length === 0}
+        note={legacyHasCert ? "인증 있음(종류 모름)" : undefined}
+      >
+        <ChipGroup names={CERT_TYPE_NAMES} selected={certTypes} onToggle={toggleCert} />
+      </Field>
+    ),
+    patent: (
+      <Field
+        k="patent" filled={wide ? filledFields.patent : undefined}
+        label="특허·지재권"
+        chip={chipOf("patent")}
+        dim={patentCount === ""}
+        note={legacyHasPatent ? "특허 있음(건수 모름)" : undefined}
+        help="없으면 0"
+      >
+        <InputRow
+          inputMode="numeric"
+          value={patentCount}
+          onChange={(e) => {
+            setPatentCount(formatCount(e.target.value));
+            setLegacyHasPatent(undefined);
+            hand("patentCount", "hasPatent");
+          }}
+          placeholder="모름"
+          suffix="건"
+        />
+      </Field>
+    ),
+    loan: (
+      <Field
+        k="loan" filled={wide ? filledFields.loan : undefined}
+        label="기존 대출 잔액"
+        dim={loanManwon === ""}
+        note={legacyHasLoan ? "대출 있음(잔액 모름)" : undefined}
+        help="정책자금·기업대출 합계 · 없으면 0"
+      >
+        <InputRow
+          inputMode="numeric"
+          value={loanManwon}
+          onChange={(e) => {
+            setLoanManwon(formatCount(e.target.value));
+            setLegacyHasLoan(undefined);
+          }}
+          placeholder="모름"
+          suffix="만원"
+        />
+      </Field>
+    ),
+    nice: (
+      <Field
+        k="nice" filled={wide ? filledFields.nice : undefined}
+        label="신용점수 NICE"
+        dim={niceScore === undefined}
+        error={outOfCreditRange(creditNice) ? "300~1000 사이로 넣어 주세요 — 지금은 모름으로 처리됩니다" : undefined}
+      >
+        <InputRow
+          aria-invalid={outOfCreditRange(creditNice) || undefined}
+          inputMode="numeric"
+          maxLength={4}
+          value={creditNice}
+          onChange={(e) => setCreditNice(e.target.value.replace(/\D/g, "").slice(0, 4))}
+          placeholder="300~1000"
+          suffix="점"
+        />
+      </Field>
+    ),
+    kcb: (
+      <Field
+        k="kcb" filled={wide ? filledFields.kcb : undefined}
+        label="신용점수 KCB"
+        dim={kcbScore === undefined}
+        error={outOfCreditRange(creditKcb) ? "300~1000 사이로 넣어 주세요 — 지금은 모름으로 처리됩니다" : undefined}
+      >
+        <InputRow
+          aria-invalid={outOfCreditRange(creditKcb) || undefined}
+          inputMode="numeric"
+          maxLength={4}
+          value={creditKcb}
+          onChange={(e) => setCreditKcb(e.target.value.replace(/\D/g, "").slice(0, 4))}
+          placeholder="300~1000"
+          suffix="점"
+        />
+      </Field>
+    ),
+  };
+
+  if (wide) {
+    return (
+      // 행동줄은 카드 바깥에 둔다. 카드가 내용 모서리를 잘라도 sticky의 스크롤 기준은 유지된다.
+      <div ref={rootRef} data-layout="wide" className="policy-profile-wide">
+        <div data-panel="footer" className="policy-profile-action" aria-label="입력 현황과 매칭 실행">
+          <div className="policy-profile-progress">
+            <div className="policy-profile-progress-copy">
+              <span className="policy-profile-progress-label">입력한 정보</span>
+              <strong className="policy-profile-count" aria-live="polite" aria-label={`입력한 정보 ${filledCount}개`}>{filledCount}</strong>
+              <span className="policy-profile-total">/ {filled.length}개</span>
+              <span className="policy-profile-remaining">남은 정보 {unknownCount}개</span>
+            </div>
+            <div
+              data-meter="fill"
+              className="policy-profile-meter"
+              role="progressbar"
+              aria-label="정보 입력"
+              aria-valuemin={0}
+              aria-valuemax={filled.length}
+              aria-valuenow={filledCount}
+            >
+              {filled.map((_, i) => <span key={i} data-meter-segment data-done={i < filledCount} aria-hidden="true" />)}
+            </div>
+            <p className="policy-profile-progress-help">
+              {reviewCount === undefined
+                ? "아는 정보만 입력해도 매칭할 수 있어요."
+                : `모름 ${unknownCount}칸 → 확인 필요 ${formatCount(String(reviewCount))}건`}
+            </p>
+            {docFileCount > 0 && docFilledCount > 0 && (
+              <p className="policy-profile-doc-summary">
+                {`서류 ${docFileCount}개에서 ${docFilledCount}칸을 채웠어요. 확인하고 진행하세요`}
+              </p>
+            )}
+          </div>
+          <button type="button" onClick={() => void runDiagnose()} disabled={diagnosing} className={`policy-profile-match ${BTN_PRIMARY}`}>
+            {diagnosing ? "진단 중…" : <>매칭 결과 보기<ArrowRight aria-hidden="true" /></>}
+          </button>
+        </div>
+        <div data-panel="body" className="policy-profile-card">
+          {(prefill.active || documentPrefillEndpoint) && (
+            <div className="policy-profile-imports">
+              {prefill.active && <section className="policy-profile-import" aria-label="기존 고객 불러오기"><CustomerPrefill prefill={prefill} compact /></section>}
+              {documentPrefillEndpoint && (
+                <section className="policy-profile-import" aria-label="서류로 채우기">
+                  <h3 className="policy-profile-import-title text-wedly-section"><FileText aria-hidden="true" />서류로 채우기</h3>
+                  <DocumentUploadBox
+                    compact
+                    files={doc.files}
+                    busy={doc.busy}
+                    error={doc.error}
+                    attached={doc.attached}
+                    attachNote={doc.attachNote}
+                    mode={documentPrefillMode}
+                    onPick={(picked) => void doc.upload(picked)}
+                    onRemove={doc.remove}
+                  />
+                </section>
+              )}
+            </div>
+          )}
+          {PROFILE_SECTIONS.map(({ key, title, Icon, fields }) => {
+            const count = fields.filter((field) => filledFields[field]).length;
+            return (
+              <section key={key} data-section={key} data-complete={count === fields.length} className="policy-profile-section" aria-label={title}>
+                <div className="policy-profile-section-head">
+                  <Icon aria-hidden="true" /><h3 className="text-wedly-section">{title}</h3>
+                  <span data-section-count={key} data-completed={count} className="policy-profile-section-count" aria-label={`${fields.length}개 중 ${count}개 입력`}>
+                    <strong>{count} / {fields.length}</strong> 입력
+                    {count === fields.length && <span aria-label="모두 입력"> ✓</span>}
+                  </span>
+                </div>
+                <div className="policy-profile-fields">
+                  {fields.map((field) => <Fragment key={field}>{fieldNodes[field]}{choiceFor(field)}</Fragment>)}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     // 넓은 화면(>820px)에서는 왼쪽 고정 패널이다 — 뿌리가 화면 높이를 넘지 않게 하고, 칸 묶음만 안쪽에서
@@ -835,11 +1206,7 @@ export default function ProfileForm({
     <div
       ref={rootRef}
       data-layout={layout}
-      className={
-        wide
-          ? "flex flex-col rounded-2xl border border-wedly-bd bg-white shadow-sm"
-          : "flex flex-col rounded-2xl border border-wedly-bd bg-white shadow-sm min-[821px]:max-h-[calc(100vh-2rem)]"
-      }
+      className="flex flex-col rounded-2xl border border-wedly-bd bg-white shadow-sm min-[821px]:max-h-[calc(100vh-2rem)]"
     >
       {/* 넓은 폼은 제목·안내를 화면(단계 머리)이 이미 그렸고 접을 일도 없어 머리줄을 두지 않는다. */}
       {!wide && (
@@ -879,10 +1246,9 @@ export default function ProfileForm({
           {/* 칸 묶음 — 길면 이 안에서만 스크롤한다(바닥 진단 단추는 밖) */}
           <div
             data-panel="body"
-            className={wide ? "px-6 pb-6 pt-2" : "min-h-0 flex-1 overflow-y-auto px-4 pb-4"}
+            className="min-h-0 flex-1 overflow-y-auto px-4 pb-4"
           >
           {/* 넓은 폼은 기존 고객 불러오기가 맨 위다(서류 올리기보다 먼저). 옆 칸 패널은 예전 순서 그대로. */}
-          {wide && prefill.active && <CustomerPrefill prefill={prefill} />}
 
           {/* 서류 올리기 — 통로(documentPrefillEndpoint)를 안 넘긴 앱에는 이 칸이 아예 없다. */}
           {documentPrefillEndpoint && (
@@ -916,104 +1282,16 @@ export default function ProfileForm({
 
           {/* 칸 사이 가로·세로 16 */}
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field k="name" label="상호" wide>
-              <InputRow
-                value={companyName}
-                onChange={(e) => {
-                  setCompanyName(e.target.value);
-                  // 상호만 다른 회사로 고치면 **앞 고객의 번호가 그대로 실려 나간다**.
-                  // 손으로 고치는 순간 사업자번호를 비운다 — 불러오기로는 다시 채워진다
-                  // (2026-08-22 독립 화면 검사 5번).
-                  setBizno("");
-                  dropOrigin("bizno");
-                  setCustomerKey(""); // 다른 회사로 고쳤으니 서류를 앞 고객 자료에 붙이지 않는다
-                  doc.reset(); // 올리는 중이던 서류는 끊고 늦게 오는 답은 버린다. 올린 파일 목록도 비운다(고객을 새로 불러올 때와 같은 길)
-                }}
-                placeholder="예: 가상테크"
-              />
-            </Field>
-            <Field
-              k="bizno"
-              label="사업자번호"
-              chip={chipOf("bizno")}
-              error={
-                biznoDigits.length > 0 && biznoDigits.length < 10
-                  ? "10자리를 모두 넣어 주세요 — 지금은 모름으로 처리됩니다"
-                  : undefined
-              }
-            >
-              <InputRow
-                inputMode="numeric"
-                maxLength={12}
-                value={bizno}
-                onChange={(e) => {
-                  const masked = maskBizno(e.target.value);
-                  setBiznoValue(masked); // 불러온 번호에서 벗어나면 열쇠도 비운다(서류가 번호를 바꿀 때와 같은 길)
-                  hand("bizno");
-                  // 10자리가 되면 번호 가운데 두 자리로 법인·개인을 맞춘다(못 가르면 모름).
-                  if (masked.replace(/\D/g, "").length === 10) {
-                    const byBizno = isCorporationByBizno(masked);
-                    setIsCorp(byBizno === null ? "" : byBizno ? "yes" : "no");
-                    dropOrigin("isCorporation"); // 번호가 맞춘 값이라 서류 출처가 아니다
-                  }
-                }}
-                placeholder="000-00-00000"
-              />
-            </Field>
+            {fieldNodes.name}
+            {fieldNodes.bizno}
             {choiceFor("bizno")}
-            <Field k="corp" label="법인·개인" chip={chipOf("corp")} group dim={isCorp === ""} help="사업자번호를 넣으면 자동">
-              <Segmented
-                options={CORP_OPTIONS}
-                value={isCorp}
-                onPick={(v) => {
-                  setIsCorp(v as Tri);
-                  hand("isCorporation");
-                }}
-              />
-            </Field>
+            {fieldNodes.corp}
             {choiceFor("corp")}
-            <Field k="industry" label="주업종" chip={chipOf("industry")} wide>
-              <InputRow
-                value={industry}
-                onChange={(e) => {
-                  setIndustry(e.target.value);
-                  hand("industry");
-                }}
-                placeholder="예: 전자부품 제조업"
-              />
-            </Field>
+            {fieldNodes.industry}
             {choiceFor("industry")}
-            <Field
-              k="address"
-              label="사업장 주소"
-              chip={chipOf("address")}
-              wide
-              help={regionText ? `지역 조건: ${regionText}` : "주소를 넣으면 시도·시군구를 읽어 지역 조건에 씁니다"}
-              helpAccent={regionText !== ""}
-            >
-              <InputRow
-                value={businessAddress}
-                onChange={(e) => {
-                  setBusinessAddress(e.target.value);
-                  // 사람이 주소를 직접 고치면 불러온 옛 소재지와 어긋난다 — 비운다(리뷰 F1).
-                  setRegion("");
-                  setRegionSigungu("");
-                  hand("businessAddress", "region", "regionSigungu");
-                }}
-                placeholder="예: 경기 화성시 동탄대로 000"
-              />
-            </Field>
+            {fieldNodes.address}
             {choiceFor("address")}
-            <Field k="founded" label="설립일(개업일)" chip={chipOf("founded")}>
-              <InputRow
-                type="date"
-                value={foundedDate}
-                onChange={(e) => {
-                  setFoundedDate(e.target.value);
-                  hand("foundedDate");
-                }}
-              />
-            </Field>
+            {fieldNodes.founded}
             {choiceFor("founded")}
           </div>
 
@@ -1021,48 +1299,11 @@ export default function ProfileForm({
             <span>규모</span>
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field
-              k="revenue"
-              label="작년 연매출"
-              chip={chipOf("revenue")}
-              help={revenueNum !== undefined ? `= ${manwonToKorean(revenueNum)}` : "세금 신고 매출 기준"}
-              helpAccent={revenueNum !== undefined}
-            >
-              <InputRow
-                inputMode="numeric"
-                value={revenueManwon}
-                onChange={(e) => {
-                  setRevenueManwon(formatCount(e.target.value));
-                  hand("lastYearRevenueKrw");
-                }}
-                placeholder="예: 120,000"
-                suffix="만원"
-              />
-            </Field>
+            {fieldNodes.revenue}
             {choiceFor("revenue")}
-            <Field k="employees" label="직원 수" chip={chipOf("employees")} help="4대보험 가입 인원">
-              <InputRow
-                inputMode="numeric"
-                value={employeeCount}
-                onChange={(e) => {
-                  setEmployeeCount(formatCount(e.target.value));
-                  hand("employeeCount");
-                }}
-                placeholder="예: 8"
-                suffix="명"
-              />
-            </Field>
+            {fieldNodes.employees}
             {choiceFor("employees")}
-            <Field k="scale" label="기업 규모" chip={chipOf("scale")} wide group dim={companyScale === ""}>
-              <Segmented
-                options={SCALE_OPTIONS}
-                value={companyScale}
-                onPick={(v) => {
-                  setCompanyScale(v);
-                  hand("companyScale");
-                }}
-              />
-            </Field>
+            {fieldNodes.scale}
             {choiceFor("scale")}
           </div>
 
@@ -1070,133 +1311,20 @@ export default function ProfileForm({
             <span>체납·인증·대출 · 모르면 비워 두세요</span>
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field k="tax" label="세금·4대보험 체납" chip={chipOf("tax")} wide group dim={taxDelinquent === ""}>
-              <Segmented
-                options={TAX_OPTIONS}
-                value={taxDelinquent}
-                onPick={(v) => {
-                  setTaxDelinquent(v as Tri);
-                  hand("taxDelinquent");
-                }}
-              />
-            </Field>
+            {fieldNodes.tax}
             {choiceFor("tax")}
-            <Field
-              k="cert"
-              label="보유 인증 (여러 개 고르기)"
-              chip={chipOf("cert")}
-              wide
-              group
-              dim={certTypes.length === 0}
-              note={legacyHasCert ? "인증 있음(종류 모름)" : undefined}
-            >
-              <ChipGroup names={CERT_TYPE_NAMES} selected={certTypes} onToggle={toggleCert} />
-            </Field>
+            {fieldNodes.cert}
             {choiceFor("cert")}
-            <Field
-              k="patent"
-              label="특허·지재권"
-              chip={chipOf("patent")}
-              dim={patentCount === ""}
-              note={legacyHasPatent ? "특허 있음(건수 모름)" : undefined}
-              help="없으면 0"
-            >
-              <InputRow
-                inputMode="numeric"
-                value={patentCount}
-                onChange={(e) => {
-                  setPatentCount(formatCount(e.target.value));
-                  setLegacyHasPatent(undefined);
-                  hand("patentCount", "hasPatent");
-                }}
-                placeholder="모름"
-                suffix="건"
-              />
-            </Field>
+            {fieldNodes.patent}
             {choiceFor("patent")}
-            <Field
-              k="loan"
-              label="기존 대출 잔액"
-              dim={loanManwon === ""}
-              note={legacyHasLoan ? "대출 있음(잔액 모름)" : undefined}
-              help="정책자금·기업대출 합계 · 없으면 0"
-            >
-              <InputRow
-                inputMode="numeric"
-                value={loanManwon}
-                onChange={(e) => {
-                  setLoanManwon(formatCount(e.target.value));
-                  setLegacyHasLoan(undefined);
-                }}
-                placeholder="모름"
-                suffix="만원"
-              />
-            </Field>
-            <Field
-              k="nice"
-              label="신용점수 NICE"
-              dim={niceScore === undefined}
-              error={outOfCreditRange(creditNice) ? "300~1000 사이로 넣어 주세요 — 지금은 모름으로 처리됩니다" : undefined}
-            >
-              <InputRow
-                inputMode="numeric"
-                maxLength={4}
-                value={creditNice}
-                onChange={(e) => setCreditNice(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="300~1000"
-                suffix="점"
-              />
-            </Field>
-            <Field
-              k="kcb"
-              label="신용점수 KCB"
-              dim={kcbScore === undefined}
-              error={outOfCreditRange(creditKcb) ? "300~1000 사이로 넣어 주세요 — 지금은 모름으로 처리됩니다" : undefined}
-            >
-              <InputRow
-                inputMode="numeric"
-                maxLength={4}
-                value={creditKcb}
-                onChange={(e) => setCreditKcb(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="300~1000"
-                suffix="점"
-              />
-            </Field>
+            {fieldNodes.loan}
+            {fieldNodes.nice}
+            {fieldNodes.kcb}
           </div>
 
           </div>
 
-          {wide ? (
-            // 넓은 폼의 바닥 — 채운 칸 수(막대 포함)와 주 단추 「매칭 결과 보기 →」. 기존 진단 단추와 같은 동작이다.
-            <div data-panel="footer" className="flex flex-wrap items-center gap-4 border-t border-wedly-bd px-6 py-4">
-              <div className="min-w-0 flex-1 basis-64">
-                <span className="text-xs leading-[18px] text-wedly-muted">
-                  {`${filled.length}칸 중 ${filledCount}칸 채움 — 채울수록 「확인 필요」가 줄어요`}
-                </span>
-                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-wedly-bg-gray">
-                  <div
-                    data-meter="fill"
-                    className="h-full rounded-full bg-wedly-accent"
-                    style={{ width: `${Math.round((filledCount / filled.length) * 100)}%` }}
-                  />
-                </div>
-                {docFileCount > 0 && docFilledCount > 0 && (
-                  <span className="mt-1 block text-xs font-semibold leading-[18px] text-wedly-t1">
-                    {`서류 ${docFileCount}개에서 ${docFilledCount}칸을 채웠어요. 확인하고 진행하세요`}
-                  </span>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => void runDiagnose()}
-                disabled={diagnosing}
-                className={BTN_PRIMARY}
-              >
-                {diagnosing ? "진단 중…" : "매칭 결과 보기 →"}
-              </button>
-            </div>
-          ) : (
-          // 바닥 고정 — 칸 묶음이 스크롤돼도 주 행동은 늘 보인다
+          {/* 바닥 고정 — 칸 묶음이 스크롤돼도 주 행동은 늘 보인다 */}
           <div data-panel="footer" className="flex shrink-0 flex-wrap items-center gap-4 border-t border-wedly-bd p-4">
             <button
               type="button"
@@ -1217,7 +1345,6 @@ export default function ProfileForm({
               </span>
             )}
           </div>
-          )}
         </>
       )}
     </div>

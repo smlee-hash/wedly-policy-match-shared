@@ -293,11 +293,12 @@ describe("채우기 — 왼쪽 첫 모름 칸으로 초점", () => {
   });
 });
 
-describe("배치 — 옆 칸 패널(side)은 그대로, 화면은 두 단계(회사 정보 가운데 넓은 폼)", () => {
-  it("화면: 처음에는 회사 정보 폼이 본문 가운데(최대 880px)에 있고, 결과 영역은 아직 없다", () => {
+describe("배치 — 옆 칸 패널(side)은 그대로, 화면은 두 단계(회사 정보 전체 폭)", () => {
+  it("화면: 처음에는 회사 정보 폼이 본문 전체 폭을 쓰고, 결과 영역은 아직 없다", () => {
     const html = renderToStaticMarkup(<PolicyMatchScreen endpoints={ERP_POLICY_MATCH_ENDPOINTS} />);
     expect(html).toContain('data-area="company-panel"');
-    expect(html).toMatch(/data-area="company-panel"[^>]*class="[^"]*max-w-\[880px\]/);
+    expect(html).toMatch(/data-area="company-panel"[^>]*class="[^"]*w-full/);
+    expect(html).not.toContain("max-w-[880px]");
     // 옛 두 칸(380px 옆 칸 + 결과) 배치는 없어졌다
     expect(html).not.toContain("min-[821px]:sticky");
     expect(html).not.toContain("min-[821px]:grid-cols-");

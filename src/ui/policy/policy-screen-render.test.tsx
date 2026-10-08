@@ -157,8 +157,8 @@ describe("②-2 서류 올리기 통로가 없으면 올리기 칸이 없다", (
   });
 
   it("화면째로 봐도 같다 — ERP 통로엔 있고 올리기 주소가 없는 랩 통로엔 없다", () => {
-    expect(renderToStaticMarkup(<PolicyMatchScreen endpoints={ERP_POLICY_MATCH_ENDPOINTS} />)).toContain("서류를 올리면 칸을 채워 드려요");
-    expect(renderToStaticMarkup(<PolicyMatchScreen endpoints={LAB_ENDPOINTS} />)).not.toContain("서류를 올리면 칸을 채워 드려요");
+    expect(renderToStaticMarkup(<PolicyMatchScreen endpoints={ERP_POLICY_MATCH_ENDPOINTS} />)).toContain('aria-label="서류 파일 고르기"');
+    expect(renderToStaticMarkup(<PolicyMatchScreen endpoints={LAB_ENDPOINTS} />)).not.toContain('type="file"');
   });
 
   it("features.documentPrefillMode 가 화면까지 전해져 안내 문구를 가른다", () => {

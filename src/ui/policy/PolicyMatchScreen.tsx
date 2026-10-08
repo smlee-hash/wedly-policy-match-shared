@@ -577,7 +577,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
 
   return (
     // 여백 계단(DESIGN.md §5): 구역 사이 24(space-y-6), 카드 사이 16(gap-4).
-    <div className="space-y-6 p-6">
+    <div className="policy-match-screen space-y-6">
       {notice && (
         // 안내 띠 — 상하 8·좌우 16, 본문 14/22. 두 단계가 함께 쓴다(진단 실패는 ① 에서도 보여야 한다).
         <div className="rounded-xl border border-wedly-bd bg-wedly-bg-gray px-4 py-2 text-sm leading-[22px] text-wedly-t2">
@@ -585,18 +585,20 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
         </div>
       )}
 
-      {/* ① 회사 정보 — 본문 가운데 넓은 폼(최대 880px). 폼은 ② 에서도 계속 그려 두고 숨기기만 한다 —
+      {/* ① 회사 정보 — 결과·수집원과 같은 전체 폭. 폼은 ② 에서도 계속 그려 두고 숨기기만 한다 —
           「회사 정보 고치기」로 돌아왔을 때 입력값이 그대로 있게 하려는 것이다(폼의 입력 상태는 폼 안에 있다). */}
       <div
         data-area="company-panel"
-        className={step === "company" ? "mx-auto w-full max-w-[880px] space-y-6" : "hidden"}
+        className={step === "company" ? "policy-match-company w-full min-w-0" : "hidden"}
       >
-        <StepBar step="company" />
-        <div className="space-y-1">
-          <h2 className="text-wedly-section font-semibold text-wedly-t1">어떤 회사의 지원정책을 찾을까요?</h2>
-          <p className="text-sm leading-[22px] text-wedly-t2">
-            아는 칸만 채워도 됩니다. 모르는 칸은 결과에서 「확인 필요」로 따로 모아 보여 드려요.
-          </p>
+        <div data-area="company-intro" className="policy-match-intro">
+          <div className="policy-match-intro-copy">
+            <h2 className="text-wedly-section font-semibold text-wedly-t1">어떤 회사의 지원정책을 찾을까요?</h2>
+            <p className="text-sm leading-[22px] text-wedly-t2">
+              아는 정보만 채워도 됩니다. 모르는 조건은 결과에서 ‘확인 필요’로 표시합니다.
+            </p>
+          </div>
+          <StepBar step="company" />
         </div>
         <ProfileForm
           key={formKey}
