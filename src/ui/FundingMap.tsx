@@ -987,6 +987,90 @@ function TableScroller({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * 머리 카드 — 「판정에 쓴 회사 정보」 띠 · 피드백과 다른 칸 알림 · 빈칸 힌트를 흰 카드 하나로 묶는다.
+ * 지도(`FundingMapView`)와 통합 상세창 「추천 정책」(`FundingRecommendPanel`)이 **같은 부품**을 쓴다 — 새로 베끼지 않는다.
+ * `showGap={false}` 면 빈칸 힌트는 안 그린다(목록 쪽은 「모르는 N칸 때문에 …」 안내가 그 말을 한다).
+ * 할 말이 없으면 카드를 안 그리고, 손잡이(`headerAction`)만 있으면 오른쪽 끝 한 줄로 대신 그린다.
+ */
+export function FundingHeaderCard({
+  data,
+  compact,
+  headerAction,
+  onOpenCompanyStatus,
+  showGap = true,
+}: {
+  data: Pick<FundingMapPayload, "usedProfile" | "profileEmpty" | "profileGaps" | "feedbackDiff">;
+  compact: boolean;
+  /** 라벨 줄 오른쪽 끝에 앉을 손잡이(예: 「다시 추천」). */
+  headerAction?: ReactNode;
+  onOpenCompanyStatus?: () => void;
+  showGap?: boolean;
+}) {
+  // ★머리 띠는 **요약에 적을 것이 있을 때만** 그린다. 요약이 비었을 때 「없음 — 조건을 맞춰 보지
+  //  않은 목록입니다」라고 단정하는 것은 **`profileEmpty`(회사 정보 자체가 비었다)** 하나뿐이다
+  //  (코덱스 3차 #C, 2026-09-04 — 옛 신호 `evaluatedConditions` 는 근사치라 폐기했다).
+  //  요약이 비어도 인증·특허·기업 규모 같은 값이 판정에 쓰였을 수 있어 「없음」이 거짓일 수 있고,
+  //  옛 통로는 이 칸을 아예 안 싣는다 — 그럴 땐 `profileBandOf` 가 아무 말도 하지 않는다.
+  const band = profileBandOf(data.usedProfile, data.profileEmpty);
+  const gap = showGap ? gapParts(data.profileGaps) : null;
+  // ★피드백 알림은 통로를 건너온 값이라 모양을 먼저 확인한다 — 틀리면 없는 것으로 보고 구역을 안 그린다.
+  //  줄이 0개인 알림도 그릴 말이 없으니 안 그린다.
+  const rawFeedbackDiff = data.feedbackDiff;
+  const feedbackDiff = isFeedbackDiff(rawFeedbackDiff) && rawFeedbackDiff.rows.length > 0 ? rawFeedbackDiff : null;
+  // 머리 카드는 **할 말이 있을 때만** 그린다. 판정 근거도 피드백 알림도 빈칸 힌트도 없으면 카드 자체를 안 그린다.
+  const 머리카드 = band !== null || feedbackDiff !== null || gap !== null;
+  // 카드 위쪽(판정 근거 구역 또는 손잡이 줄)이 그려졌나 — 구분선을 그릴지 정한다.
+  const 위줄 = band !== null || Boolean(headerAction);
+
+  if (!머리카드) return headerAction ? <div className="flex justify-end">{headerAction}</div> : null;
+  return (
+    <div className="rounded-xl border border-wedly-bd bg-white shadow-[0_1px_2px_rgba(10,34,68,0.05),0_6px_18px_rgba(10,34,68,0.08)]">
+      {band ? (
+        <div className="flex items-start gap-2.5 p-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wedly-accent">
+            <IoBusiness className="h-5 w-5 text-white" aria-hidden="true" />
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <div className="flex min-h-[22px] items-center justify-between gap-2.5">
+              <span className="truncate text-wedly-hint text-wedly-muted">{band.label}</span>
+              {headerAction}
+            </div>
+            <p className="min-w-0 break-keep text-wedly-sub font-semibold text-wedly-t1">{band.value}</p>
+          </div>
+        </div>
+      ) : (
+        headerAction && <div className="flex justify-end p-3">{headerAction}</div>
+      )}
+      {/* 피드백과 다른 칸 알림 — 판정 근거 구역 다음, 빈칸 힌트 앞. 판정에는 안 쓰는 알림이다. */}
+      {feedbackDiff && (
+        <>
+          {위줄 && <div className="border-t border-wedly-bd/60" />}
+          <FeedbackDiffSection diff={feedbackDiff} compact={compact} onOpenCompanyStatus={onOpenCompanyStatus} />
+        </>
+      )}
+      {gap && (
+        <>
+          {(위줄 || feedbackDiff !== null) && <div className="border-t border-wedly-bd/60" />}
+          <div className="flex items-start gap-2.5 p-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wedly-gold">
+              <IoAlertCircle className="h-5 w-5 text-wedly-navy" aria-hidden="true" />
+            </span>
+            {/* ★차례가 위 구역과 같다 — 작은 라벨 위, 큰 값 아래(2026-09-04 승인 시안).
+                예전엔 이 구역만 「큰 제목 → 작은 설명」으로 거꾸로여서, 한 카드 안에서 같은 뜻의
+                두 줄이 서로 다른 차례로 놓였다. 옛 본문 한 줄은 라벨로 접혀 사라졌고 줄 수는
+                그대로 둘이라 카드가 길어지지 않는다. */}
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <p className="min-w-0 break-keep text-wedly-hint text-wedly-muted">{gap.label}</p>
+              <p className="min-w-0 break-keep text-wedly-sub font-semibold text-wedly-t1">{gap.title}</p>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 interface ViewProps {
   data: FundingMapPayload;
   view: FundingView;
@@ -1112,21 +1196,6 @@ export function FundingMapView({
   const anyFilter = filters.openOnly || filters.soonOnly;
   const glance = data.glance;
   const totals = data.totals;
-  // ★머리 띠는 **요약에 적을 것이 있을 때만** 그린다. 요약이 비었을 때 「없음 — 조건을 맞춰 보지
-  //  않은 목록입니다」라고 단정하는 것은 **`profileEmpty`(회사 정보 자체가 비었다)** 하나뿐이다
-  //  (코덱스 3차 #C, 2026-09-04 — 옛 신호 `evaluatedConditions` 는 근사치라 폐기했다).
-  //  요약이 비어도 인증·특허·기업 규모 같은 값이 판정에 쓰였을 수 있어 「없음」이 거짓일 수 있고,
-  //  옛 통로는 이 칸을 아예 안 싣는다 — 그럴 땐 `profileBandOf` 가 아무 말도 하지 않는다.
-  const band = profileBandOf(data.usedProfile, data.profileEmpty);
-  const gap = gapParts(data.profileGaps);
-  // ★피드백 알림은 통로를 건너온 값이라 모양을 먼저 확인한다 — 틀리면 없는 것으로 보고 구역을 안 그린다.
-  //  줄이 0개인 알림도 그릴 말이 없으니 안 그린다.
-  const rawFeedbackDiff = data.feedbackDiff;
-  const feedbackDiff = isFeedbackDiff(rawFeedbackDiff) && rawFeedbackDiff.rows.length > 0 ? rawFeedbackDiff : null;
-  // 머리 카드는 **할 말이 있을 때만** 그린다. 판정 근거도 피드백 알림도 빈칸 힌트도 없으면 카드 자체를 안 그린다.
-  const 머리카드 = band !== null || feedbackDiff !== null || gap !== null;
-  // 카드 위쪽(판정 근거 구역 또는 손잡이 줄)이 그려졌나 — 구분선을 그릴지 정한다.
-  const 위줄 = band !== null || Boolean(headerAction);
 
   // 한눈에 4칸은 StatCard 기본 한 톤(파랑)이다 — 칸마다 색을 달리하면 뜻 없는 3톤이 된다(리뷰 대장 #17).
   const 한눈에: Array<{ label: string; value: string; icon: React.ComponentType<{ className?: string }> }> = [
@@ -1242,53 +1311,12 @@ export function FundingMapView({
            (상태 박스 v3 와 같은 규칙. 경고 타일 심볼만 남색인 것도 금색 위 흰 글리프 2.1 미달 때문이다).
           ★headerAction(「다시 추천」 같은 손잡이)은 라벨 줄 오른쪽 끝에 앉는다 — 단추 하나가
            한 줄을 통째로 쓰던 빈 줄을 없앤다. */}
-      {머리카드 ? (
-        <div className="rounded-xl border border-wedly-bd bg-white shadow-[0_1px_2px_rgba(10,34,68,0.05),0_6px_18px_rgba(10,34,68,0.08)]">
-          {band ? (
-            <div className="flex items-start gap-2.5 p-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wedly-accent">
-                <IoBusiness className="h-5 w-5 text-white" aria-hidden="true" />
-              </span>
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <div className="flex min-h-[22px] items-center justify-between gap-2.5">
-                  <span className="truncate text-wedly-hint text-wedly-muted">{band.label}</span>
-                  {headerAction}
-                </div>
-                <p className="min-w-0 break-keep text-wedly-sub font-semibold text-wedly-t1">{band.value}</p>
-              </div>
-            </div>
-          ) : (
-            headerAction && <div className="flex justify-end p-3">{headerAction}</div>
-          )}
-          {/* 피드백과 다른 칸 알림 — 판정 근거 구역 다음, 빈칸 힌트 앞. 판정에는 안 쓰는 알림이다. */}
-          {feedbackDiff && (
-            <>
-              {위줄 && <div className="border-t border-wedly-bd/60" />}
-              <FeedbackDiffSection diff={feedbackDiff} compact={compact} onOpenCompanyStatus={onOpenCompanyStatus} />
-            </>
-          )}
-          {gap && (
-            <>
-              {(위줄 || feedbackDiff !== null) && <div className="border-t border-wedly-bd/60" />}
-              <div className="flex items-start gap-2.5 p-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wedly-gold">
-                  <IoAlertCircle className="h-5 w-5 text-wedly-navy" aria-hidden="true" />
-                </span>
-                {/* ★차례가 위 구역과 같다 — 작은 라벨 위, 큰 값 아래(2026-09-04 승인 시안).
-                    예전엔 이 구역만 「큰 제목 → 작은 설명」으로 거꾸로여서, 한 카드 안에서 같은 뜻의
-                    두 줄이 서로 다른 차례로 놓였다. 옛 본문 한 줄은 라벨로 접혀 사라졌고 줄 수는
-                    그대로 둘이라 카드가 길어지지 않는다. */}
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <p className="min-w-0 break-keep text-wedly-hint text-wedly-muted">{gap.label}</p>
-                  <p className="min-w-0 break-keep text-wedly-sub font-semibold text-wedly-t1">{gap.title}</p>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      ) : (
-        headerAction && <div className="flex justify-end">{headerAction}</div>
-      )}
+      <FundingHeaderCard
+        data={data}
+        compact={compact}
+        headerAction={headerAction}
+        onOpenCompanyStatus={onOpenCompanyStatus}
+      />
 
       {/* ② 한눈에 4칸 — 숫자는 서버가 전체 자료로 센 값(data.glance)이다.
           ★구현 결함 수정(통합 단계 G4, 2026-09-04) — compact(통합 상세창 추천 탭)에서도 이 줄만

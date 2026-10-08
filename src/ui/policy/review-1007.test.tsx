@@ -53,12 +53,19 @@ describe("① 「종류 미확인」 줄도 판정 탭 숫자에 들어가고, �
     expect(v.cut).toEqual({ loaded: GROUP_TOP_N, total: 100 });
   });
 
-  it("미확인 안 맞음 3건은 갈래 칩에 세지 않는다(칩 숫자 3 · 목록 0 이 되지 않게)", () => {
+  // 옛 시험(어려움 탭의 미확인 안 맞음 3건이 갈래 칩에 안 잡힘)을 바꾼 이유: 안 맞음은 이제 탭이 없다 —
+  // 같은 입력이 어느 탭·칩·숫자에도 안 잡히는지로 대신 잰다.
+  it("미확인 안 맞음 3건은 어느 탭·칩·숫자에도 안 잡힌다(서버가 자르기 전에 센 안 맞음 수도 쓰지 않는다)", () => {
     const items = Array.from({ length: 3 }, (_, i) => item({ refId: `x${i}`, fitVerdict: "excluded", unclassified: true }));
     const p = payloadOf(items);
-    const v = oneListViewOf(flat(p), { ...INITIAL_ONE_LIST_STATE, tab: "excluded" }, "", serverVerdictCountsOf(p));
-    expect(v.counts.excluded).toBe(3);
-    expect(v.chips.find((c) => c.key === "grant")?.count ?? 0).toBe(0);
+    const server = serverVerdictCountsOf(p)!;
+    expect(server.tab).toEqual({ fit: 0, unverified: 0 });
+    for (const tab of ["fit", "unverified"] as const) {
+      const v = oneListViewOf(flat(p), { ...INITIAL_ONE_LIST_STATE, tab }, "", server);
+      expect(v.counts).toEqual({ fit: 0, unverified: 0 });
+      expect(v.list).toEqual([]);
+      expect(v.chips.every((c) => c.count === 0)).toBe(true);
+    }
   });
 
   it("서버 묶음은 미확인 판정별 수를 늘 싣는다", () => {
@@ -176,20 +183,21 @@ describe("재리뷰 10/7 — 남은 두 지적", () => {
     expect(serverVerdictCountsOf(p), "옛 답에는 서버 셈을 쓰지 않는다").toBeNull();
     const v = oneListViewOf(flat(p), { ...INITIAL_ONE_LIST_STATE, tab: "unverified" }, "", serverVerdictCountsOf(p));
     expect(v.counts.unverified, "받은 줄(80+10)과 탭이 맞는다").toBe(90);
-    const ex = oneListViewOf(flat(p), { ...INITIAL_ONE_LIST_STATE, tab: "excluded" }, "", serverVerdictCountsOf(p));
-    expect(ex.counts.excluded).toBe(3);
-    expect(ex.chips.find((c) => c.key === "grant")?.count ?? 0).toBe(0);
+    // 안 맞음 미확인 3건은 받은 줄에 섞여 와도 어느 탭·숫자에도 안 잡힌다(어려움 탭이 없어졌다)
+    expect(v.counts.fit).toBe(0);
+    expect(v.list.every((x) => x.fitVerdict === "unverified")).toBe(true);
   });
 
   it("옛 서버 답에서 미확인 줄이 상한 밖으로 잘려 안 보여도 서버 셈을 쓰지 않는다(재리뷰 10/7 세 번째)", () => {
+    // 옛 시험은 안 맞음 줄로 어려움 탭 칩을 쟀다 — 탭이 없어졌으니 확인 필요 줄로 같은 모양을 잰다.
     const items = [
-      ...Array.from({ length: GROUP_TOP_N }, (_, i) => item({ refId: `e${i}`, fitVerdict: "excluded", score: 1000 - i })),
-      ...Array.from({ length: 3 }, (_, i) => item({ refId: `x${i}`, fitVerdict: "excluded", unclassified: true, score: 1 })),
+      ...Array.from({ length: GROUP_TOP_N }, (_, i) => item({ refId: `e${i}`, fitVerdict: "unverified", score: 1000 - i })),
+      ...Array.from({ length: 3 }, (_, i) => item({ refId: `x${i}`, fitVerdict: "unverified", unclassified: true, score: 1 })),
     ];
     const p = payloadOf(items);
     for (const b of p.groups) delete (b as { unclassifiedCounts?: unknown }).unclassifiedCounts;
     expect(serverVerdictCountsOf(p)).toBeNull();
-    const ex = oneListViewOf(flat(p), { ...INITIAL_ONE_LIST_STATE, tab: "excluded" }, "", serverVerdictCountsOf(p));
+    const ex = oneListViewOf(flat(p), { ...INITIAL_ONE_LIST_STATE, tab: "unverified" }, "", serverVerdictCountsOf(p));
     expect(ex.chips.find((c) => c.key === "grant")?.count ?? 0, "칩은 실제로 받은 분류된 줄 수를 넘지 않는다")
       .toBeLessThanOrEqual(GROUP_TOP_N);
   });
@@ -280,14 +288,15 @@ describe("ERP 독립 리뷰 10/7 — P1 사용자 간 저장값·P2 세 건", ()
 });
 
 describe("ERP 재리뷰 10/7 — P2 두 건", () => {
-  it("어려움 탭: 종류 미확인 80건이 앞서 있어도 무상지원금 1건이 목록에서 사라지지 않는다", () => {
+  // 옛 시험은 어려움 탭으로 쟀다. 탭이 없어졌으니 같은 일을 확인 필요 탭으로 잰다(미확인 80건이 앞서도 분류된 1건이 안 사라진다).
+  it("확인 필요 탭: 종류 미확인 80건이 앞서 있어도 무상지원금 1건이 목록에서 사라지지 않는다", () => {
     const items = [
       ...Array.from({ length: GROUP_TOP_N }, (_, i) =>
-        item({ refId: `u${i}`, fitVerdict: "excluded", unclassified: true, score: 10_000 - i })),
-      item({ refId: "g0", fitVerdict: "excluded", score: 1 }),
+        item({ refId: `u${i}`, fitVerdict: "unverified", unclassified: true, score: 10_000 - i })),
+      item({ refId: "g0", fitVerdict: "unverified", score: 1 }),
     ];
     const p = payloadOf(items);
-    const v = oneListViewOf(flat(p), { ...INITIAL_ONE_LIST_STATE, tab: "excluded", chip: "grant" }, "", serverVerdictCountsOf(p));
+    const v = oneListViewOf(flat(p), { ...INITIAL_ONE_LIST_STATE, tab: "unverified", chip: "grant" }, "", serverVerdictCountsOf(p));
     expect(v.chips.find((c) => c.key === "grant")?.count).toBe(1);
     expect(v.list.map((x) => x.refId)).toEqual(["g0"]);
   });

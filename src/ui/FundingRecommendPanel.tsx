@@ -1,22 +1,29 @@
 "use client";
 
 /**
- * 통합 상세창 레일의 「추천 정책」 탭 — 2026-09-03 부터 `/policy-match` 와 **같은 부품**으로 그린다.
+ * 통합 상세창 레일의 「추천 정책」 탭 — 정책매칭 결과 화면(`ResultOneList`)과 **같은 부품**으로 그린다.
  *
- * 옛 모양(카테고리 칩 + 공고 카드 목록, `RecommendList`)은 지웠다. 같은 고객을 두 화면에서 볼 때
- * 갈래·숫자·글자가 달라 어느 쪽을 믿을지 알 수 없었기 때문이다 — 이제 두 곳 다
- * `FundingMap`(compact) 하나이고, 자료도 통로 하나(`/api/policy-match/funding-map`)에서 온다.
+ * 2026-09-03 에는 두 곳 다 `FundingMap` 하나였는데, 정책매칭 화면이 판정 탭·돈의 성격 칩·찾기·쪽 넘김이 있는
+ * 목록(`ResultOneList`)으로 바뀌면서 상세창만 옛 지도(compact)로 남아 같은 고객을 두 화면에서 볼 때 모양과 숫자가 달랐다.
+ * 이제 상세창도 `ResultOneList layout="inline"`(좁은 자리용 한 열)이다 — 줄을 누르면 그 줄 바로 아래로 요약이 펼쳐지고
+ * (`InlineFundingSummary`), 다시 누르면 접힌다. 자료는 예전과 같은 통로 하나(`/api/policy-match/funding-map`, GET)에서 온다.
  *
- * ★거르기(칩)·줄 세우기(정렬)는 **서버 몫**이다(계획서 리뷰 대장 #11). 이 파일은 상태만 쥐고,
- *  바뀌면 통로를 다시 부른다 — 받은 자료를 화면에서 또 거르면 「한눈에 4칸」(전체 기준)과
- *  갈래 카드(상위 N건)의 숫자가 어긋난다.
- * ★공고를 누르면 이 상세창이 **이미 가진** 상세(`onOpenDetail` → `swapDetail`)로 보낸다 —
+ * ★조건이 확실히 안 맞는 공고(판정 excluded)는 **아예 안 보인다**(2026-10-07 사장님 결정) — 통로에 안 맞음을 달라고도 하지 않는다
+ *  (`includeExcluded` 는 늘 false). 「안 맞아서 뺀 N건 보기」 펼침 집합·그 재조회 손잡이는 그래서 지웠다.
+ * ★탭·칩·정렬·쪽은 받아 둔 배열을 화면이 거른다(서버를 다시 부르지 않는다). 찾기도 마찬가지다 — GET 통로는 찾기어를 받지
+ *  않으므로 받아 둔 갈래마다 앞쪽 80건 안에서만 찾는다(그래서 잘림 안내가 「찾으면 나머지도」를 말하지 않는다 — `searchReachesAll`).
+ * ★위쪽 머리(판정에 쓴 회사 정보 띠 · 피드백과 다른 칸 알림 · 「다시 추천」)는 지도의 머리 카드 부품(`FundingHeaderCard`)을 그대로 쓴다.
+ * ★공고의 「공고 상세 열기」는 이 상세창이 **이미 가진** 상세(`onOpenDetail` → `swapDetail`)로 보낸다 —
  *  상세창 위에 서랍을 또 겹치지 않는다. 상세 화면이 없는 상시 상품만 `FundingDrawer` 가 맡는다.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RotateCw } from "lucide-react";
 import FundingDrawer from "./FundingDrawer";
-import FundingMap, { type FundingMapPayload } from "./FundingMap";
+import { FundingHeaderCard, type FundingMapPayload } from "./FundingMap";
+import InlineFundingSummary from "./policy/InlineFundingSummary";
+import ResultOneList from "./policy/ResultOneList";
+import { FUNDING_TOP_N } from "./policy/result-one-list";
+import { FUNDING_QUERY_DELAY_MS, clipQuery } from "./policy/result-conditions";
 import type { FundingFilters, FundingItem, FundingSort } from "../funding/funding-map";
 import type { FundingGroup } from "../funding/funding-group";
 import type { FeedbackDiff } from "../engine/feedback-diff";
@@ -29,7 +36,7 @@ export type RecommendFundingData = FundingMapPayload & {
   usedProfile?: string[];
   /**
    * 피드백 최신 회차와 기업상태표의 다른 칸 알림 — 판정에는 안 쓴다. **선택 칸**이라 옛 통로 응답은 그대로 그린다.
-   * 지도 머리 카드가 그리기 전에 `isFeedbackDiff` 로 모양을 확인하고, 아니면 없는 것으로 본다.
+   * 머리 카드가 그리기 전에 `isFeedbackDiff` 로 모양을 확인하고, 아니면 없는 것으로 본다.
    */
   feedbackDiff?: FeedbackDiff | null;
   /**
@@ -54,12 +61,12 @@ export function nextFactsPollMs(data: RecommendFundingData | null, loading: bool
   return polls < FACTS_POLL_MAX ? FACTS_POLL_MS : null;
 }
 
-/** 상세창 레일은 자리가 좁다 — 갈래마다 상위 3건만 받는다(계획서 리뷰 대장 #22 응답 크기). */
-export const COMPACT_TOP_N = 3;
-
 export const LOAD_ERROR = "추천을 불러오지 못했습니다 — 「다시 추천」으로 다시 시도하세요.";
 
+/** 칩은 없다 — 안 맞음(`includeExcluded`)도 늘 끈다(통로에 달라고 하지 않는다). 늘 같은 객체다. */
 const NO_FILTERS: FundingFilters = { openOnly: false, soonOnly: false, includeExcluded: false };
+/** 서버가 갈래마다 앞쪽 N건을 고르는 차례 — 추천순. 화면 정렬(마감 임박·추천)은 받은 뒤에 목록이 따로 한다. */
+const SERVER_SORT: FundingSort = "rec";
 
 const REFRESH_BTN =
   "inline-flex items-center gap-1 rounded-lg border border-wedly-bd bg-white px-2.5 py-1 text-xs " +
@@ -67,12 +74,13 @@ const REFRESH_BTN =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wedly-accent";
 
 /**
- * 통로 주소 한 줄. 칩·정렬·상위 N 을 **서버에** 넘긴다 — 화면이 받은 자료를 다시 거르지 않는다.
- * 꺼진 칩은 아예 안 싣는다(통로가 없는 값을 기본값으로 다루게).
+ * 통로 주소 한 줄. 정렬·상위 N 을 **서버에** 넘긴다. 꺼진 칩은 아예 안 싣는다(통로가 없는 값을 기본값으로 다루게).
+ * 상위 N 의 기본은 정책매칭 화면과 같은 80(`FUNDING_TOP_N`)이다 — 두 화면이 같은 건수로 같은 목록을 그린다.
  *
  * ★재설계 계약 G1①·G3(2026-09-04) — 예전 `filters.fitOnly`(맞는 것만 좁히기, `fit=1`)를
  *  `filters.includeExcluded`(안 맞음도 보이기, `excluded=1`)로 바꿨다. 뜻이 정반대다: 예전엔 켜면
  *  좁아졌고, 지금은 켜면 넓어진다(통로 GET 의 `readQueryFilters` 와 같은 이름·같은 뜻).
+ *  이 패널은 안 맞음을 안 보이기로 해서 늘 끈 채로 부른다 — 이 함수는 다른 부르는 쪽을 위해 켜는 길을 남긴다.
  */
 export function fundingMapQuery(a: {
   bizno?: string;
@@ -90,57 +98,20 @@ export function fundingMapQuery(a: {
   if (a.filters.soonOnly) p.set("soon", "1");
   if (a.filters.includeExcluded) p.set("excluded", "1");
   p.set("sort", a.sort);
-  p.set("topN", String(a.topN ?? COMPACT_TOP_N));
+  p.set("topN", String(a.topN ?? FUNDING_TOP_N));
   return p.toString();
-}
-
-/**
- * 갈래 하나만 뒤집는다 — 「안 맞아서 뺀 항목 보기」 집합(showExcluded) 손잡이를 순수 함수로 뗀다
- * (계약 §G2·§G3 — `PolicyMatchClient.tsx` 의 `toggleGroupSet` 과 같은 규칙, 화면 밖에서도 잴 수
- * 있게). ErpPolicyRecommendSection 은 별도 페이지 부품(PolicyMatchClient)을 끌어오지 않고 이 파일
- * 안에 같은 규칙을 자체로 둔다 — 두 화면이 서로의 화면 부품 파일을 참조하게 만들지 않는다.
- */
-export function toggleExcludedGroup(set: ReadonlySet<FundingGroup>, group: FundingGroup): Set<FundingGroup> {
-  const next = new Set(set);
-  if (next.has(group)) next.delete(group);
-  else next.add(group);
-  return next;
-}
-
-/**
- * 회사가 바뀔 때 거르개를 처음으로 되돌린다 — 「안 맞아서 뺀 항목」 펼침만(다른 칩은 그대로).
- *
- * ★코덱스 11차 #10(2026-09-04) — 상세창 레일에서 다른 회사로 갈아타도 이 펼침이 남아 있어,
- *  새 회사를 `excluded=1` 로 물으면서 앞 회사에서 펼쳐 둔 갈래가 계속 열려 있었다. 갈래 이름은
- *  같아도 「무엇이 안 맞는지」는 회사마다 다르다.
- *
- * **이미 꺼져 있으면 받은 객체를 그대로 돌려준다** — 새 객체를 만들면 조회 열쇠(`fundingMapQuery`)가
- * 달라져 회사를 바꿀 때마다 같은 조회가 한 번 더 돈다.
- */
-export function resetExcludedForCompany(f: FundingFilters): FundingFilters {
-  return f.includeExcluded ? { ...f, includeExcluded: false } : f;
 }
 
 /**
  * 거르개가 바뀔 때 **두 상태를 한 자리에서** 다음 값으로 옮긴다 — 거르개(`filters`)와 갈래별
  * 펼침(`showExcluded`)이 서로 어긋나지 않게.
  *
- * ★고친 것(2026-09-04) — 부모가 두 상태를 따로 쥐고 `onFiltersChange={setFilters}` 로 거르개만
- *  갈아 끼웠다. 그래서 「카드 보기에서 한 갈래 펼침 → 표 보기로 이동 → 「안 맞는 공고도 보기」
- *  손잡이 끄기 → 카드 보기로 복귀」 하면 `showExcluded` 에는 그 갈래가 남아 있는데
- *  `includeExcluded` 는 꺼져 서버가 `excludedItems` 를 아예 안 싣는다 — 그 갈래 카드가 「뺀 것
- *  접기」(펼친 모양)인데 아래가 텅 비고, 잘림 표시까지 켜졌다.
+ * ★이 패널은 더는 안 쓴다(안 맞음을 안 보이기로 하면서 펼침 집합을 지웠다). 전폭 지도 쪽 배선 시험
+ *  (`funding-wiring.test.ts`)이 이 순수 함수를 직접 불러 재므로 남긴다.
  *
  * 규칙은 하나뿐이다: **`includeExcluded` 가 참 → 거짓으로 바뀌는 순간 펼침을 비운다.** 스위치를
  * 껐다는 건 「안 맞는 건 안 보겠다」는 뜻이라, 갈래마다 펼쳐 둔 것도 함께 접히는 것이 그 말의 뜻이다.
- *
- * ★반대 방향(거짓 → 참)에는 손대지 않는다 — 스위치를 켜도 전 갈래를 자동으로 펼치지 않는다.
- *  표에서는 스위치 하나로 다 보이고(`tableRowsOf`), 카드에서는 갈래마다 눌러 펼치는 것이 계약이다.
- * ★다른 칩(지금 신청 가능·7일 안 마감)만 뒤집힐 때도 펼침은 그대로다.
- *
- * 바꿀 것이 없으면 **받은 집합을 그대로** 돌려준다 — 새 집합을 만들면 다시 그리기가 헛돈다.
- * (갈래 단추로 마지막 갈래를 접어 스위치가 꺼지는 길은 `onToggleExcluded` 가 이미 빈 집합을
- *  만들어 넘기므로 이 규칙과 결과가 같다 — 시험이 그 순서를 이어 돌려 확인한다.)
+ * 반대 방향(거짓 → 참)과 다른 칩만 뒤집힐 때는 손대지 않는다. 바꿀 것이 없으면 **받은 집합을 그대로** 돌려준다.
  */
 export function nextFundingState(
   prevFilters: FundingFilters,
@@ -157,15 +128,35 @@ export function nextFundingState(
 /**
  * 항목을 눌렀을 때 어디로 보내는지. 공고는 이 상세창이 이미 가진 상세 화면으로, 상시 상품은
  * 상세 화면이 없으니 서랍으로. 상세 손잡이가 없으면 공고도 서랍이 받는다 —
- * 눌러도 아무 일도 안 하는 카드를 두지 않는다.
+ * 눌러도 아무 일도 안 하는 단추를 두지 않는다.
  */
 export function openTargetOf(item: FundingItem, canOpenDetail: boolean): "detail" | "drawer" {
   return item.kind === "announcement" && canOpenDetail ? "detail" : "drawer";
 }
 
+/**
+ * 요약의 「공고 상세 열기」를 눌렀을 때 — `openTargetOf` 가 가린 곳으로 보낸다. 공고는 이 상세창이 이미 가진 상세로
+ * (`onOpenDetail(refId)`), 상세 화면이 없는 상품은 서랍으로(`openDrawer`). 눌림 배선을 순수 함수로 떼어 눌러 보지 않고도 잰다.
+ */
+export function openRecommendItem(
+  item: FundingItem,
+  opts: { onOpenDetail?: (announcementId: string) => void; openDrawer: (item: FundingItem) => void },
+): void {
+  if (openTargetOf(item, Boolean(opts.onOpenDetail)) === "detail") opts.onOpenDetail?.(item.refId);
+  else opts.openDrawer(item);
+}
+
+/**
+ * 모름 칸 수 — 응답의 `profileGaps` 길이. 칸이 없거나 배열이 아니면(옛 통로·통로를 건너온 값) 모른다(null) —
+ * 0 으로 지어내지 않는다. 목록 위 「모르는 N칸 때문에 …」 안내가 이 값을 쓴다.
+ */
+export function unknownCountOf(data: RecommendFundingData | null): number | null {
+  return data && Array.isArray(data.profileGaps) ? data.profileGaps.length : null;
+}
+
 /** 한 번의 조회 결과 — 「어느 통로·어느 회사·어느 요청」 것인지를 함께 담는다. */
 export interface FundingFetchResult {
-  /** 통로·회사·칩·정렬·다시추천 회차까지 담은 요청 열쇠. 지금 열쇠와 다르면 아직 도는 중이다. */
+  /** 통로·회사·정렬·다시추천 회차까지 담은 요청 열쇠. 지금 열쇠와 다르면 아직 도는 중이다. */
   requestKey: string;
   /** 통로|사업자번호|상호. 통로나 회사가 바뀌면 앞 자료를 절대 안 보여 준다. */
   companyKey: string;
@@ -258,9 +249,9 @@ export function startFundingMapFetch(a: {
 
 /**
  * 그릴 것을 **그리는 순간에 가려낸다** — 효과 안에서 상태를 지우면 쓸데없는 다시 그리기가 한 번 더 돌고,
- * 그 사이 한 프레임 동안 앞 회사 지도가 이 회사 것처럼 보인다.
+ * 그 사이 한 프레임 동안 앞 회사 목록이 이 회사 것처럼 보인다.
  *  · 통로나 회사가 바뀌면 앞 자료·오류는 없는 셈 친다(남의 회사·앞 통로 자금을 지금 것으로 읽지 않게).
- *  · 칩·정렬만 바꾼 재조회 중에는 **앞 자료를 그대로 둔다**(지도가 사라졌다 나타나지 않게 — 흐려질 뿐).
+ *  · 「다시 추천」만 누른 재조회 중에는 **앞 자료를 그대로 둔다**(목록이 사라졌다 나타나지 않게 — 흐려질 뿐).
  */
 export function viewState(
   result: FundingFetchResult | null,
@@ -275,10 +266,10 @@ export function viewState(
  * 「이 사업장을 못 찾았다」 안내 — **못 찾았을 때만** 뜬다(2026-09-04 승인 시안 A안).
  * 조건 판정 없는 목록이라고 먼저 밝히지 않으면 「이 회사엔 맞는 자금이 없다」로 잘못 읽힌다.
  *
- * ★예전엔 「찾았는데 쓸 정보가 0개」일 때도 같은 안내를 그렸는데, 그 말은 지도 머리 카드의
+ * ★예전엔 「찾았는데 쓸 정보가 0개」일 때도 같은 안내를 그렸는데, 그 말은 머리 카드의
  *  빈칸 힌트(`gapParts`)가 이미 한다 — 같은 말이 화면에 두 번 나왔다. 이제 이 안내는 「못 찾음」
- *  하나만 맡고, 「무엇을 입력해 달라」는 머리 카드 한 곳에서만 말한다.
- * ★찾은 고객의 「판정에 쓴 정보」도 지도 머리 카드가 그린다 — 여기서 겹쳐 적지 않는다.
+ *  하나만 맡는다. (정책매칭식 목록으로 바꾼 뒤에는 「모르는 N칸 때문에 …」 안내가 그 말을 대신한다.)
+ * ★찾은 고객의 「판정에 쓴 정보」도 머리 카드가 그린다 — 여기서 겹쳐 적지 않는다.
  *  (`usedProfile` 은 부르는 쪽 모양을 안 바꾸려고 그대로 받되 읽지 않는다.)
  * ★`matchedCompany` 는 **`null` 일 때만** 「못 찾음」이다(코덱스 2차 #3, 2026-09-04 — 5차 #1 의
  *  「undefined 도 null 과 같게」를 되돌린다). 이름을 **생략한 것**(undefined)과 **못 찾았다고 말한 것**
@@ -302,84 +293,102 @@ export function ProfileNotice({
 }
 
 export interface RecommendPanelProps {
-  /** 서랍의 출처 이름표·「같은 공고 N건(수집원별)」 — 관리자만(2026-10-07). 기본 false. */
+  /** 목록 줄의 출처 이름표와 서랍의 「같은 공고 N건(수집원별)」 — 관리자만(2026-10-07). 기본 false. */
   showSources?: boolean;
   data: RecommendFundingData | null;
   loading: boolean;
   error: string;
-  filters: FundingFilters;
-  sort: FundingSort;
+  /** 찾기 칸에 보이는 글 · 거르기에 쓰는 글(입력이 멈춘 뒤 따라간다). 받아 둔 줄을 화면에서 거른다. */
+  query: string;
+  askedQuery: string;
+  onQuery: (q: string) => void;
+  /** 목록 상태(탭·칩·정렬·쪽·펼친 줄)를 새로 만드는 열쇠 — 회사가 바뀌면 달라져 앞 회사의 상태가 안 남는다. */
+  listKey?: string;
   /** 서랍에 열린 항목(상시 상품). 없으면 서랍을 안 그린다. */
   drawerItem: FundingItem | null;
-  /**
-   * 갈래별 「안 맞아서 뺀 항목 보기」 펼침 집합 — **부모(ErpPolicyRecommendSection)가 쥔다**
-   * (계약 §G2·§G3, `FundingMap` 의 같은 이름 prop과 같은 규칙). 비어 있지 않으면 부모가
-   * `filters.includeExcluded:true` 로 재조회해야 한다.
-   */
-  showExcluded: ReadonlySet<FundingGroup>;
-  onFiltersChange: (filters: FundingFilters) => void;
-  onSortChange: (sort: FundingSort) => void;
+  /** 요약의 「공고 상세 열기」 — 부모가 상세 화면으로 보낼지 서랍으로 보낼지 정한다(`openTargetOf`). */
   onOpen: (item: FundingItem) => void;
   onOpenDetail?: (announcementId: string) => void;
-  /** 머리 카드 「피드백과 다른 칸」 구역의 `기업상태표 열기` — 안 넘기면 단추를 안 그린다. */
+  /**
+   * 「피드백과 다른 칸」 구역의 `기업상태표 열기` · 모름 칸 안내의 「그 칸 채우기」 · 빈 상태의 「← 회사 정보 고치기」 —
+   * 안 넘기면 세 단추 모두 안 그린다(누르면 아무 일도 안 하는 단추를 두지 않는다).
+   */
   onOpenCompanyStatus?: () => void;
   onCloseDrawer: () => void;
   onRefresh: () => void;
-  onToggleExcluded: (group: FundingGroup) => void;
+  /** 마감 계산 기준 시각 — 생략하면 지금. 시험이 고정값을 넣는다. */
+  now?: Date;
 }
 
 /**
  * 상태 없는 본체 — 손잡이·자료를 전부 밖에서 받는다. 이 저장소엔 jsdom 이 없어
  * 「눌러 본 뒤의 화면」은 상태를 밖에서 바꿔 다시 그려야만 잴 수 있다(전례: `funding-map-render.test.tsx`).
+ * (목록 안의 탭·칩·정렬·쪽·펼친 줄은 `ResultOneList` 가 쥔다.)
  */
 export function RecommendPanel({
   data,
   loading,
   error,
-  filters,
-  sort,
+  query,
+  askedQuery,
+  onQuery,
+  listKey,
   drawerItem,
-  showExcluded,
-  onFiltersChange,
-  onSortChange,
   onOpen,
   onOpenDetail,
   onOpenCompanyStatus,
   onCloseDrawer,
   onRefresh,
-  onToggleExcluded,
+  now,
   showSources = false,
 }: RecommendPanelProps) {
+  // 「다시 추천」은 **어느 상태에서도** 남는다 — 배포 교체 창의 일시 502 뒤 사용자가 복구할 길이
+  // 상세창을 닫았다 여는 것뿐이었다(화면 독립 검사 2026-08-30 지적 F). 자료가 있으면 머리 카드 라벨 줄에,
+  // 뼈대·오류에는 오른쪽 끝 한 줄로 둔다. 머리는 목록 밖이라 재조회 중 목록이 흐려져도 눌린다.
+  const refresh = (
+    <button type="button" onClick={onRefresh} className={REFRESH_BTN}>
+      <RotateCw className="h-3 w-3" />
+      다시 추천
+    </button>
+  );
   return (
     <div>
       {/* 「못 찾음」 판정은 `ProfileNotice` **한 곳에만** 둔다 — 여기서 같은 조건을 한 번 더 적으면
           두 곳이 갈릴 수 있는데 겉으로는 아무 차이가 안 나 시험으로도 못 잡는다(실측: 이 줄만
           옛 규칙으로 되돌려도 시험 39건이 전부 통과했다). */}
       {data && <ProfileNotice matchedCompany={data.matchedCompany} usedProfile={data.usedProfile ?? []} />}
-      <FundingMap
+      {/* 머리 — 판정에 쓴 회사 정보 띠 · 피드백과 다른 칸 알림 · 「다시 추천」. 지도의 머리 카드와 같은 부품이다.
+          모름 칸 힌트는 목록 위 「모르는 N칸 때문에 …」 안내가 대신하므로 여기서는 안 그린다. */}
+      <div className="mb-3">
+        {data ? (
+          <FundingHeaderCard
+            data={data}
+            compact
+            headerAction={refresh}
+            onOpenCompanyStatus={onOpenCompanyStatus}
+            showGap={false}
+          />
+        ) : (
+          <div className="flex justify-end">{refresh}</div>
+        )}
+      </div>
+      <ResultOneList
+        key={listKey}
+        layout="inline"
         data={data}
         loading={loading}
         error={error}
-        filters={filters}
-        sort={sort}
-        onFiltersChange={onFiltersChange}
-        onSortChange={onSortChange}
-        onOpen={onOpen}
-        onOpenDetail={onOpenDetail}
-        onOpenCompanyStatus={onOpenCompanyStatus}
-        selectedId={drawerItem?.id ?? ""}
-        compact
-        showExcluded={showExcluded}
-        onToggleExcluded={onToggleExcluded}
-        headerAction={
-          /* 「다시 추천」은 **어느 상태에서도** 남는다 — 배포 교체 창의 일시 502 뒤 사용자가 복구할 길이
-             상세창을 닫았다 여는 것뿐이었다(화면 독립 검사 2026-08-30 지적 F). 자료가 있으면 머리 카드
-             라벨 줄에, 뼈대·오류에는 지도가 오른쪽 끝 한 줄로 대신 그린다. */
-          <button type="button" onClick={onRefresh} className={REFRESH_BTN}>
-            <RotateCw className="h-3 w-3" />
-            다시 추천
-          </button>
-        }
+        onRetry={onRefresh}
+        query={query}
+        askedQuery={askedQuery}
+        onQuery={onQuery}
+        // GET 통로는 찾기어를 받지 않는다 — 받아 둔 줄 안에서만 찾으므로 「찾으면 나머지도」를 약속하지 않는다.
+        searchReachesAll={false}
+        unknownCount={unknownCountOf(data)}
+        onFill={onOpenCompanyStatus}
+        onEdit={onOpenCompanyStatus}
+        renderDetail={(item) => <InlineFundingSummary item={item} now={now} onOpen={onOpen} />}
+        showSources={showSources}
       />
       {/* 발 안내 — ★「자동 대조 결과입니다」는 **확실히 아닐 때만** 뺀다(코덱스 3차 #C, 2026-09-04).
            앞선 두 판(요약 길이 → `evaluatedConditions` 판정 수)은 둘 다 근사치였다: 판정 엔진이
@@ -398,77 +407,6 @@ export function RecommendPanel({
   );
 }
 
-/**
- * 거르개(`filters`)와 갈래별 펼침(`showExcluded`) — **두 상태를 한 자리에 묶고, 바깥에는
- * 손잡이만** 돌려준다.
- *
- * ★왜 훅으로 감쌌나(2026-09-04 — 시험이 못 지키는 자리를 구조로 막는다):
- *  예전엔 부품이 `useState` 두 개를 직접 쥐어서, JSX 자리에서 `onFiltersChange={setFilters}` 처럼
- *  **날 것 설정 함수를 그대로 넘길 수 있었다.** 그러면 「스위치를 꺼도 펼침이 남는」 그 버그가
- *  되돌아오는데, 이 보관함엔 브라우저 흉내 도구가 없어 **「부품이 어떤 손잡이를 넘겼나」를 시험으로
- *  잴 수가 없다** — 순수 함수 시험은 전부 초록인 채 배선만 틀린 상태가 그대로 통과했다(실측).
- *  그래서 못 재는 것을 **아예 쓸 수 없게** 만들었다:
- *   · `setFilters`·`setShowExcluded` 는 이 훅 안에만 있다 — 아래 부품 범위에는 그 이름이 없으니
- *     쓰면 타입 검사가 `TS2304: Cannot find name` 으로 막는다(되돌리기 실험으로 확인).
- *   · 칩·표 손잡이가 거르개를 바꾸는 길은 `onFiltersChange` **하나뿐**이고, 그 길은 반드시
- *     `nextFundingState` 를 지난다.
- *
- * 규칙은 옮기기 전과 **한 글자도 같다** — 부르는 순수 함수도, 순서도, 「바꿀 것이 없으면 같은 값을
- * 돌려준다」는 성질도 그대로다(상태를 합치지도 않았다 — 다시 그리기 횟수까지 같게).
- */
-function useFundingFilterState(): {
-  filters: FundingFilters;
-  showExcluded: ReadonlySet<FundingGroup>;
-  /** 칩·표 손잡이가 거르개를 바꿀 때 — 거르개를 바꾸는 **유일한** 길. */
-  onFiltersChange: (next: FundingFilters) => void;
-  /** 갈래 카드의 「안 맞아서 뺀 N건 보기」. */
-  onToggleExcluded: (group: FundingGroup) => void;
-  /** 회사(또는 통로)가 바뀔 때 펼침을 접고 재조회 스위치를 끈다. 늘 같은 함수다. */
-  resetForCompany: () => void;
-} {
-  const [filters, setFilters] = useState<FundingFilters>(NO_FILTERS);
-  // 갈래별 「안 맞아서 뺀 항목 보기」 — 비어 있지 않으면 filters.includeExcluded 를 함께 켠다
-  // (계약 §G2·§G3, PolicyMatchClient.tsx 의 같은 배선과 같은 규칙). 이 값 자체가 네트워크
-  // 재조회를 부르므로(filters 변화로) FundingMap 안의 `expanded`(순수 UI, 재조회 없음)와 달리
-  // 여기(부모 쪽)가 쥔다.
-  const [showExcluded, setShowExcluded] = useState<ReadonlySet<FundingGroup>>(() => new Set<FundingGroup>());
-
-  /**
-   * 칩·표 손잡이가 거르개를 바꿀 때 — 펼침(`showExcluded`)까지 **한 자리에서** 옮긴다
-   * (`nextFundingState`). 예전엔 `setFilters` 를 그대로 넘겨 스위치를 꺼도 펼침이 남았다.
-   * 지금 렌더의 `filters`·`showExcluded` 를 그대로 읽는다 — 손잡이가 `next` 를 만들 때 본
-   * 거르개가 바로 이 렌더의 것이라 어긋날 자리가 없다(FundingMap 은 `filters` prop 으로 만든다).
-   */
-  const onFiltersChange = (next: FundingFilters) => {
-    const s = nextFundingState(filters, showExcluded, next);
-    setFilters(s.filters);
-    setShowExcluded(s.showExcluded);
-  };
-
-  /**
-   * 갈래 카드의 「안 맞아서 뺀 N건 보기」 — 집합이 비어 있지 않아지면 `filters.includeExcluded`
-   * 도 함께 켠다(계약 §G2·§G3: 하나라도 펼쳐 있으면 서버에 안 맞음까지 달라고 다시 물어야 한다).
-   * 다시 전부 접으면(집합이 다시 비면) 꺼서 원래대로(안 맞음은 다시 서버에서부터 빠진다).
-   */
-  const onToggleExcluded = (group: FundingGroup) => {
-    setShowExcluded((prev) => {
-      const next = toggleExcludedGroup(prev, group);
-      const wantIncludeExcluded = next.size > 0;
-      setFilters((f) => (f.includeExcluded === wantIncludeExcluded ? f : { ...f, includeExcluded: wantIncludeExcluded }));
-      return next;
-    });
-  };
-
-  // 회사(또는 통로)가 바뀔 때 부르는 규칙 — 설정 함수만 쓰므로 늘 같은 함수로 둔다
-  // (부품 쪽 useEffect 의 의존 배열에 넣어도 효과가 헛돌지 않는다).
-  const resetForCompany = useCallback(() => {
-    setShowExcluded((prev) => (prev.size > 0 ? new Set<FundingGroup>() : prev));
-    setFilters(resetExcludedForCompany);
-  }, []);
-
-  return { filters, showExcluded, onFiltersChange, onToggleExcluded, resetForCompany };
-}
-
 export default function FundingRecommendPanel({
   bizno,
   companyName,
@@ -483,7 +421,7 @@ export default function FundingRecommendPanel({
   bizno?: string;
   companyName?: string;
   onOpenDetail?: (id: string) => void;
-  /** 「피드백과 다른 칸」 구역의 `기업상태표 열기` 손잡이 — 기업상태표를 여는 앱이 넘긴다. 안 넘기면 단추가 없다. */
+  /** 「피드백과 다른 칸」 구역의 `기업상태표 열기` · 「그 칸 채우기」 · 「← 회사 정보 고치기」 손잡이 — 기업상태표를 여는 앱이 넘긴다. 안 넘기면 단추가 없다. */
   onOpenCompanyStatus?: () => void;
   /** 조회 통로 주소 — 앱마다 다를 수 있어 밖에서 받는다(기본은 지금 ERP 가 쓰는 주소). */
   endpoint?: string;
@@ -499,18 +437,19 @@ export default function FundingRecommendPanel({
   parseError?: (json: unknown) => string;
   /** 기업상태표 저장 신호 이름 — 기본은 ERP `COMPANY_STATUS_SAVED_EVENT` 와 같은 값. */
   refreshEventName?: string;
-  /** 서랍의 출처 이름표·「같은 공고 N건(수집원별)」 — 수집원 자료는 관리자만 본다(2026-10-07). 기본 false. */
+  /** 목록 줄의 출처 이름표와 서랍의 「같은 공고 N건(수집원별)」 — 수집원 자료는 관리자만 본다(2026-10-07). 기본 false. */
   showSources?: boolean;
 }) {
-  // 거르개·펼침은 훅 하나가 쥔다 — 날 것 설정 함수는 그 안에만 있다(위 `useFundingFilterState` 주석).
-  const { filters, showExcluded, onFiltersChange, onToggleExcluded, resetForCompany } = useFundingFilterState();
-  const [sort, setSort] = useState<FundingSort>("rec");
   // 다시 대조 회차 — 「다시 추천」 단추와 기업상태표 저장 신호가 올린다(사장님 2026-08-30).
   const [refreshKey, setRefreshKey] = useState(0);
   // 조회 결과·서랍은 **누구 것인지**를 함께 담는다 — 회사가 바뀌면 그리는 순간 가려낸다.
   const [result, setResult] = useState<FundingFetchResult | null>(null);
   const [opened, setOpened] = useState<{ companyKey: string; item: FundingItem } | null>(null);
-  const query = buildQuery({ bizno, companyName, filters, sort });
+  // 찾기 — 칸에 보이는 글과, 입력이 멈춘 뒤(300ms) 거르기에 쓰는 글. 받아 둔 줄을 화면에서 거른다(통로는 찾기어를 안 받는다).
+  const [searchText, setSearchText] = useState("");
+  const [askedQuery, setAskedQuery] = useState("");
+  // 안 맞음은 안 받는다(`NO_FILTERS`), 정렬은 늘 추천순, 건수는 정책매칭 화면과 같은 80 — 칩·정렬이 통로를 다시 부르지 않는다.
+  const query = buildQuery({ bizno, companyName, filters: NO_FILTERS, sort: SERVER_SORT, topN: FUNDING_TOP_N });
   // 통로까지 섞은 열쇠 — 통로만 바뀌어도 재조회가 돌고 앞 통로 자료가 안 남는다(코덱스 3차 #3).
   const { companyKey, requestKey } = fundingFetchKeys({ endpoint, bizno, companyName, refreshKey, query });
   const { data, error, loading } = viewState(result, requestKey, companyKey);
@@ -545,12 +484,20 @@ export default function FundingRecommendPanel({
     };
   }, [refreshEventName]);
 
-  // 회사(또는 통로)가 바뀌면 앞서 펼쳐 둔 「안 맞아서 뺀 항목」을 접고 재조회 스위치도 끈다(11차 #10).
-  // 둘 다 바꿀 것이 없으면 **같은 값**을 돌려주므로 다시 그리기·재조회가 헛돌지 않는다.
+  // 회사(또는 통로)가 바뀌면 사실 뽑기 재조회 횟수를 0 으로 돌리고, 앞 회사에서 입력한 찾기어를 비운다.
+  // 같은 값("")으로 비우면 다시 그리기가 헛돌지 않는다. (목록 상태는 `listKey` 로 새로 만든다.)
   useEffect(() => {
-    resetForCompany();
     factsPollsRef.current = 0;
-  }, [companyKey, resetForCompany]);
+    setSearchText("");
+    setAskedQuery("");
+  }, [companyKey]);
+
+  // 입력이 멈춘 뒤 거르기에 쓰는 글이 따라간다(글자마다 목록을 다시 거르지 않는다).
+  useEffect(() => {
+    if (searchText === askedQuery) return;
+    const timer = setTimeout(() => setAskedQuery(searchText), FUNDING_QUERY_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [searchText, askedQuery]);
 
   // 피드백 회차의 기업 사실을 서버가 아직 뽑는 중이면 끝날 때까지 다시 부른다 — 끝나면(또는 상한이면) 멈춘다.
   // 다시 부르는 조회가 서버에 「다시 시도할 회차」를 또 맡기므로, 실패한 첫 시도의 재시도도 이 길로 돈다.
@@ -593,19 +540,14 @@ export default function FundingRecommendPanel({
       data={data}
       loading={loading}
       error={error}
-      filters={filters}
-      sort={sort}
+      query={searchText}
+      askedQuery={askedQuery}
+      onQuery={(q) => setSearchText(clipQuery(q))}
+      listKey={companyKey}
       drawerItem={drawerItem}
-      showExcluded={showExcluded}
-      onFiltersChange={onFiltersChange}
-      onSortChange={setSort}
-      onOpen={(it) => {
-        if (openTargetOf(it, Boolean(onOpenDetail)) === "detail") onOpenDetail?.(it.refId);
-        else setOpened({ companyKey, item: it });
-      }}
+      onOpen={(it) => openRecommendItem(it, { onOpenDetail, openDrawer: (item) => setOpened({ companyKey, item }) })}
       onOpenDetail={onOpenDetail}
       onOpenCompanyStatus={onOpenCompanyStatus}
-      onToggleExcluded={onToggleExcluded}
       onCloseDrawer={() => setOpened(null)}
       onRefresh={() => {
         factsPollsRef.current = 0;

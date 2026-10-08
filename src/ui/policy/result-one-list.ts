@@ -11,20 +11,27 @@ import { normalizeQuery } from "./result-conditions";
 /** 한 쪽에 보이는 건수. */
 export const RESULT_PAGE_SIZE = 10;
 
+/**
+ * 갈래 한 칸에 처음 받아 올 건수 — 정책매칭 화면(`PolicyMatchScreen` 이 같은 이름으로 다시 내보낸다)과
+ * 통합 상세창 「추천 정책」(`FundingRecommendPanel`)이 같은 값을 쓴다. 통로가 1~80 으로 죈다(`funding-map` GROUP_TOP_N).
+ */
+export const FUNDING_TOP_N = 80;
+
 /** 마감이 이 날수 안이면 D-day 를 빨간 글자로 보인다. */
 const HOT_DAYS = 7;
 
 /**
- * 지도 응답 → 평평한 배열. 갈래마다 정상 항목(items) 뒤에 안 맞아서 뺀 항목(excludedItems)을 붙이고,
- * 같은 id 는 처음 나온 한 줄만 둔다. 자료가 없으면 빈 배열.
+ * 지도 응답 → 평평한 배열. 갈래마다 정상 항목(items)만 모으고 같은 id 는 처음 나온 한 줄만 둔다. 자료가 없으면 빈 배열.
+ * ★안 맞음(`excludedItems`)은 붙이지 않는다 — 조건이 확실히 안 맞는 공고는 화면에 아예 안 보인다(2026-10-07 사장님 결정).
+ *  서버가 실수로 `items` 에 안 맞음 줄을 실어도 버린다(이중 안전 — `oneListViewOf` 도 한 번 더 거른다).
  */
 export function flattenFundingItems(data: FundingMapPayload | null): FundingItem[] {
   if (!data) return [];
   const seen = new Set<string>();
   const out: FundingItem[] = [];
   for (const block of data.groups) {
-    for (const it of [...block.items, ...(block.excludedItems ?? [])]) {
-      if (seen.has(it.id)) continue;
+    for (const it of block.items) {
+      if (it.fitVerdict === "excluded" || seen.has(it.id)) continue;
       seen.add(it.id);
       out.push(it);
     }
@@ -33,35 +40,46 @@ export function flattenFundingItems(data: FundingMapPayload | null): FundingItem
 }
 
 // ── 판정 탭 ─────────────────────────────────────────────────────────────
+/**
+ * 판정 이름 셋. `DetailPanel` 이 머리 판정 이름표 표에 쓰는 타입이라 `excluded` 를 남긴다 —
+ * **목록의 탭은 `ListTab`(두 개)** 이고 안 맞음은 어느 탭도 아니다.
+ */
 export type VerdictTab = "fit" | "unverified" | "excluded";
 
-/** 세 탭 — 항목의 fitVerdict 를 그대로 따른다(fit→지원 가능 · unverified→확인 필요 · excluded→어려움). */
-export const VERDICT_TABS: ReadonlyArray<{ key: VerdictTab; label: string }> = [
+/** 목록에 보이는 판정 탭 — 지원 가능·확인 필요 둘뿐이다. */
+export type ListTab = Exclude<VerdictTab, "excluded">;
+
+/** 두 탭 — 항목의 fitVerdict 를 그대로 따른다(fit→지원 가능 · unverified→확인 필요). 안 맞음은 탭이 없다. */
+export const VERDICT_TABS: ReadonlyArray<{ key: ListTab; label: string }> = [
   { key: "fit", label: "지원 가능" },
   { key: "unverified", label: "확인 필요" },
-  { key: "excluded", label: "어려움" },
 ];
 
-const TAB_LABEL: Record<VerdictTab, string> = { fit: "지원 가능", unverified: "확인 필요", excluded: "어려움" };
+const TAB_LABEL: Record<ListTab, string> = { fit: "지원 가능", unverified: "확인 필요" };
 
-export function verdictTabOf(it: { fitVerdict: FitVerdict }): VerdictTab {
-  return it.fitVerdict;
+/** 항목이 앉는 탭. 안 맞음(excluded)은 어느 탭에도 안 앉는다(null). */
+export function verdictTabOf(it: { fitVerdict: FitVerdict }): ListTab | null {
+  return it.fitVerdict === "excluded" ? null : it.fitVerdict;
 }
 
-export function verdictCountsOf(items: readonly FundingItem[]): Record<VerdictTab, number> {
-  const counts: Record<VerdictTab, number> = { fit: 0, unverified: 0, excluded: 0 };
-  for (const it of items) counts[verdictTabOf(it)] += 1;
+export function verdictCountsOf(items: readonly FundingItem[]): Record<ListTab, number> {
+  const counts: Record<ListTab, number> = { fit: 0, unverified: 0 };
+  for (const it of items) {
+    const tab = verdictTabOf(it);
+    if (tab) counts[tab] += 1;
+  }
   return counts;
 }
 
 /**
- * 서버가 자르기 **전에** 센 판정별 개수 — 갈래 칸의 fit·unverified·excluded(찾기어를 건 요청이면 건 뒤 수).
- * 받은 줄은 갈래마다 앞쪽 N건뿐이라 화면이 받은 줄로 세면 「어려움 480」처럼 실제보다 적게 보인다.
+ * 서버가 자르기 **전에** 센 판정별 개수 — 갈래 칸의 fit·unverified(찾기어를 건 요청이면 건 뒤 수).
+ * 받은 줄은 갈래마다 앞쪽 N건뿐이라 화면이 받은 줄로 세면 「확인 필요 480」처럼 실제보다 적게 보인다.
  * 「종류 미확인」 줄은 서버 셈에 없으므로 화면은 받은 줄 수와 이 값 중 큰 쪽을 쓴다(`oneListViewOf`).
+ * 안 맞음(excluded) 수는 쓰지 않는다 — 탭도 칩 숫자도 아니다.
  */
 export interface ServerVerdictCounts {
-  tab: Record<VerdictTab, number>;
-  byGroup: Record<FundingGroup, Record<VerdictTab, number>>;
+  tab: Record<ListTab, number>;
+  byGroup: Record<FundingGroup, Record<ListTab, number>>;
 }
 
 export function serverVerdictCountsOf(data: FundingMapPayload | null): ServerVerdictCounts | null {
@@ -70,21 +88,19 @@ export function serverVerdictCountsOf(data: FundingMapPayload | null): ServerVer
   // 이 칸을 싣는다(`groupBlocks`). 실린 줄로 보충하면 미확인 줄이 상한 밖으로 잘렸을 때 틀린다(재리뷰 10/7 세 번).
   // 받은 줄로만 세면 탭·칩·목록이 서로 맞는다.
   if (data.groups.some((b) => !b.unclassifiedCounts)) return null;
-  const zero = (): Record<VerdictTab, number> => ({ fit: 0, unverified: 0, excluded: 0 });
+  const zero = (): Record<ListTab, number> => ({ fit: 0, unverified: 0 });
   const tab = zero();
-  const byGroup = Object.fromEntries(FUNDING_GROUPS.map((g) => [g, zero()])) as Record<FundingGroup, Record<VerdictTab, number>>;
+  const byGroup = Object.fromEntries(FUNDING_GROUPS.map((g) => [g, zero()])) as Record<FundingGroup, Record<ListTab, number>>;
   for (const b of data.groups) {
     const g = byGroup[b.group];
     if (!g) continue;
-    // 「종류 미확인」 줄: 서버의 fit/unverified 에는 없고 excluded 에는 들어 있다. 탭은 미확인까지 더하고,
+    // 「종류 미확인」 줄: 서버의 fit/unverified 에는 없다. 탭은 미확인까지 더하고,
     // 갈래 칩은 미확인을 빼고 센다(칩 거르기 `filterByChip` 이 미확인을 빼므로) — 독립 리뷰 10/7.
     const parked = b.unclassifiedCounts ?? { fit: 0, unverified: 0, excluded: 0 };
     g.fit += b.fit;
     g.unverified += b.unverified;
-    g.excluded += Math.max(0, b.excluded - parked.excluded);
     tab.fit += b.fit + parked.fit;
     tab.unverified += b.unverified + parked.unverified;
-    tab.excluded += b.excluded;
   }
   return { tab, byGroup };
 }
@@ -100,12 +116,12 @@ export function serverCountsForQuery(data: FundingMapPayload | null, askedQuery:
 }
 
 /** 처음 보이는 탭 — 지원 가능, 그게 0건이면 확인 필요. */
-export function defaultVerdictTab(counts: Record<VerdictTab, number>): VerdictTab {
+export function defaultVerdictTab(counts: Record<ListTab, number>): ListTab {
   return counts.fit > 0 ? "fit" : "unverified";
 }
 
 // ── 찾기 ────────────────────────────────────────────────────────────────
-/** 세 탭 전체를 뒤진다 — 낱말 규칙은 서버·예전 화면과 한 벌(`matchesFundingQuery`). 비어 있으면 그대로 돌려준다. */
+/** 두 탭 전체를 뒤진다 — 낱말 규칙은 서버·예전 화면과 한 벌(`matchesFundingQuery`). 비어 있으면 그대로 돌려준다. */
 export function searchItems(items: FundingItem[], query: string): FundingItem[] {
   const q = normalizeQuery(query);
   if (!q) return items;
@@ -242,20 +258,23 @@ export function unknownNoticeOf(opts: { unverifiedCount: number; unknownFieldCou
 // ── 상태 바뀜 ───────────────────────────────────────────────────────────
 export interface OneListState {
   /** 아직 안 골랐으면 null — 그때는 기본 탭(`defaultVerdictTab`)을 쓴다. */
-  tab: VerdictTab | null;
+  tab: ListTab | null;
   chip: ChipKey;
   sort: OneListSort;
   /** 1부터 센다. */
   page: number;
-  /** 고른 줄의 id. 비었거나 지금 목록에 없으면 목록 첫 항목을 고른 것으로 본다. */
+  /**
+   * 고른(펼친) 줄의 id. 두 칸 모양(split)은 비었거나 지금 목록에 없으면 목록 첫 항목을 고른 것으로 본다.
+   * 한 열 모양(inline)은 그렇게 보지 않는다 — 비었으면 아무 줄도 안 펼친 것이다(`oneListViewOf` 의 `autoSelect`).
+   */
   selectedId: string;
 }
 
 export type OneListAction =
   /** 탭을 옮긴다 — 칩은 「전체」로, 쪽은 1쪽으로. */
-  | { type: "tab"; tab: VerdictTab }
+  | { type: "tab"; tab: ListTab }
   /** 처음 받은 자료로 기본 탭을 못 박는다 — 이후 찾기로 숫자가 바뀌어도 탭이 저절로 움직이지 않게. */
-  | { type: "pinTab"; tab: VerdictTab }
+  | { type: "pinTab"; tab: ListTab }
   | { type: "chip"; chip: ChipKey }
   | { type: "sort"; sort: OneListSort }
   /** 찾기어가 바뀌었다 — 1쪽으로. */
@@ -286,12 +305,20 @@ export function oneListReducer(state: OneListState, action: OneListAction): OneL
   }
 }
 
+/**
+ * 한 열 모양(inline)의 줄 누름 — 이미 펼친 줄을 다시 누르면 접는다(고른 줄이 없는 상태 = 빈 id).
+ * 두 칸 모양은 이 규칙을 안 쓴다(고른 줄을 다시 눌러도 그대로 고른 채다).
+ */
+export function toggleSelectedId(selectedId: string, clickedId: string): string {
+  return selectedId === clickedId ? "" : clickedId;
+}
+
 // ── 화면 모델 ───────────────────────────────────────────────────────────
 export interface OneListView {
   /** 지금 보이는 탭(안 골랐으면 기본 탭). */
-  tab: VerdictTab;
+  tab: ListTab;
   /** 찾기 결과 기준 탭별 건수. */
-  counts: Record<VerdictTab, number>;
+  counts: Record<ListTab, number>;
   chips: ChipInfo[];
   /** 지금 칩(0건 칩이 골라져 있으면 「전체」로 본다). */
   chip: ChipKey;
@@ -301,10 +328,10 @@ export interface OneListView {
   page: number;
   pageCount: number;
   pageItems: FundingItem[];
-  /** 고른 줄 — 없으면 쪽의 첫 항목, 목록이 비면 null. */
+  /** 고른 줄 — 두 칸 모양은 없으면 쪽의 첫 항목(목록이 비면 null), 한 열 모양은 안 골랐으면 null. */
   selected: FundingItem | null;
   /** 지금 탭이 0건일 때 다른 탭에 찾은 건수(0건 탭은 뺀다). */
-  otherTabs: Array<{ tab: VerdictTab; label: string; count: number }>;
+  otherTabs: Array<{ tab: ListTab; label: string; count: number }>;
   /** 지금 탭·칩의 실제 개수보다 받은 줄이 적으면 { 받은 수, 실제 수 } — 「앞쪽 N건만 불러왔어요」 안내. */
   cut: { loaded: number; total: number } | null;
 }
@@ -312,20 +339,25 @@ export interface OneListView {
 /**
  * 받은 배열 + 상태 + 서버에 물은 찾기어 → 그릴 모양. 순수 함수.
  * `server` 가 있으면 탭·칩 숫자는 받은 줄 수와 서버가 자르기 전에 센 수 중 큰 쪽이다(`serverVerdictCountsOf`).
+ * 안 맞음(excluded) 줄은 받은 배열에 섞여 있어도 먼저 버린다 — 어느 탭·숫자·칩에도 들어가지 않는다.
+ * `opts.autoSelect` 가 false 면(한 열 모양) 고른 줄이 없을 때 첫 줄을 대신 고르지 않는다 — 아무 줄도 안 펼친 상태.
  */
 export function oneListViewOf(
   items: FundingItem[],
   state: OneListState,
   askedQuery = "",
   server: ServerVerdictCounts | null = null,
+  opts: { autoSelect?: boolean } = {},
 ): OneListView {
-  const searched = searchItems(items, askedQuery);
+  const searched = searchItems(
+    items.filter((it) => it.fitVerdict !== "excluded"),
+    askedQuery,
+  );
   const loadedCounts = verdictCountsOf(searched);
-  const counts: Record<VerdictTab, number> = server
+  const counts: Record<ListTab, number> = server
     ? {
         fit: Math.max(loadedCounts.fit, server.tab.fit),
         unverified: Math.max(loadedCounts.unverified, server.tab.unverified),
-        excluded: Math.max(loadedCounts.excluded, server.tab.excluded),
       }
     : loadedCounts;
   const tab = state.tab ?? defaultVerdictTab(counts);
@@ -340,7 +372,8 @@ export function oneListViewOf(
   const pageCount = pageCountOf(list.length);
   const page = Math.min(Math.max(1, state.page), pageCount);
   const pageItems = pageSlice(list, page);
-  const selected = list.find((it) => it.id === state.selectedId) ?? pageItems[0] ?? null;
+  const picked = list.find((it) => it.id === state.selectedId) ?? null;
+  const selected = picked ?? (opts.autoSelect === false ? null : pageItems[0] ?? null);
   const otherTabs =
     tabItems.length === 0
       ? VERDICT_TABS.filter((t) => t.key !== tab && counts[t.key] > 0).map((t) => ({
@@ -352,7 +385,11 @@ export function oneListViewOf(
   return { tab, counts, chips, chip, list, page, pageCount, pageItems, selected, otherTabs, cut };
 }
 
-/** 받은 줄이 실제보다 적을 때의 안내 한 줄. */
-export function cutNoticeOf(cut: { loaded: number; total: number }): string {
-  return `${cut.total.toLocaleString("ko-KR")}건 중 추천 순 앞쪽 ${cut.loaded.toLocaleString("ko-KR")}건만 불러왔어요 · 공고 이름으로 찾으면 나머지도 찾아져요`;
+/**
+ * 받은 줄이 실제보다 적을 때의 안내 한 줄.
+ * `searchReachesAll` 이 false 면(찾기가 서버에 다시 묻지 않고 받아 둔 줄만 거르는 자리) 「나머지도 찾아져요」를 말하지 않는다.
+ */
+export function cutNoticeOf(cut: { loaded: number; total: number }, searchReachesAll = true): string {
+  const head = `${cut.total.toLocaleString("ko-KR")}건 중 추천 순 앞쪽 ${cut.loaded.toLocaleString("ko-KR")}건만 불러왔어요`;
+  return searchReachesAll ? `${head} · 공고 이름으로 찾으면 나머지도 찾아져요` : head;
 }

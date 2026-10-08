@@ -5,8 +5,8 @@
 // 두 단계다(2026-10-05 사장님 승인) — ① 회사 정보 → ② 매칭 결과. 회사 없이 전체 공고를 둘러보는 판은 없다.
 //  · ① 회사 정보 — 본문 가운데 넓은 폼(ProfileForm layout="wide"). 「매칭 결과 보기 →」가 진단을 돌린다.
 //  · ② 매칭 결과 — 진단이 성공해야만 열린다. 위에 회사 요약 줄, 아래에 결과 「목록 칸 + 상세 칸」 두 칸이다(ResultOneList).
-//    목록 자료는 fundingMap 응답 하나(어려움까지 includeExcluded)이고, 판정 탭 3개·돈의 성격 칩·찾기·정렬·쪽 넘김은
-//    받아 둔 배열을 거르는 일이라 서버를 다시 부르지 않는다(서버에 다시 묻는 것은 찾기어가 바뀔 때뿐).
+//    목록 자료는 fundingMap 응답 하나(조건이 확실히 안 맞는 공고는 서버에 달라고도 하지 않는다 — 화면에 아예 없다)이고,
+//    판정 탭 2개·돈의 성격 칩·찾기·정렬·쪽 넘김은 받아 둔 배열을 거르는 일이라 서버를 다시 부르지 않는다(서버에 다시 묻는 것은 찾기어가 바뀔 때뿐).
 //    「한눈에」 지도 보기와 목록/한눈에 전환은 없다(FundingMap 부품은 다른 곳이 쓰므로 파일·export 는 남는다).
 // 단계는 주소의 `?step=result` 에, 입력한 회사 정보는 sessionStorage 에만 둔다(step-state.ts) —
 // 결과 단계에서 새로 고침하면 저장해 둔 값으로 진단을 다시 돌리고, 값이 없거나 깨졌으면 ① 로 돌아간다.
@@ -25,6 +25,7 @@ import {
   stepOfSearch, writeStoredProfile, readStoredProfile, type Step,
 } from "./step-state";
 import ResultOneList from "./ResultOneList";
+import { FUNDING_TOP_N } from "./result-one-list";
 import ResultDetail from "./ResultDetail";
 import {
   FUNDING_QUERY_DELAY_MS, WIDE_TOP_N_MAX, clipQuery, fundingSearchOf, reviewCountOf, searchCutOf,
@@ -122,22 +123,24 @@ function writeStepToAddress(step: Step, how: "push" | "replace"): void {
 }
 
 // ── 결과 목록 자료 배선 ────────────────────────────────────────────────
-// 목록 자료는 fundingMap 응답 하나다. 진단 때 한 번 받고(어려움까지), 탭·칩·정렬·쪽은 받아 둔 배열을 화면이 거른다 —
+// 목록 자료는 fundingMap 응답 하나다. 진단 때 한 번 받고, 탭·칩·정렬·쪽은 받아 둔 배열을 화면이 거른다 —
 // 서버에 다시 묻는 것은 찾기어가 바뀔 때뿐이다(서버가 갈래마다 앞쪽 N건으로 자르기 **전에** 거르므로 N건 밖의 공고도 찾아진다).
 
 /**
  * 갈래 한 칸에 처음 받아 올 건수 — 통로가 1~80 으로 죈다(`funding-map` GROUP_TOP_N).
  * 검색어는 서버가 이 건수로 자르기 **전에** 거른다(요청의 `query`) — 그래서 80건 밖의 공고도 찾아진다.
  * 거른 결과가 그래도 상한을 넘으면 목록 위 안내(`SearchCutNotice`)가 잘렸다고 알린다.
+ * 값은 `result-one-list.ts` 에 둔다 — 통합 상세창 「추천 정책」도 같은 건수를 받는데, 그쪽이 이 화면 파일을 통째로 끌어오지 않게.
  */
-export const FUNDING_TOP_N = 80;
+export { FUNDING_TOP_N };
 
 /**
- * 결과 목록이 서버에 보내는 거르개 — 「어려움」 탭이 채워지도록 안 맞아서 뺀 항목(`excludedItems`)까지 받는다.
+ * 결과 목록이 서버에 보내는 거르개 — 안 맞아서 뺀 항목(`excludedItems`)은 달라고 하지 않는다(`includeExcluded: false`).
+ * 조건이 확실히 안 맞는 공고는 화면에 아예 안 보이기로 했다(2026-10-07 사장님 결정).
  * 시간 칩(지금 신청 가능·7일 안 마감)은 이 화면에 없다.
  */
-export const ONE_LIST_FILTERS: FundingFilters = { openOnly: false, soonOnly: false, includeExcluded: true };
-/** 서버가 갈래마다 앞쪽 N건을 고르는 차례 — 추천순(맞음 → 확인 필요 → 안 맞음). 화면 정렬(마감 임박·추천)은 받은 뒤에 따로 한다. */
+export const ONE_LIST_FILTERS: FundingFilters = { openOnly: false, soonOnly: false, includeExcluded: false };
+/** 서버가 갈래마다 앞쪽 N건을 고르는 차례 — 추천순(맞음 → 확인 필요). 화면 정렬(마감 임박·추천)은 받은 뒤에 따로 한다. */
 const ONE_LIST_SERVER_SORT: FundingSort = "rec";
 const FUNDING_FAIL = "자금 조달 지도를 불러오지 못했습니다";
 
@@ -368,7 +371,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
     ),
   );
 
-  // ── 찾기 — 세 탭 전체를 뒤진다. 탭·칩·정렬은 받아 둔 배열을 화면이 거르므로 서버 조건이 아니다(위 배선 주석).
+  // ── 찾기 — 두 탭 전체를 뒤진다. 탭·칩·정렬은 받아 둔 배열을 화면이 거르므로 서버 조건이 아니다(위 배선 주석).
   const [resultQuery, setResultQuery] = useState("");
   // 서버에 다시 묻는 찾기어 — 입력이 멈춘 뒤 300ms 에 따라간다(글자마다 요청하지 않는다).
   const [askedQuery, setAskedQuery] = useState("");
@@ -382,7 +385,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
   const [formStatus, setFormStatus] = useState<ProfileFormStatus | null>(null);
   const [fillNonce, setFillNonce] = useState(0);
 
-  // 진단이 끝났거나(회차가 오르거나) 찾기어가 바뀌면 목록 자료를 서버에서 다시 받는다 — 어려움까지(ONE_LIST_FILTERS).
+  // 진단이 끝났거나(회차가 오르거나) 찾기어가 바뀌면 목록 자료를 서버에서 다시 받는다(ONE_LIST_FILTERS — 안 맞음은 안 받는다).
   // 찾기어는 서버에 실어 보낸다 — 서버가 앞쪽 N건으로 자르기 전에 거르므로 N건 밖의 공고도 찾아진다.
   useEffect(() => {
     if (profileNonce === 0) return; // 아직 진단 전 — 부를 것이 없다
@@ -633,7 +636,7 @@ export default function PolicyMatchScreen({ endpoints, slots, features }: Policy
 
               <SearchCutNotice cut={searchCut} />
 
-              {/* 결과 본문 — 판정 탭 3개·찾기·정렬·돈의 성격 칩·모름 칸 안내 + 목록 칸 + 상세 칸.
+              {/* 결과 본문 — 판정 탭 2개·찾기·정렬·돈의 성격 칩·모름 칸 안내 + 목록 칸 + 상세 칸.
                   「그 칸 채우기」는 ① 로 돌아가(goCompany) 첫 모름 칸으로 초점을 준다(폼의 focusUnknownNonce).
                   진단 회차가 바뀌면 `key` 로 새로 만든다 — 앞 회사의 탭·쪽·고른 줄이 남지 않게. */}
               <ResultOneList
