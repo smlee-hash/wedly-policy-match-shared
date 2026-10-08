@@ -287,17 +287,17 @@ export const INITIAL_ONE_LIST_STATE: OneListState = { tab: null, chip: "all", so
 export function oneListReducer(state: OneListState, action: OneListAction): OneListState {
   switch (action.type) {
     case "tab":
-      return { ...state, tab: action.tab, chip: "all", page: 1 };
+      return { ...state, tab: action.tab, chip: "all", page: 1, selectedId: "" };
     case "pinTab":
       return state.tab === null ? { ...state, tab: action.tab } : state;
     case "chip":
-      return { ...state, chip: action.chip, page: 1 };
+      return { ...state, chip: action.chip, page: 1, selectedId: "" };
     case "sort":
-      return { ...state, sort: action.sort, page: 1 };
+      return { ...state, sort: action.sort, page: 1, selectedId: "" };
     case "query":
-      return state.page === 1 ? state : { ...state, page: 1 };
+      return { ...state, page: 1, selectedId: "" };
     case "page":
-      return { ...state, page: Math.max(1, action.page) };
+      return { ...state, page: Math.max(1, action.page), selectedId: "" };
     case "select":
       return { ...state, selectedId: action.id };
     default:

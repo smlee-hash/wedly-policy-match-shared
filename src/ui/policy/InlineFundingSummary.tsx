@@ -92,7 +92,7 @@ export default function InlineFundingSummary({ item, onOpen, now }: {
       </div>
 
       <button type="button" data-open-detail={item.id} onClick={() => onOpen(item)} className={OPEN_BTN}>
-        {isAnnouncement ? "공고 상세 열기" : "상품 상세 열기"}
+        {isAnnouncement ? "공고 상세 열기" : "상품 자세히 보기"}
       </button>
     </div>
   );

@@ -420,11 +420,12 @@ describe("추천 정책 탭 — 줄 아래 펼침 요약(InlineFundingSummary)",
     expect(html).toContain('data-open-detail="a:1"');
   });
 
-  it("상품은 「상품 상세 열기」, 값이 없는 칸은 줄을 안 그린다", () => {
+  it("상품은 「상품 자세히 보기」, 값이 없는 칸은 줄을 안 그린다", () => {
     const html = renderToStaticMarkup(
       <InlineFundingSummary item={{ ...상품, amountText: "", where: "", agency: "" }} onOpen={() => {}} now={NOW} />,
     );
-    expect(html).toContain("상품 상세 열기");
+    expect(html).toContain("상품 자세히 보기");
+    expect(html).toContain(`data-open-detail="${상품.id}"`);
     expect(html).not.toContain("얼마까지");
     expect(html).not.toContain("어디에 신청");
   });

@@ -41,7 +41,7 @@ import { ERP_POLICY_MATCH_ENDPOINTS, type PolicyMatchEndpoints } from "./endpoin
 import {
   FUNDING_TOP_N, RESULT_PAGE_SIZE, VERDICT_TABS, chipsOf, ddayBadgeOf, defaultVerdictTab, filterByChip, flattenFundingItems,
   kindTagOf, oneListReducer, oneListViewOf, pageCountOf, pageSlice, searchItems, sortOneList, toggleSelectedId,
-  unknownNoticeOf, verdictCountsOf, serverVerdictCountsOf, cutNoticeOf, localSearchScopeOf, localSearchNoticeOf, type OneListState,
+  unknownNoticeOf, verdictCountsOf, serverVerdictCountsOf, cutNoticeOf, localSearchScopeOf, localSearchNoticeOf, type OneListAction, type OneListState,
 } from "./result-one-list";
 
 /**
@@ -248,6 +248,53 @@ describe("돈의 성격 칩 — 「전체」+ 6갈래 이름 그대로, 숫자�
     expect(oneListReducer({ ...처음상태, page: 3 }, { type: "sort", sort: "score" })).toMatchObject({ sort: "score", page: 1 });
     expect(oneListReducer({ ...처음상태, page: 3 }, { type: "query" })).toMatchObject({ page: 1 });
     expect(oneListReducer({ ...처음상태, page: 3 }, { type: "page", page: 2 })).toMatchObject({ page: 2 });
+  });
+});
+
+describe.each(["inline", "split"] as const)("목록 조작 뒤 선택 초기화 — %s", (layout) => {
+  const items = Array.from({ length: RESULT_PAGE_SIZE + 2 }, (_, i) => mk({
+    id: `a:${i + 1}`, title: `지원사업 ${i + 1}`, deadline: 날짜(i + 1), score: 100 - i,
+  }));
+  const cases: Array<{ name: string; action: OneListAction; query?: string }> = [
+    { name: "탭 이동", action: { type: "tab", tab: "unverified" } },
+    { name: "현재 탭 누름", action: { type: "tab", tab: "fit" } },
+    { name: "종류 칩", action: { type: "chip", chip: "grant" } },
+    { name: "정렬", action: { type: "sort", sort: "score" } },
+    { name: "1쪽에서 검색어 변경", action: { type: "query" }, query: "지원사업" },
+    { name: "쪽 이동", action: { type: "page", page: 2 } },
+  ];
+
+  it.each(cases)("$name 때 이전 선택을 비우고 배치별 기본 동작을 따른다", ({ action, query = "" }) => {
+    const state: OneListState = { ...처음상태, tab: "fit", selectedId: "a:2" };
+    expect(oneListViewOf(items, state).selected?.id).toBe("a:2");
+    const next = oneListReducer(state, action);
+    const view = oneListViewOf(items, next, query, null, { autoSelect: layout === "split" });
+    if (action.type !== "tab" || action.tab === "fit") {
+      expect(view.list.some((it) => it.id === "a:2"), "고른 공고가 목록에 남아 있어도 선택을 비운다").toBe(true);
+    }
+    expect(next.selectedId).toBe("");
+    expect(view.selected).toBe(layout === "split" ? view.pageItems[0] ?? null : null);
+    const seen: string[] = [];
+    const html = 글자(renderToStaticMarkup(
+      <ResultOneListView
+        {...기본속성(items)} state={next} layout={layout} query={query} askedQuery={query}
+        renderDetail={(it) => { seen.push(it.id); return <i data-detail={it.id} />; }}
+      />,
+    ));
+    expect(seen).toEqual(view.selected ? [view.selected.id] : []);
+    if (layout === "inline") {
+      expect(html).not.toMatch(/data-row="[^"]*"[^>]*aria-expanded="true"/);
+      expect(html).not.toContain('data-area="row-detail"');
+    }
+  });
+});
+
+describe("pinTab — 처음 자동 탭 고정은 선택을 보존한다", () => {
+  it("처음만 탭을 고정하고 이미 고정한 탭·선택·쪽은 그대로 둔다", () => {
+    const state = { ...처음상태, selectedId: "a:2" };
+    const pinned = oneListReducer(state, { type: "pinTab", tab: "fit" });
+    expect(pinned).toEqual({ ...state, tab: "fit" });
+    expect(oneListReducer(pinned, { type: "pinTab", tab: "unverified" })).toBe(pinned);
   });
 });
 
