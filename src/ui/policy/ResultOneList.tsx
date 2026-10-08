@@ -18,7 +18,8 @@ import { GROUP_TONE_TILE, cardFooterOf, type FundingMapPayload } from "../Fundin
 import { staleErrorText } from "./ResultGroupList";
 import {
   INITIAL_ONE_LIST_STATE, ONE_LIST_SORTS, VERDICT_TABS, ddayBadgeOf, defaultVerdictTab, flattenFundingItems,
-  cutNoticeOf, groupTagOf, kindTagOf, lineTextOf, oneListReducer, oneListViewOf, serverCountsForQuery, sourceNameOf,
+  cutNoticeOf, groupTagOf, kindTagOf, lineTextOf, localSearchNoticeOf, localSearchScopeOf, oneListReducer, oneListViewOf,
+  serverCountsForQuery, serverVerdictCountsOf, sourceNameOf,
   toggleSelectedId, unknownNoticeOf, verdictTabOf,
   type ChipKey, type ListTab, type OneListSort, type OneListState, type ServerVerdictCounts,
 } from "./result-one-list";
@@ -198,6 +199,8 @@ export interface ResultOneListViewProps {
   items: FundingItem[] | null;
   /** 서버가 자르기 전에 센 판정별 개수 — 탭·칩 숫자와 「앞쪽 N건만」 안내에 쓴다. 없으면 받은 줄로 센다. */
   serverCounts?: ServerVerdictCounts | null;
+  /** 찾기어 없이 받은 답의 서버 셈 — `searchReachesAll=false` 자리에서 찾는 중일 때 찾은 범위 안내의 모수(`localSearchScopeOf`). */
+  searchScopeCounts?: ServerVerdictCounts | null;
   state: OneListState;
   /** 찾기 칸에 보이는 글 · 거르기에 쓰는(서버에 물은) 글 — 입력이 멈춘 뒤 따라간다. */
   query: string;
@@ -230,13 +233,15 @@ export interface ResultOneListViewProps {
 }
 
 export function ResultOneListView({
-  items, serverCounts = null, state, query, askedQuery, loading, error, unknownCount,
+  items, serverCounts = null, searchScopeCounts = null, state, query, askedQuery, loading, error, unknownCount,
   onRetry, onTab, onChip, onQuery, onSort, onPage, onSelect, onFill, onEdit, renderRowFooter, renderDetail, showSources = false,
   layout = "split", searchReachesAll = true,
 }: ResultOneListViewProps) {
   const inline = layout === "inline";
   const hasData = items !== null;
   const view = oneListViewOf(items ?? [], state, askedQuery, serverCounts, { autoSelect: !inline });
+  // 받아 둔 줄만 거르는 자리에서 찾는 중이면 찾은 범위를 알린다 — 찾기 중엔 `view.cut` 이 없다(재리뷰 10/8 P2).
+  const searchScope = hasData && !searchReachesAll ? localSearchScopeOf(items ?? [], searchScopeCounts, askedQuery) : null;
   const twoPaneRef = useRef<HTMLDivElement | null>(null);
   usePaneTop(twoPaneRef);
   const notice = hasData
@@ -293,6 +298,11 @@ export function ResultOneListView({
       {hasData && view.cut && (
         <p data-area="list-cut-notice" className="mx-1 mb-2 rounded-lg bg-wedly-bg-gray px-3 py-2 text-wedly-hint text-wedly-t2">
           {cutNoticeOf(view.cut, searchReachesAll)}
+        </p>
+      )}
+      {searchScope && (
+        <p data-area="list-search-scope" className="mx-1 mb-2 rounded-lg bg-wedly-bg-gray px-3 py-2 text-wedly-hint text-wedly-t2">
+          {localSearchNoticeOf(searchScope)}
         </p>
       )}
       {error && hasData && (
@@ -553,6 +563,8 @@ export default function ResultOneList({
   const [state, dispatch] = useReducer(oneListReducer, INITIAL_ONE_LIST_STATE);
   const items = useMemo(() => (data ? flattenFundingItems(data) : null), [data]);
   const serverCounts = useMemo(() => serverCountsForQuery(data, askedQuery), [data, askedQuery]);
+  // 상세창(찾기가 받은 줄만 거름)의 레일 답은 늘 찾기어 없이 받은 것 — 그 셈이 찾은 범위 안내의 모수다.
+  const searchScopeCounts = useMemo(() => (searchReachesAll ? null : serverVerdictCountsOf(data)), [data, searchReachesAll]);
 
   // 처음 받은 자료로 기본 탭(지원 가능, 0건이면 확인 필요)을 못 박는다 — 이후 찾기로 숫자가 바뀌어도 탭이 저절로 움직이지 않는다.
   useEffect(() => {
@@ -571,6 +583,7 @@ export default function ResultOneList({
       layout={layout}
       items={items}
       serverCounts={serverCounts}
+      searchScopeCounts={searchScopeCounts}
       state={state}
       query={query}
       askedQuery={askedQuery}

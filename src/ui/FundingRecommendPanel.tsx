@@ -23,6 +23,12 @@ import { FundingHeaderCard, type FundingMapPayload } from "./FundingMap";
 import InlineFundingSummary from "./policy/InlineFundingSummary";
 import ResultOneList from "./policy/ResultOneList";
 import { FUNDING_TOP_N } from "./policy/result-one-list";
+
+/**
+ * @deprecated 옛 레일의 「상위 3건」 이름. 지금은 정책매칭 화면과 같은 80(`FUNDING_TOP_N`)이다.
+ * 공용 main 이 올라가면 컨설턴트 앱 핀이 저절로 올라가므로, 이 이름을 쓰는 앱이 빌드가 깨지지 않게 남겨 둔다.
+ */
+export const COMPACT_TOP_N = FUNDING_TOP_N;
 import { FUNDING_QUERY_DELAY_MS, clipQuery } from "./policy/result-conditions";
 import type { FundingFilters, FundingItem, FundingSort } from "../funding/funding-map";
 import type { FundingGroup } from "../funding/funding-group";

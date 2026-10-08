@@ -386,6 +386,28 @@ export function oneListViewOf(
 }
 
 /**
+ * 찾기가 받아 둔 줄만 거르는 자리(`searchReachesAll=false`)에서 찾는 중일 때, 찾은 범위 — { 받은 수, 서버 전체 수 }.
+ * 찾기 중엔 서버 셈이 없어(`serverCountsForQuery` → null) `cut` 안내가 사라지므로, 「받은 줄 안에서만 찾았다」를
+ * 따로 알린다(재리뷰 10/8 P2). `server` 는 찾기어 없이 받은 답의 셈(`serverVerdictCountsOf`)이다.
+ * 찾기어가 없거나, 서버 셈이 없거나, 다 받았으면 null. 안 맞음 줄은 어느 쪽 수에도 넣지 않는다.
+ */
+export function localSearchScopeOf(
+  items: FundingItem[],
+  server: ServerVerdictCounts | null,
+  askedQuery: string,
+): { loaded: number; total: number } | null {
+  if (!server || !normalizeQuery(askedQuery)) return null;
+  const loaded = items.filter((it) => it.fitVerdict !== "excluded").length;
+  const total = server.tab.fit + server.tab.unverified;
+  return loaded < total ? { loaded, total } : null;
+}
+
+/** `localSearchScopeOf` 의 안내 한 줄. */
+export function localSearchNoticeOf(scope: { loaded: number; total: number }): string {
+  return `전체 ${scope.total.toLocaleString("ko-KR")}건 중 추천 순 앞쪽 ${scope.loaded.toLocaleString("ko-KR")}건 안에서만 찾았어요`;
+}
+
+/**
  * 받은 줄이 실제보다 적을 때의 안내 한 줄.
  * `searchReachesAll` 이 false 면(찾기가 서버에 다시 묻지 않고 받아 둔 줄만 거르는 자리) 「나머지도 찾아져요」를 말하지 않는다.
  */

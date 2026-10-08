@@ -41,7 +41,7 @@ import { ERP_POLICY_MATCH_ENDPOINTS, type PolicyMatchEndpoints } from "./endpoin
 import {
   FUNDING_TOP_N, RESULT_PAGE_SIZE, VERDICT_TABS, chipsOf, ddayBadgeOf, defaultVerdictTab, filterByChip, flattenFundingItems,
   kindTagOf, oneListReducer, oneListViewOf, pageCountOf, pageSlice, searchItems, sortOneList, toggleSelectedId,
-  unknownNoticeOf, verdictCountsOf, serverVerdictCountsOf, cutNoticeOf, type OneListState,
+  unknownNoticeOf, verdictCountsOf, serverVerdictCountsOf, cutNoticeOf, localSearchScopeOf, localSearchNoticeOf, type OneListState,
 } from "./result-one-list";
 
 /**
@@ -981,6 +981,39 @@ describe("탭·칩 숫자 — 받은 앞쪽 N건이 아니라 서버가 센 실�
 
   it("찾기가 받아 둔 줄만 거르는 자리(searchReachesAll=false)는 「찾으면 나머지도」를 약속하지 않는다", () => {
     expect(cutNoticeOf({ loaded: 3, total: 1020 }, false)).toBe("1,020건 중 추천 순 앞쪽 3건만 불러왔어요");
+  });
+
+  it("받아 둔 줄만 거르는 자리에서 찾는 중이면 「전체 M건 중 앞쪽 N건 안에서만 찾았어요」(재리뷰 10/8 P2)", () => {
+    // 찾기 답은 서버 셈이 없어(serverCountsForQuery → null) cut 이 사라진다 — 찾은 범위는 따로 알린다
+    expect(localSearchScopeOf(받은, server, "창업")).toEqual({ loaded: 3, total: 1023 });
+    expect(localSearchNoticeOf({ loaded: 3, total: 1023 })).toBe("전체 1,023건 중 추천 순 앞쪽 3건 안에서만 찾았어요");
+    // 찾기어가 없으면 기존 잘림 안내가 맡는다 · 다 받았으면 안내가 없다 · 서버 셈이 없으면 모른다
+    expect(localSearchScopeOf(받은, server, "  ")).toBeNull();
+    expect(localSearchScopeOf(받은, serverVerdictCountsOf({ groups: [블록("grant", 0, 2, 0, []), 블록("policy", 0, 1, 0, [])] } as unknown as FundingMapPayload), "창업")).toBeNull();
+    expect(localSearchScopeOf(받은, null, "창업")).toBeNull();
+    // 안 맞음 줄은 받은 수에 안 센다
+    expect(localSearchScopeOf([...받은, mk({ id: "x:1", fitVerdict: "excluded" })], server, "창업")).toEqual({ loaded: 3, total: 1023 });
+  });
+
+  it("그림: 상세창(searchReachesAll=false)에서 찾는 중에도 찾은 범위 안내가 남는다 · 정책매칭(기본)은 그리지 않는다", () => {
+    const 찾기 = (reach: boolean) =>
+      글자(
+        renderToStaticMarkup(
+          <ResultOneListView
+            {...기본속성(받은)}
+            serverCounts={null}
+            searchScopeCounts={server}
+            state={{ ...처음상태, tab: "unverified" }}
+            query="창업"
+            askedQuery="창업"
+            searchReachesAll={reach}
+          />,
+        ),
+      );
+    const 상세창 = 찾기(false);
+    expect(상세창).toContain('data-area="list-search-scope"');
+    expect(상세창).toContain("전체 1,023건 중 추천 순 앞쪽 3건 안에서만 찾았어요");
+    expect(찾기(true)).not.toContain('data-area="list-search-scope"');
   });
 
   it("서버 수가 없거나 다 받았으면 받은 줄로 세고 안내가 없다", () => {
