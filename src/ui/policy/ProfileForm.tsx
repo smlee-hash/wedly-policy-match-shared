@@ -233,7 +233,7 @@ function CustomerPrefill({ prefill, compact = false }: { prefill: CustomerPrefil
 
   return (
     <div className={compact ? "policy-profile-customer" : "mt-4 flex flex-wrap items-center gap-2"}>
-      {compact && <h3 className="policy-profile-import-title text-wedly-section"><Search aria-hidden="true" />기존 고객 불러오기</h3>}
+      {compact && <h2 className="policy-profile-import-title text-wedly-section"><Search aria-hidden="true" />기존 고객 불러오기</h2>}
       <div className={compact ? "policy-profile-search-row" : "contents"}>
       <input
         aria-label="고객 상호 또는 사업자번호"
@@ -1162,7 +1162,7 @@ export default function ProfileForm({
               {prefill.active && <section className="policy-profile-import" aria-label="기존 고객 불러오기"><CustomerPrefill prefill={prefill} compact /></section>}
               {documentPrefillEndpoint && (
                 <section className="policy-profile-import" aria-label="서류로 채우기">
-                  <h3 className="policy-profile-import-title text-wedly-section"><FileText aria-hidden="true" />서류로 채우기</h3>
+                  <h2 className="policy-profile-import-title text-wedly-section"><FileText aria-hidden="true" />서류로 채우기</h2>
                   <DocumentUploadBox
                     compact
                     files={doc.files}
@@ -1183,7 +1183,7 @@ export default function ProfileForm({
             return (
               <section key={key} data-section={key} data-complete={count === fields.length} className="policy-profile-section" aria-label={title}>
                 <div className="policy-profile-section-head">
-                  <Icon aria-hidden="true" /><h3 className="text-wedly-section">{title}</h3>
+                  <Icon aria-hidden="true" /><h2 className="text-wedly-section">{title}</h2>
                   <span data-section-count={key} data-completed={count} className="policy-profile-section-count" aria-label={`${fields.length}개 중 ${count}개 입력`}>
                     <strong>{count} / {fields.length}</strong> 입력
                     {count === fields.length && <span aria-label="모두 입력"> ✓</span>}

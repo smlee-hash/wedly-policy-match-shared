@@ -29,6 +29,18 @@ const wide = (props: Partial<Parameters<typeof ProfileForm>[0]> = {}) => parse(r
 ));
 
 describe("승인 v5 — 넓은 폼의 구조·항목 목록", () => {
+  it("앱 공통 제목 단계와 글자 역할이 일치한다", () => {
+    // ERP·일루아의 text-tiers 계약: 시각 크기와 접근 가능한 제목 단계가 함께 맞아야 한다.
+    const role = { H1: "page", H2: "section", H3: "sub", H4: "sub" } as const;
+    for (const layout of ["wide", "side"] as const) {
+      for (const heading of wide({ layout }).querySelectorAll("h1,h2,h3,h4")) {
+        const classes = heading.classNames.split(/\s+/);
+        expect(classes.filter((name) => /^text-wedly-(page|section|sub)$/.test(name)))
+          .toEqual([`text-wedly-${role[heading.tagName as keyof typeof role]}`]);
+      }
+    }
+  });
+
   it("행동줄을 자르지 않는 뿌리의 첫 자식으로 두고 가져오기와 구역을 다음 카드에 둔다", () => {
     const tree = wide();
     const root = tree.querySelector('[data-layout="wide"]')!;
