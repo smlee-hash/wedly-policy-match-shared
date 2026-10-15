@@ -1,6 +1,7 @@
-// 공고 첨부(pdf·hwpx·hwp)에서 글자를 뽑아 구조화 입력으로 쓴다.
+// 공고 첨부(pdf·hwpx·hwp·hml)에서 글자를 뽑아 구조화 입력으로 쓴다.
 // 네트워크는 주입 가능한 fetch — 시험은 가짜, 운영만 실호출.
 import { parse as parseCfb, find as findCfb } from "cfb";
+import iconv from "iconv-lite";
 import { getDocumentProxy, extractText } from "unpdf";
 import {
   ATTACHMENT_KINDS,
@@ -8,6 +9,12 @@ import {
   type PolicyAttachment,
   type PolicyAttachmentKind,
 } from "./types";
+import {
+  attachmentNameRole,
+  attachmentRequestKey,
+  effectiveAttachmentKind,
+  isSiteCommonAttachment,
+} from "./attachment-order";
 import { BOARD_SOURCES } from "./board/source-list";
 import type { PolicyAttachmentRequest } from "./board/types";
 import { allowedHostsOf } from "./board/engine";
@@ -15,7 +22,8 @@ import { repairStoredAttachmentUrl } from "./board/attachment-url";
 import { isProxyTransportError } from "./board/proxy";
 import { withBrowserIdentity } from "./board/fetch-identity";
 import { cookieHeaderFor, cookieJarAbsorb, mergeCookieHeader, setCookieValuesOf, type CookieJar } from "./board/registry";
-import { extractHwpText } from "./hwp-text";
+import { extractHwpText, isProtectedHwp } from "./hwp-text";
+import { extractHmlText } from "./hml-text";
 import {
   renderAttachmentBlocks,
   type RenderBlock,
@@ -24,6 +32,8 @@ import {
 
 export const EXTRACTABLE_KINDS = ["pdf", "hwp", "hwpx"] as const;
 export type ExtractableKind = (typeof EXTRACTABLE_KINDS)[number];
+/** 안쪽에서 글자를 뽑는 형식 — hml(한글 XML)은 이름·저장 형식으로는 안 오고 받은 바이트로만 알아본다. */
+type ReadKind = ExtractableKind | "hml";
 
 /**
  * AI 에게 보내는 글자의 95%가 첨부 원문이다(2026-08-25 실측: 첨부 평균 5,925자 vs 본문 324자).
@@ -107,10 +117,17 @@ export type AttachmentFileReason =
   | "network"
   | "transport"
   | "unknown_format"
+  | "image"
+  | "html"
+  | "image_pdf"
+  | "protected"
   | "no_text"
   | "preview_only"
   | "over_limit"
   | "truncated";
+
+/** 받은 바이트 앞머리로 알아본 형식. zip 은 hwpx 후보일 뿐이다(docx·zip 도 PK). */
+export type AttachmentFormat = "pdf" | "hwp" | "zip" | "hml" | "image" | "html";
 
 export type AttachmentFileOutcome = {
   name: string;
@@ -118,7 +135,7 @@ export type AttachmentFileOutcome = {
   reason?: AttachmentFileReason;
   /** 읽었을 때: 자르기 전 본문 글자 수. */
   chars?: number;
-  /** 글자를 실제로 뽑은 형식(pdf·hwp·hwpx). */
+  /** 글자를 실제로 뽑은 형식(pdf·hwp·hwpx·hml). */
   kind?: string;
 };
 
@@ -191,6 +208,8 @@ export type ExtractHwpx = (buf: Buffer) => string | Promise<string>;
 
 export type FetchAttachmentTextsOptions = {
   maxFiles?: number;
+  /** 못 읽은 파일 대신 더 시도할 수(읽은 수 상한 `maxFiles` 는 그대로). 기본 0. */
+  extraAttempts?: number;
   maxBytes?: number;
   timeoutMs?: number;
   totalCharCap?: number;
@@ -224,6 +243,67 @@ export function sniffAttachmentKind(buf: Buffer | Uint8Array): ExtractableKind |
   if (startsWithSig(bytes, OLE_SIG)) return "hwp";
   if (startsWithSig(bytes, ZIP_SIG)) return "hwpx";
   return null;
+}
+
+const JPEG_SIG = [0xff, 0xd8, 0xff];
+const PNG_SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+const GIF87_SIG = [0x47, 0x49, 0x46, 0x38, 0x37, 0x61]; // GIF87a
+const GIF89_SIG = [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]; // GIF89a
+const RIFF_SIG = [0x52, 0x49, 0x46, 0x46];
+const WEBP_SIG = [0x57, 0x45, 0x42, 0x50];
+const TIFF_LE_SIG = [0x49, 0x49, 0x2a, 0x00];
+const TIFF_BE_SIG = [0x4d, 0x4d, 0x00, 0x2a];
+/** 글자 앞머리를 볼 때 풀어 보는 바이트 수. */
+const TEXT_HEAD_BYTES = 4096;
+const HWPML_TAG = /<hwpml\b/i;
+const HTML_START = /^<(?:!doctype\s+html|html|head|body|script|meta)\b/i;
+
+function isBmpHead(bytes: Uint8Array): boolean {
+  // `BM` + 크기 4바이트 + 예약 4바이트(0). 「BMW …」 같은 글과 가르려고 예약 칸을 본다.
+  return bytes.length >= 10 && bytes[0] === 0x42 && bytes[1] === 0x4d && bytes.subarray(6, 10).every((b) => b === 0);
+}
+
+/** 앞머리 글자 — BOM 으로 UTF-8·UTF-16 을 알아보고, 없으면 latin1 로 본다(태그 글자만 필요하다). */
+function textHeadOf(bytes: Uint8Array): string {
+  const head = Buffer.from(bytes.subarray(0, TEXT_HEAD_BYTES));
+  if (head.length >= 3 && head[0] === 0xef && head[1] === 0xbb && head[2] === 0xbf) return head.subarray(3).toString("utf8");
+  if (head.length >= 2 && head[0] === 0xff && head[1] === 0xfe) return head.subarray(2).toString("utf16le");
+  if (head.length >= 2 && head[0] === 0xfe && head[1] === 0xff) return iconv.decode(head.subarray(2), "utf-16be");
+  return head.toString("latin1");
+}
+
+/**
+ * 받은 바이트 앞머리로 형식을 가린다 — `sniffAttachmentKind` 보다 넓다(그림·HML·HTML 오류 쪽까지).
+ * 2026-10-01 운영 실측: 해양수산부 `.hml` 이 형식을 몰라 하나도 안 읽혔고, 그림·HTML 오류 쪽은 「글자 없음」에 뭉쳤다.
+ * 못 알아보면 null. 던지지 않는다.
+ */
+export function detectAttachmentFormat(buf: Buffer | Uint8Array): AttachmentFormat | null {
+  try {
+    const bytes = buf instanceof Uint8Array ? buf : Uint8Array.from(buf);
+    if (startsWithSig(bytes, PDF_SIG)) return "pdf";
+    if (startsWithSig(bytes, OLE_SIG)) return "hwp";
+    if (startsWithSig(bytes, ZIP_SIG)) return "zip";
+    if (
+      startsWithSig(bytes, JPEG_SIG) ||
+      startsWithSig(bytes, PNG_SIG) ||
+      startsWithSig(bytes, GIF87_SIG) ||
+      startsWithSig(bytes, GIF89_SIG) ||
+      (startsWithSig(bytes, RIFF_SIG) && bytes.length >= 12 && startsWithSig(bytes.subarray(8), WEBP_SIG)) ||
+      isBmpHead(bytes) ||
+      startsWithSig(bytes, TIFF_LE_SIG) ||
+      startsWithSig(bytes, TIFF_BE_SIG)
+    ) {
+      return "image";
+    }
+    const head = textHeadOf(bytes);
+    const lead = head.trimStart();
+    if (!lead.startsWith("<")) return null;
+    if (HWPML_TAG.test(head)) return "hml";
+    if (HTML_START.test(lead)) return "html";
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -270,6 +350,23 @@ export function asPolicyAttachments(raw: unknown, opts: { repairUrls?: boolean }
     out.push(att);
   }
   return out;
+}
+
+/**
+ * AI 에게 보일 첨부 이름 목록 — 읽지 않은 첨부도 존재는 알려야 「원문에 없다」고 단정하지 않는다.
+ * 저장 차례대로 돌며 사이트 공통 파일과 같은 요청(앞이 이긴다)은 뺀다. 형식은 거르지 않는다(zip·xlsx·etc 도 담는다).
+ */
+export function listedAttachmentNames(raw: unknown): string[] {
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const a of asPolicyAttachments(raw)) {
+    if (isSiteCommonAttachment(a.url)) continue;
+    const key = attachmentRequestKey(a);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    names.push(a.name || a.url);
+  }
+  return names;
 }
 
 /** 구형 hwp OLE 의 PrvText 스트림(UTF-16LE, 미리보기 ~1,000자). */
@@ -330,21 +427,50 @@ export function stripUnstorableChars(text: string): string {
   );
 }
 
-async function extractByKind(
-  kind: ExtractableKind,
-  buf: Buffer,
-  extractHwpx: ExtractHwpx,
-): Promise<{ text: string; incomplete: boolean }> {
-  if (kind === "pdf") {
-    return { text: stripUnstorableChars(await extractPdfBytes(Uint8Array.from(buf))), incomplete: false };
+/** 뽑은 결과. 글자가 비면 `failReason` 이 못 읽은 이유를 말한다. */
+type Extracted = { text: string; incomplete: boolean; failReason?: AttachmentFileReason };
+
+function extractedOf(raw: string, emptyReason: AttachmentFileReason): Extracted {
+  const text = stripUnstorableChars(raw);
+  return text.trim() ? { text, incomplete: false } : { text: "", incomplete: false, failReason: emptyReason };
+}
+
+/** 던진 오류가 암호 때문인지 — pdf.js 는 빈 암호로 안 열리면 `PasswordException` 을 던진다. */
+function isPasswordError(e: unknown): boolean {
+  return (e as { name?: unknown } | null)?.name === "PasswordException";
+}
+
+/** 던지지 않는다 — 못 뽑으면 빈 글자와 이유를 돌려준다. */
+async function extractByKind(kind: ReadKind, buf: Buffer, extractHwpx: ExtractHwpx): Promise<Extracted> {
+  try {
+    if (kind === "pdf") {
+      let raw: string;
+      try {
+        raw = await extractPdfBytes(Uint8Array.from(buf));
+      } catch (e) {
+        return { text: "", incomplete: false, failReason: isPasswordError(e) ? "protected" : "no_text" };
+      }
+      return extractedOf(raw, "image_pdf"); // 열렸는데 글자가 없으면 그림만 든 PDF
+    }
+    if (kind === "hwpx") return extractedOf(await extractHwpx(buf), "no_text");
+    if (kind === "hml") return extractedOf(extractHmlText(buf), "no_text");
+    const body = extractHwpText(buf);
+    if (body) return extractedOf(body, "no_text");
+    const preview = stripUnstorableChars(extractHwpPreview(buf));
+    if (preview.trim()) return { text: preview, incomplete: true };
+    return { text: "", incomplete: false, failReason: isProtectedHwp(buf) ? "protected" : "no_text" };
+  } catch {
+    return { text: "", incomplete: false, failReason: "no_text" };
   }
-  if (kind === "hwpx") {
-    return { text: stripUnstorableChars(await extractHwpx(buf)), incomplete: false };
-  }
-  const body = extractHwpText(buf);
-  if (body) return { text: stripUnstorableChars(body), incomplete: false };
-  const preview = extractHwpPreview(buf);
-  return { text: stripUnstorableChars(preview), incomplete: preview.length > 0 };
+}
+
+/** 받은 바이트 형식 → 글자를 뽑는 방식. 읽을 수 없는 형식(그림·HTML)과 못 알아본 것은 null. */
+function readKindOfFormat(format: AttachmentFormat | null): ReadKind | null {
+  if (format === "pdf") return "pdf";
+  if (format === "hwp") return "hwp";
+  if (format === "zip") return "hwpx"; // PK 는 hwpx 후보 — 뽑아서 비면 실패로 친다
+  if (format === "hml") return "hml";
+  return null;
 }
 
 function failBlock(name: string): string {
@@ -502,116 +628,136 @@ export async function fetchAttachmentTexts(
   // 조용한 기본값(() => "")을 없앴다 — 안 넘기면 타입 오류로 잡힌다(P3 회귀 방어).
   const extractHwpx: ExtractHwpx = opts.extractHwpx;
 
-  const list = asPolicyAttachments(attachments).filter((a) => CANDIDATE_KINDS.has(a.kind));
-  // 같은 등급 안에서는 원래 차례를 지킨다(안정 정렬) — 첫 첨부가 대개 본 공고문이다.
-  const ordered = list
-    .map((a, i) => ({ a, i }))
-    .sort((x, y) => (KIND_RANK[x.a.kind] ?? 9) - (KIND_RANK[y.a.kind] ?? 9) || x.i - y.i)
-    .map((x) => x.a);
-  const take = Math.max(0, maxFiles);
-  const targets = ordered.slice(0, take);
-  const skipped = ordered.slice(take);
-
   const readFiles: string[] = [];
   const failedFiles: string[] = [];
   const skippedFiles: string[] = [];
   const previewOnlyFiles: string[] = [];
   const blocks: RenderBlock[] = [];
-  // 파일마다 결과·이유. 표시 글자와 별개이고, 처리 순서(읽은 것 → 개수 상한으로 안 읽은 것)를 지킨다.
+  // 파일마다 결과·이유. 표시 글자와 별개이고, 순서는 무시·중복(목록 차례) → 처리한 것(처리 차례) → 개수 상한으로 안 읽은 것.
   const files: AttachmentFileOutcome[] = [];
   // 경유 통로 탓으로 죽은 첨부 수. 하나라도 있으면 이번 결과는 사이트가 아니라 우리 통로 탓이다.
   let proxyFailures = 0;
 
-  for (const a of targets) {
+  // 효과 kind 가 후보(pdf·hwp·hwpx·etc) 밖이면 조용히 뺀다. 저장 kind 가 etc 로 굳은 한글·zip 은 이름 꼬리를 떼고 다시 가린다.
+  const candidates = asPolicyAttachments(attachments)
+    .map((a) => ({ a, kind: effectiveAttachmentKind(a) }))
+    .filter((x) => CANDIDATE_KINDS.has(x.kind));
+  // 사이트 공통 파일은 부르지 않고, 같은 요청이 앞에 있으면 한 번만 부른다(앞이 이긴다). 둘 다 개수 상한을 쓰지 않는다.
+  const seenRequests = new Set<string>();
+  const wanted: typeof candidates = [];
+  for (const x of candidates) {
+    const name = x.a.name || x.a.url;
+    if (isSiteCommonAttachment(x.a.url)) {
+      files.push({ name, result: "ignored" });
+      continue;
+    }
+    const key = attachmentRequestKey(x.a);
+    if (seenRequests.has(key)) {
+      files.push({ name, result: "duplicate" });
+      continue;
+    }
+    seenRequests.add(key);
+    wanted.push(x);
+  }
+  // 공고문 쪽 이름(역할 0)을 먼저, 서식 쪽(2)을 나중에 → 같은 역할이면 형식 순 → 같으면 원래 차례(안정 정렬).
+  // 첫 첨부가 대개 본 공고문이다.
+  const ordered = wanted
+    .map((x, i) => ({ ...x, role: attachmentNameRole(x.a.name), i }))
+    .sort(
+      (x, y) => x.role - y.role || (KIND_RANK[x.kind] ?? 9) - (KIND_RANK[y.kind] ?? 9) || x.i - y.i,
+    );
+  // 읽은 수(maxReads)가 차거나 시도 수(maxReads + extra)가 차면 멈춘다. 기본(extra 0)은 앞에서부터 maxReads 개만 본다.
+  const maxReads = Number.isNaN(maxFiles) ? 0 : Math.max(0, Math.floor(maxFiles));
+  const extraRaw = opts.extraAttempts;
+  const extra = typeof extraRaw === "number" && Number.isFinite(extraRaw) ? Math.max(0, Math.floor(extraRaw)) : 0;
+  const maxTries = maxReads + extra;
+
+  /** 첨부 하나를 내려받아 읽는다. 표시 조각과 세 목록을 채우고 결과 한 줄을 돌려준다. */
+  const attempt = async (a: PolicyAttachmentRequest, kind: PolicyAttachmentKind): Promise<AttachmentFileOutcome> => {
     const name = a.name || a.url;
     const url = safeAttachmentUrl(a.url);
     if (!url) {
       // 허용하지 않은 주소는 부르지 않는다. 존재는 남겨 사람이 원문을 확인하게 한다.
       failedFiles.push(name);
       blocks.push(noticeBlock(name, "blocked", blockedBlock(name)));
-      files.push({ name, result: "failed", reason: "blocked_url" });
-      continue;
+      return { name, result: "failed", reason: "blocked_url" };
     }
+    const fail = (reason: AttachmentFileReason): AttachmentFileOutcome => {
+      failedFiles.push(name);
+      blocks.push(noticeBlock(name, "fail", failBlock(name)));
+      return { name, result: "failed", reason };
+    };
     try {
       const got = await downloadBytes(url, fetchImpl, timeoutMs, maxBytes, opts.signal, a);
-      if (!got.ok) {
-        failedFiles.push(name);
-        blocks.push(noticeBlock(name, "fail", failBlock(name)));
-        files.push({ name, result: "failed", reason: got.reason });
-        continue;
-      }
+      if (!got.ok) return fail(got.reason);
       const buf = got.buf;
       // 첫 바이트 냄새를 이름/주소 kind 보다 먼저. cover.pdf 인데 실제는 OLE(hwp)면
       // pdf 파서가 미끼 글자를 남길 수 있다. declaredKind 가 etc 이고 냄새도 없으면 실패.
-      const declaredKind: ExtractableKind | null = isExtractable(a.kind) ? a.kind : null;
-      const primary = sniffAttachmentKind(buf) ?? declaredKind;
-      if (!primary) {
-        failedFiles.push(name);
-        blocks.push(noticeBlock(name, "fail", failBlock(name)));
-        files.push({ name, result: "failed", reason: "unknown_format" });
-        continue;
-      }
-      let usedKind: ExtractableKind = primary;
-      let extracted = { text: "", incomplete: false };
-      try {
-        extracted = await extractByKind(primary, buf, extractHwpx);
-      } catch {
-        extracted = { text: "", incomplete: false };
-      }
-      // 비거나 파서가 던지면 primary 와 다른 declaredKind 로 한 번 더 뽑는다.
+      const format = detectAttachmentFormat(buf);
+      // 그림·HTML 오류 쪽은 뽑지 않는다 — 이름이 pdf 여도 선언 kind 로 다시 해 보지 않는다.
+      if (format === "image" || format === "html") return fail(format);
+      const declaredKind: ExtractableKind | null = isExtractable(kind) ? kind : null;
+      const primary = readKindOfFormat(format) ?? declaredKind;
+      if (!primary) return fail("unknown_format");
+      let usedKind: ReadKind = primary;
+      let extracted = await extractByKind(primary, buf, extractHwpx);
+      // 비거나 파서가 던지면 primary 와 다른 declaredKind 로 한 번 더 뽑는다. 둘 다 못 읽으면 첫 시도의 이유를 남긴다.
       if (!extracted.text.trim() && declaredKind && declaredKind !== primary) {
-        usedKind = declaredKind;
-        try {
-          extracted = await extractByKind(declaredKind, buf, extractHwpx);
-        } catch {
-          extracted = { text: "", incomplete: false };
+        const second = await extractByKind(declaredKind, buf, extractHwpx);
+        if (second.text.trim()) {
+          usedKind = declaredKind;
+          extracted = second;
         }
       }
       const body = extracted.text.trim();
-      if (!body) {
-        failedFiles.push(name);
-        blocks.push(noticeBlock(name, "fail", failBlock(name)));
-        files.push({ name, result: "failed", reason: "no_text" });
-        continue;
-      }
+      if (!body) return fail(extracted.failReason ?? "no_text");
       if (extracted.incomplete && opts.includeHwpPreview === false) {
         previewOnlyFiles.push(name);
         skippedFiles.push(name);
         // 미리보기 글자는 빼고 미확인 표식만 남긴다. 정상 형제 첨부의 본문은 보존한다.
         blocks.push(contentBlock(name, [{ kind: "unverified", text: skippedBlock(name) }]));
-        files.push({ name, result: "skipped", reason: "preview_only", kind: usedKind });
-        continue;
+        return { name, result: "skipped", reason: "preview_only", kind: usedKind };
       }
       readFiles.push(name);
-      files.push({
-        name,
-        result: "read",
-        chars: body.length,
-        kind: usedKind,
-        ...(extracted.incomplete ? { reason: "preview_only" as const } : {}),
-      });
       if (extracted.incomplete) previewOnlyFiles.push(name);
       // 미확인 표식은 본문 앞에 둔다. 출처를 조각으로 남겨 뒤 표식이 앞 본문을 밀면 앞 파일도 잘림으로 적는다.
-      const extra: TextPiece[] = extracted.incomplete
+      const pieces: TextPiece[] = extracted.incomplete
         ? [
             { kind: "unverified", text: skippedBlock(name) },
             { kind: "preview", text: body },
           ]
         : [{ kind: "body", text: body }];
-      blocks.push(contentBlock(name, extra));
+      blocks.push(contentBlock(name, pieces));
       if (extracted.incomplete) skippedFiles.push(name);
+      return {
+        name,
+        result: "read",
+        chars: body.length,
+        kind: usedKind,
+        ...(extracted.incomplete ? { reason: "preview_only" as const } : {}),
+      };
     } catch (e) {
       // 경유 통로가 죽어서 못 물어본 것이면 따로 센다 — 사이트가 준 404 와 재시도 값어치가 다르다.
       const transport = isProxyTransportError(e);
       if (transport) proxyFailures += 1;
-      failedFiles.push(name);
-      blocks.push(noticeBlock(name, "fail", failBlock(name)));
-      files.push({ name, result: "failed", reason: transport ? "transport" : thrownReasonOf(e) });
+      return fail(transport ? "transport" : thrownReasonOf(e));
     }
+  };
+
+  let reads = 0;
+  let tries = 0;
+  let next = 0;
+  while (next < ordered.length && reads < maxReads && tries < maxTries) {
+    const { a, kind } = ordered[next];
+    next += 1;
+    tries += 1;
+    const outcome = await attempt(a, kind);
+    files.push(outcome);
+    if (outcome.result === "read") reads += 1;
   }
 
   // 상한에 걸려 못 읽은 첨부도 끝에 이름을 남긴다 — 없는 셈 치면 AI 가 「원문에 없다」고 단정한다.
-  for (const a of skipped) {
+  for (const { a } of ordered.slice(next)) {
     const name = a.name || a.url;
     skippedFiles.push(name);
     blocks.push(noticeBlock(name, "skipped", skippedBlock(name)));
