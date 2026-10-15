@@ -1,4 +1,6 @@
-import type { BoardConfig, BoardRow } from "../types";
+import { parseHtml } from "../html";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 const BBS_ID = "BBSMSTR_000000000003";
 const LIST = `https://www.dgtp.or.kr/bbs/BoardControll.do?bbsId=${BBS_ID}`;
@@ -52,6 +54,20 @@ export function parseDgtpList(html: string): BoardRow[] {
   return [...pinned.filter((r) => !seen.has(r.title)), ...out];
 }
 
+/** 대구테크노파크 첨부 — 내려받기가 `javascript:fn_egov_encDownFile('…')` 라 수확기(`fn_egov_downFile` 만 안다)가 0건이었다(2026-10-16 고정본 실측). */
+export function dgtpDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  const c = attachmentCollector();
+  for (const a of parseHtml(pageHtml).querySelectorAll("ul.attach li a")) {
+    const m = (a.getAttribute("href") ?? "").match(/^javascript:fn_egov_encDownFile\('([^']+)'\)/);
+    if (!m) continue;
+    c.add(
+      cleanAttachmentName(a.text),
+      `https://www.dgtp.or.kr/cmm/fms/EncFileDown.do?encFileId=${encodeURIComponent(m[1])}`,
+    );
+  }
+  return c.list;
+}
+
 export const dgtpConfig: BoardConfig = {
   id: "dgtp",
   label: "대구테크노파크",
@@ -79,4 +95,5 @@ export const dgtpConfig: BoardConfig = {
   attachmentsScopeSelector: "form table.tableview",
   // 10건/쪽이라 5건 아래로 떨어지면 서식이 바뀐 것으로 보고 멈춘다.
   expectMinRows: 5,
+  detailAttachments: ({ pageHtml }) => dgtpDetailAttachments(pageHtml),
 };

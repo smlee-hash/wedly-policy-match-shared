@@ -1,5 +1,6 @@
-import { parseHtml } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import { absolutize, parseHtml } from "../html";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 대전신용보증재단 공지사항(재단소식 > 알림마당 > 공지사항).
@@ -80,6 +81,19 @@ export function parseDjsinboList(html: string, _page = 1, now = Date.now()): Boa
   return out;
 }
 
+/** 대전신용보증재단 첨부 — 주소가 `/file_down/id/<번호>/checksum/<열쇠>` 라 확장자가 없어 수확기가 0건이었다(2026-10-16 고정본 실측). */
+export function djsinboDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  const c = attachmentCollector();
+  for (const a of parseHtml(pageHtml).querySelectorAll(
+    'div.board_downloader ul.downloader li a.file-tooltip[href*="/file_down/id/"]',
+  )) {
+    const href = a.getAttribute("href") ?? "";
+    if (!href) continue;
+    c.add(cleanAttachmentName(a.text), absolutize(href, "https://www.sinbo.or.kr/"));
+  }
+  return c.list;
+}
+
 export const djsinboConfig: BoardConfig = {
   id: "djsinbo",
   label: "대전신용보증재단",
@@ -115,4 +129,5 @@ export const djsinboConfig: BoardConfig = {
   skipHeuristic: true,
   /** 운영 서버(미국 IP)에서 연결 시간초과/빈 응답(2026-09-03 컨테이너 실측) — 국내 경유로만 연다. 변수 없으면 회차에서 빠져 화면은 「대기」. */
   requiresProxy: true,
+  detailAttachments: ({ pageHtml }) => djsinboDetailAttachments(pageHtml),
 };

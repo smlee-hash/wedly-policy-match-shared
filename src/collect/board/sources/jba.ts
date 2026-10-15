@@ -1,5 +1,6 @@
-import { parseHtml } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import { absolutize, parseHtml } from "../html";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 제주경제통상진흥원 사업공고(bo_table=2_1_1_1).
@@ -87,6 +88,17 @@ export function parseJbaList(html: string, _page = 1, now = Date.now()): BoardRo
   return out;
 }
 
+/** 제주경제통상진흥원 첨부 — 내려받기가 `onclick="file_download('<경로>','<이름>')"` 라 수확기가 0건이었다(수확기의 같은 이름 갈래는 익산 호스트 전용, 2026-10-16 고정본 실측). 이름은 단추 글자가 아니라 둘째 인자다. */
+export function jbaDetailAttachments(pageHtml: string, detailUrl: string): PolicyAttachmentRequest[] {
+  const c = attachmentCollector();
+  for (const a of parseHtml(pageHtml).querySelectorAll("#view_file_download_area a[onclick]")) {
+    const m = (a.getAttribute("onclick") ?? "").match(/file_download\('([^']+)',\s*'([^']*)'\)/);
+    if (!m) continue;
+    c.add(cleanAttachmentName(m[2]), absolutize(m[1], detailUrl));
+  }
+  return c.list;
+}
+
 export const jbaConfig: BoardConfig = {
   id: "jba",
   label: "제주경제통상진흥원",
@@ -113,4 +125,5 @@ export const jbaConfig: BoardConfig = {
   attachmentsScopeSelector: "#view_file_download_area",
   // 한 쪽 15건의 절반. 거르개 뒤 실측 1쪽 17건(붙박이 포함). 0행이면 서식 변경.
   expectMinRows: 7,
+  detailAttachments: ({ pageHtml, detailUrl }) => jbaDetailAttachments(pageHtml, detailUrl),
 };

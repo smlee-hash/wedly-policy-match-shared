@@ -1,5 +1,6 @@
 import { parseHtml } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 부산경제진흥원 지원사업안내.
@@ -106,6 +107,26 @@ export function parseBepaList(html: string, _page = 1, now = Date.now()): BoardR
   return out;
 }
 
+/** 부산경제진흥원 첨부 — 내려받기가 `downFile(번호)` 이고 나머지 값(siteId·boardId·idx)은 화면 폼에만 있어 수확기가 0건이었다(2026-10-16 고정본 실측). */
+export function bepaDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  const root = parseHtml(pageHtml);
+  const form = root.querySelector('form[name="board_form"]');
+  const v = (n: string) => form?.querySelector(`input[name="${n}"]`)?.getAttribute("value") ?? "";
+  const c = attachmentCollector();
+  for (const a of root.querySelectorAll('dd.file-item a[onclick*="downFile("]')) {
+    const m = (a.getAttribute("onclick") ?? "").match(/downFile\((\d+)\)/);
+    if (!m || !form) continue;
+    const q = new URLSearchParams([
+      ["siteId", v("siteId")],
+      ["boardId", v("boardId")],
+      ["idx", v("idx")],
+      ["fidx", m[1]],
+    ]).toString();
+    c.add(cleanAttachmentName(a.querySelector("span.filename")?.text ?? ""), `https://bepa.kr/board/downFile.do?${q}`);
+  }
+  return c.list;
+}
+
 export const bepaConfig: BoardConfig = {
   emptyStreakStop: BOARDS.length * PAGES_PER_BOARD,
   id: "bepa",
@@ -133,4 +154,5 @@ export const bepaConfig: BoardConfig = {
   attachmentsScopeSelector: "dd.file-item",
   // 한 쪽 10줄에서 거르개를 지나면 절반 근처가 남는다. 0행이면 서식 변경.
   expectMinRows: 5,
+  detailAttachments: ({ pageHtml }) => bepaDetailAttachments(pageHtml),
 };

@@ -1,5 +1,6 @@
 import { parseHtml, type HTMLElement } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 한국무역협회(KITA) 지원·사업 > 사업신청.
@@ -149,6 +150,20 @@ export function parseKitaList(html: string, _page = 1, now = Date.now()): BoardR
   return out;
 }
 
+/** 한국무역협회 첨부 — 내려받기가 `onclick="doDownloadFile('…','…')"` 라 수확기가 0건이었다(2026-10-16 고정본 실측). 두 인자는 인코딩하지 않고 그대로 싣는다. */
+export function kitaDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  const c = attachmentCollector();
+  for (const a of parseHtml(pageHtml).querySelectorAll("ul.attachfile-list li p.filename a[onclick]")) {
+    const m = (a.getAttribute("onclick") ?? "").match(/doDownloadFile\('([^']+)',\s*'([^']+)'\)/);
+    if (!m) continue;
+    c.add(
+      cleanAttachmentName(a.text),
+      `https://www.kita.net/asocBiz/asocBiz/fileDownload.do?fileSeq=${m[1]}&fileDtlSeq=${m[2]}`,
+    );
+  }
+  return c.list;
+}
+
 export const kitaConfig: BoardConfig = {
   id: "kita",
   label: "한국무역협회 지원사업",
@@ -185,9 +200,10 @@ export const kitaConfig: BoardConfig = {
    * 「본문 빈 공고」 자리를 차지해 **다른 출처의 빈 본문이 차례를 못 받는다**(types.ts skipDetailFill 주석).
    * `div.detail-head` 는 사업기간·모집기간·참가신청 상태·사업분류·지역·담당부서를 담아
    * 조건 추출에 실제로 쓸모가 있다.
+   * 그래서 갈고리(`kitaDetailAttachments`)가 첨부를 따로 읽는다(2026-10-16).
    */
   detailContentSelector: "div.detail-head, div.detail-body",
-  /** 첨부 자리(수확은 위 이유로 0건이지만, 범위를 못 박아 두면 서식이 바뀌어도 오염되지 않는다). */
+  /** 첨부 자리(수확기 대신 갈고리가 첨부를 읽지만, 범위를 못 박아 두면 서식이 바뀌어도 오염되지 않는다). */
   attachmentsScopeSelector: "div.detail-footer",
   /**
    * ★추측 단계를 끈다. 이 목록에는 **진짜 링크가 하나도 없다**(상세는 전부 onclick).
@@ -202,4 +218,5 @@ export const kitaConfig: BoardConfig = {
    */
   // 1쪽은 진행중 목록 하나뿐이라 건수가 철에 따라 출렁인다 — 서식 깨짐은 customParse 가 0행으로 잡으므로 낮게 둔다(2026-09-03).
   expectMinRows: 5,
+  detailAttachments: ({ pageHtml }) => kitaDetailAttachments(pageHtml),
 };
