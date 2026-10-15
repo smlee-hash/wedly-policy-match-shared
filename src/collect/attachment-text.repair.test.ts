@@ -93,7 +93,7 @@ describe("fetchAttachmentTexts — 망가진 저장 주소를 받아도 되살�
   it("khidi `%C2%B6` → `&paramMenuId=` 로 요청하고 글자를 읽는다", async () => {
     const pdf = await makePdf("KHIDI notice body");
     const urls: string[] = [];
-    const fetch = vi.fn(async (url: string, _init?: RequestInit) => {
+    const fetch = vi.fn(async (url: string) => {
       urls.push(url);
       return url === KHIDI_GOOD ? new Response(Uint8Array.from(pdf)) : new Response("오류", { status: 500 });
     });
@@ -109,7 +109,7 @@ describe("fetchAttachmentTexts — 망가진 저장 주소를 받아도 되살�
 
   it("ypa `/cmm/fms/FileDown.do` → `/FileDown.do` 로 요청한다", async () => {
     const urls: string[] = [];
-    const fetch = vi.fn(async (url: string, _init?: RequestInit) => {
+    const fetch = vi.fn(async (url: string) => {
       urls.push(url);
       return new Response("없음", { status: 404 });
     });

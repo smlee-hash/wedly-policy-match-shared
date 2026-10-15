@@ -19,8 +19,10 @@ import type { CollectDeps, PolicyAnnouncementUpdate } from "../types";
  *    (이번 범위 밖 — 0건이 맞다).
  */
 
-const updateAnnouncement = vi.fn((_id: string, _data: PolicyAnnouncementUpdate): Promise<void> => Promise.resolve());
-const updateAnnouncementIfEmpty = vi.fn((_id: string, _data: PolicyAnnouncementUpdate): Promise<number> => Promise.resolve(1));
+const updateAnnouncement = vi.fn<(id: string, data: PolicyAnnouncementUpdate) => Promise<void>>(() => Promise.resolve());
+const updateAnnouncementIfEmpty = vi.fn<(id: string, data: PolicyAnnouncementUpdate) => Promise<number>>(() =>
+  Promise.resolve(1),
+);
 const deps: Pick<CollectDeps, "updateAnnouncement" | "updateAnnouncementIfEmpty"> = {
   updateAnnouncement,
   updateAnnouncementIfEmpty,
