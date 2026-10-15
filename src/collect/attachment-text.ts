@@ -64,12 +64,19 @@ const BOARD_ATTACHMENT_HOSTS = [
   "www.msit.go.kr",
   "www.cba.ne.kr",
 ] as const;
+/**
+ * 게시판 명부 밖 출처의 첨부 호스트. K-Startup 첨부는 `/afile/fileDownload/<열쇠>` 로 받는다 —
+ * 게시판이 아니라 `allowedHostsOf` 가 덮지 않는다(첨부 목록 다시 읽기, 2026-10-16).
+ */
+const API_ATTACHMENT_HOSTS = ["www.k-startup.go.kr"] as const;
 
 let allowedHostCache: Set<string> | null = null;
-/** 첨부를 내려받아도 되는 호스트(소문자). 기업마당 2 + 옛 목록 + 게시판 명부 전 항목. 포트가 적힌 호스트는 포트째 들어간다. */
+/** 첨부를 내려받아도 되는 호스트(소문자). 기업마당 2 + 옛 목록 + K-Startup + 게시판 명부 전 항목. 포트가 적힌 호스트는 포트째 들어간다. */
 function allowedAttachmentHosts(): Set<string> {
   if (allowedHostCache) return allowedHostCache;
-  const set = new Set<string>([...ALLOWED_ATTACHMENT_HOSTS, ...BOARD_ATTACHMENT_HOSTS].map((h) => h.toLowerCase()));
+  const set = new Set<string>(
+    [...ALLOWED_ATTACHMENT_HOSTS, ...BOARD_ATTACHMENT_HOSTS, ...API_ATTACHMENT_HOSTS].map((h) => h.toLowerCase()),
+  );
   for (const cfg of BOARD_SOURCES) for (const h of allowedHostsOf(cfg)) set.add(h.toLowerCase());
   allowedHostCache = set;
   return set;

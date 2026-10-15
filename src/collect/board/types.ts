@@ -40,6 +40,12 @@ export type PolicyAttachmentRequest = PolicyAttachment & {
   headers?: Record<string, string>;
 };
 
+/**
+ * `detailAttachmentsAsync` 의 결과 — 첨부 목록, 또는 **원문에 첨부가 있는데 받을 길이 없다**는 사유.
+ * 사유는 「첨부 없음」과 다르다: 빈 목록은 「첨부 없음」으로 굳고, 사유는 「있지만 못 받음」으로 따로 적힌다.
+ */
+export type DetailAttachmentsAsyncResult = PolicyAttachmentRequest[] | { unavailable: string };
+
 /** 목록에서 뽑은 공고 한 줄(정규화 전). 상세(자격조건)는 아직 안 읽는다. */
 export interface BoardRow {
   title: string;
@@ -213,6 +219,26 @@ export interface BoardConfig {
     detailUrl: string;
     baseUrl: string;
   }) => PolicyAttachmentRequest[];
+  /**
+   * 첨부 목록을 만드는 데 **요청이 더 필요한** 게시판의 갈고리. 적으면 `detailAttachments`·공용 수확기 대신 쓴다.
+   *
+   * 왜 필요한가(2026-10-01 실측 2곳): 상세 화면만으로는 내려받기 주소가 안 나온다.
+   * · 경북경제진흥원 — 첨부 링크가 `admin-ajax.php` 에 POST 를 보내 받은 `file_path` 로 주소를 만든다.
+   * · 중소벤처24 — 기업마당 연동 공고의 첨부는 기업마당 상세 화면에만 있다.
+   *
+   * ★요청은 반드시 인자 `fetchText` 로만 보낸다 — 허용 호스트·시간 상한·국내 경유가 그대로 지켜진다.
+   * ★form 본문 POST 는 `headers: { "Content-Type": "application/x-www-form-urlencoded" }` 를 직접 적는다.
+   *  `fetchText` 는 머리글을 붙여 주지 않고, 안 적으면 fetch 가 `text/plain` 으로 보내 PHP 가 본문을 못 읽는다.
+   * ★못 읽으면 **던진다**. 빈 목록을 돌려주면 「첨부 없음」으로 굳는다.
+   * ★원문에 첨부가 있는데 받을 길이 없으면 `{ unavailable: 사유 }` 를 돌려준다.
+   */
+  detailAttachmentsAsync?: (args: {
+    html: string;
+    pageHtml: string;
+    detailUrl: string;
+    baseUrl: string;
+    fetchText: (url: string, init?: BoardFetchInit) => Promise<string>;
+  }) => Promise<DetailAttachmentsAsyncResult>;
   /**
    * 첨부를 받을 때 상세 세션(쿠키)·`Referer` 가 필요한 게시판. 안 적으면 예전대로 맨 GET 이다.
    * 두 갈래(`sync.fillBodiesFromAttachments`·`structurize.ensureAttachmentText`)가

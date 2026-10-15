@@ -1,5 +1,6 @@
-import { parseHtml } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import { absolutize, parseHtml } from "../html";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 세종신용보증재단 공지사항(`/sub0501/index`).
@@ -76,6 +77,22 @@ export function parseSjsinboList(html: string, _page = 1, now = Date.now()): Boa
   return out;
 }
 
+/** 세종신용보증재단 첨부 — 주소가 `/sub0501/file_down/id/<번호>/checksum/<열쇠>` 라 확장자가 없어 수확기가 0건이었다(2026-10-16 고정본 실측). 이름은 크기 표기 `span.filesize` 가 아닌 첫 `span` 이다. */
+export function sjsinboDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  const c = attachmentCollector();
+  // 같은 솔루션인 대전신보처럼 내려받기 주소 꼴로 한 번 더 거른다(전체 내려받기 단추·빈 링크 제외).
+  for (const a of parseHtml(pageHtml).querySelectorAll(
+    'div.downloader_wrap ul.downloader li a.file-tooltip[href*="/file_down/id/"]',
+  )) {
+    const href = a.getAttribute("href") ?? "";
+    if (!href) continue;
+    // 단추 안 span 중 크기 표기(`span.filesize`)가 아닌 첫 것이 이름이다.
+    const name = a.querySelectorAll("span").find((s) => !s.classList.contains("filesize"))?.text ?? "";
+    c.add(cleanAttachmentName(name), absolutize(href, "https://www.sjsinbo.or.kr/"));
+  }
+  return c.list;
+}
+
 export const sjsinboConfig: BoardConfig = {
   id: "sjsinbo",
   label: "세종신용보증재단",
@@ -105,4 +122,5 @@ export const sjsinboConfig: BoardConfig = {
   expectMinRows: 5,
   // 경로 쪽넘김(/index/page/N) 게시판 — heuristic 이 상세 주소에 쪽 번호를 섞어 저장한다(적대 리뷰) → 추측 단계 끔
   skipHeuristic: true,
+  detailAttachments: ({ pageHtml }) => sjsinboDetailAttachments(pageHtml),
 };

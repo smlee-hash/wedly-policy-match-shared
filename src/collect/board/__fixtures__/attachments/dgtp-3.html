@@ -1,0 +1,1280 @@
+<!-- https://www.dgtp.or.kr/bbs/BoardControllView.do?bbsId=BBSMSTR_000000000003&nttId=15790 -->
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="expires" content="-1" />
+<!-- <meta http-equiv="X-UA-Compatible" content="IE=10,chrome=1"> -->
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"
+/>
+<meta
+name="description"
+content="사업현황, 기업지원사업, 시설이용, 대구지역 발전논단 행사일정, 벤처업계 뉴스 수록."
+/>
+<title>(재)대구테크노파크</title>
+<!--[if lt IE 9]>
+<![endif]-->
+<!--메인 컨텐츠 이동 슬라이드 -->
+<!--메인 배너 이동 슬라이드 -->
+<!--메인 사업공고-->
+<!--메인 section03 탭메뉴, 단지현황 탭메뉴-->
+<!--헤더 대메뉴 하위메뉴 아코디언 슬라이드-->
+<!--헤더 토글메뉴, 백그라운드 슬라이드쇼-->
+<!--헤더 토글메뉴-->
+<!--상단팝업존-->
+<!--상단팝업존-->
+<!--상단팝업존	-->
+<!--상단팝업존-->
+<meta
+name="naver-site-verification"
+content="22b8534ff8461d7eb76e963eac1b22206d7fab20"
+/>
+<meta
+name="google-site-verification"
+content="IPn_nLRyvbR5qc_cGHHkPqxQJV35uh5MJwB30f4Vy7s"
+/>
+<!--  -->
+<!--  -->
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<!--  -->
+<script type="text/javascript">
+function setCookie(name, value, expirehours) {
+var todayDate = new Date();
+todayDate.setHours(todayDate.getHours() + expirehours);
+document.cookie =
+name +
+"=" +
+escape(value) +
+"; path=/; expires=" +
+todayDate.toGMTString() +
+";";
+}
+function getToday() {
+//오늘날짜
+var date = new Date();
+var day = date.getDate();
+var month = date.getMonth() + 1;
+var year = date.getFullYear();
+if (month < 10) month = "0" + month;
+if (day < 10) day = "0" + day;
+var today = year + month + day;
+return today;
+}
+// top버튼
+(function ($) {
+$(function () {
+// 쿠키 셋팅
+var cookiedata = document.cookie;
+if (cookiedata.indexOf("isVisitCntCookie=" + getToday()) < 0) {
+setCookie("isVisitCntCookie", getToday(), 24);
+}
+/*스크롤 탑*/
+//$("div.gotop").fadeOut("slow");
+$("div.gotop").css("display", "none");
+$(window).scroll(function () {
+setTimeout(scroll_top, 1000); //화살표가 반응하여 생기는 시간
+});
+$(".gotop").hover(
+function () {
+$(this).css("background-color", "#none");
+},
+function () {
+$(this).css("background-color", "#999");
+scroll_top();
+},
+);
+$("#gotop").click(function () {
+$("html, body").animate({ scrollTop: 0 }, 600); //화살표 클릭시 화면 스크롤 속도
+return false;
+});
+});
+/*스크롤 탑*/
+function scroll_top() {
+if ($(window).scrollTop() <= 1) {
+$("#gotop").fadeOut("slow");
+} else {
+$("#gotop").fadeIn("slow");
+}
+}
+})(jQuery);
+//사이트맵
+$(function () {
+$("#activator").click(function () {
+$("#overlay").fadeIn("fast", function () {
+$("#box").animate({ top: "80px" }, 500);
+});
+});
+$("#boxclose").click(function () {
+$("#box").animate({ top: "-900px" }, 500, function () {
+$("#overlay").fadeOut("fast");
+});
+});
+});
+//메인 사업공고
+$(function () {
+$(".carousel").carouFredSel({
+items: 4,
+scroll: 1,
+auto: {
+duration: 2500,
+timeoutDuration: 2500,
+},
+prev: ".prev",
+next: ".next",
+pagination: ".pager",
+});
+});
+//footer  - 관련사이트 바로가기
+jQuery(function ($) {
+$(".site_link h3 button.open").click(function () {
+let $button = $(this);
+let $layer = $button.parent().next("div.layer");
+if ($button.hasClass("on")) {
+// 이미 "on"이 있다면 fadeOut 실행 후 클래스 제거
+$layer.fadeOut("fast", function () {
+$button.removeClass("on");
+});
+} else {
+// "on"이 없다면 fadeIn 실행 후 "on" 클래스 추가
+$button.addClass("on");
+$layer.fadeIn("fast");
+}
+return false;
+});
+$(".site_link .close").click(function () {
+let $layer = $(this).parent();
+let $button = $layer.prev("h3").find("button.open");
+// 닫기 버튼 클릭 시 fadeOut 후 "on" 클래스 제거
+$layer.fadeOut("fast", function () {
+$button.removeClass("on");
+});
+return false;
+});
+});
+function siteFileDown(atchFileId, fileSn) {
+window.open(
+"/cmm/fms/FileDown.do?atchFileId=" +
+atchFileId +
+"&fileSn=" +
+fileSn +
+"",
+);
+}
+function fn_egov_encDownFile(encFileId) {
+window.open(
+"/cmm/fms/EncFileDown.do?encFileId=" + encodeURIComponent(encFileId),
+);
+}
+function fn_logout() {
+if (confirm("로그아웃 하시겠습니까?")) {
+location.replace("/login/actionLogout.do");
+}
+}
+</script>
+</head>
+<body class="page">
+<script type="text/javascript">
+$(function () {
+// 띠배너 slider
+$(".main_top_banner").css({
+//'background-color':$('.top-banner .banner_inner_wrap').find('li').eq(0).attr('bg_color-data')
+});
+var top_banner_slider = $(".top-banner").accSlider({
+auto: true,
+arrowBtn: false,
+mode: "normal",
+onSliderStart: function (num) {
+$(".main_top_banner").css({
+//'background-color':$('.top-banner .banner_inner_wrap').find('li').eq(num).attr('bg_color-data')
+});
+},
+});
+$(".close_wrap").on("click", ".top_banner_close", function () {
+TweenMax.to($(".main_top_banner"), 0.8, {
+height: 0,
+ease: "easeOutExpo",
+onComplete: function () {
+top_banner_slider.stopSlide();
+$(".main_top_banner").css("display", "none");
+},
+});
+});
+viewBandBanner();
+$("#top_banner_chk").on("click", function () {
+if ($("#top_banner_chk").is(":checked")) {
+setCookie("band", "done", 1);
+$(".top_banner_close").click();
+}
+});
+});
+// 띠배너보기
+function viewBandBanner() {
+var blnCookie = getCookie("band");
+if (blnCookie != "done") {
+// $(".main_top_banner").show();
+} else {
+$(".main_top_banner").css("display", "none");
+}
+}
+// 쿠키 가져오기
+function getCookie(cName) {
+cName = cName + "=";
+var cookieData = document.cookie;
+var start = cookieData.indexOf(cName);
+var cValue = "";
+if (start != -1) {
+start += cName.length;
+var end = cookieData.indexOf(";", start);
+if (end == -1) end = cookieData.length;
+cValue = cookieData.substring(start, end);
+}
+return unescape(cValue);
+}
+// 쿠키 설정하기
+function setCookie(name, value, expiredays) {
+var todayDate = new Date();
+todayDate = new Date(
+parseInt(todayDate.getTime() / 86400000) * 86400000 + 54000000,
+);
+if (todayDate > new Date()) {
+expiredays = expiredays - 1;
+}
+todayDate.setDate(todayDate.getDate() + expiredays);
+document.cookie =
+name +
+"=" +
+escape(value) +
+"; path=/; expires=" +
+todayDate.toGMTString() +
+";";
+}
+function fn_totalSearch() {
+if (document.totalFrm.searchWrd.value == "") {
+alert("검색어를 입력하세요.");
+return false;
+}
+fn_egov_select_searchList("1");
+}
+function fn_searchKey(event) {
+if (event.keyCode == 13) {
+fn_egov_select_searchList("1");
+}
+}
+function fn_egov_select_searchList(pageNo) {
+document.totalFrm.pageIndex.value = pageNo;
+document.totalFrm.action = "/inc/search.do";
+document.totalFrm.submit();
+}
+</script>
+<div class="topwrap">
+<!-- 사이트맵 :s -->
+<div class="overlay" id="overlay" style="display: none"></div>
+<div class="box" id="box">
+<div class="closebtn">
+<a id="boxclose"
+><img
+src="/images/dgtp/sitemap_close.png"
+alt="사이트맵 닫기"
+/></a>
+</div>
+<h3>홈페이지 전체 메뉴</h3>
+<div class="sitemap_wrap">
+<div class="menu_b">
+<h4 class="title">알림마당</h4>
+<h5>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000003"
+>사업공고</a
+>
+</h5>
+<h5>
+<a
+href="https://www.g2b.go.kr/link/FIUA006_01/single/?untySrchSeCd=BK+BUK&instCd=Z001877&prcmMthoSeCd=&frcpYn=N&laseYn=N&rsrvYn=N&chkInstCd=&urlSrchSeCd=instCd&demaInstCd=IN0100000033919&prcmMaagSeCd=&cpath="
+target="_blank"
+>입찰공고</a
+>
+</h5>
+<h5>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000004"
+>채용공고</a
+>
+</h5>
+<h5>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000002"
+>유관기관소식</a
+>
+</h5>
+<h5>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000006"
+>기업민원·소통</a
+>
+</h5>
+<h5>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000023"
+>통합자료실</a
+>
+</h5>
+</div>
+<div class="menu_b">
+<h4 class="title">입주지원</h4>
+<h5><a href="/support/partStatus.do">단지현황</a></h5>
+<h5><a href="/support/guide.do">입주안내</a></h5>
+</div>
+<div class="menu_b">
+<h4 class="title">시설안내</h4>
+<ul>
+<h5><a href="/reserve/facilities1.do">대구경북디자인센터</a></h5>
+<h5><a href="/reserve/metingList.do">회의실대관</a></h5>
+<li><a href="/reserve/metingList.do">회의실현황</a></li>
+<li><a href="/reserve/metingGuide.do">이용안내</a></li>
+<li><a href="/reserve/reserveWrite.do">회의실대관신청</a></li>
+<li><a href="/reserve/metingLine.do">회의실운영지침</a></li>
+<h5><a href="/reserve/convenience1.do">편의시설</a></h5>
+<li><a href="/reserve/convenience2.do">카페</a></li>
+<li><a href="/reserve/convenience3.do">이음마당</a></li>
+</ul>
+<div class="clear"></div>
+</div>
+<div class="menu_b">
+<h4 class="title">홍보마당</h4>
+<h5>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000007"
+>언론보도</a
+>
+</h5>
+<h5>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000025"
+>보도자료</a
+>
+</h5>
+<ul>
+<h5>
+<a
+href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000009&movieFlag=2"
+>홍보자료</a
+>
+</h5>
+<li>
+<a
+href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000009&movieFlag=1"
+>홍보브로슈어</a
+>
+</li>
+</ul>
+</div>
+<div class="menu_b">
+<h4 class="title height70">기관소개</h4>
+<ul>
+<li><a href="/orgnzt/comHistory.do">연혁</a></li>
+<li><a href="/orgnzt/comOverview.do">재단개요</a></li>
+<li><a href="/orgnzt/comVision.do">비전 및 목표</a></li>
+<li><a href="/orgnzt/comValue.do">핵심가치 및 운영방침</a></li>
+<li><a href="/orgnzt/comFunction.do">주요기능</a></li>
+<li><a href="/orgnzt/comCi.do">CI소개</a></li>
+</ul>
+<ul>
+<h5><a href="/orgnzt/groupMap.do">조직현황</a></h5>
+<li><a href="/orgnzt/groupMaster.do">임원</a></li>
+<li><a href="/orgnzt/groupList.do">조직도</a></li>
+</ul>
+<ul>
+<h5><a href="/orgnzt/menuList.do">기관경영공시</a></h5>
+<li><a href="/orgnzt/menuList.do">경영공시안내</a></li>
+<li><a href="/orgnzt/menuDetailList.do">공시자료</a></li>
+<li><a href="/content/esg.do">ESG경영</a></li>
+</ul>
+<ul>
+<h5><a href="/orgnzt/location.do">찾아오시는길</a></h5>
+</ul>
+<div class="clear"></div>
+</div>
+<div class="menu_b">
+<h4 class="title height70">클린경영</h4>
+<h5><a href="/clean/clean01.do">윤리경영</a></h5>
+<h5>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000014"
+>내부감사결과</a
+>
+</h5>
+<h5>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000015"
+>수의계약현황</a
+>
+</h5>
+<h5><a href="/clean/clean05.do">신고물품 처리현황</a></h5>
+<h5>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000012"
+>상품권 구매내역</a
+>
+</h5>
+<h5><a href="/clean/clean06.do">종합신고상담센터</a></h5>
+</div>
+<div class="menu_b last">
+<h4 class="title">이용 가이드</h4>
+<ul>
+<h5><a href="/etc/terms.do">이용약관</a></h5>
+</ul>
+<ul>
+<h5><a href="/etc/privacy.do">개인정보처리방침</a></h5>
+</ul>
+<ul>
+<h5><a href="/etc/copyright.do">저작권정책</a></h5>
+</ul>
+<div class="clear"></div>
+</div>
+</div>
+</div>
+<!-- 사이트맵 :e -->
+<div class="top">
+<a href="/dgtp.do" class="home fl">메인화면으로</a>
+<div class="fr">
+<ul class="link fl">
+<li><a href="/login/loginPage.do">로그인</a></li>
+<li><a href="/member/join01.do">회원가입</a></li>
+</ul>
+<div class="tpgroup_site_wrap fl">
+<div class="tpgroup_site">
+<a href="#" class="title">TP부서별 홈페이지 바로가기</a>
+<ul>
+<li>
+<a href="http://www.dria.or.kr/" target="_blank"
+>정책기획단</a
+>
+</li>
+<li>
+<a href="http://bpa.ttp.org/" target="_blank">기업지원단</a>
+</li>
+<li>
+<a href="http://www.npac.or.kr/" target="_blank"
+>나노융합실용화센터</a
+>
+</li>
+<li>
+<a href="http://www.mtcc.or.kr/" target="_blank"
+>디지털융합센터</a
+>
+</li>
+<li>
+<a href="http://www.ttp.org/bhcc/" target="_blank"
+>바이오헬스융합센터</a
+>
+</li>
+<li>
+<a href="http://www.ttp.org/kmisc/" target="_blank"
+>한방뷰티융합센터</a
+>
+</li>
+<li>
+<a href="http://www.scic.or.kr/" target="_blank"
+>스포츠첨단융합센터</a
+>
+</li>
+<li>
+<a href="http://www.knutp.org/" target="_blank"
+>경북대학교센터</a
+>
+</li>
+<li>
+<a href="https://kmtp.net:444/" target="_blank"
+>계명대학교센터</a
+>
+</li>
+<li>
+<a
+href="http://iacf.yju.ac.kr/CmsHome/Center_01_01.jsp"
+target="_blank"
+>영진전문대학교센터</a
+>
+</li>
+<li>
+<a
+href="http://dtis.re.kr/home/intro/intro.do"
+target="_blank"
+>대구과학기술진흥센터</a
+>
+</li>
+<li>
+<a href="https://www.dg-sf.kr" target="_blank"
+>대구스마트제조혁신센터</a
+>
+</li>
+</ul>
+</div>
+</div>
+<!-- TP부서별 홈페이지 바로가기 :e -->
+</div>
+<div class="clear"></div>
+</div>
+</div>
+<div id="tnb">
+<div class="_warp">
+<a href="/login/loginPage.do">로그인</a>
+<a href="/eng/index.html" target="_blank"
+><i
+class="fa fa-globe"
+aria-hidden="true"
+style="margin-right: 3px"
+></i>
+English</a
+>
+</div>
+</div>
+<header class="on">
+<div class="header_cont_warp">
+<div class="header_cont">
+<a id="cd-logo" href="/dgtp.do"
+><img
+src="/images/dgtp/logo.png"
+alt="대구테크노파크 로고"
+/></a>
+<a id="cd-menu-trigger" href="#"
+><span class="cd-menu-text">Menu</span
+><span class="cd-menu-icon"></span
+></a>
+<div class="navi">
+<!-- 메인메뉴 1024px 이상 :s -->
+<ul class="gnb">
+<li>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000003"
+>알림마당</a
+>
+</li>
+<li><a href="/support/partStatus.do">입주지원</a></li>
+<li><a href="/reserve/metingList.do">시설안내</a></li>
+<li>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000007"
+>홍보마당</a
+>
+</li>
+<!-- <li><a href="/orgnzt/comGreet.do">기관소개</a></li> -->
+<li><a href="/orgnzt/comHistory.do">기관소개</a></li>
+<li><a href="/clean/clean01.do">클린경영</a></li>
+</ul>
+</div>
+</div>
+<div class="activator on" id="activator">
+<span class="top"></span>
+<span class="middle"></span>
+<span class="bottom"></span>
+</div>
+</div>
+<div class="subWrap">
+<div class="subCont">
+<div class="subMenu">
+<ol class="subs fst">
+<h2 class="title">알림마당</h2>
+<ul class="snb">
+<li class="menu">
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000003"
+>사업공고</a
+>
+</li>
+<li class="menu">
+<a
+href="https://www.g2b.go.kr/link/FIUA006_01/single/?untySrchSeCd=BK+BUK&instCd=Z001877&prcmMthoSeCd=&frcpYn=N&laseYn=N&rsrvYn=N&chkInstCd=&urlSrchSeCd=instCd&demaInstCd=IN0100000033919&prcmMaagSeCd=&cpath="
+target="_blank"
+>입찰공고</a
+>
+</li>
+<li class="menu">
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000004"
+>채용공고</a
+>
+</li>
+<li class="menu">
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000002"
+>유관기관소식</a
+>
+</li>
+<li class="menu">
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000006"
+>기업민원·소통</a
+>
+</li>
+<li class="menu">
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000023"
+>통합자료실</a
+>
+</li>
+</ul>
+</ol>
+<ol class="subs">
+<h2 class="title">입주지원</h2>
+<ul class="snb">
+<li class="menu">
+<a href="/support/partStatus.do">단지현황</a>
+</li>
+<li class="menu"><a href="/support/guide.do">입주안내</a></li>
+</ul>
+</ol>
+<ol class="subs">
+<h2 class="title">시설안내</h2>
+<ul class="snb">
+<li class="menu menu-has-sub">
+<a href="/reserve/facilities1.do">대구경북디자인센터</a>
+</li>
+<li class="menu menu-has-sub">
+<a href="#"
+>회의실대관<img
+src="/images/dgtp/menu_off.png"
+alt="메뉴오프"
+/></a>
+<ul>
+<li><a href="/reserve/metingList.do">회의실현황</a></li>
+<li><a href="/reserve/metingGuide.do">이용안내</a></li>
+<li>
+<a href="/reserve/reserveWrite.do">회의실대관신청</a>
+</li>
+<li><a href="/reserve/metingLine.do">회의실운영지침</a></li>
+</ul>
+</li>
+<li class="menu menu-has-sub">
+<a href="#"
+>편의시설<img
+src="/images/dgtp/menu_off.png"
+alt="메뉴오프"
+/></a>
+<ul>
+<li><a href="/reserve/convenience2.do">카페</a></li>
+<li><a href="/reserve/convenience3.do">이음마당</a></li>
+</ul>
+</li>
+</ul>
+</ol>
+<ol class="subs">
+<h2 class="title">홍보마당</h2>
+<ul class="snb">
+<li class="menu">
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000007"
+>언론보도</a
+>
+</li>
+<li class="menu">
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000025"
+>보도자료</a
+>
+</li>
+<li class="menu menu-has-sub">
+<a href="#"
+>홍보자료<img
+src="/images/dgtp/menu_off.png"
+alt="메뉴오프"
+/></a>
+<ul>
+<li>
+<a
+href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000009&movieFlag=1"
+>홍보브로슈어</a
+>
+</li>
+</ul>
+</li>
+</ul>
+</ol>
+<ol class="subs">
+<h2 class="title">기관소개</h2>
+<ul class="snb">
+<li class="menu menu-has-sub">
+<a href="#"
+>기관현황<img
+src="/images/dgtp/menu_off.png"
+alt="메뉴오프"
+/></a>
+<ul>
+<li><a href="/orgnzt/comHistory.do">연혁</a></li>
+<li><a href="/orgnzt/comOverview.do">재단개요</a></li>
+<li><a href="/orgnzt/comVision.do">비전 및 목표</a></li>
+<li>
+<a href="/orgnzt/comValue.do">핵심가치 및 운영방침</a>
+</li>
+<li><a href="/orgnzt/comFunction.do">주요기능</a></li>
+<li><a href="/orgnzt/comCi.do">CI소개</a></li>
+</ul>
+</li>
+<li class="menu menu-has-sub">
+<a href="#"
+>조직현황<img
+src="/images/dgtp/menu_off.png"
+alt="메뉴오프"
+/></a>
+<ul>
+<li><a href="/orgnzt/groupMaster.do">임원</a></li>
+<li><a href="/orgnzt/groupList.do">조직도</a></li>
+</ul>
+</li>
+<li class="menu menu-has-sub">
+<a href="#"
+>기관경영공시<img
+src="/images/dgtp/menu_off.png"
+alt="메뉴오프"
+/></a>
+<ul>
+<li><a href="/orgnzt/menuList.do">경영공시안내</a></li>
+<li><a href="/orgnzt/menuDetailList.do">공시자료</a></li>
+<li><a href="/content/esg.do">ESG경영</a></li>
+</ul>
+</li>
+<li class="menu menu-has-sub">
+<a href="#"
+>인권경영<img
+src="/images/dgtp/menu_off.png"
+alt="메뉴오프"
+/></a>
+<ul>
+<li><a href="/orgnzt/humanRights.do">인권헌장</a></li>
+<li>
+<a href="/orgnzt/humanDetail.do">인권경영 이행지침</a>
+</li>
+</ul>
+</li>
+<li class="menu">
+<a href="/orgnzt/location.do">찾아오시는길</a>
+</li>
+</ul>
+</ol>
+<ol class="subs">
+<h2 class="title">클린경영</h2>
+<ul class="snb">
+<li class="menu"><a href="/clean/clean01.do">윤리경영</a></li>
+<li class="menu">
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000014"
+>내부감사결과</a
+>
+</li>
+<li class="menu">
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000015"
+>수의계약현황</a
+>
+</li>
+<li class="menu">
+<a href="/clean/clean05.do">신고물품 처리현황</a>
+</li>
+<li class="menu">
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000012"
+>상품권 구매내역</a
+>
+</li>
+<li class="menu">
+<a href="/clean/clean06.do">종합신고상담센터</a>
+</li>
+</ul>
+</ol>
+</div>
+</div>
+</div>
+</header>
+<!-- e : 1024px 이상 메뉴 -->
+<nav id="cd-lateral-nav">
+<ul class="util">
+<li><a href="/login/loginPage.do">로그인</a></li>
+<li><a href="/member/join01.do">회원가입</a></li>
+<li><a href="/eng/index.html">ENG</a></li>
+</ul>
+<ul class="cd-navigation">
+<li class="menu_m item-has-children">
+<a href="#">알림마당</a>
+<ul class="sub-menu">
+<li>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000003"
+>사업공고</a
+>
+</li>
+<li>
+<a
+href="https://www.g2b.go.kr/link/FIUA006_01/single/?untySrchSeCd=BK+BUK&instCd=Z001877&prcmMthoSeCd=&frcpYn=N&laseYn=N&rsrvYn=N&chkInstCd=&urlSrchSeCd=instCd&demaInstCd=IN0100000033919&prcmMaagSeCd=&cpath="
+target="_blank"
+>입찰공고</a
+>
+</li>
+<li>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000004"
+>채용공고</a
+>
+</li>
+<li>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000002"
+>유관기관소식</a
+>
+</li>
+<li>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000006"
+>기업민원·소통</a
+>
+</li>
+<li>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000023"
+>통합자료실</a
+>
+</li>
+</ul>
+</li>
+<li class="menu_m item-has-children">
+<a href="#">입주지원</a>
+<ul class="sub-menu">
+<li><a href="/support/partStatus.do">단지현황</a></li>
+<li><a href="/support/guide.do">입주안내</a></li>
+</ul>
+</li>
+<li class="menu_m item-has-children">
+<a href="#">시설안내</a>
+<ul class="sub-menu">
+<li><a href="/reserve/metingList.do">회의실현황</a></li>
+<li><a href="/reserve/metingGuide.do">이용안내</a></li>
+<li><a href="/reserve/reserveWrite.do">회의실대관신청</a></li>
+<li><a href="/reserve/metingLine.do">회의실운영지침</a></li>
+</ul>
+</li>
+<li class="menu_m item-has-children">
+<a href="#">홍보마당</a>
+<ul class="sub-menu">
+<li>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000007"
+>언론보도</a
+>
+</li>
+<li>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000025"
+>보도자료</a
+>
+</li>
+<li>
+<a
+href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000009&movieFlag=1"
+>홍보브로슈어</a
+>
+</li>
+</ul>
+</li>
+<li class="menu_m item-has-children">
+<a href="#">기관소개</a>
+<ul class="sub-menu">
+<li><a href="/orgnzt/comHistory.do">연혁</a></li>
+<li><a href="/orgnzt/comOverview.do">재단개요</a></li>
+<li><a href="/orgnzt/comVision.do">비전 및 목표</a></li>
+<li><a href="/orgnzt/comValue.do">핵심가치 및 운영방침</a></li>
+<li><a href="/orgnzt/comFunction.do">주요기능</a></li>
+<li><a href="/orgnzt/comCi.do">CI소개</a></li>
+<li><a href="/orgnzt/groupList.do">조직도</a></li>
+<li><a href="/orgnzt/groupMaster.do">임원</a></li>
+<li><a href="/orgnzt/menuList.do">경영공시안내</a></li>
+<li><a href="/orgnzt/menuDetailList.do">공시자료</a></li>
+<li><a href="/content/esg.do">ESG경영</a></li>
+<li><a href="/orgnzt/location.do">찾아오시는길</a></li>
+</ul>
+</li>
+<li class="menu_m item-has-children">
+<a href="#">클린경영</a>
+<ul class="sub-menu">
+<li><a href="/clean/clean01.do">윤리경영</a></li>
+<li>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000012"
+>청탁금지법</a
+>
+</li>
+<li>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000014"
+>내부감사결과</a
+>
+</li>
+<li>
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000015"
+>수의계약현황</a
+>
+</li>
+<li><a href="/clean/clean05.do">신고물품 처리현황</a></li>
+<li><a href="/clean/clean06.do">부패행위신고센터</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</body>
+</html>
+<div class="subtop_wrap subtop01">
+<div class="bgimg bgimg01"></div>
+<div class="subtop">
+<h2>알림마당</h2>
+</div>
+</div>
+<div class="tabmenu">
+<div class="depth_warp">
+<div class="sub_depth depth_home">
+<a href="/dgtp.do"><span class="sound_only">Home</span></a>
+</div>
+<div class="sub_depth sub_depph_1">
+<div class="depth_nav">
+<ul class="nav-dropit dropit">
+<li class="drop_button">
+<span class="first_depth_drop">
+알림마당
+</span>
+<ul class="drop_submenu">
+<li class="tab_on">								
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000003">알림마당</a>	
+</li>
+<li>								
+<a href="/support/partStatus.do">입주지원</a>
+</li>						
+<li>										
+<a href="/reserve/metingList.do">시설안내</a>	
+</li>					
+<li>										
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000007">홍보마당</a>
+</li>
+<li>										
+<a href="/orgnzt/comHistory.do">기관소개</a>
+</li>
+<li>										
+<a href="/clean/clean01.do">클린경영</a>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="sub_depth sub_depph_2">
+<div class="depth_nav">
+<ul class="nav-dropit dropit">
+<li class="drop_button">
+<span class="first_depth_drop">
+사업공고
+</span>
+<ul class="drop_submenu">
+<li class="tab_on">										
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000003">사업공고</a>	
+</li>	
+<li >										
+<a href="https://www.g2b.go.kr/link/FIUA006_01/single/?untySrchSeCd=BK+BUK&instCd=Z001877&prcmMthoSeCd=&frcpYn=N&laseYn=N&rsrvYn=N&chkInstCd=&urlSrchSeCd=instCd&demaInstCd=IN0100000033919&prcmMaagSeCd=&cpath=" target="_blank">입찰공고</a>	
+</li>					
+<li >										
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000004">채용공고</a>
+</li>
+<li >										
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000002">유관기관소식</a>
+</li>
+<li >										
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000006">기업민원·소통</a>
+</li>							
+<li >										
+<a href="/bbs/BoardControll.do?bbsId=BBSMSTR_000000000023">통합자료실</a>		
+</li>		
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="sub_depth_minus">
+<span class="sound_only">폰트줄이기</span>
+</div>
+<div class="sub_depth_plus">
+<span class="sound_only">폰트키우기</span>
+</div>
+</div>
+</div>
+<section class="content_wrap">
+<div class="content">
+<script type="text/javascript">
+// $(function(){
+// 	
+// })
+function fn_egov_cancel(id,flag) {
+var addr = "?bbsId="+id
+if(flag>0)
+addr += "&movieFlag="+flag;
+location.href = "/bbs/BoardControll.do"+addr;
+}
+function fn_egov_inqire_notice(bbsId, nttId) {
+if (bbsId == "")
+return false; //20150508
+document.board.nttId.value = nttId;
+document.board.bbsId.value = bbsId;
+document.board.action = "/bbs/BoardControllView.do";
+document.board.submit();
+}
+function fn_egov_delete() {
+if(confirm('삭제하시겠습니까?')){	
+document.board.action = "/bbs/BoardControllDelete.do";
+document.board.submit();
+}
+}
+function fn_egov_update() {
+document.board.action = "/bbs/BoardControllQnaUpdate.do";
+document.board.submit();
+}
+</script>
+<form id="board" name="board" action="/bbs/BoardControllView.do?bbsId=BBSMSTR_000000000003&amp;nttId=15790" method="post" enctype="multipart/form-data">
+<input type="hidden" name="bbsId" value="BBSMSTR_000000000003" />
+<input type="hidden" name="nttId" value="15790" />
+<input type="hidden" name="frstRegisterId" value="040135" />
+<input type="hidden" name="ntcrId" value=""/>
+<input type="hidden" name="lastUpdusrId" value=""/>
+<input type="hidden" name="pageIndex" value="1" />
+<table class="tableview">
+<colgroup>
+<col class="width180">
+<col class="width600">
+<col class="width180">
+<col class="width600">
+</colgroup>
+<tbody>
+<tr>
+<th>제목</th>
+<td colspan="3">
+미래비즈니스발전소「청년비즈니스 토크쇼, POWER-ON!」3차, 4차 강연 안내 
+</td>
+</tr>
+<tr>
+<th>접수기간</th>
+<td colspan="3">
+<span class="state state03">접수중</span>
+2026-09-30 ~ 2026-10-27
+</td>
+</tr>
+<tr>
+<th>부서명</th>
+<td>
+지능도시본부
+</td>
+<th>조회</th>
+<td>68</td>
+</tr>
+<tr>
+<th>작성자</th>
+<td>주성일</td>
+<th>작성일</th>
+<td>2026-09-30</td>
+</tr>
+<!-- link href="/css/egovframework/com/com.css" rel="stylesheet" type="text/css"-->
+<script type="text/javascript">
+function fn_egov_encDownFile(encFileId) {
+window.open("/cmm/fms/EncFileDown.do?encFileId="+ encodeURIComponent(encFileId));
+}
+function fn_egov_deleteFile(atchFileId, fileSn) {
+forms = document.getElementsByTagName("form");
+if(confirm('삭제하시겠습니까?')){
+for (var i = 0; i < forms.length; i++) {
+if (typeof(forms[i].atchFileId) != "undefined" &&
+typeof(forms[i].fileSn) != "undefined" &&
+typeof(forms[i].fileListCnt) != "undefined") {
+form = forms[i];
+}
+}
+//form = document.forms[0];
+form.atchFileId.value = atchFileId;
+form.fileSn.value = fileSn;
+form.action = "/cmm/fms/deleteFileInfs.do";
+form.submit();
+}
+}
+function fn_egov_check_file(flag) {
+if (flag=="Y") {
+document.getElementById('file_upload_posbl').style.display = "block";
+document.getElementById('file_upload_imposbl').style.display = "none";
+} else {
+document.getElementById('file_upload_posbl').style.display = "none";
+document.getElementById('file_upload_imposbl').style.display = "block";
+}
+}
+// 첨부파일 추가
+function addAtchFile() {
+var template = "<tr>";
+template += "<th>첨부파일</th>";
+template += "		<td>";
+template += "	<div class=\"inline\">";
+template += "			<input name=\"\" class=\"inputFile width400 atchFile\" type=\"file\">";
+template += "			<button type=\"button\" class=\"btn2 fileplus\" onclick=\"deleteAtchFile(this)\"><i class=\"fa fa-minus\" aria-hidden=\"true\"></i>&nbsp;삭제</button>";
+template += "	</div>";
+template += "		</td>";
+template += "</tr>";
+$("#atchFile").append(template);
+}
+// 체크한 첨부파일 삭제
+function deleteAtchFile(obj) {
+$(obj).parent().parent().parent().remove();
+}
+// 파일 업로드 하기 전 이름 변경
+function reNameAtchFile() {
+for (i = 0; i < $(".atchFile").length; i++) {
+$(".atchFile:eq(" + i + ")").attr("name", "file_" + i);
+}
+}
+</script>
+<input type="hidden" name="atchFileId" value="FILE_000000000073305">
+<input type="hidden" name="fileSn" >
+<input type="hidden" name="fileListCnt" id="fileListCnt" value="1">
+<tr>
+<th>
+첨부파일
+</th>
+<td colspan="3">
+<ul class="attach">
+<li>
+<a href="javascript:fn_egov_encDownFile('IeZzgzBVQ64u7c5Mx4kcl0uG/s/k6JO4Fjcr9Ff7qY16buyDxJi+pib6M0nSpc9u')">
+미래비즈니스발전소 「청년비즈니스 토크쇼, POWER-ON!」 (3차, 4차) 포스터.png
+</a>
+</li>
+</ul>
+</td>
+</tr>
+<tr>
+<td colspan="4" class="pd30">
+<div style="border-bottom: 1px solid #d4d4d4; padding-bottom: 27px; box-sizing: border-box;"><!-- header -->
+<div style="display: flex; flex-flow: row wrap;align-items: center; justify-content: space-between;">
+<p style="padding:0;">&nbsp;</p>
+<p><span style="font-size:14px;"><span class="tit">게시일 : </span>2026.09.30</span></p>
+</div>
+<!-- title -->
+<h5 style="margin: 0px; padding: 32px 30px; border: 0px; vertical-align: baseline; text-size-adjust: 100%; font-weight: 700; font-family: &quot;Noto Sans KR&quot;, 맑은고딕, sans-serif; position: relative; color: rgb(255, 255, 255); font-size: 1.529em; text-align: center; box-sizing: border-box; background: url(&quot;../../images/dgtp/text_area_title_bg.png&quot;);"><span style="margin: 0px; padding: 0px; border: 0px; vertical-align: baseline; text-size-adjust: 100%; font-size: 36px;">미래비즈니스발전소</span><br />
+<span style="font-size:36px;">『청년비즈니스 토크쇼, POWER-ON!』강연 안내</span></h5>
+<div style="position: relative;width: 100%;height: 5px;background-color: #F9AF26;opacity: 0.5;margin-bottom: 30px;">&nbsp;</div>
+<!-- content_1 -->
+<div style="color: rgb(85, 85, 85); font-size: 1.176em; line-height: 1.7; text-align: center;"><span style="font-size:22px;">청년 및 (예비)창업자들이 사람과 기회를 연결하는 창업의 가치를 이해하고,<br />
+AX시대의 변화에 대응할 수 있는 창업 트렌드와 전략을 공유합니다.<br />
+새로운 비즈니스 기회를 발견하고 창업 역량을 강화할 수 있는 이번 프로그램에 많은 관심과 참여 바랍니다.</span></div>
+&nbsp;
+<div style="color: #393f4e;font-weight: 700;letter-spacing: 0;text-align: right;">
+<p style="margin-top: 14px;font-size: 1.176em;-weight: 500;"><span style="font-size:16px;">2026.09.30</span></p>
+<p><span style="font-size:16px;">(재)대구테크노파크 원장</span></p>
+</div>
+</div>
+<br />
+<br />
+<br />
+&nbsp;
+<div style="text-align: center;">&nbsp;</div>
+<div style="text-align: center;"><img alt="" src="/utl/web/imageSrc.do?path=20260930&amp;physical=DAE42884E970431BBFD9ACBEAB87E4C5&amp;contentType=image/png" style="width: 891px; height: 1260px;" /></div>
+&nbsp;
+<div style="padding-top: 32px;">
+<ul style="margin: 0; padding: 0;">
+<li style="list-style: none;position: relative;min-height: 30px;margin-bottom: 25px;padding-left: 130px;color: #555;line-height: 1.764;letter-spacing: 0;box-sizing: border-box;"><span style="text-indent: -99999px;display: block;position: absolute;left: 0;top: 13px;background-color: #E3152D;border-radius: 50%;width: 5px;height: 5px;">.</span> <span style="font-size:18px;"><span style="display: block; position: absolute; left: 18px; top: -1px; color: rgb(227, 21, 45); font-weight: bold; line-height: 1.667; text-align: justify; box-sizing: border-box;">일&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;시</span> <span style="text-indent: -99999px;display: block;position: absolute;left: 116px;top: 9px;background-color: #c7c7c7;width: 1px; height: 16px;">.</span></span>
+<p><span style="font-size:18px;">(3차) 2026.10.13.(화) 14:00 ~ 16:00<br />
+(<span style="color: rgb(85, 85, 85);">4차) 2026.10.28.(수) 14:00 ~ 16:00</span></span></p>
+</li>
+<li style="list-style: none;position: relative;min-height: 30px;margin-bottom: 25px;padding-left: 130px;color: #555;line-height: 1.764;letter-spacing: 0;box-sizing: border-box;"><span style="font-size:18px;"><span style="text-indent: -99999px;display: block;position: absolute;left: 0;top: 13px;background-color: #E3152D;border-radius: 50%;width: 5px;height: 5px;">.</span> <span style="display: block; position: absolute; left: 18px; top: -1px; color: rgb(227, 21, 45); font-weight: bold; line-height: 1.667; text-align: justify; box-sizing: border-box;">주&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;소</span> <span style="text-indent: -99999px;display: block;position: absolute;left: 116px;top: 9px;background-color: #c7c7c7;width: 1px; height: 16px;">.</span></span>
+<p><span style="font-size:18px;">대구광역시 서구 와룡로90길 61, 미래비즈니스발전소 1층 미래홀</span></p>
+</li>
+<li style="list-style: none;position: relative;min-height: 30px;margin-bottom: 25px;padding-left: 130px;color: #555;line-height: 1.764;letter-spacing: 0;box-sizing: border-box;"><span style="font-size:18px;"><span style="text-indent: -99999px;display: block;position: absolute;left: 0;top: 13px;background-color: #E3152D;border-radius: 50%;width: 5px;height: 5px;">.</span> <span style="display: block; position: absolute; left: 18px; top: -1px; color: rgb(227, 21, 45); font-weight: bold; line-height: 1.667; text-align: justify; box-sizing: border-box;">참 가 대 상</span> <span style="text-indent: -99999px;display: block;position: absolute;left: 116px;top: 9px;background-color: #c7c7c7;width: 1px; height: 16px;">.</span></span>
+<p><span style="font-size:18px;">청년(대학생), (예비)창업자, 지역주민 등 관심있는 누구나</span></p>
+</li>
+<li style="list-style: none;position: relative;min-height: 30px;margin-bottom: 25px;padding-left: 130px;color: #555;line-height: 1.764;letter-spacing: 0;box-sizing: border-box;"><span style="font-size:18px;"><span style="text-indent: -99999px;display: block;position: absolute;left: 0;top: 13px;background-color: #E3152D;border-radius: 50%;width: 5px;height: 5px;">.</span> <span style="display: block; position: absolute; left: 18px; top: -1px; color: rgb(227, 21, 45); font-weight: bold; line-height: 1.667; text-align: justify; box-sizing: border-box;">신 청 기 간</span> <span style="text-indent: -99999px;display: block;position: absolute;left: 116px;top: 9px;background-color: #c7c7c7;width: 1px; height: 16px;">.</span></span>
+<p><span style="font-size:18px;">2026.09.30.(수) ~ 2026.10.27.(화)</span></p>
+</li>
+<li style="list-style: none;position: relative;min-height: 30px;margin-bottom: 25px;padding-left: 130px;color: #555;line-height: 1.764;letter-spacing: 0;box-sizing: border-box;"><span style="font-size:18px;"><span style="text-indent: -99999px;display: block;position: absolute;left: 0;top: 13px;background-color: #E3152D;border-radius: 50%;width: 5px;height: 5px;">.</span> <span style="display: block; position: absolute; left: 18px; top: -1px; color: rgb(227, 21, 45); font-weight: bold; line-height: 1.667; text-align: justify; box-sizing: border-box;">신 청 링 크</span> <span style="text-indent: -99999px;display: block;position: absolute;left: 116px;top: 9px;background-color: #c7c7c7;width: 1px; height: 16px;">.</span></span>
+<p><span style="font-size:18px;"><a href="https://forms.gle/hFZ3KQ1izvx7ZTAr6">https://forms.gle/hFZ3KQ1izvx7ZTAr6</a></span></p>
+</li>
+<li style="list-style: none;position: relative;min-height: 30px;margin-bottom: 25px;padding-left: 130px;color: #555;line-height: 1.764;letter-spacing: 0;box-sizing: border-box;"><span style="font-size:18px;"><span style="text-indent: -99999px;display: block;position: absolute;left: 0;top: 13px;background-color: #E3152D;border-radius: 50%;width: 5px;height: 5px;">.</span> <span style="display: block; position: absolute; left: 18px; top: -1px; color: rgb(227, 21, 45); font-weight: bold; line-height: 1.667; text-align: justify; box-sizing: border-box;">문 의 처</span> <span style="text-indent: -99999px;display: block;position: absolute;left: 116px;top: 9px;background-color: #c7c7c7;width: 1px; height: 16px;">.</span></span>
+<p><span style="font-size:20px;"><span style="font-size:18px;">053-565-5547</span></span></p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</form>
+<button type="button" class="btn_y block mg0auto" onclick="javascript:fn_egov_cancel('BBSMSTR_000000000003','')">목록으로</button>
+<div class="space40"></div>
+<table class="tableview">
+<colgroup>
+<col class="width150">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<th>다음글</th>
+<td><a href="javascript:fn_egov_inqire_notice('BBSMSTR_000000000003', '15790')">미래비즈니스발전소「청년비즈니스 토크쇼, POWER-ON!」3차, 4차 강연 안내</a></td>
+</tr>
+<tr>
+<th>이전글</th>
+<td><a href="javascript:fn_egov_inqire_notice('BBSMSTR_000000000003', '15791')">2026년 수출물류비 지원사업 참여기업 모집 수정공고</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!DOCTYPE html>
+<footer>
+<form name="bbsFrm_f" method="post">
+<input type="hidden" name="bbsId" value="0"/>
+<input type="hidden" name="nttId" value="0"/>
+</form>
+<div class="foot_top_wrap">
+<div class="top">
+<ul class="link">
+<li><a href="/etc/terms.do">이용약관</a></li>
+<li><a href="/etc/privacy.do">개인정보처리방침</a></li>
+<li><a href="#link"
+onclick="javascript:fn_egov_inqire_notice_f('12509', 'BBSMSTR_000000000023', '010455')">이메일무단수집거부</a>
+</li>
+<li><a href="/etc/copyright.do">저작권정책</a></li>
+<li><a href="/reserve/metingLine.do">회의실운영지침</a></li>
+<li><a href="/orgnzt/location.do">찾아오시는길</a></li>
+<li><a href="#link"
+onclick="javascript:fn_egov_inqire_notice_f('12396', 'BBSMSTR_000000000023', '010455')">홈페이지
+오류관련</a></li>
+</ul>
+<div class="site_link"><!-- 사이트 링크 :s -->
+<div class="sitelink_cont" >
+<h3>
+<button class="open">전국테크노파크 <img src="/images/dgtp/move_icon.png" alt=""></button>
+</h3>
+<div class="layer" style="display: none;">
+<button class="close layer_top">
+<i class="fa fa-times " aria-hidden="true"></i>
+</button>
+<div class="link_part">
+<!-- <h4>전국테크노파크 홈페이지</h4> -->
+<ul class="clear">
+<li><a href="http://www.gwtp.or.kr/" target="_blank">강원테크노파크</a></li>
+<li><a href="http://www.gdtp.or.kr/" target="_blank">경기대진테크노파크</a></li>
+<li><a href="http://www.gtp.or.kr/" target="_blank">경기테크노파크</a></li>
+<li><a href="http://www.gntp.or.kr/" target="_blank">경남테크노파크</a></li>
+<li><a href="http://www.gbtp.or.kr/" target="_blank">경북테크노파크</a></li>
+<li><a href="http://www.gjtp.or.kr/" target="_blank">광주테크노파크</a></li>
+<li><a href="http://www.daejeontp.or.kr/" target="_blank">대전테크노파크</a></li>
+<li><a href="http://www.btp.or.kr/" target="_blank">부산테크노파크</a></li>
+<li><a href="http://www.seoultp.or.kr/" target="_blank">서울테크노파크</a></li>
+<li><a href="http://sjtp.or.kr/" target="_blank">세종테크노파크</a></li>
+<li><a href="http://www.utp.or.kr/" target="_blank">울산테크노파크</a></li>
+<li><a href="https://www.itp.or.kr" target="_blank">인천테크노파크</a></li>
+<li><a href="http://www.jntp.or.kr/" target="_blank">전남테크노파크</a></li>
+<li><a href="https://www.jbtp.or.kr/" target="_blank">전북테크노파크</a></li>
+<li><a href="http://www.jejutp.or.kr/" target="_blank">제주테크노파크</a></li>
+<li><a href="http://www.ctp.or.kr/" target="_blank">충남테크노파크</a></li>
+<li><a href="http://www.cbtp.or.kr/" target="_blank">충북테크노파크</a></li>
+<li><a href="https://www.ptp.or.kr/" target="_blank">포항테크노파크</a></li>
+<li><a href="https://www.technopark.or.kr/" target="_blank">한국테크노파크진흥회</a></li>
+</ul>
+</div>
+</div>
+</div><!-- 사이트 링크 :e -->
+</div>
+</div>
+</div>
+<div class="foot_bottom_wrap">
+<div class="bottom">
+<div class="col_1">
+<img src="/images/dgtp/logo_w.png" alt="">
+</div>
+<div class="col_2">
+<p class="address">[41256] 대구광역시 동구 동대구로475, 대구테크노파크 동대구캠퍼스(신천동)</p>
+<p class="tel"></p>
+<p class="copyright">copyright 2023 Daegu Technopark. All Rights Reserved.</p>
+</div>
+<div class="col_1">
+</div>
+</div>
+</div>
+</footer>
+</body>
+<script>
+function fn_egov_inqire_notice_f(nttId, bbsId, frstRegisterId) {
+document.bbsFrm_f.nttId.value = nttId;
+document.bbsFrm_f.bbsId.value = bbsId;
+document.bbsFrm_f.action = "/bbs/BoardControllView.do";
+document.bbsFrm_f.submit();
+}
+</script>
+</html>

@@ -1,5 +1,6 @@
-import { parseHtml } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import { absolutize, parseHtml } from "../html";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 이노비즈협회(중소기업기술혁신협회) 지원정보 게시판(`notice.asp?menuno=2`).
@@ -94,6 +95,17 @@ export function parseInnobizList(html: string): BoardRow[] {
   return out;
 }
 
+/** 이노비즈협회 첨부 — 첨부 상자 `section.attachment` 가 수확 범위 `section.content` 밖이라 수확기가 0건이었다(2026-10-16 고정본 실측). 호스트는 www 없이 `innobiz.or.kr` 로 굳힌다(위 주석). */
+export function innobizDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  const c = attachmentCollector();
+  for (const a of parseHtml(pageHtml).querySelectorAll('section.attachment a[href*="/Data/"]')) {
+    const href = a.getAttribute("href") ?? "";
+    if (!href) continue;
+    c.add(cleanAttachmentName(a.text), absolutize(href, "https://innobiz.or.kr/"));
+  }
+  return c.list;
+}
+
 export const innobizConfig: BoardConfig = {
   id: "innobiz",
   label: "이노비즈협회",
@@ -114,8 +126,8 @@ export const innobizConfig: BoardConfig = {
   },
   customParse: parseInnobizList,
   /**
-   * 상세 본문은 `section.content`. 첨부도 이 안에 있다 — 내려받기 스크립트를 거치지 않는
-   * 정적 파일(`/Data/BM83/<한글이름>.pdf`)이 본문 링크로 박혀 있어 공용 수확기가 그대로 집는다.
+   * 상세 본문은 `section.content`. 첨부(`/Data/BM327/<한글이름>.pdf` 같은 정적 파일)는 이 안이 아니라
+   * `section.attachment` 에 있어 범위 밖이다 — 갈고리(`innobizDetailAttachments`)가 화면 전체에서 읽는다(2026-10-16 고정본 실측).
    * 범위를 본문으로 못 박아 위쪽 메뉴·바닥글 링크가 첨부로 저장되는 것을 막는다.
    */
   detailContentSelector: "section.content",
@@ -127,4 +139,5 @@ export const innobizConfig: BoardConfig = {
   skipHeuristic: true,
   // 1쪽 20건에서 거르개 뒤 실측 13건. 0행이면 서식 변경이므로 7로 둔다.
   expectMinRows: 7,
+  detailAttachments: ({ pageHtml }) => innobizDetailAttachments(pageHtml),
 };

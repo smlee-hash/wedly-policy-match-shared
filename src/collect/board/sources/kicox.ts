@@ -1,5 +1,6 @@
-import { parseHtml } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import { absolutize, parseHtml } from "../html";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 한국산업단지공단 공지사항(`boardList/1016`).
@@ -104,6 +105,21 @@ export function parseKicoxList(html: string, page = 1, now = Date.now()): BoardR
   return out;
 }
 
+/** 첨부 이름 끝의 「[hwp, 114 KB]」(형식, 크기) 표기 — 공용 정리 규칙은 대괄호 안이 숫자로 시작해야 지운다. */
+const KICOX_SIZE_TAIL = /\s*\[\s*[A-Za-z0-9]{1,10}\s*,\s*[\d.,]+\s*(?:[KMGT]?B|bytes?)\s*\]\s*$/i;
+
+/** 한국산업단지공단 첨부 — 주소가 확장자 없는 `/api/fnFile/commonFileDownload/<번호>/<uuid>` 라 수확기가 uuid 를 이름으로·형식 etc 로 담고 포스터 그림까지 넣었다(2026-10-16 고정본 실측). 이름은 단추 옆 `p.tit` 글자다. */
+export function kicoxDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  const c = attachmentCollector();
+  for (const li of parseHtml(pageHtml).querySelectorAll("div.detPage div.fileDwn li")) {
+    const href = li.querySelector('a[href*="/api/fnFile/commonFileDownload/"]')?.getAttribute("href") ?? "";
+    if (!href) continue;
+    const name = cleanAttachmentName(li.querySelector("p.tit")?.text ?? "").replace(KICOX_SIZE_TAIL, "");
+    c.add(cleanAttachmentName(name), absolutize(href, `${BASE}/`));
+  }
+  return c.list;
+}
+
 export const kicoxConfig: BoardConfig = {
   id: "kicox",
   label: "한국산업단지공단",
@@ -124,12 +140,10 @@ export const kicoxConfig: BoardConfig = {
   },
   customParse: parseKicoxList,
   /**
-   * 상세 본문. **첨부를 못 읽는 게시판이라 본문을 반드시 채운다**(kbiz 와 반대 판단).
-   * 실측(`bbsSeq=49431`): 첨부는 `<button onclick="fnFileDownload('150293','uuid')">` 라
-   * `href` 가 아예 없고, 페이지 전체에 따옴표로 감싼 `.hwp/.pdf` 주소도 0개다 →
-   * `harvestBoardAttachments` 가 어떤 길로도 첨부를 못 집는다. 본문까지 비우면 이 출처는
-   * **제목만** 남는다. `div.tbody` 에는 사업명·사업기간·신청대상·사업내용이 들어 있다
-   * (실측 654자. 세부 자격은 「자세한 내용은 첨부파일 참고」로 넘어가지만 그 첨부는 위 이유로 못 읽는다).
+   * 상세 본문. `div.tbody` 에는 사업명·사업기간·신청대상·사업내용이 들어 있다(실측 `bbsSeq=49431` 654자).
+   * 세부 자격은 「자세한 내용은 첨부파일 참고」로 넘어가므로 첨부는 아래 갈고리가 읽는다.
+   * 2026-09-03 실측 땐 첨부가 `<button onclick="fnFileDownload('150293','uuid')">` 라 주소가 없어 본문만 믿었다.
+   * 2026-10-16 고정본부터는 `<a href="/api/fnFile/commonFileDownload/…">` 단추다.
    */
   detailContentSelector: "div.detPage div.tbody",
   // 첨부 수확 범위를 상세 상자로 좁힌다(머리글·바닥글 오염 방지 — 인천 비즈OK 갈래).
@@ -143,4 +157,5 @@ export const kicoxConfig: BoardConfig = {
    * 시험이 이 숫자를 잰다). 수출입은행에서 겪은 「틀린 저장은 다음 회차에도 안 지워진다」와 같은 갈래다.
    */
   skipHeuristic: true,
+  detailAttachments: ({ pageHtml }) => kicoxDetailAttachments(pageHtml),
 };

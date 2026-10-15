@@ -1,4 +1,6 @@
-import type { BoardConfig, BoardRow } from "../types";
+import { absolutize, parseHtml } from "../html";
+import type { BoardConfig, BoardFetchInit, BoardRow, DetailAttachmentsAsyncResult, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 중소벤처24(portal.smes.go.kr) 지원사업 공고 — **중앙정부·지방정부를 한 줄기로** 받는다.
@@ -207,6 +209,69 @@ export function smes24DetailHtml(jsonText: string): string {
   return parts.length > 0 ? `<div class="smes24-detail">\n${parts.join("\n")}\n</div>` : "";
 }
 
+/** 상세 API 응답의 `data` 칸. 읽을 수 없으면 null. */
+function smes24DetailData(jsonText: string): Record<string, unknown> | null {
+  try {
+    const parsed = JSON.parse(jsonText) as { data?: unknown } | null;
+    const d = parsed?.data;
+    return d && typeof d === "object" && !Array.isArray(d) ? (d as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 기업마당 상세 주소 — 호스트가 정확히 www.bizinfo.go.kr 인 http(s) 주소만 https 로 맞춰 돌려준다. 아니면 null. */
+function bizinfoDetailUrlOf(raw: unknown): string | null {
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  try {
+    const u = new URL(raw.trim());
+    if ((u.protocol !== "https:" && u.protocol !== "http:") || u.host !== "www.bizinfo.go.kr") return null;
+    u.protocol = "https:";
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+/** 기업마당 상세의 첨부 상자 → 첨부 목록. 상자가 없으면 화면 구조가 바뀐 것이라 던진다(빈 목록은 「첨부 없음」으로 굳는다). */
+function bizinfoAttachments(html: string): PolicyAttachmentRequest[] {
+  const box = parseHtml(html).querySelector("div.attached_file_list");
+  if (!box) throw new Error("기업마당 상세에 첨부 상자(div.attached_file_list)가 없음");
+  const c = attachmentCollector();
+  for (const li of box.querySelectorAll("li")) {
+    const href = li.querySelector("a.icon_download")?.getAttribute("href") ?? "";
+    if (!href) continue;
+    c.add(cleanAttachmentName(li.querySelector("div.file_name")?.text ?? ""), absolutize(href, "https://www.bizinfo.go.kr/"));
+  }
+  return c.list;
+}
+
+/**
+ * 중소벤처24 첨부(2026-10-16 — 옛 「일부러 안 싣는다」(2026-09-03)를 바꾼다).
+ * · 기업마당 연동(`bizPbancLinkInstCd` = "BI16") — 같은 공고의 기업마당 상세 첨부 상자에서 읽는다.
+ *   기업마당 내려받기 주소(`/cmm/fms/fileDown.do?…`)는 확장자가 없지만 이름으로 형식을 정한다.
+ * · 비연동 — 포털 제 내려받기 통로(`/home/api/v1/files/download/…`)가 500 이라(2026-09-03 실측) 받을 길이 없다.
+ *   첨부가 있으면 「받을 수 없음」, 없으면 빈 목록.
+ * · 상세 API 를 한 번 더 부른다 — `detailFetch` 는 본문 HTML 만 돌려줘 연동 칸이 남지 않는다.
+ * · 기업마당 상세는 호스트가 정확히 www.bizinfo.go.kr 일 때만 요청한다. 그 밖이면 요청 없이 「받을 수 없음」.
+ */
+export async function smes24DetailAttachments(
+  detailUrl: string,
+  fetchText: (url: string, init?: BoardFetchInit) => Promise<string>,
+): Promise<DetailAttachmentsAsyncResult> {
+  const no = detailUrl.match(/\/pbanc\/(\d+)(?:$|[?#])/)?.[1];
+  if (!no) throw new Error("중소벤처24 상세 주소에 공고 번호가 없음");
+  const d = smes24DetailData(await fetchText(`${LIST_API}/${no}?bizPbancTypeCd=BIZPBN`));
+  if (!d) throw new Error("중소벤처24 상세 API 응답을 읽을 수 없음");
+  if (d.bizPbancLinkInstCd !== "BI16") {
+    const hasFiles = [d.pbancMtxtFiles, d.pbancAtchFiles].some((v) => Array.isArray(v) && v.length > 0);
+    return hasFiles ? { unavailable: "중소벤처24 포털 내려받기 통로가 막혀 있음(500)" } : [];
+  }
+  const bizUrl = bizinfoDetailUrlOf(d.bizDtlUrlAddr);
+  if (!bizUrl) return { unavailable: "기업마당 연동 공고인데 상세 주소가 기업마당이 아님" };
+  return bizinfoAttachments(await fetchText(bizUrl));
+}
+
 export const smes24Config: BoardConfig = {
   id: "smes24",
   label: "중소벤처24 사업공고",
@@ -218,6 +283,8 @@ export const smes24Config: BoardConfig = {
    */
   region: "전국",
   baseUrl: `${BASE}/`,
+  /** 기업마당 연동 공고의 첨부 상자를 읽으려고 그 호스트 하나만 연다(갈고리의 fetchText 가 허용 호스트를 강제한다). */
+  allowedHosts: ["www.bizinfo.go.kr"],
   charset: "utf-8",
   list: {
     url: smes24ListUrl,
@@ -242,15 +309,8 @@ export const smes24Config: BoardConfig = {
     if (!no) return "";
     return smes24DetailHtml(await fetchText(`${LIST_API}/${no}?bizPbancTypeCd=BIZPBN`));
   },
-  /**
-   * ★첨부는 **일부러 안 싣는다**(2026-09-03 실측 근거 둘).
-   * ① 포털 제 다운로드 통로 `/home/api/v1/files/download/{id}/{순번}` 는 브라우저 안에서도
-   *    500(COMMON_501) 을 준다 — 저장해 봐야 못 받는 주소만 쌓인다.
-   * ② 기업마당 쪽 사본 주소(`getImageFile.do?atchFileId=`)는 열리지만 파일 확장자가 없어
-   *    공용 수확기(`harvestBoardAttachments`)가 첨부로 알아보지 못한다. 공용 파일은 여기서 안 고친다.
-   * 대신 상세 API 가 지원대상·지원자격·신청제외대상·제출서류·추진절차를 **글로** 다 주므로
-   * 자격조건 추출에 필요한 내용은 첨부 없이도 채워진다.
-   */
+  /** 첨부는 `smes24DetailAttachments` 가 읽는다(2026-10-16 — 기업마당 연동 공고만 받을 수 있다, 위 함수 주석). */
+  detailAttachmentsAsync: ({ detailUrl, fetchText }) => smes24DetailAttachments(detailUrl, fetchText),
   // 한 쪽 50건을 요청한다. 절반 아래로 떨어지면 응답 서식이 바뀐 것으로 본다.
   expectMinRows: 25,
   allowUndatedRows: true,

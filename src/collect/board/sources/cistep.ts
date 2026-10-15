@@ -1,5 +1,6 @@
-import { parseHtml, type HTMLElement } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import { absolutize, parseHtml, type HTMLElement } from "../html";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 천안과학산업진흥원 공지사항.
@@ -108,6 +109,20 @@ function parseCistepRows(html: string, now: number, filter: boolean): BoardRow[]
   return out;
 }
 
+/** 천안과학산업진흥원 첨부 — 주소가 `/zboard/printFileDown.do?atchFileId=…` 라 확장자가 없어 수확기가 0건이었다(2026-10-16 고정본 실측). 이름 앞 번호 「1 : 」는 뗀다. */
+export function cistepDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  const c = attachmentCollector();
+  for (const a of parseHtml(pageHtml).querySelectorAll('td.file a.doc_link[href^="/zboard/printFileDown.do"]')) {
+    const href = a.getAttribute("href") ?? "";
+    if (!href) continue;
+    c.add(
+      cleanAttachmentName(cleanAttachmentName(a.text).replace(/^\d+\s*:\s*/, "")),
+      absolutize(href, "https://www.cistep.re.kr/"),
+    );
+  }
+  return c.list;
+}
+
 export const cistepConfig: BoardConfig = {
   id: "cistep",
   label: "천안과학산업진흥원",
@@ -137,4 +152,5 @@ export const cistepConfig: BoardConfig = {
   // 한 쪽 10줄. 검증은 거르개 전 행(`validationParse`)으로 한다 — 2026-09-23 1쪽은 평가위원·제안서
   // 평가 6줄을 빼고 4줄이 남아 거르개 뒤 행으로 재면 「최소 5행」에 걸려 게시판 전체가 버려졌다.
   expectMinRows: 5,
+  detailAttachments: ({ pageHtml }) => cistepDetailAttachments(pageHtml),
 };

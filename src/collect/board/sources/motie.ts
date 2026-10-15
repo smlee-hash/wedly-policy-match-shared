@@ -1,5 +1,6 @@
-import { parseHtml } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import { absolutize, parseHtml } from "../html";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 산업통상부 사업공고(알림·뉴스 > 사업공고, `ATCL2826a2625`).
@@ -96,6 +97,17 @@ export function parseMotieList(html: string, _page = 1, now = Date.now()): Board
   return out;
 }
 
+/** 산업통상부 첨부 — 주소가 `/attach/down/<열쇠>/<열쇠>` 라 확장자가 없어 수확기가 0건이었다(2026-10-16 고정본 실측). 호스트는 `www.motir.go.kr`(위 주석, 오타 아님). */
+export function motieDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  const c = attachmentCollector();
+  for (const a of parseHtml(pageHtml).querySelectorAll('a[href^="/attach/down/"]')) {
+    const href = a.getAttribute("href") ?? "";
+    if (!href) continue;
+    c.add(cleanAttachmentName(a.text), absolutize(href, "https://www.motir.go.kr/"));
+  }
+  return c.list;
+}
+
 export const motieConfig: BoardConfig = {
   id: "motie",
   label: "산업통상부 공고",
@@ -138,4 +150,5 @@ export const motieConfig: BoardConfig = {
   attachmentsScopeSelector: "div.detail-info li.info-down",
   /** 한 쪽 10줄(거르개 통과 9줄)의 절반. 서식이 바뀌어 표식이 사라지면 여기서 걸린다. */
   expectMinRows: 5,
+  detailAttachments: ({ pageHtml }) => motieDetailAttachments(pageHtml),
 };
