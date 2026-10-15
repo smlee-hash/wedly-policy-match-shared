@@ -146,6 +146,32 @@ export function isSiteCommonAttachment(url: string): boolean {
   return false;
 }
 
+/** 같은 문서를 형식만 바꿔 올린 묶음에서 읽기 좋은 형식 차례(작을수록 먼저). 이 밖의 확장자는 묶지 않는다. */
+const SAME_DOCUMENT_RANK = new Map([
+  ["hwpx", 0],
+  ["hwp", 1],
+  ["pdf", 2],
+  ["odt", 3],
+  ["hml", 4],
+  ["docx", 5],
+  ["doc", 6],
+]);
+
+/**
+ * 같은 문서를 가리는 열쇠(확장자 앞 이름)와 읽기 좋은 형식 차례.
+ * 2026-10-01 운영 실측: 과기정통부는 같은 공고문·RFP·공모서식을 hwp·hwpx·odt 로 함께 올려 읽을 수와 글자 상한을 같은 글이 차지했다.
+ * 크기 꼬리를 떼고 NFC 로 맞춘 뒤 확장자가 위 표에 없거나 앞 이름이 비면 null(혼자 읽는다).
+ */
+export function sameDocumentKey(name: string): { key: string; rank: number } | null {
+  const n = trimAttachmentName(name.normalize("NFC"));
+  const dot = n.lastIndexOf(".");
+  if (dot < 0) return null;
+  const rank = SAME_DOCUMENT_RANK.get(n.slice(dot + 1).toLowerCase());
+  if (rank === undefined) return null;
+  const key = n.slice(0, dot).toLowerCase().replace(/\s+/g, " ").trim();
+  return key ? { key, rank } : null;
+}
+
 /** 같은 요청인지 가리는 열쇠 — 방법(기본 GET)·정규화 주소(http 는 https 로)·본문을 줄바꿈으로 잇는다. */
 export function attachmentRequestKey(a: { url: string; method?: string; body?: string }): string {
   const method = a.method ? a.method.toUpperCase() : "GET";

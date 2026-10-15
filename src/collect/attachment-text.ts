@@ -14,6 +14,7 @@ import {
   attachmentRequestKey,
   effectiveAttachmentKind,
   isSiteCommonAttachment,
+  sameDocumentKey,
 } from "./attachment-order";
 import { BOARD_SOURCES } from "./board/source-list";
 import type { PolicyAttachmentRequest } from "./board/types";
@@ -24,6 +25,8 @@ import { withBrowserIdentity } from "./board/fetch-identity";
 import { cookieHeaderFor, cookieJarAbsorb, mergeCookieHeader, setCookieValuesOf, type CookieJar } from "./board/registry";
 import { extractHwpText, isProtectedHwp } from "./hwp-text";
 import { extractHmlText } from "./hml-text";
+import { classifyOleDocument, classifyZipDocument, extractOdtText } from "./office-text";
+import { extractDocumentText } from "../documents/extract-text";
 import {
   renderAttachmentBlocks,
   type RenderBlock,
@@ -32,8 +35,8 @@ import {
 
 export const EXTRACTABLE_KINDS = ["pdf", "hwp", "hwpx"] as const;
 export type ExtractableKind = (typeof EXTRACTABLE_KINDS)[number];
-/** 안쪽에서 글자를 뽑는 형식 — hml(한글 XML)은 이름·저장 형식으로는 안 오고 받은 바이트로만 알아본다. */
-type ReadKind = ExtractableKind | "hml";
+/** 안쪽에서 글자를 뽑는 형식 — hml·docx·xlsx·pptx·odt·xls 는 이름·저장 형식으로는 안 오고 받은 바이트로만 알아본다. */
+type ReadKind = ExtractableKind | "hml" | "docx" | "xlsx" | "pptx" | "odt" | "xls";
 
 /**
  * AI 에게 보내는 글자의 95%가 첨부 원문이다(2026-08-25 실측: 첨부 평균 5,925자 vs 본문 324자).
@@ -124,9 +127,15 @@ export type AttachmentFileReason =
   | "no_text"
   | "preview_only"
   | "over_limit"
-  | "truncated";
+  | "truncated"
+  /** 문서가 아닌 압축 묶음(서식 모음 zip 등). */
+  | "archive"
+  /** 읽을 도구가 없는 옛 워드(.doc)·옛 파워포인트(.ppt). */
+  | "unsupported"
+  /** 같은 문서를 다른 형식으로 이미 읽었다. */
+  | "same_document";
 
-/** 받은 바이트 앞머리로 알아본 형식. zip 은 hwpx 후보일 뿐이다(docx·zip 도 PK). */
+/** 받은 바이트 앞머리로 알아본 형식. zip 은 속 항목으로 다시 가린다(hwpx·docx·xlsx·pptx·odt·압축 묶음 모두 PK). */
 export type AttachmentFormat = "pdf" | "hwp" | "zip" | "hml" | "image" | "html";
 
 export type AttachmentFileOutcome = {
@@ -135,7 +144,7 @@ export type AttachmentFileOutcome = {
   reason?: AttachmentFileReason;
   /** 읽었을 때: 자르기 전 본문 글자 수. */
   chars?: number;
-  /** 글자를 실제로 뽑은 형식(pdf·hwp·hwpx·hml). */
+  /** 글자를 실제로 뽑은 형식(pdf·hwp·hwpx·hml·docx·xlsx·pptx·odt·xls). */
   kind?: string;
 };
 
@@ -160,6 +169,8 @@ export type AttachmentTextResult = {
    * 머리글·경고·잘림·미확인 표식·미리보기·상한으로 사라진 본문은 넣지 않는다.
    */
   bodyTextChars?: number;
+  /** 같은 문서 다른 형식이라 읽지 않은 첨부(`sameDocumentOnce` 를 켰을 때만). 비면 키를 넣지 않는다. */
+  sameDocumentFiles?: string[];
   /** 파일마다 결과·못 읽은 이유(처리 순서). 표시 글자(text)와 별개다 — AI 에게 가는 글자는 이걸로 바뀌지 않는다. */
   files?: AttachmentFileOutcome[];
 };
@@ -215,6 +226,8 @@ export type FetchAttachmentTextsOptions = {
   totalCharCap?: number;
   /** 자동 본문 저장은 false. HWP 미리보기 글자는 빼고 미확인 표식만 남긴다. 기본은 미리보기 보존. */
   includeHwpPreview?: boolean;
+  /** 이름이 같은 문서(`공고.hwp`·`공고.pdf`·`공고.hwpx`…)는 한 번만 읽는다. 기본 false 는 지금과 같다. */
+  sameDocumentOnce?: boolean;
   fetch?: AttachmentFetch;
   /** hwpx 글자 추출기(앱 주입 — **필수**). 위 `ExtractHwpx` 주석 참조. */
   extractHwpx: ExtractHwpx;
@@ -430,6 +443,20 @@ export function stripUnstorableChars(text: string): string {
 /** 뽑은 결과. 글자가 비면 `failReason` 이 못 읽은 이유를 말한다. */
 type Extracted = { text: string; incomplete: boolean; failReason?: AttachmentFileReason };
 
+/**
+ * 첨부 하나를 시도한 값 — 확정(`commit`) 때 이대로 `files`·표시 블록·목록에 들어간다.
+ * `complete` 는 미리보기가 아닌 온전한 read, `preview` 는 이유가 preview_only 인 것(미리보기를 남기는 모드의 read, 자동 저장 모드의 skipped 모두).
+ */
+type Trial = {
+  name: string;
+  outcome: AttachmentFileOutcome;
+  block: RenderBlock;
+  /** 확정 때 이름을 넣을 목록(`readFiles`·`failedFiles`·`skippedFiles`·`previewOnlyFiles` 중). */
+  into: string[][];
+  complete: boolean;
+  preview: boolean;
+};
+
 function extractedOf(raw: string, emptyReason: AttachmentFileReason): Extracted {
   const text = stripUnstorableChars(raw);
   return text.trim() ? { text, incomplete: false } : { text: "", incomplete: false, failReason: emptyReason };
@@ -454,6 +481,22 @@ async function extractByKind(kind: ReadKind, buf: Buffer, extractHwpx: ExtractHw
     }
     if (kind === "hwpx") return extractedOf(await extractHwpx(buf), "no_text");
     if (kind === "hml") return extractedOf(extractHmlText(buf), "no_text");
+    if (kind === "odt") return extractedOf(extractOdtText(buf), "no_text");
+    if (kind === "docx" || kind === "xlsx" || kind === "pptx" || kind === "xls") {
+      // 워드·엑셀·파워포인트·옛 엑셀은 documents 의 읽기를 그대로 쓴다(이름은 확장자 표지일 뿐 — 바이트는 이미 가렸다).
+      const doc = await extractDocumentText(`attachment.${kind}`, buf);
+      if (doc.kind === "text") return extractedOf(doc.text, "no_text");
+      if (doc.kind === "spreadsheet") {
+        // 값 있는 시트만 시트 차례대로 빈 줄 하나를 두고 잇는다. 하나도 없으면 no_text.
+        const text = doc.sheets
+          .filter((sheet) => Object.keys(sheet.cells).length > 0)
+          .map((sheet) => sheet.text)
+          .join("\n\n");
+        return extractedOf(text, "no_text");
+      }
+      if (doc.kind === "image") return { text: "", incomplete: false, failReason: "image" };
+      return { text: "", incomplete: false, failReason: "no_text" }; // 형식은 읽을 수 있는데 열지 못했다
+    }
     const body = extractHwpText(buf);
     if (body) return extractedOf(body, "no_text");
     const preview = stripUnstorableChars(extractHwpPreview(buf));
@@ -464,12 +507,26 @@ async function extractByKind(kind: ReadKind, buf: Buffer, extractHwpx: ExtractHw
   }
 }
 
-/** 받은 바이트 형식 → 글자를 뽑는 방식. 읽을 수 없는 형식(그림·HTML)과 못 알아본 것은 null. */
-function readKindOfFormat(format: AttachmentFormat | null): ReadKind | null {
-  if (format === "pdf") return "pdf";
-  if (format === "hwp") return "hwp";
-  if (format === "zip") return "hwpx"; // PK 는 hwpx 후보 — 뽑아서 비면 실패로 친다
-  if (format === "hml") return "hml";
+/** 첫 시도 — 이 형식으로 뽑아 본다(`read`), 또는 뽑지 않고 이 이유로 실패로 남긴다(`skip`). */
+type FirstTry = { read: ReadKind } | { skip: "archive" | "unsupported" };
+
+/**
+ * 받은 바이트 → 첫 시도. 읽을 수 없는 형식(그림·HTML)과 못 알아본 것은 null.
+ * 2026-10-01 운영 표본: zip 이면 모두 한글로 넣어 새 형식이 섞인 공고 1,108건을 못 읽었다 — 속 항목으로 다시 가린다.
+ */
+function firstTryOf(format: AttachmentFormat | null, buf: Buffer): FirstTry | null {
+  if (format === "pdf") return { read: "pdf" };
+  if (format === "hml") return { read: "hml" };
+  if (format === "zip") {
+    const zip = classifyZipDocument(buf);
+    if (zip === "archive") return { skip: "archive" };
+    return { read: zip ?? "hwpx" }; // 못 열면 예전처럼 한글 추출기에 맡긴다
+  }
+  if (format === "hwp") {
+    const ole = classifyOleDocument(buf);
+    if (ole === "doc" || ole === "ppt") return { skip: "unsupported" };
+    return { read: ole ?? "hwp" }; // 모르는 OLE 는 예전처럼 한글로 읽어 본다
+  }
   return null;
 }
 
@@ -666,27 +723,33 @@ export async function fetchAttachmentTexts(
     .sort(
       (x, y) => x.role - y.role || (KIND_RANK[x.kind] ?? 9) - (KIND_RANK[y.kind] ?? 9) || x.i - y.i,
     );
+  type Item = (typeof ordered)[number];
   // 읽은 수(maxReads)가 차거나 시도 수(maxReads + extra)가 차면 멈춘다. 기본(extra 0)은 앞에서부터 maxReads 개만 본다.
   const maxReads = Number.isNaN(maxFiles) ? 0 : Math.max(0, Math.floor(maxFiles));
   const extraRaw = opts.extraAttempts;
   const extra = typeof extraRaw === "number" && Number.isFinite(extraRaw) ? Math.max(0, Math.floor(extraRaw)) : 0;
   const maxTries = maxReads + extra;
 
-  /** 첨부 하나를 내려받아 읽는다. 표시 조각과 세 목록을 채우고 결과 한 줄을 돌려준다. */
-  const attempt = async (a: PolicyAttachmentRequest, kind: PolicyAttachmentKind): Promise<AttachmentFileOutcome> => {
+  /**
+   * 첨부 하나를 내려받아 읽는다(시도). 결과 한 줄·표시 블록 하나·들어갈 목록을 값으로 돌려줄 뿐
+   * `files`·`blocks`·목록에는 넣지 않는다 — 같은 문서 묶음은 구성원을 여럿 시도한 뒤 무엇을 남길지 정하기 때문이다(`commit`).
+   */
+  const tryOne = async (a: PolicyAttachmentRequest, kind: PolicyAttachmentKind): Promise<Trial> => {
     const name = a.name || a.url;
+    const failTrial = (reason: AttachmentFileReason, block: RenderBlock): Trial => ({
+      name,
+      outcome: { name, result: "failed", reason },
+      block,
+      into: [failedFiles],
+      complete: false,
+      preview: false,
+    });
     const url = safeAttachmentUrl(a.url);
     if (!url) {
       // 허용하지 않은 주소는 부르지 않는다. 존재는 남겨 사람이 원문을 확인하게 한다.
-      failedFiles.push(name);
-      blocks.push(noticeBlock(name, "blocked", blockedBlock(name)));
-      return { name, result: "failed", reason: "blocked_url" };
+      return failTrial("blocked_url", noticeBlock(name, "blocked", blockedBlock(name)));
     }
-    const fail = (reason: AttachmentFileReason): AttachmentFileOutcome => {
-      failedFiles.push(name);
-      blocks.push(noticeBlock(name, "fail", failBlock(name)));
-      return { name, result: "failed", reason };
-    };
+    const fail = (reason: AttachmentFileReason): Trial => failTrial(reason, noticeBlock(name, "fail", failBlock(name)));
     try {
       const got = await downloadBytes(url, fetchImpl, timeoutMs, maxBytes, opts.signal, a);
       if (!got.ok) return fail(got.reason);
@@ -697,11 +760,17 @@ export async function fetchAttachmentTexts(
       // 그림·HTML 오류 쪽은 뽑지 않는다 — 이름이 pdf 여도 선언 kind 로 다시 해 보지 않는다.
       if (format === "image" || format === "html") return fail(format);
       const declaredKind: ExtractableKind | null = isExtractable(kind) ? kind : null;
-      const primary = readKindOfFormat(format) ?? declaredKind;
-      if (!primary) return fail("unknown_format");
-      let usedKind: ReadKind = primary;
-      let extracted = await extractByKind(primary, buf, extractHwpx);
-      // 비거나 파서가 던지면 primary 와 다른 declaredKind 로 한 번 더 뽑는다. 둘 다 못 읽으면 첫 시도의 이유를 남긴다.
+      // 첫 시도: 속 형식으로 뽑거나(read), 뽑지 않고 이유만 남긴다(skip: 압축 묶음·옛 워드/파워포인트).
+      // 못 알아본 바이트(null)는 선언 kind 로 뽑는다.
+      const first = firstTryOf(format, buf);
+      const primary: ReadKind | null = first === null ? declaredKind : "read" in first ? first.read : null;
+      const skipReason = first !== null && "skip" in first ? first.skip : null;
+      if (!primary && !skipReason) return fail("unknown_format");
+      let usedKind: ReadKind | null = primary;
+      let extracted: Extracted = primary
+        ? await extractByKind(primary, buf, extractHwpx)
+        : { text: "", incomplete: false, failReason: skipReason ?? "no_text" };
+      // 비거나 파서가 던지면(뽑지 않은 실패 포함) primary 와 다른 declaredKind 로 한 번 더 뽑는다. 둘 다 못 읽으면 첫 시도의 이유를 남긴다.
       if (!extracted.text.trim() && declaredKind && declaredKind !== primary) {
         const second = await extractByKind(declaredKind, buf, extractHwpx);
         if (second.text.trim()) {
@@ -710,16 +779,18 @@ export async function fetchAttachmentTexts(
         }
       }
       const body = extracted.text.trim();
-      if (!body) return fail(extracted.failReason ?? "no_text");
+      if (!body || !usedKind) return fail(extracted.failReason ?? "no_text");
       if (extracted.incomplete && opts.includeHwpPreview === false) {
-        previewOnlyFiles.push(name);
-        skippedFiles.push(name);
         // 미리보기 글자는 빼고 미확인 표식만 남긴다. 정상 형제 첨부의 본문은 보존한다.
-        blocks.push(contentBlock(name, [{ kind: "unverified", text: skippedBlock(name) }]));
-        return { name, result: "skipped", reason: "preview_only", kind: usedKind };
+        return {
+          name,
+          outcome: { name, result: "skipped", reason: "preview_only", kind: usedKind },
+          block: contentBlock(name, [{ kind: "unverified", text: skippedBlock(name) }]),
+          into: [previewOnlyFiles, skippedFiles],
+          complete: false,
+          preview: true,
+        };
       }
-      readFiles.push(name);
-      if (extracted.incomplete) previewOnlyFiles.push(name);
       // 미확인 표식은 본문 앞에 둔다. 출처를 조각으로 남겨 뒤 표식이 앞 본문을 밀면 앞 파일도 잘림으로 적는다.
       const pieces: TextPiece[] = extracted.incomplete
         ? [
@@ -727,14 +798,19 @@ export async function fetchAttachmentTexts(
             { kind: "preview", text: body },
           ]
         : [{ kind: "body", text: body }];
-      blocks.push(contentBlock(name, pieces));
-      if (extracted.incomplete) skippedFiles.push(name);
       return {
         name,
-        result: "read",
-        chars: body.length,
-        kind: usedKind,
-        ...(extracted.incomplete ? { reason: "preview_only" as const } : {}),
+        outcome: {
+          name,
+          result: "read",
+          chars: body.length,
+          kind: usedKind,
+          ...(extracted.incomplete ? { reason: "preview_only" as const } : {}),
+        },
+        block: contentBlock(name, pieces),
+        into: extracted.incomplete ? [readFiles, previewOnlyFiles, skippedFiles] : [readFiles],
+        complete: !extracted.incomplete,
+        preview: extracted.incomplete,
       };
     } catch (e) {
       // 경유 통로가 죽어서 못 물어본 것이면 따로 센다 — 사이트가 준 404 와 재시도 값어치가 다르다.
@@ -744,20 +820,103 @@ export async function fetchAttachmentTexts(
     }
   };
 
+  /** 시도한 값을 그대로 `files`·표시 블록·목록에 넣는다(확정). */
+  const commit = (t: Trial): void => {
+    files.push(t.outcome);
+    blocks.push(t.block);
+    for (const list of t.into) list.push(t.name);
+  };
+
+  /** 같은 문서 다른 형식 — 존재만 알린다. 못 읽은 첨부로 세지 않아 세 목록·미리보기 목록에는 넣지 않는다. */
+  const commitVariant = (m: Item): void => {
+    const name = m.a.name || m.a.url;
+    files.push({ name, result: "duplicate", reason: "same_document" });
+    blocks.push({ name, pieces: [{ kind: "variant", text: `[같은 문서 다른 형식: ${name}]` }] });
+  };
+
+  // 단위: 혼자면 [x], 같은 문서 묶음이면 읽기 좋은 형식 차례 구성원들. 묶음은 맨 앞 구성원 자리에서 한 번만 처리한다.
+  // 이름(크기 꼬리를 뗀 확장자 앞부분)이 같은 항목이 둘 이상일 때만 묶고, `sameDocumentOnce` 가 꺼져 있으면 모두 혼자다.
+  const units: Item[][] = [];
+  if (opts.sameDocumentOnce) {
+    const groups = new Map<string, Array<{ item: Item; rank: number }>>();
+    const keyed = ordered.map((item) => {
+      const k = sameDocumentKey(item.a.name);
+      if (k) {
+        const group = groups.get(k.key);
+        if (group) group.push({ item, rank: k.rank });
+        else groups.set(k.key, [{ item, rank: k.rank }]);
+      }
+      return k;
+    });
+    const placed = new Set<string>();
+    ordered.forEach((item, idx) => {
+      const k = keyed[idx];
+      const group = k ? groups.get(k.key) : undefined;
+      if (!k || !group || group.length < 2) {
+        units.push([item]);
+        return;
+      }
+      if (placed.has(k.key)) return;
+      placed.add(k.key);
+      // 안정 정렬 — 차례(rank)가 같으면 ordered 차례를 지킨다.
+      units.push([...group].sort((x, y) => x.rank - y.rank).map((x) => x.item));
+    });
+  } else {
+    for (const item of ordered) units.push([item]);
+  }
+
   let reads = 0;
   let tries = 0;
-  let next = 0;
-  while (next < ordered.length && reads < maxReads && tries < maxTries) {
-    const { a, kind } = ordered[next];
-    next += 1;
-    tries += 1;
-    const outcome = await attempt(a, kind);
-    files.push(outcome);
-    if (outcome.result === "read") reads += 1;
+  // 개수 상한에 걸려 시도하지 못한 첨부(단위 차례, 묶음 안은 rank 차례).
+  const tail: Item[] = [];
+  for (const unit of units) {
+    // 읽은 수(maxReads)가 차거나 시도 수(maxReads + extra)가 차면 멈춘다 — 그 단위부터는 전부 개수 상한이다.
+    if (!(reads < maxReads && tries < maxTries)) {
+      tail.push(...unit);
+      continue;
+    }
+    if (unit.length === 1) {
+      tries += 1;
+      const t = await tryOne(unit[0].a, unit[0].kind);
+      commit(t);
+      if (t.outcome.result === "read") reads += 1;
+      continue;
+    }
+    // 묶음: 읽기 좋은 형식부터 시도 수가 남는 동안 하나씩, 온전히 읽힌 구성원이 나오면 멈춘다. 묶음 안에서는 읽은 수 상한을 보지 않는다.
+    const trials: Array<{ m: Item; t: Trial }> = [];
+    let k = 0;
+    while (k < unit.length && tries < maxTries) {
+      const m = unit[k];
+      k += 1;
+      tries += 1;
+      const t = await tryOne(m.a, m.kind);
+      trials.push({ m, t });
+      if (t.complete) break;
+    }
+    const won = trials.find((x) => x.t.complete);
+    if (won) {
+      // 온전히 읽힌 하나만 남기고(읽은 수 1), 나머지는 시도했든 안 했든 같은 문서 다른 형식이다. 버린 시도의 미리보기·표식은 남기지 않는다.
+      commit(won.t);
+      reads += 1;
+      for (const m of unit) if (m !== won.m) commitVariant(m);
+      continue;
+    }
+    // 온전한 본문이 없으면 첫 미리보기를 예전처럼 남기고, 다른 미리보기는 같은 문서 다른 형식으로, 실패는 실패대로 둔다.
+    const lead = trials.find((x) => x.t.preview);
+    if (lead) {
+      commit(lead.t);
+      if (lead.t.outcome.result === "read") reads += 1;
+    }
+    for (const x of trials) {
+      if (x === lead) continue;
+      if (x.t.preview) commitVariant(x.m);
+      else commit(x.t);
+    }
+    tail.push(...unit.slice(k));
   }
 
   // 상한에 걸려 못 읽은 첨부도 끝에 이름을 남긴다 — 없는 셈 치면 AI 가 「원문에 없다」고 단정한다.
-  for (const { a } of ordered.slice(next)) {
+  for (const { a } of tail) {
     const name = a.name || a.url;
     skippedFiles.push(name);
     blocks.push(noticeBlock(name, "skipped", skippedBlock(name)));
@@ -773,6 +932,8 @@ export async function fetchAttachmentTexts(
   for (const f of files) {
     if (f.result === "read" && truncated.has(f.name)) f.reason = "truncated";
   }
+  // 같은 문서 다른 형식으로 읽지 않은 첨부 — files 차례대로.
+  const sameDocumentFiles = files.filter((f) => f.reason === "same_document").map((f) => f.name);
   // 본문 글자 수는 걸러낸 뒤의 실제 본문 조각 합. 완성 문자열을 정규식으로 추측하지 않는다.
   let bodyTextChars = 0;
   for (const part of rendered.retainedBodies) bodyTextChars += stripUnstorableChars(part).length;
@@ -786,6 +947,7 @@ export async function fetchAttachmentTexts(
     failedFiles,
     skippedFiles,
     ...(previewOnlyFiles.length > 0 ? { previewOnlyFiles } : {}),
+    ...(sameDocumentFiles.length > 0 ? { sameDocumentFiles } : {}),
     // ★「전부」가 아니라 **하나라도**다(2026-09-06 적대 리뷰): a.pdf 가 사이트 404, b.pdf 가
     //  통로 죽음이면 b 는 물어보지도 못한 것인데 옛 규칙은 「사이트 탓」으로 뭉갰다.
     //  도장이 무기한 유예가 아니라 1시간짜리로 바뀌었으니 좁힐 이유가 없다.
