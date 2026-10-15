@@ -31,7 +31,7 @@ const ACTION_TAIL = /\s*(내려받기|다운로드|바로보기)\s*$/;
  *  원문을 정규식으로 읽은 값이면 부르는 쪽이 먼저 푼다(`html.ts` 의 `decodeHtmlEntities`).
  */
 export function cleanAttachmentName(raw: string): string {
-  let t = raw.replace(/ /g, " ").replace(/\s+/g, " ").trim();
+  let t = raw.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
   // 크기·단추 글자가 서로 앞뒤로 겹친 이름이 있어 몇 번 되풀이한다.
   for (let i = 0; i < 3; i++) t = t.replace(SIZE_TAIL, "").replace(ACTION_TAIL, "").trim();
   return t;
