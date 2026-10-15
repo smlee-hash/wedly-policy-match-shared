@@ -227,6 +227,8 @@ export interface BoardConfig {
    * · 중소벤처24 — 기업마당 연동 공고의 첨부는 기업마당 상세 화면에만 있다.
    *
    * ★요청은 반드시 인자 `fetchText` 로만 보낸다 — 허용 호스트·시간 상한·국내 경유가 그대로 지켜진다.
+   * ★form 본문 POST 는 `headers: { "Content-Type": "application/x-www-form-urlencoded" }` 를 직접 적는다.
+   *  `fetchText` 는 머리글을 붙여 주지 않고, 안 적으면 fetch 가 `text/plain` 으로 보내 PHP 가 본문을 못 읽는다.
    * ★못 읽으면 **던진다**. 빈 목록을 돌려주면 「첨부 없음」으로 굳는다.
    * ★원문에 첨부가 있는데 받을 길이 없으면 `{ unavailable: 사유 }` 를 돌려준다.
    */

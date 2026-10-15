@@ -23,7 +23,11 @@
 - 첨부와 관계없는 `<script>`. 첨부 함수 이름(`putFileHtml`·`fn_egov`·`downFile`·`submitForm`·
   `sendBoardFileData`·`mb_options` 등)이 든 스크립트는 남겼다.
 - 줄 앞 공백과 빈 줄
-- 익명 세션 값(`_csrf`·`_token`·`csrf_test_name`·`jsessionid`): 같은 길이의 0으로 바꿨다.
+- 익명 세션 값(`_csrf`·`_token`·`csrf_test_name`·`jsessionid`·KITA 주소의 `JSESSIONID_KITA`·
+  경북경제진흥원 `mb_nonce_value`·`wp_nonce_value`): 같은 길이의 0으로 바꿨다. `gepa-ajax.json` 본문도 같은 0이다.
+  `mb_nonce_time`(올린 시각)과 `.Hyper`(서버 이름 꼬리)는 비밀이 아니라 그대로 뒀다.
+  세션에 묶이지 않은 값은 2026-10-15 에 다시 받아 그대로임을 확인하고 남겼다 — 신용보증재단 `checksum`·
+  KITA `fileDtlSeq`·산업통상부 `/attach/down/` 16진수(KITA 세션 값은 그날 다른 값이었다).
 - 담당자 전자우편: 이 저장소는 공개라 `@` 앞부분을 같은 길이의 `x` 로 가렸다(`smes24-d*.json` 포함).
 
 줄이기 전후를 대조했다.
@@ -48,8 +52,9 @@
 
 경북경제진흥원 첨부는 두 단계다.
 
-1. `admin-ajax.php` 에 POST 를 보낸다(`body` 칸).
-2. 응답 `data.file_path` 로 내려받기 주소를 만든다.
+1. `admin-ajax.php` 에 POST 를 보낸다(`body` 칸, `Content-Type: application/x-www-form-urlencoded`).
+   본문의 nonce 는 화면에서 읽은 값을 그대로 보낸다. 두 고정본 모두 같은 0으로 가려 시험에서도 맞는다.
+2. 응답 `data.file_path` 로 내려받기 주소를 만든다. nonce 는 주소에 넣지 않는다.
 
 `pid` 18551 의 응답은 실제로 받은 값이다. 나머지 셋은 같은 규칙(`<올린 날>/F<pid>_<파일 이름>` 을 base64)으로 만든 응답이다.
 네 건 모두 그 응답으로 만든 주소에서 실제 파일이 받아졌다(2026-10-01).

@@ -58,7 +58,23 @@ const sourceOf = (key: string): string => key.replace(/-\d+$/, "");
 // ── 가짜 통신 ────────────────────────────────────────────────────────────
 
 type Route = { url: string; method?: "GET" | "POST"; body?: string; status?: number; text: string };
-type Call = { url: string; method: string; body?: string };
+type Call = { url: string; method: string; body?: string; contentType?: string };
+
+/**
+ * form 본문 POST 의 머리글. 진짜 fetch 는 이 머리글이 없으면 문자열 본문을 `text/plain;charset=UTF-8` 로
+ * 보내 PHP(`admin-ajax.php`)가 본문을 못 읽는다 — 그래서 흉내 서버도 이 머리글이 없는 POST 는 받지 않는다.
+ */
+const FORM_TYPE = /^application\/x-www-form-urlencoded\b/i;
+
+/** 요청 머리글 하나를 이름(대소문자 무시)으로 읽는다 — 객체·`Headers`·[이름, 값] 배열을 모두 받는다. */
+function headerOf(headers: unknown, name: string): string | undefined {
+  if (!headers) return undefined;
+  if (typeof (headers as Headers).get === "function") return (headers as Headers).get(name) ?? undefined;
+  const pairs = Array.isArray(headers)
+    ? (headers as Array<[string, string]>)
+    : Object.entries(headers as Record<string, string>);
+  return pairs.find(([k]) => k.toLowerCase() === name.toLowerCase())?.[1];
+}
 
 /** 주소는 정규화해 비교한다 — 구현이 `new URL()` 을 한 번 거쳐도 같은 주소로 본다. */
 function sameUrl(a: string, b: string): boolean {
@@ -104,36 +120,41 @@ function response(status: number, text: string) {
  * 전역 fetch 를 주소표로 바꾼다. 표에 없는 요청은 404 를 주고 `misses` 에 남긴다 —
  * 시험 끝에 `misses` 가 비었으면 「표에 적은 곳 말고는 요청하지 않았다」가 확인된다.
  * 이미 끊긴 표식(signal)으로 온 요청은 진짜 fetch 처럼 AbortError 로 던지고 기록하지 않는다.
+ * POST 는 본문이 같고 머리글이 form 형식(`FORM_TYPE`)일 때만 표와 맞는다.
  */
 function stubRoutes(routes: Route[]): { calls: Call[]; misses: Call[] } {
   const calls: Call[] = [];
   const misses: Call[] = [];
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (input: unknown, init?: { method?: string; body?: unknown; signal?: AbortSignal }) => {
-      if (init?.signal?.aborted) {
-        const e = new Error("This operation was aborted");
-        e.name = "AbortError";
-        throw e;
-      }
-      const call: Call = {
-        url: String(input),
-        method: (init?.method ?? "GET").toUpperCase(),
-        body: typeof init?.body === "string" ? init.body : undefined,
-      };
-      calls.push(call);
-      const hit = routes.find(
-        (r) =>
-          sameUrl(r.url, call.url) &&
-          (r.method ?? "GET") === call.method &&
-          (call.method !== "POST" || formKey(r.body) === formKey(call.body)),
-      );
-      if (!hit) {
-        misses.push(call);
-        return response(404, "not found");
-      }
-      return response(hit.status ?? 200, hit.text);
-    }),
+    vi.fn(
+      async (input: unknown, init?: { method?: string; body?: unknown; headers?: unknown; signal?: AbortSignal }) => {
+        if (init?.signal?.aborted) {
+          const e = new Error("This operation was aborted");
+          e.name = "AbortError";
+          throw e;
+        }
+        const call: Call = {
+          url: String(input),
+          method: (init?.method ?? "GET").toUpperCase(),
+          body: typeof init?.body === "string" ? init.body : undefined,
+          contentType: headerOf(init?.headers, "content-type"),
+        };
+        calls.push(call);
+        const hit = routes.find(
+          (r) =>
+            sameUrl(r.url, call.url) &&
+            (r.method ?? "GET") === call.method &&
+            (call.method !== "POST" ||
+              (FORM_TYPE.test(call.contentType ?? "") && formKey(r.body) === formKey(call.body))),
+        );
+        if (!hit) {
+          misses.push(call);
+          return response(404, "not found");
+        }
+        return response(hit.status ?? 200, hit.text);
+      },
+    ),
   );
   return { calls, misses };
 }
@@ -157,6 +178,21 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
+});
+
+describe("흉내 서버 자체", () => {
+  it("form 머리글이 없는 POST 는 본문이 같아도 표와 맞지 않는다(404·misses 에 남음)", async () => {
+    const { body, response: text } = GEPA[0];
+    const { misses } = stubRoutes([{ url: GEPA_AJAX, method: "POST", body, text }]);
+    expect((await fetch(GEPA_AJAX, { method: "POST", body })).status).toBe(404);
+    const form = await fetch(GEPA_AJAX, {
+      method: "POST",
+      body,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+    expect(form.status).toBe(200);
+    expect(misses).toHaveLength(1);
+  });
 });
 
 // ── 게시판 20곳 실제 상세 ─────────────────────────────────────────────────
@@ -308,6 +344,13 @@ describe("readAttachmentList — K-Startup", () => {
     expect(got.state).toBe("error");
   });
 
+  /**
+   * K-Startup 만 「빈 주소·다른 호스트면 요청 없이 실패」의 예외다. 저장된 주소는 공공데이터 API 의
+   * `detl_pg_url` 이라 비거나 다른 곳일 수 있고, 수집기가 그런 행도 남긴다(`sources/kstartup.ts` 의
+   * `normalizeKstartupItem`·`keepIdentifiable` — 공고 번호나 주소 중 하나만 있으면 저장). 정본은 공고 번호다.
+   * 그래서 저장된 주소는 **요청하지 않고** 숫자 공고 번호로 만든 K-Startup 주소만 요청한다 —
+   * 다른 호스트로는 여전히 한 번도 요청하지 않는다.
+   */
   it.each(["https://k.test/1", ""])("저장된 주소가 K-Startup 이 아니면(%j) 공고 번호로 정규 주소를 만들어 그곳만 요청", async (url) => {
     const { calls, misses } = stubKs("179361");
     const got = await readAttachmentList({ source: "kstartup", url, sourceId: "179361" });
@@ -458,8 +501,8 @@ describe("readAttachmentList — 안양(공용 수확기 그대로 쓰는 게시
 
 // ── 상세 채움(새 공고)도 같은 갈고리를 쓴다 ───────────────────────────────
 
-const updateAnnouncement = vi.fn((_id: string, _data: PolicyAnnouncementUpdate): Promise<void> => Promise.resolve());
-const updateAnnouncementIfEmpty = vi.fn((_id: string, _data: PolicyAnnouncementUpdate): Promise<number> =>
+const updateAnnouncement = vi.fn<(id: string, data: PolicyAnnouncementUpdate) => Promise<void>>(() => Promise.resolve());
+const updateAnnouncementIfEmpty = vi.fn<(id: string, data: PolicyAnnouncementUpdate) => Promise<number>>(() =>
   Promise.resolve(1),
 );
 const deps: Pick<CollectDeps, "updateAnnouncement" | "updateAnnouncementIfEmpty"> = {
@@ -517,6 +560,46 @@ describe("fillBoardDetail — 새 첨부 갈고리", () => {
     const ok = await fillBoardDetail({ id: "ann-smes", source: "smes24", url: SMES_URL, targetText: "" }, deps);
     expect(ok).toBe("filled");
     expect(savedData().attachments).toEqual(EXPECTED["bizinfo-126577"]);
+  });
+
+  it("중소벤처24 비연동인데 첨부가 있으면(받을 수 없음) 본문은 저장하고 첨부는 빈 목록으로 저장한다", async () => {
+    const { calls } = stubRoutes([
+      {
+        url: SMES_API,
+        text: smesJson((d) => {
+          d.bizPbancLinkInstCd = null;
+        }),
+      },
+    ]);
+    const ok = await fillBoardDetail(
+      { id: "ann-smes", source: "smes24", url: SMES_URL, targetText: "", attachments: [] },
+      deps,
+    );
+    expect(ok).toBe("filled");
+    const data = savedData();
+    expect((data.targetText ?? "").trim()).not.toBe("");
+    expect(data).toHaveProperty("attachments", []);
+    expect(calls.some((c) => c.url.includes("bizinfo.go.kr"))).toBe(false);
+  });
+
+  it("갈고리가 「받을 수 없음」을 돌려주면 공용 수확기 결과 대신 빈 목록을 저장한다(안양 설정에 잠깐 붙여 확인)", async () => {
+    // 안양은 공용 수확기가 첨부 2건을 잡는 게시판이다 — 갈고리 결과가 수확기 결과를 대신하는지 드러난다.
+    vi.stubEnv("POLICY_BOARD_PROXY_URL", PROXY);
+    const cfg = BOARD_SOURCES.find((c) => c.id === "aca");
+    if (!cfg) throw new Error("안양 설정 없음");
+    const hook = vi.fn(async () => ({ unavailable: "시험 — 원문에 첨부가 있지만 받을 길이 없음" }));
+    cfg.detailAttachmentsAsync = hook;
+    try {
+      stubRoutes([{ url: ACA_URL, text: readParent("aca-detail.html") }]);
+      const ok = await fillBoardDetail({ id: "ann-aca", source: "aca", url: ACA_URL, targetText: "" }, deps);
+      expect(ok).toBe("filled");
+      expect(hook).toHaveBeenCalledTimes(1);
+      const data = savedData();
+      expect((data.targetText ?? "").trim()).not.toBe("");
+      expect(data).toHaveProperty("attachments", []);
+    } finally {
+      delete cfg.detailAttachmentsAsync;
+    }
   });
 });
 
