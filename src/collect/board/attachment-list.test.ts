@@ -195,7 +195,7 @@ describe("흉내 서버 자체", () => {
   });
 });
 
-// ── 게시판 20곳 실제 상세 ─────────────────────────────────────────────────
+// ── 게시판 21곳 실제 상세 ─────────────────────────────────────────────────
 
 const BOARD_KEYS = Object.keys(EXPECTED)
   .filter((k) => !k.startsWith("ks-") && !k.startsWith("bizinfo-"))
@@ -619,7 +619,6 @@ const UNSUPPORTED_IDS = [
   "sese",
   "smartfactory",
   "gwsinbo",
-  "kicox",
   "kead",
   "ketep",
   "kocca-finance",
@@ -647,6 +646,7 @@ const NEW_HOOKS = [
   "motie",
   "cbf",
   "kodma",
+  "kicox",
 ];
 
 describe("첨부 목록 출처 목록", () => {
@@ -658,7 +658,7 @@ describe("첨부 목록 출처 목록", () => {
     expect(blocked).toEqual([]);
   });
 
-  it("지원 안 하는 게시판 19곳은 각각 사유가 있다", () => {
+  it("지원 안 하는 게시판 18곳은 각각 사유가 있다", () => {
     expect(Object.keys(ATTACHMENT_LIST_UNSUPPORTED).sort()).toEqual([...UNSUPPORTED_IDS].sort());
     for (const id of UNSUPPORTED_IDS) {
       expect(ATTACHMENT_LIST_UNSUPPORTED[id]?.trim()).toBeTruthy();
@@ -693,7 +693,7 @@ describe("첨부 목록 출처 목록", () => {
     expect([...withProxy].sort()).toEqual([...ATTACHMENT_LIST_SOURCES].sort());
   });
 
-  it("첨부를 직접 만드는 게시판 = 기존 8곳 + 이번 19곳, 요청이 더 필요한 곳 = 경북경제진흥원·중소벤처24", () => {
+  it("첨부를 직접 만드는 게시판 = 기존 8곳 + 이번 20곳, 요청이 더 필요한 곳 = 경북경제진흥원·중소벤처24", () => {
     const sync = BOARD_SOURCES.filter((c) => c.detailAttachments).map((c) => c.id);
     expect(sync.sort()).toEqual([...OLD_HOOKS, ...NEW_HOOKS].sort());
     const asyncHooks = BOARD_SOURCES.filter((c) => c.detailAttachmentsAsync).map((c) => c.id);

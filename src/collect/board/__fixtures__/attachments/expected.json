@@ -479,6 +479,37 @@
       "kind": "pdf"
     }
   ],
+  "kicox-1": [
+    {
+      "name": "[공고문] 2026년 에너지 자급자족형 인프라 구축 및 운영사업(2차 재공고).hwp",
+      "url": "https://www.kicox.or.kr/api/fnFile/commonFileDownload/150289/f4bb1484-195f-42ac-9272-b0c3528acd42",
+      "kind": "hwp"
+    },
+    {
+      "name": "양식 등.zip",
+      "url": "https://www.kicox.or.kr/api/fnFile/commonFileDownload/150289/0334dbc1-65cc-457d-9efe-6ddbd21c2da7",
+      "kind": "zip"
+    }
+  ],
+  "kicox-2": [
+    {
+      "name": "01. 2026년 제10회 G밸리창업경진대회 모집 공고문_최종배포.pdf",
+      "url": "https://www.kicox.or.kr/api/fnFile/commonFileDownload/150756/6d4e3689-d6bc-477d-9fd7-e26b8c17c7df",
+      "kind": "pdf"
+    }
+  ],
+  "kicox-3": [
+    {
+      "name": "[공고문] 2026년 AX 기초컨설팅 지원사업 참여기업 모집공고.hwpx",
+      "url": "https://www.kicox.or.kr/api/fnFile/commonFileDownload/150953/986b1c4d-4c2b-497e-815a-45072fc67590",
+      "kind": "hwpx"
+    },
+    {
+      "name": "[서식] 2026년 AX 기초컨설팅 지원사업 사업계획서 및 제출서류.hwpx",
+      "url": "https://www.kicox.or.kr/api/fnFile/commonFileDownload/150953/1334f77f-4e55-445a-b23f-ca6f3a0263a6",
+      "kind": "hwpx"
+    }
+  ],
   "ks-179361": [
     {
       "name": "언론 홍보 지원사업 안내문 및 보도문안 양식_2026년.hwp",

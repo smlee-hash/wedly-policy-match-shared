@@ -48,7 +48,6 @@ export const ATTACHMENT_LIST_UNSUPPORTED: Record<string, string> = {
   cnsinbo: "내려받기 주소(fileDown)는 있으나 상세 본문을 못 읽음",
   kibo: "화면에 첨부 파일 이름만 있고 내려받기 주소가 없음",
   kosmes: "첨부 확인이 화면 안 요청(fn_odFileCheck)으로만 열림",
-  kicox: "첨부 갈고리 추가 예정",
   kead: "목록 요청이 시간 초과로 끝남",
   ketep: "내려받기 주소의 &para 가 ¶ 로 잘못 풀리는 결함 — 짝 요청(첨부 글자 추출)에서 고침",
   "kocca-finance": "내려받기 주소에 인자가 빠짐 — 짝 요청(첨부 글자 추출)에서 고침",

@@ -18,7 +18,7 @@ const EXPECTED = JSON.parse(read("expected.json")) as Record<string, PolicyAttac
 /** 이번에 갈고리를 다는 게시판 — 공용 수확기가 못 잡는 단추(자바스크립트 내려받기·POST·확장자 없는 주소)를 쓴다. */
 const NEW_HOOKS = [
   "bizok", "dgtp", "innobiz", "jica", "cistep", "dgsinbo", "gbsinbo", "djsinbo", "sjsinbo", "jbsinbo",
-  "jnsinbo", "jba", "bepa", "kidp", "kita", "ansan", "motie", "cbf", "kodma",
+  "jnsinbo", "jba", "bepa", "kidp", "kita", "ansan", "motie", "cbf", "kodma", "kicox",
 ];
 /** 이미 갈고리가 있던 게시판. */
 const OLD_HOOKS = ["hrdk", "kocca-finance", "kofic", "mof", "mois", "molit", "snip", "wbiz"];
@@ -36,7 +36,7 @@ const KEYS = Object.keys(EXPECTED)
   .sort();
 
 describe("게시판 첨부 갈고리 — 상세 고정본에 바로 대 보기", () => {
-  it("갈고리를 다는 19곳 모두 고정본이 있다", () => {
+  it("갈고리를 다는 20곳 모두 고정본이 있다", () => {
     expect([...new Set(KEYS.map(sourceOf))].sort()).toEqual([...NEW_HOOKS].sort());
   });
 
@@ -63,7 +63,7 @@ describe("게시판 첨부 갈고리 — 상세 고정본에 바로 대 보기",
     }
   });
 
-  it("동기 갈고리가 있는 게시판 = 기존 8곳 + 이번 19곳", () => {
+  it("동기 갈고리가 있는 게시판 = 기존 8곳 + 이번 20곳", () => {
     const ids = BOARD_SOURCES.filter((c) => c.detailAttachments).map((c) => c.id).sort();
     expect(ids).toEqual([...OLD_HOOKS, ...NEW_HOOKS].sort());
   });
