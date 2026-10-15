@@ -70,7 +70,7 @@ function res(status: number, opts: { setCookies?: string[]; location?: string; b
   const h = new Headers();
   if (opts.location) h.set("location", opts.location);
   for (const c of opts.setCookies ?? []) h.append("set-cookie", c);
-  return new Response(opts.body ?? null, { status, headers: h });
+  return new Response(opts.body ? Uint8Array.from(opts.body) : null, { status, headers: h });
 }
 
 /** 실측 순서를 흉내 낸 부산TP. 사전 호출을 거쳐 JSESSIONID 가 있어야만 파일을 준다. */
