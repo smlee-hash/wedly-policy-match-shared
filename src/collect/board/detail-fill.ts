@@ -6,7 +6,7 @@ import { fundingFieldsOf } from "../funding-fields";
 import type { CollectDeps, PolicyAnnouncementUpdate } from "../types";
 import { fetchBoardDetail } from "./engine";
 import { encodeAttachmentHref } from "./attachment-url";
-import { absolutize, decodeHtmlEntities, normalizeDateText, parseHtml } from "./html";
+import { absolutize, attributeOf, decodeHtmlEntities, normalizeDateText, parseHtml } from "./html";
 import { BOARD_SOURCES, fetchBoardText, DETAIL_FETCH_TIMEOUT_MS, DETAIL_FETCH_BODY_MAX_BYTES } from "./registry";
 import { isTruncatedTitle, upgradeTruncatedTitle } from "./title-upgrade";
 import type { BoardConfig, BoardFetchInit, PolicyAttachmentRequest } from "./types";
@@ -16,6 +16,12 @@ const EMBEDDED_FILE = /["']([^"']+\.(?:pdf|hwp|hwpx|zip)(?:\?[^"']*)?)["']/gi;
 // eGov 표준 게시판(경북TP 등)의 첨부 — 내려받기 함수가 onclick 에 있는 곳도, href 에 있는 곳도
 // 있다(경기도경제과학진흥원은 `href="javascript:fn_egov_downFile(…)"` — 2026-09-03 실측 첨부 0건).
 const EGOV_DOWN = /fn_egov_downFile\(\s*['"]([^'"]+)['"]\s*,\s*['"]?(\d+)['"]?\s*\)/;
+/**
+ * 용인시산업진흥원은 eGov 표준 경로 대신 `/FileDown.do` 를 쓴다. 2026-10-01 실측: 표준 경로
+ * `/cmm/fms/FileDown.do` 는 200 + 0바이트, 같은 열쇠로 `/FileDown.do` 는 71,098바이트(hwpx).
+ * 쪽 스크립트 `fn_egov_downFile` 도 `/FileDown.do` 를 연다.
+ */
+const YPA_HOST = "ybs.ypa.or.kr";
 // 서울TP(intcms) 첨부 — onclick("경로",'번호') → 경로?attachNo=번호 (script-validation.js 정의, 실검증 200).
 const STP_DOWN = /attachfileDownload\(\s*['"]([^'"]+)['"]\s*,\s*['"](\d+)['"]\s*\)/;
 /**
@@ -183,16 +189,19 @@ export function harvestBoardAttachments(
     : "";
   // `file_down(…)` 갈래는 이 호스트에서만 푼다(위 KNREC_DOWN 주석) — 링크마다 다시 재지 않는다.
   const knrecHost = hostOf(baseUrl) === KNREC_HOST;
+  const ypaHost = hostOf(baseUrl) === YPA_HOST;
   for (const a of root.querySelectorAll("a")) {
-    const onclick = a.getAttribute("onclick") ?? "";
-    const href = a.getAttribute("href") ?? "";
+    // href·onclick 은 속성 방식으로 푼다 — `getAttribute` 는 `&paramMenuId` 를 「¶mMenuId」로 바꾼다(`attributeOf` 주석).
+    const onclick = attributeOf(a, "onclick");
+    const href = attributeOf(a, "href");
     // 링크 글자가 그림뿐인 곳(인천TP)은 title 속성이 진짜 파일 이름을 들고 있다.
     const label = a.text.trim() || (a.getAttribute("title") ?? "");
     // 내려받기 함수는 게시판마다 onclick 에도, href="javascript:…" 에도 있다 — 둘 다 본다.
     const call = `${onclick} ${href}`;
     const eg = call.match(EGOV_DOWN);
     if (eg) {
-      push(label, `/cmm/fms/FileDown.do?atchFileId=${encodeURIComponent(eg[1])}&fileSn=${eg[2]}`);
+      const egovPath = ypaHost ? "/FileDown.do" : "/cmm/fms/FileDown.do";
+      push(label, `${egovPath}?atchFileId=${encodeURIComponent(eg[1])}&fileSn=${eg[2]}`);
       continue;
     }
     const stp = call.match(STP_DOWN);
@@ -459,7 +468,8 @@ function attachmentRequestKey(a: PolicyAttachmentRequest): string {
 
 function attachmentRequestsChanged(prevRaw: unknown, next: PolicyAttachmentRequest[]): boolean {
   if (prevRaw === undefined) return false;
-  const prev = new Set(asPolicyAttachments(prevRaw).map(attachmentRequestKey));
+  // 저장 글자 그대로 비교해야 망가진 주소에서 찍힌 도장이 지워진다(되살린 값끼리면 「같다」가 된다).
+  const prev = new Set(asPolicyAttachments(prevRaw, { repairUrls: false }).map(attachmentRequestKey));
   const nextKeys = new Set(next.map(attachmentRequestKey));
   if (prev.size !== nextKeys.size) return true;
   for (const k of nextKeys) if (!prev.has(k)) return true;

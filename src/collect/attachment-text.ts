@@ -11,6 +11,7 @@ import {
 import { BOARD_SOURCES } from "./board/source-list";
 import type { PolicyAttachmentRequest } from "./board/types";
 import { allowedHostsOf } from "./board/engine";
+import { repairStoredAttachmentUrl } from "./board/attachment-url";
 import { isProxyTransportError } from "./board/proxy";
 import { withBrowserIdentity } from "./board/fetch-identity";
 import { cookieHeaderFor, cookieJarAbsorb, mergeCookieHeader, setCookieValuesOf, type CookieJar } from "./board/registry";
@@ -242,15 +243,20 @@ function safeAttachmentHeaders(raw: unknown): Record<string, string> | undefined
 /**
  * 저장 JSON 이 옛 모양({name,url} only)이어도 kind 를 채워 돌려준다.
  * POST 첨부의 `method`·`body`·`headers` 는 **모양이 맞을 때만** 실어 나른다(위 도우미 참고).
+ *
+ * 저장 주소는 **읽을 때** 되살린다(`repairUrls` 기본 켬) — 본문이 찬 줄은 상세를 다시 안 읽어
+ * 수확기 고침만으로는 저장 주소가 안 바뀐다. 첨부 글자 추출과 화면 내려받기 창구가 이 한 곳을 거친다.
+ * 저장 글자 그대로 봐야 하는 비교(`repairUrls: false`)만 끈다.
  */
-export function asPolicyAttachments(raw: unknown): PolicyAttachmentRequest[] {
+export function asPolicyAttachments(raw: unknown, opts: { repairUrls?: boolean } = {}): PolicyAttachmentRequest[] {
   if (!Array.isArray(raw)) return [];
   const out: PolicyAttachmentRequest[] = [];
   for (const item of raw) {
     if (!item || typeof item !== "object") continue;
     const o = item as Record<string, unknown>;
     const name = typeof o.name === "string" ? o.name.trim() : "";
-    const url = typeof o.url === "string" ? o.url.trim() : "";
+    const stored = typeof o.url === "string" ? o.url.trim() : "";
+    const url = opts.repairUrls !== false ? repairStoredAttachmentUrl(stored) : stored;
     if (!name && !url) continue;
     const kind: PolicyAttachmentKind = KIND_SET.has(String(o.kind ?? ""))
       ? (o.kind as PolicyAttachmentKind)
