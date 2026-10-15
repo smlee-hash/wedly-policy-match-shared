@@ -53,6 +53,7 @@ export const ATTACHMENT_LIST_UNSUPPORTED: Record<string, string> = {
   "kocca-finance": "내려받기 주소에 인자가 빠짐 — 짝 요청(첨부 글자 추출)에서 고침",
   hrdk: "내려받기 주소에 인자가 빠짐 — 짝 요청(첨부 글자 추출)에서 고침",
   kofic: "내려받기 주소에 인자가 빠짐 — 짝 요청(첨부 글자 추출)에서 고침",
+  kocca: "공고 파일이 pms.kocca.kr 팝업에서 스크립트(innorix)로만 채워짐 — 상세 화면만 읽으면 거짓 「없음」",
 };
 
 const UNSUPPORTED_IDS = new Set(Object.keys(ATTACHMENT_LIST_UNSUPPORTED));
@@ -175,8 +176,10 @@ async function readKstartup(row: { url: string; sourceId?: string }, signal?: Ab
     signal,
   });
   const root = parseHtml(html);
-  // 없는 번호·점검 화면에는 제목 칸이 없다 — 「없음」으로 단정하지 않는다.
-  if (!root.querySelector("#scrTitle")) return { state: "error", reason: "K-Startup 공고 화면이 아님(제목 칸 없음)" };
+  // 없는 번호·점검 화면에는 제목 칸이 없거나 비어 있다 — 「없음」으로 단정하지 않는다.
+  if (!root.querySelector("#scrTitle")?.text.trim()) {
+    return { state: "error", reason: "K-Startup 공고 화면이 아님(제목 칸 없음·빈 제목)" };
+  }
   const c = attachmentCollector();
   // 파일 이름 단추(a.file_bg)와 같은 줄의 내려받기 단추 주소를 짝짓는다(2026-10-16 고정본 4개 실측).
   for (const a of root.querySelectorAll("div.board_file a.file_bg")) {

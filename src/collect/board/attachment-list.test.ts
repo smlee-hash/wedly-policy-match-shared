@@ -273,7 +273,8 @@ describe("readAttachmentList — 실패·지원 안 함", () => {
     expect(calls).toEqual([]);
   });
 
-  it.each(["semas", "nope", "bizinfo", "msit"])("%s → 지원 안 함(요청 없음)", async (source) => {
+  // kocca: 공고 파일이 pms.kocca.kr 팝업에서 스크립트로만 채워져 화면에는 없다 — 읽으면 거짓 「없음」이 된다.
+  it.each(["semas", "kocca", "nope", "bizinfo", "msit"])("%s → 지원 안 함(요청 없음)", async (source) => {
     const { calls } = stubRoutes([]);
     const got = await readAttachmentList({ source, url: "https://www.semas.or.kr/x" });
     expect(got).toEqual({ state: "unsupported" });
@@ -343,6 +344,16 @@ describe("readAttachmentList — K-Startup", () => {
     const got = await readAttachmentList({ source: "kstartup", url: KS("179340"), sourceId: "179340" });
     expect(got.state).toBe("error");
   });
+
+  /** 제목 칸 틀만 있고 글자가 없으면 공고를 못 그린 화면이다 — 「없음」으로 굳히지 않는다(2026-10-16 독립 리뷰 3차). */
+  it.each(['<div id="scrTitle"></div>', '<div class="title" id="scrTitle"> <h3> </h3> </div>'])(
+    "제목 칸은 있는데 글자가 비면(%j) 실패",
+    async (html) => {
+      stubRoutes([{ url: KS("179361"), text: html }]);
+      const got = await readAttachmentList({ source: "kstartup", url: KS("179361"), sourceId: "179361" });
+      expect(got.state).toBe("error");
+    },
+  );
 
   /**
    * K-Startup 만 「빈 주소·다른 호스트면 요청 없이 실패」의 예외다. 저장된 주소는 공공데이터 API 의
@@ -624,6 +635,7 @@ const UNSUPPORTED_IDS = [
   "kocca-finance",
   "hrdk",
   "kofic",
+  "kocca",
 ];
 const OLD_HOOKS = ["hrdk", "kocca-finance", "kofic", "mof", "mois", "molit", "snip", "wbiz"];
 const NEW_HOOKS = [
@@ -658,7 +670,7 @@ describe("첨부 목록 출처 목록", () => {
     expect(blocked).toEqual([]);
   });
 
-  it("지원 안 하는 게시판 18곳은 각각 사유가 있다", () => {
+  it("지원 안 하는 게시판 19곳은 각각 사유가 있다", () => {
     expect(Object.keys(ATTACHMENT_LIST_UNSUPPORTED).sort()).toEqual([...UNSUPPORTED_IDS].sort());
     for (const id of UNSUPPORTED_IDS) {
       expect(ATTACHMENT_LIST_UNSUPPORTED[id]?.trim()).toBeTruthy();
