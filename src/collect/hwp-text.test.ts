@@ -2,7 +2,7 @@ import { deflateRawSync } from "node:zlib";
 import { utils, write } from "cfb";
 import { describe, expect, it } from "vitest";
 import { fetchAttachmentTexts } from "./attachment-text";
-import { extractHwpText } from "./hwp-text";
+import { extractHwpText, isProtectedHwp } from "./hwp-text";
 
 const ATT_URL = "https://www.bizinfo.go.kr/cmm/fms/fileDown.do?file=body.hwp";
 
@@ -218,8 +218,17 @@ describe("extractHwpText — HWP5 본문", () => {
     expect(text).not.toContain("evil");
   });
 
-  it("입력 10MiB 를 넘기면 본문을 포기한다", () => {
-    expect(extractHwpText(Buffer.alloc(10 * 1024 * 1024 + 1))).toBe("");
+  it("입력 20MiB 를 넘기면 본문을 포기한다", () => {
+    expect(extractHwpText(Buffer.alloc(20 * 1024 * 1024 + 1))).toBe("");
+  });
+
+  it("그림이 많아 10MiB 를 넘는 한글도 20MiB 안이면 본문이 나온다", () => {
+    const big = makeHwp({
+      sections: [[0, encodePara("본문")]],
+      extra: [["BinData/BIN0001", Buffer.alloc(11 * 1024 * 1024, 1)]],
+    });
+    expect(big.length).toBeGreaterThan(10 * 1024 * 1024);
+    expect(extractHwpText(big)).toBe("본문");
   });
 
   it("절은 128개까지 읽고 129개면 포기한다", () => {
@@ -344,4 +353,25 @@ describe("HWP 본문 — 잘린 줄기·남은 압축 바이트", () => {
       ).toBe("");
     },
   );
+});
+
+describe("isProtectedHwp — 암호·배포용·DRM·인증서 보호 한글인지", () => {
+  it("보호 플래그(비트 1·2·4·8·10·13)면 참", () => {
+    for (const bit of [1, 2, 4, 8, 10, 13]) {
+      expect(isProtectedHwp(makeHwp({ flags: 1 << bit, sections: [[0, encodePara("비밀")]] }))).toBe(true);
+    }
+  });
+
+  it("압축(비트 0)·스크립트(비트 3)·플래그 없음은 거짓", () => {
+    expect(isProtectedHwp(makeHwp({ flags: 1, sections: [[0, encodePara("압축")]] }))).toBe(false);
+    expect(isProtectedHwp(makeHwp({ flags: 1 << 3, sections: [[0, encodePara("스크립트")]] }))).toBe(false);
+    expect(isProtectedHwp(makeHwp({ sections: [[0, encodePara("보통")]] }))).toBe(false);
+  });
+
+  it("OLE 가 아니거나 비었거나 깨졌으면 거짓(던지지 않음)", () => {
+    expect(isProtectedHwp(Buffer.from("%PDF-1.4\n"))).toBe(false);
+    expect(isProtectedHwp(Buffer.alloc(0))).toBe(false);
+    expect(isProtectedHwp(Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 1, 2, 3]))).toBe(false);
+    expect(isProtectedHwp(makeHwp({ omitHeader: true, sections: [[0, encodePara("머리 없음")]] }))).toBe(false);
+  });
 });
