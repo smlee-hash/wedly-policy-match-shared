@@ -7,6 +7,7 @@
 import AdmZip from "adm-zip";
 import { parse as parseCfb } from "cfb";
 import { inflateRawSync } from "node:zlib";
+import { RAW_NAME_ZIP_OPTIONS } from "./archive-entries";
 
 export type ZipDocumentKind = "hwpx" | "docx" | "xlsx" | "pptx" | "odt" | "archive";
 export type OleDocumentKind = "hwp" | "xls" | "doc" | "ppt";
@@ -21,7 +22,7 @@ const PPTX_SLIDE = /^ppt\/slides\/slide\d+\.xml$/;
 export function classifyZipDocument(buf: Buffer): ZipDocumentKind | null {
   try {
     if (buf.length === 0) return null;
-    const entries = new AdmZip(buf).getEntries();
+    const entries = new AdmZip(buf, RAW_NAME_ZIP_OPTIONS).getEntries();
     let hwpx = false;
     let docx = false;
     let xlsx = false;

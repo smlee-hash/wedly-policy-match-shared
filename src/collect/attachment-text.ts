@@ -26,6 +26,7 @@ import { cookieHeaderFor, cookieJarAbsorb, mergeCookieHeader, setCookieValuesOf,
 import { extractHwpText, isProtectedHwp } from "./hwp-text";
 import { extractHmlText } from "./hml-text";
 import { classifyOleDocument, classifyZipDocument, extractOdtText } from "./office-text";
+import { archiveEntryNameKind, listArchiveEntries } from "./archive-entries";
 import { extractDocumentText } from "../documents/extract-text";
 import {
   renderAttachmentBlocks,
@@ -97,7 +98,9 @@ const EXTRACTABLE_SET = new Set<string>(EXTRACTABLE_KINDS);
 /** 「기타」 첨부도 내려받아 볼 후보에 넣는다 — 이름은 없어도 내용은 pdf·hwp 일 때가 많다(중기중앙회·창조경제혁신센터 실측). */
 const CANDIDATE_KINDS = new Set<string>([...EXTRACTABLE_KINDS, "etc"]);
 /** 전문을 뽑을 수 있는 형식(pdf·hwpx)을 먼저 읽는다 — 호환을 위해 hwp 순위는 그대로 뒤. etc 는 맨 뒤. */
-const KIND_RANK: Record<string, number> = { pdf: 0, hwpx: 0, hwp: 1, etc: 2 };
+const KIND_RANK: Record<string, number> = { pdf: 0, hwpx: 0, hwp: 1, etc: 2, zip: 3 };
+/** zip 안 항목은 많아야 20개만 보이고 나머지는 「외 N개」 한 줄 — 목록이 표시 글자를 차지하지 않게. */
+const MAX_ARCHIVE_SHOWN = 20;
 
 /** POST 첨부에 수집기가 머리글을 안 적었을 때 붙는 기본 형식(브라우저 form 제출과 같다). */
 export const FORM_CONTENT_TYPE = "application/x-www-form-urlencoded; charset=UTF-8";
@@ -130,6 +133,8 @@ export type AttachmentFileReason =
   | "truncated"
   /** 문서가 아닌 압축 묶음(서식 모음 zip 등). */
   | "archive"
+  /** zip 안에서 또 나온 압축 묶음 — 더 열지 않는다. */
+  | "nested_archive"
   /** 읽을 도구가 없는 옛 워드(.doc)·옛 파워포인트(.ppt). */
   | "unsupported"
   /** 같은 문서를 다른 형식으로 이미 읽었다. */
@@ -228,6 +233,8 @@ export type FetchAttachmentTextsOptions = {
   includeHwpPreview?: boolean;
   /** 이름이 같은 문서(`공고.hwp`·`공고.pdf`·`공고.hwpx`…)는 한 번만 읽는다. 기본 false 는 지금과 같다. */
   sameDocumentOnce?: boolean;
+  /** 받은 압축 묶음(zip)을 열어 안의 문서를 읽는다. 기본 false 는 예전과 같다. */
+  readArchives?: boolean;
   fetch?: AttachmentFetch;
   /** hwpx 글자 추출기(앱 주입 — **필수**). 위 `ExtractHwpx` 주석 참조. */
   extractHwpx: ExtractHwpx;
@@ -684,6 +691,7 @@ export async function fetchAttachmentTexts(
   const fetchImpl = opts.fetch ?? fetch;
   // 조용한 기본값(() => "")을 없앴다 — 안 넘기면 타입 오류로 잡힌다(P3 회귀 방어).
   const extractHwpx: ExtractHwpx = opts.extractHwpx;
+  const readArchives = opts.readArchives === true;
 
   const readFiles: string[] = [];
   const failedFiles: string[] = [];
@@ -698,7 +706,7 @@ export async function fetchAttachmentTexts(
   // 효과 kind 가 후보(pdf·hwp·hwpx·etc) 밖이면 조용히 뺀다. 저장 kind 가 etc 로 굳은 한글·zip 은 이름 꼬리를 떼고 다시 가린다.
   const candidates = asPolicyAttachments(attachments)
     .map((a) => ({ a, kind: effectiveAttachmentKind(a) }))
-    .filter((x) => CANDIDATE_KINDS.has(x.kind));
+    .filter((x) => CANDIDATE_KINDS.has(x.kind) || (readArchives && x.kind === "zip"));
   // 사이트 공통 파일은 부르지 않고, 같은 요청이 앞에 있으면 한 번만 부른다(앞이 이긴다). 둘 다 개수 상한을 쓰지 않는다.
   const seenRequests = new Set<string>();
   const wanted: typeof candidates = [];
@@ -730,36 +738,28 @@ export async function fetchAttachmentTexts(
   const extra = typeof extraRaw === "number" && Number.isFinite(extraRaw) ? Math.max(0, Math.floor(extraRaw)) : 0;
   const maxTries = maxReads + extra;
 
-  /**
-   * 첨부 하나를 내려받아 읽는다(시도). 결과 한 줄·표시 블록 하나·들어갈 목록을 값으로 돌려줄 뿐
-   * `files`·`blocks`·목록에는 넣지 않는다 — 같은 문서 묶음은 구성원을 여럿 시도한 뒤 무엇을 남길지 정하기 때문이다(`commit`).
-   */
-  const tryOne = async (a: PolicyAttachmentRequest, kind: PolicyAttachmentKind): Promise<Trial> => {
-    const name = a.name || a.url;
-    const failTrial = (reason: AttachmentFileReason, block: RenderBlock): Trial => ({
-      name,
-      outcome: { name, result: "failed", reason },
-      block,
-      into: [failedFiles],
-      complete: false,
-      preview: false,
-    });
-    const url = safeAttachmentUrl(a.url);
-    if (!url) {
-      // 허용하지 않은 주소는 부르지 않는다. 존재는 남겨 사람이 원문을 확인하게 한다.
-      return failTrial("blocked_url", noticeBlock(name, "blocked", blockedBlock(name)));
-    }
-    const fail = (reason: AttachmentFileReason): Trial => failTrial(reason, noticeBlock(name, "fail", failBlock(name)));
+  const failTrial = (
+    name: string,
+    reason: AttachmentFileReason,
+    block: RenderBlock = noticeBlock(name, "fail", failBlock(name)),
+  ): Trial => ({
+    name,
+    outcome: { name, result: "failed", reason },
+    block,
+    into: [failedFiles],
+    complete: false,
+    preview: false,
+  });
+
+  /** 받은 바이트를 읽어 확정 전 결과로 만든다. zip 항목도 같은 길을 지난다. */
+  const fromBytes = async (name: string, buf: Buffer, declaredKind: ExtractableKind | null): Promise<Trial> => {
+    const fail = (reason: AttachmentFileReason): Trial => failTrial(name, reason);
     try {
-      const got = await downloadBytes(url, fetchImpl, timeoutMs, maxBytes, opts.signal, a);
-      if (!got.ok) return fail(got.reason);
-      const buf = got.buf;
       // 첫 바이트 냄새를 이름/주소 kind 보다 먼저. cover.pdf 인데 실제는 OLE(hwp)면
       // pdf 파서가 미끼 글자를 남길 수 있다. declaredKind 가 etc 이고 냄새도 없으면 실패.
       const format = detectAttachmentFormat(buf);
       // 그림·HTML 오류 쪽은 뽑지 않는다 — 이름이 pdf 여도 선언 kind 로 다시 해 보지 않는다.
       if (format === "image" || format === "html") return fail(format);
-      const declaredKind: ExtractableKind | null = isExtractable(kind) ? kind : null;
       // 첫 시도: 속 형식으로 뽑거나(read), 뽑지 않고 이유만 남긴다(skip: 압축 묶음·옛 워드/파워포인트).
       // 못 알아본 바이트(null)는 선언 kind 로 뽑는다.
       const first = firstTryOf(format, buf);
@@ -812,12 +812,36 @@ export async function fetchAttachmentTexts(
         complete: !extracted.incomplete,
         preview: extracted.incomplete,
       };
+    } catch {
+      return fail("no_text");
+    }
+  };
+
+  /**
+   * 첨부 하나를 내려받아 읽는다(시도). 결과와 받은 바이트만 돌려주고 아직 확정하지 않는다.
+   * 같은 문서 묶음은 구성원을 여럿 시도한 뒤 무엇을 남길지 정한다(`commit`).
+   */
+  const tryOne = async (
+    a: PolicyAttachmentRequest,
+    kind: PolicyAttachmentKind,
+  ): Promise<{ trial: Trial; buf: Buffer | null }> => {
+    const name = a.name || a.url;
+    const url = safeAttachmentUrl(a.url);
+    if (!url) {
+      // 허용하지 않은 주소는 부르지 않는다. 존재는 남겨 사람이 원문을 확인하게 한다.
+      return { trial: failTrial(name, "blocked_url", noticeBlock(name, "blocked", blockedBlock(name))), buf: null };
+    }
+    let got: DownloadResult;
+    try {
+      got = await downloadBytes(url, fetchImpl, timeoutMs, maxBytes, opts.signal, a);
     } catch (e) {
       // 경유 통로가 죽어서 못 물어본 것이면 따로 센다 — 사이트가 준 404 와 재시도 값어치가 다르다.
       const transport = isProxyTransportError(e);
       if (transport) proxyFailures += 1;
-      return fail(transport ? "transport" : thrownReasonOf(e));
+      return { trial: failTrial(name, transport ? "transport" : thrownReasonOf(e)), buf: null };
     }
+    if (!got.ok) return { trial: failTrial(name, got.reason), buf: null };
+    return { trial: await fromBytes(name, got.buf, isExtractable(kind) ? kind : null), buf: got.buf };
   };
 
   /** 시도한 값을 그대로 `files`·표시 블록·목록에 넣는다(확정). */
@@ -828,8 +852,7 @@ export async function fetchAttachmentTexts(
   };
 
   /** 같은 문서 다른 형식 — 존재만 알린다. 못 읽은 첨부로 세지 않아 세 목록·미리보기 목록에는 넣지 않는다. */
-  const commitVariant = (m: Item): void => {
-    const name = m.a.name || m.a.url;
+  const commitVariant = (name: string): void => {
     files.push({ name, result: "duplicate", reason: "same_document" });
     blocks.push({ name, pieces: [{ kind: "variant", text: `[같은 문서 다른 형식: ${name}]` }] });
   };
@@ -867,19 +890,83 @@ export async function fetchAttachmentTexts(
 
   let reads = 0;
   let tries = 0;
+  const readDocKeys = new Set<string>();
   // 개수 상한에 걸려 시도하지 못한 첨부(단위 차례, 묶음 안은 rank 차례).
-  const tail: Item[] = [];
+  const tail: string[] = [];
+  const nameOf = (m: Item): string => m.a.name || m.a.url;
+  const commitFailed = (name: string, reason: AttachmentFileReason): void => commit(failTrial(name, reason));
+
+  /** 최상위 압축 묶음만 한 번 연다. 첫 풀기는 내려받기가 쓴 시도 하나로 친다. */
+  const openArchive = async (zipName: string, buf: Buffer, trial: Trial): Promise<void> => {
+    const list = listArchiveEntries(buf);
+    if (list === null) {
+      commit(trial);
+      return;
+    }
+    if (list.length === 0) {
+      commitFailed(zipName, "no_text");
+      return;
+    }
+    const sorted = list
+      .map((e, i) => ({ e, i, role: attachmentNameRole(e.base), rank: KIND_RANK[attachmentKindOf(e.base)] ?? 9 }))
+      .sort((x, y) => x.role - y.role || x.rank - y.rank || x.i - y.i);
+    let freeLeft = true;
+    for (const { e } of sorted.slice(0, MAX_ARCHIVE_SHOWN)) {
+      const name = `${zipName} › ${e.path}`;
+      const key = opts.sameDocumentOnce ? sameDocumentKey(e.base)?.key : undefined;
+      if (key && readDocKeys.has(key)) {
+        commitVariant(name);
+        continue;
+      }
+      const nameKind = archiveEntryNameKind(e.base);
+      if (nameKind === "image") { commitFailed(name, "image"); continue; }
+      if (nameKind === "archive") { commitFailed(name, "nested_archive"); continue; }
+      if (nameKind === "other") { commitFailed(name, "unknown_format"); continue; }
+      if (e.encrypted) { commitFailed(name, "protected"); continue; }
+      if (e.method !== 0 && e.method !== 8) { commitFailed(name, "unsupported"); continue; }
+      if (e.size > maxBytes) { commitFailed(name, "too_big"); continue; }
+      if (!(reads < maxReads && (freeLeft || tries < maxTries))) {
+        tail.push(name);
+        continue;
+      }
+      if (freeLeft) freeLeft = false;
+      else tries += 1;
+      const got = e.read(maxBytes);
+      if (!got.ok) {
+        commitFailed(name, got.reason === "broken" ? "no_text" : "too_big");
+        continue;
+      }
+      const kind = attachmentKindOf(e.base);
+      const t = await fromBytes(name, got.buf, isExtractable(kind) ? kind : null);
+      if (t.outcome.result === "failed" && t.outcome.reason === "archive") t.outcome.reason = "nested_archive";
+      commit(t);
+      if (t.outcome.result === "read") reads += 1;
+      if (key && t.complete) readDocKeys.add(key);
+    }
+    if (sorted.length > MAX_ARCHIVE_SHOWN) tail.push(`${zipName} › 외 ${sorted.length - MAX_ARCHIVE_SHOWN}개`);
+  };
+
   for (const unit of units) {
+    const key = opts.sameDocumentOnce ? sameDocumentKey(unit[0].a.name)?.key : undefined;
+    if (key && readDocKeys.has(key)) {
+      for (const m of unit) commitVariant(nameOf(m));
+      continue;
+    }
     // 읽은 수(maxReads)가 차거나 시도 수(maxReads + extra)가 차면 멈춘다 — 그 단위부터는 전부 개수 상한이다.
     if (!(reads < maxReads && tries < maxTries)) {
-      tail.push(...unit);
+      tail.push(...unit.map(nameOf));
       continue;
     }
     if (unit.length === 1) {
       tries += 1;
-      const t = await tryOne(unit[0].a, unit[0].kind);
+      const { trial: t, buf } = await tryOne(unit[0].a, unit[0].kind);
+      if (readArchives && buf && t.outcome.result === "failed" && t.outcome.reason === "archive") {
+        await openArchive(nameOf(unit[0]), buf, t);
+        continue;
+      }
       commit(t);
       if (t.outcome.result === "read") reads += 1;
+      if (key && t.complete) readDocKeys.add(key);
       continue;
     }
     // 묶음: 읽기 좋은 형식부터 시도 수가 남는 동안 하나씩, 온전히 읽힌 구성원이 나오면 멈춘다. 묶음 안에서는 읽은 수 상한을 보지 않는다.
@@ -889,7 +976,7 @@ export async function fetchAttachmentTexts(
       const m = unit[k];
       k += 1;
       tries += 1;
-      const t = await tryOne(m.a, m.kind);
+      const { trial: t } = await tryOne(m.a, m.kind);
       trials.push({ m, t });
       if (t.complete) break;
     }
@@ -898,7 +985,8 @@ export async function fetchAttachmentTexts(
       // 온전히 읽힌 하나만 남기고(읽은 수 1), 나머지는 시도했든 안 했든 같은 문서 다른 형식이다. 버린 시도의 미리보기·표식은 남기지 않는다.
       commit(won.t);
       reads += 1;
-      for (const m of unit) if (m !== won.m) commitVariant(m);
+      if (key) readDocKeys.add(key);
+      for (const m of unit) if (m !== won.m) commitVariant(nameOf(m));
       continue;
     }
     // 온전한 본문이 없으면 첫 미리보기를 예전처럼 남기고, 다른 미리보기는 같은 문서 다른 형식으로, 실패는 실패대로 둔다.
@@ -909,15 +997,14 @@ export async function fetchAttachmentTexts(
     }
     for (const x of trials) {
       if (x === lead) continue;
-      if (x.t.preview) commitVariant(x.m);
+      if (x.t.preview) commitVariant(nameOf(x.m));
       else commit(x.t);
     }
-    tail.push(...unit.slice(k));
+    tail.push(...unit.slice(k).map(nameOf));
   }
 
   // 상한에 걸려 못 읽은 첨부도 끝에 이름을 남긴다 — 없는 셈 치면 AI 가 「원문에 없다」고 단정한다.
-  for (const { a } of tail) {
-    const name = a.name || a.url;
+  for (const name of tail) {
     skippedFiles.push(name);
     blocks.push(noticeBlock(name, "skipped", skippedBlock(name)));
     files.push({ name, result: "skipped", reason: "over_limit" });
