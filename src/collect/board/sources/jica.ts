@@ -1,6 +1,7 @@
 // 2026-09-03 상한 올림: 감시 장치 실측 상한 밖 2건(사장님 누락 0 지시)
-import { parseHtml } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import { absolutize, parseHtml } from "../html";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 전주정보문화산업진흥원 사업공고.
@@ -91,6 +92,17 @@ export function parseJicaList(html: string): BoardRow[] {
   return out;
 }
 
+/** 전주정보문화산업진흥원 첨부 — 주소가 `filedown2.php?fn1=…hwp&fn2=…` 꼴이라 끝이 확장자가 아니어서 수확기가 0건이었다(2026-10-16 고정본 실측). 상대 주소라 상세 주소 기준으로 푼다. */
+export function jicaDetailAttachments(pageHtml: string, detailUrl: string): PolicyAttachmentRequest[] {
+  const c = attachmentCollector();
+  for (const a of parseHtml(pageHtml).querySelectorAll('div.allfile span.item a[href^="filedown2.php?"]')) {
+    const href = a.getAttribute("href") ?? "";
+    if (!href) continue;
+    c.add(cleanAttachmentName(a.text), absolutize(href, detailUrl));
+  }
+  return c.list;
+}
+
 export const jicaConfig: BoardConfig = {
   id: "jica",
   label: "전주정보문화산업진흥원",
@@ -133,4 +145,5 @@ export const jicaConfig: BoardConfig = {
    */
   attachmentsScopeSelector: ".allfile",
   expectMinRows: 3,
+  detailAttachments: ({ pageHtml, detailUrl }) => jicaDetailAttachments(pageHtml, detailUrl),
 };

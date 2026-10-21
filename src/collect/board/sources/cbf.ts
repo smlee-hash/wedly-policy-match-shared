@@ -1,5 +1,6 @@
 import { parseHtml } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 춘천바이오산업진흥원 사업공고(알림마당 > 사업공고, `bcd=01_05_02_00_00`).
@@ -77,6 +78,20 @@ export function parseCbfList(html: string, _page = 1, now = Date.now()): BoardRo
   return out;
 }
 
+/** 춘천바이오산업진흥원 첨부 — 내려받기가 `href="javascript:opendownload('…',번호,번호)"` 라 수확기가 0건이었다(2026-10-16 고정본 실측). */
+export function cbfDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  const c = attachmentCollector();
+  for (const a of parseHtml(pageHtml).querySelectorAll('a[href^="javascript:opendownload("]')) {
+    const m = (a.getAttribute("href") ?? "").match(/opendownload\('([^']+)',\s*(\d+),\s*(\d+)\)/);
+    if (!m) continue;
+    c.add(
+      cleanAttachmentName(a.text),
+      `https://www.cbf.or.kr/twb_bbs/bbs_download.php?bcd=${m[1]}&bn=${m[2]}&num=${m[3]}`,
+    );
+  }
+  return c.list;
+}
+
 export const cbfConfig: BoardConfig = {
   id: "cbf",
   label: "춘천바이오산업진흥원",
@@ -113,4 +128,5 @@ export const cbfConfig: BoardConfig = {
   attachmentsScopeSelector: "div.file_wrap",
   // 한 쪽 10건(실측 1·2쪽 모두 10). 절반인 5 밑으로 떨어지면 서식 변경을 의심한다.
   expectMinRows: 5,
+  detailAttachments: ({ pageHtml }) => cbfDetailAttachments(pageHtml),
 };

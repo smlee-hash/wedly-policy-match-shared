@@ -1,5 +1,6 @@
 import { parseHtml } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 전남신용보증재단 공지사항 (`/jnsinbo/operation/news/notice.do`).
@@ -89,6 +90,20 @@ export function parseJnsinboList(html: string, _page = 1, now = Date.now()): Boa
   return out;
 }
 
+/** 전남신용보증재단 첨부 — 내려받기가 `onclick="cf_download('…')"` 라 수확기가 0건이었다(2026-10-16 고정본 실측). */
+export function jnsinboDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  const c = attachmentCollector();
+  for (const a of parseHtml(pageHtml).querySelectorAll("div.board_detail_attach .con a[onclick]")) {
+    const m = (a.getAttribute("onclick") ?? "").match(/cf_download\('([^']+)'\)/);
+    if (!m) continue;
+    c.add(
+      cleanAttachmentName(a.text),
+      `https://www.jnsinbo.or.kr/async/MultiFile/download.do?file=${encodeURIComponent(m[1])}`,
+    );
+  }
+  return c.list;
+}
+
 export const jnsinboConfig: BoardConfig = {
   id: "jnsinbo",
   label: "전남신용보증재단",
@@ -126,4 +141,5 @@ export const jnsinboConfig: BoardConfig = {
    * 사이트 껍데기다. heuristic 이 아이콘·바닥 링크를 공고로 저장하지 않게 끈다.
    */
   skipHeuristic: true,
+  detailAttachments: ({ pageHtml }) => jnsinboDetailAttachments(pageHtml),
 };

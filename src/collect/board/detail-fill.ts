@@ -483,6 +483,107 @@ function attachmentRequestsChanged(prevRaw: unknown, next: PolicyAttachmentReque
  */
 export type BoardDetailFillResult = "filled" | "title-only" | "empty" | "error";
 
+/** 상세에서 얻은 첨부 — 목록, 「원문에 첨부가 있지만 받을 길이 없음」 사유, 또는 갈고리 실패 사유. */
+export type BoardDetailAttachments =
+  | { list: PolicyAttachmentRequest[] }
+  | { unavailable: string }
+  | { error: string };
+
+/** 상세 한 번 읽은 결과 — 상세 채움(`fillBoardDetail`)과 첨부 목록 다시 읽기(`readAttachmentList`)가 같이 쓴다. */
+export type BoardDetailRead =
+  | { kind: "fail"; reason: string }
+  | { kind: "ok"; text: string; pageHtml: string; attachments: BoardDetailAttachments };
+
+/**
+ * 상세를 한 번 읽어 본문·쪽 전체 HTML·첨부를 돌려준다. 경고는 찍지 않는다(찍는 것은 부른 쪽 몫).
+ * 읽기 실패(빈 글·범위 미적중)는 `fail` 로 돌려주고, 요청 오류·동기 갈고리 오류는 던진다.
+ */
+export async function readBoardDetail(
+  cfg: BoardConfig,
+  url: string,
+  opts: { signal?: AbortSignal } = {},
+): Promise<BoardDetailRead> {
+  // 상세 페이지에만 상·하한을 20MB·30초로 넉넉히 준다 — 목록 페이지(표 몇 줄)는 그대로 좁게
+  // 둬야 게시판 30여 곳 전체 요청이 느려지지 않는다(fable 리뷰 중요3).
+  const detailLimits = { timeoutMs: DETAIL_FETCH_TIMEOUT_MS, maxBytes: DETAIL_FETCH_BODY_MAX_BYTES, signal: opts.signal };
+  const boundFetch = (u: string, init?: BoardFetchInit) => fetchBoardText(u, cfg.charset, cfg, init, detailLimits);
+  let text: string;
+  let harvestHtml: string;
+  /** 범위를 좁혀도 쪽 머리글의 값을 읽어야 하는 게시판이 있다 — 쪽 전체를 따로 들고 간다. */
+  let pageHtml: string;
+  if (cfg.detailFetch) {
+    const contentHtml = await cfg.detailFetch(url, boundFetch);
+    /**
+     * ★상세를 **직접 조달하는** 출처가 빈 글을 돌려주면 조용히 넘기지 않는다(2026-09-06 독립 리뷰 4번).
+     * 아산 헬스케어스파는 본문·첨부가 `var r_data = {…}` 라는 스크립트 덩어리 안에만 있어서,
+     * 그 이름이 바뀌면 **첨부 0건·본문 0자**가 되고 예전 코드는 그걸 `empty`(= 채울 게 없음)로
+     * 돌려 아무 소리도 안 냈다. 아래 `attachmentsScopeRequired` 갈래와 같은 자리·같은 처리다 —
+     * 실패로 돌려 다음 재시도에 남기고 로그로 알린다.
+     */
+    if (!contentHtml.trim()) return { kind: "fail", reason: "상세 조달이 빈 글을 돌려줌" };
+    const raw = parseHtml(contentHtml).text.trim();
+    text = raw.length > 20_000 ? `${raw.slice(0, 20_000)}\n[상세 잘림]` : raw;
+    harvestHtml = contentHtml;
+    pageHtml = contentHtml;
+  } else {
+    const html = await fetchBoardText(url, cfg.charset, cfg, undefined, detailLimits);
+    text = await fetchBoardDetail(cfg, url, { fetchText: async () => html });
+    harvestHtml = html;
+    pageHtml = html;
+    if (cfg.attachmentsScopeSelector) {
+      const scoped = parseHtml(html)
+        .querySelectorAll(cfg.attachmentsScopeSelector)
+        .map((el) => el.outerHTML)
+        .join("\n");
+      /**
+       * ★한 조각도 안 잡히면 **첨부 0건으로 조용히 끝내지 않는다**(2026-09-06 독립 리뷰 2번).
+       * 사이트가 상자 이름을 바꾸면(`dl_st1`→`dl_st2`) 아무 소리 없이 첨부가 사라지고,
+       * 본문 선택자도 없는 게시판(시흥·충북TP)은 그대로 빈 결과로 끝나 구조화가 첨부의
+       * 존재조차 모른 채 제목만으로 판정을 굳힌다. 실패로 돌려 다음 재시도에 남긴다.
+       *
+       * ★단 **`attachmentsScopeRequired` 를 켠 게시판에서만** 그렇게 한다(2026-09-06 판정).
+       *  범위 선택자를 쓰는 게시판이 60곳인데 그중 42곳은 본문 선택자도 있다 —
+       *  「첨부가 없으면 상자 자체가 사라지는」 사이트라면 첨부 없는 공고가 본문을 잘 받아 놓고도
+       *  버려져 7일마다 헛돈다. 실물로 「첨부가 없어도 상자는 있다」를 확인한 곳만 켠다.
+       */
+      if (!scoped && cfg.attachmentsScopeRequired) return { kind: "fail", reason: "첨부 영역 선택자 미적중" };
+      harvestHtml = scoped;
+    }
+  }
+  return { kind: "ok", text, pageHtml, attachments: await detailAttachmentsOf(cfg, url, harvestHtml, pageHtml, boundFetch) };
+}
+
+/**
+ * ★첨부를 **수집기가 직접 만드는** 출처는 공용 수확기를 쓰지 않는다(2026-09-06).
+ * 산업인력공단·영화진흥위·여성기업센터는 첨부가 POST 라 `<a href>` 에 주소가 아예 없다 —
+ * 공용 수확기가 만들어 낼 수 있는 것은 GET 주소뿐이라 여기서 갈래를 나눈다.
+ *
+ * 갈래 차례(2026-10-16): 비동기 갈고리(요청이 더 필요한 경북경제진흥원·중소벤처24) → 동기 갈고리 → 공용 수확기.
+ * 동기 갈고리·공용 수확기가 던지면 그대로 위로 던진다. 비동기 갈고리의 오류만 `error` 로 돌려준다.
+ */
+async function detailAttachmentsOf(
+  cfg: BoardConfig,
+  url: string,
+  harvestHtml: string,
+  pageHtml: string,
+  fetchText: (u: string, init?: BoardFetchInit) => Promise<string>,
+): Promise<BoardDetailAttachments> {
+  const args = { html: harvestHtml, pageHtml, detailUrl: url, baseUrl: cfg.baseUrl };
+  // 설정은 부를 때마다 읽는다(시험이 실행 중에 갈고리를 붙였다 뗀다).
+  if (cfg.detailAttachmentsAsync) {
+    try {
+      const r = await cfg.detailAttachmentsAsync({ ...args, fetchText });
+      if (Array.isArray(r)) return { list: r };
+      return { unavailable: (typeof r.unavailable === "string" && r.unavailable.trim()) || "원문에 첨부가 있지만 받을 길이 없음" };
+    } catch (e) {
+      // 오류를 객체째 들고 다니지 않는다 — 바깥 catch 와 같은 이유(경유 주소의 비밀번호가 속성에 실려 올 수 있다).
+      return { error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+  if (cfg.detailAttachments) return { list: cfg.detailAttachments(args) };
+  return { list: harvestBoardAttachments(harvestHtml, cfg.baseUrl, pageHtml, cfg.charset, url) };
+}
+
 /**
  * 게시판 공고의 빈 자격조건 본문을 상세 페이지에서 lazy 로 채운다.
  * 게시판이 아니거나 이미 차 있으면 empty. 오류는 throw 하지 않고 error.
@@ -512,59 +613,13 @@ export async function fillBoardDetail(
     if ((row.targetText ?? "").trim()) return "empty";
     const cfg = BOARD_SOURCES.find((c) => c.id === row.source);
     if (!cfg || !row.url) return "empty";
-    // 상세 페이지에만 상·하한을 20MB·30초로 넉넉히 준다 — 목록 페이지(표 몇 줄)는 그대로 좁게
-    // 둬야 게시판 30여 곳 전체 요청이 느려지지 않는다(fable 리뷰 중요3).
-    const detailLimits = { timeoutMs: DETAIL_FETCH_TIMEOUT_MS, maxBytes: DETAIL_FETCH_BODY_MAX_BYTES, signal: opts.signal };
-    const boundFetch = (u: string, init?: BoardFetchInit) => fetchBoardText(u, cfg.charset, cfg, init, detailLimits);
-    let text: string;
-    let harvestHtml: string;
-    /** 범위를 좁혀도 쪽 머리글의 값을 읽어야 하는 게시판이 있다 — 쪽 전체를 따로 들고 간다. */
-    let pageHtml: string;
-    if (cfg.detailFetch) {
-      const contentHtml = await cfg.detailFetch(row.url, boundFetch);
-      /**
-       * ★상세를 **직접 조달하는** 출처가 빈 글을 돌려주면 조용히 넘기지 않는다(2026-09-06 독립 리뷰 4번).
-       * 아산 헬스케어스파는 본문·첨부가 `var r_data = {…}` 라는 스크립트 덩어리 안에만 있어서,
-       * 그 이름이 바뀌면 **첨부 0건·본문 0자**가 되고 예전 코드는 그걸 `empty`(= 채울 게 없음)로
-       * 돌려 아무 소리도 안 냈다. 아래 `attachmentsScopeRequired` 갈래와 같은 자리·같은 처리다 —
-       * 실패로 돌려 다음 재시도에 남기고 로그로 알린다.
-       */
-      if (!contentHtml.trim()) {
-        console.warn("[policy-detail] 상세 조달이 빈 글을 돌려줌", cfg.id, row.url);
-        return "error";
-      }
-      const raw = parseHtml(contentHtml).text.trim();
-      text = raw.length > 20_000 ? `${raw.slice(0, 20_000)}\n[상세 잘림]` : raw;
-      harvestHtml = contentHtml;
-      pageHtml = contentHtml;
-    } else {
-      const html = await fetchBoardText(row.url, cfg.charset, cfg, undefined, detailLimits);
-      text = await fetchBoardDetail(cfg, row.url, { fetchText: async () => html });
-      harvestHtml = html;
-      pageHtml = html;
-      if (cfg.attachmentsScopeSelector) {
-        const scoped = parseHtml(html)
-          .querySelectorAll(cfg.attachmentsScopeSelector)
-          .map((el) => el.outerHTML)
-          .join("\n");
-        /**
-         * ★한 조각도 안 잡히면 **첨부 0건으로 조용히 끝내지 않는다**(2026-09-06 독립 리뷰 2번).
-         * 사이트가 상자 이름을 바꾸면(`dl_st1`→`dl_st2`) 아무 소리 없이 첨부가 사라지고,
-         * 본문 선택자도 없는 게시판(시흥·충북TP)은 그대로 빈 결과로 끝나 구조화가 첨부의
-         * 존재조차 모른 채 제목만으로 판정을 굳힌다. 실패로 돌려 다음 재시도에 남긴다.
-         *
-         * ★단 **`attachmentsScopeRequired` 를 켠 게시판에서만** 그렇게 한다(2026-09-06 판정).
-         *  범위 선택자를 쓰는 게시판이 60곳인데 그중 42곳은 본문 선택자도 있다 —
-         *  「첨부가 없으면 상자 자체가 사라지는」 사이트라면 첨부 없는 공고가 본문을 잘 받아 놓고도
-         *  버려져 7일마다 헛돈다. 실물로 「첨부가 없어도 상자는 있다」를 확인한 곳만 켠다.
-         */
-        if (!scoped && cfg.attachmentsScopeRequired) {
-          console.warn("[policy-detail] 첨부 영역 선택자 미적중", cfg.id, row.url);
-          return "error";
-        }
-        harvestHtml = scoped;
-      }
+    const read = await readBoardDetail(cfg, row.url, { signal: opts.signal });
+    if (read.kind === "fail") {
+      // 글자는 예전 경고 두 개와 같다 — 시험이 글자 그대로 본다.
+      console.warn(`[policy-detail] ${read.reason}`, cfg.id, row.url);
+      return "error";
     }
+    const { text, pageHtml } = read;
     /**
      * ★목록이 잘라 보낸 제목을 상세의 온전한 제목으로 승격한다(안양 20자, 2026-09-05).
      * 아래 `title` 하나를 갈래·한도·조건 추출이 **다 같이** 쓴다 — 갈리면 같은 공고가
@@ -577,20 +632,26 @@ export async function fillBoardDetail(
     const title = upgradedTitleOf(cfg, pageHtml, row.title ?? "");
     const promoted = title !== (row.title ?? "");
     /**
-     * ★첨부를 **수집기가 직접 만드는** 출처는 공용 수확기를 쓰지 않는다(2026-09-06).
-     * 산업인력공단·영화진흥위·여성기업센터는 첨부가 POST 라 `<a href>` 에 주소가 아예 없다 —
-     * 공용 수확기가 만들어 낼 수 있는 것은 GET 주소뿐이라 여기서 갈래를 나눈다.
-     *
      * ★상세에만 있는 접수기간 칸(`detailApplyPeriod`)도 **제목 승격과 같은 자리**에서 읽는다
      *  — 빈 본문 관문 뒤에 두면 본문·첨부가 없는 상세(메인비즈는 본문이 공고 이미지뿐)에서
      *  기간이 영영 안 채워진다(제목 승격이 같은 이유로 여기 있다).
      */
     const period = detailApplyPeriodOf(cfg, pageHtml);
     const periodFields = period ? periodFieldsOf(period, new Date()) : null;
-    const attachments: PolicyAttachmentRequest[] = cfg.detailAttachments
-      ? cfg.detailAttachments({ html: harvestHtml, pageHtml, detailUrl: row.url, baseUrl: cfg.baseUrl })
-      : harvestBoardAttachments(harvestHtml, cfg.baseUrl, pageHtml, cfg.charset, row.url);
-    if (!text.trim() && attachments.length === 0) {
+    /**
+     * ★첨부 결과 세 갈래(2026-10-16 첨부 목록 다시 읽기).
+     * · 목록 — 그대로 저장한다(빈 목록이면 「첨부 없음」).
+     * · 받을 수 없음 — 빈 목록을 저장한다. 원문에 첨부가 있어도 저장할 주소가 없다.
+     * · 갈고리 실패 — 첨부 칸을 **싣지 않는다.** 빈 목록을 쓰면 「첨부 없음」으로 굳고 저장돼 있던 목록도 지운다.
+     *   본문은 얻었으니 본문만 저장하고, 첨부는 다시 읽기 단계가 다시 본다. 본문도 없으면 실패다.
+     */
+    const att = read.attachments;
+    if ("error" in att) {
+      console.warn("[policy-detail] 첨부 갈고리 실패", cfg.id, row.url, att.error);
+      if (!text.trim()) return "error";
+    }
+    const attachments: PolicyAttachmentRequest[] | null = "list" in att ? att.list : "unavailable" in att ? [] : null;
+    if (!text.trim() && (attachments ?? []).length === 0) {
       if (!promoted && !periodFields) return "empty";
       // 본문·첨부는 못 얻었지만 제목이 올랐거나 접수기간을 읽었다 — 그 칸들만 고치고 끝낸다.
       // `targetText` 를 안 쓰므로 「아직 빈 행」 울타리가 필요 없다(남의 본문을 덮지 않는다).
@@ -606,13 +667,14 @@ export async function fillBoardDetail(
     // 추천(3차)에서 조건 있는 공고가 「조건 0개」로 잘못 정렬된다(적대 리뷰 2026-08-29 중요6).
     const data: PolicyAnnouncementUpdate = {
       targetText: text,
-      attachments: attachments,
+      ...(attachments ? { attachments } : {}),
       ruleStructure: buildRuleStructure(text, row.summary ?? "", title, row.agency ?? ""),
     };
     // ★첨부 주소가 실제로 바뀌었으면 도장(attachmentFillTriedAt)도 지운다 — 안 지우면 옛 실패에서
     //  찍힌 도장(7일) 탓에 방금 고친 새 주소를 바로 못 내려받는다(2026-09-06 충북TP 실측 — 인코딩을
     //  고쳐 배포해도 사람이 도장을 손으로 지워야 했다). 같으면 건드리지 않는다(불필요한 재시도 방지).
-    if (attachmentRequestsChanged(row.attachments, attachments)) {
+    //  첨부를 실을 때만 비교한다 — 안 싣는 회차에 도장을 지우면 재시도 간격이 무너진다.
+    if (attachments && attachmentRequestsChanged(row.attachments, attachments)) {
       data.attachmentFillTriedAt = null;
     }
     // 제목이 실제로 올라갔을 때만 쓴다 — 안 그러면 매 회차 같은 값을 쓰느라 갱신 대상이 넓어진다.

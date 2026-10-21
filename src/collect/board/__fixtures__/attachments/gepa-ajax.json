@@ -1,0 +1,26 @@
+[
+  {
+    "sample": "https://www.gepa.kr/?page_id=36&stype1=type1&vid=2456",
+    "pid": "18551",
+    "body": "mode=file&board_action=file_download&board_name=madang01&file_pid=18551&file_name=%5B%EA%B3%B5%EA%B3%A0%5D2026%EB%85%84%20%EC%B9%A0%EA%B3%A1%EA%B5%B0%20%ED%95%B4%EC%99%B8%20%EC%A0%84%EC%8B%9C%ED%9A%8C%20%EA%B0%9C%EB%B3%84%20%EC%B0%B8%EA%B0%80%20%EC%A7%80%EC%9B%90%EC%82%AC%EC%97%85%20%EC%B0%B8%EC%97%AC%EA%B8%B0%EC%97%85%202%EC%B0%A8%20%EC%B6%94%EA%B0%80%20%EB%AA%A8%EC%A7%91%20%EA%B3%B5%EA%B3%A0.pdf&mb_nonce_value=00000000000000000000000000000000&mb_nonce_time=1790832768&wp_nonce_value=0000000000&lang=ko_KR&action=skin_mb_board&admin_page=false&hybrid_app=",
+    "response": "{\"state\":\"success\",\"code\":\"0\",\"message\":\"\",\"data\":{\"file_path\":\"MjAyNi8wOS8yOS9GMTg1NTFfW%2BqzteqzoF0yMDI264WEIOy5oOqzoeq1sCDtlbTsmbgg7KCE7Iuc7ZqMIOqwnOuzhCDssLjqsIAg7KeA7JuQ7IKs7JeFIOywuOyXrOq4sOyXhSAy7LCoIOy2lOqwgCDrqqjsp5Eg6rO16rOgLnBkZg%3D%3D\"}}"
+  },
+  {
+    "sample": "https://www.gepa.kr/?page_id=36&stype1=type1&vid=2456",
+    "pid": "18552",
+    "body": "mode=file&board_action=file_download&board_name=madang01&file_pid=18552&file_name=%5B%EC%96%91%EC%8B%9D%5D2026%EB%85%84%20%EC%B9%A0%EA%B3%A1%EA%B5%B0%20%ED%95%B4%EC%99%B8%20%EC%A0%84%EC%8B%9C%ED%9A%8C%20%EA%B0%9C%EB%B3%84%20%EC%B0%B8%EA%B0%80%20%EC%A7%80%EC%9B%90%EC%82%AC%EC%97%85%20%EC%B0%B8%EA%B0%80%EC%8B%A0%EC%B2%AD%EC%84%9C%20%EB%B0%8F%20%EC%A0%9C%EC%B6%9C%20%EC%84%9C%EB%A5%98.hwp&mb_nonce_value=00000000000000000000000000000000&mb_nonce_time=1790832768&wp_nonce_value=0000000000&lang=ko_KR&action=skin_mb_board&admin_page=false&hybrid_app=",
+    "response": "{\"state\":\"success\",\"code\":\"0\",\"message\":\"\",\"data\":{\"file_path\":\"MjAyNi8wOS8yOS9GMTg1NTJfW%2ByWkeyLnV0yMDI264WEIOy5oOqzoeq1sCDtlbTsmbgg7KCE7Iuc7ZqMIOqwnOuzhCDssLjqsIAg7KeA7JuQ7IKs7JeFIOywuOqwgOyLoOyyreyEnCDrsI8g7KCc7LacIOyEnOulmC5od3A%3D\"}}"
+  },
+  {
+    "sample": "https://www.gepa.kr/?page_id=36&stype1=type1&vid=2455",
+    "pid": "18534",
+    "body": "mode=file&board_action=file_download&board_name=madang01&file_pid=18534&file_name=1.%202026%EB%85%84%20%EC%83%81%EC%A3%BC%EC%8B%9C%20%ED%95%B4%EC%99%B8%20%EC%88%98%EC%B6%9C%EB%A7%88%EC%BC%80%ED%8C%85%20%ED%98%91%EB%A0%A5%EC%82%AC%EC%97%85%20%EC%B0%B8%EA%B0%80%EA%B8%B0%EC%97%85%20%EC%B6%94%EA%B0%80%EB%AA%A8%EC%A7%91%20%EA%B3%B5%EA%B3%A0.pdf&mb_nonce_value=00000000000000000000000000000000&mb_nonce_time=1790832769&wp_nonce_value=0000000000&lang=ko_KR&action=skin_mb_board&admin_page=false&hybrid_app=",
+    "response": "{\"state\":\"success\",\"code\":\"0\",\"message\":\"\",\"data\":{\"file_path\":\"MjAyNi8wOS8yOS9GMTg1MzRfMS4gMjAyNuuFhCDsg4Hso7zsi5wg7ZW07Jm4IOyImOy2nOuniOy8gO2MhSDtmJHroKXsgqzsl4Ug7LC46rCA6riw7JeFIOy2lOqwgOuqqOynkSDqs7Xqs6AucGRm\"}}"
+  },
+  {
+    "sample": "https://www.gepa.kr/?page_id=36&stype1=type1&vid=2455",
+    "pid": "18535",
+    "body": "mode=file&board_action=file_download&board_name=madang01&file_pid=18535&file_name=2.%202026%EB%85%84%20%EC%83%81%EC%A3%BC%EC%8B%9C%20%ED%95%B4%EC%99%B8%20%EC%88%98%EC%B6%9C%EB%A7%88%EC%BC%80%ED%8C%85%20%ED%98%91%EB%A0%A5%EC%82%AC%EC%97%85%20%EC%8B%A0%EC%B2%AD%20%EC%96%91%EC%8B%9D.hwp&mb_nonce_value=00000000000000000000000000000000&mb_nonce_time=1790832769&wp_nonce_value=0000000000&lang=ko_KR&action=skin_mb_board&admin_page=false&hybrid_app=",
+    "response": "{\"state\":\"success\",\"code\":\"0\",\"message\":\"\",\"data\":{\"file_path\":\"MjAyNi8wOS8yOS9GMTg1MzVfMi4gMjAyNuuFhCDsg4Hso7zsi5wg7ZW07Jm4IOyImOy2nOuniOy8gO2MhSDtmJHroKXsgqzsl4Ug7Iug7LKtIOyWkeyLnS5od3A%3D\"}}"
+  }
+]

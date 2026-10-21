@@ -1,5 +1,6 @@
-import { decodeHtmlEntities, parseHtml } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import { absolutize, decodeHtmlEntities, parseHtml } from "../html";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 한국디자인진흥원(KIDP) 「사업부 전체소식」(menuno=1202, boardno=622).
@@ -98,6 +99,35 @@ export function parseKidpList(html: string, _page = 1, now = Date.now()): BoardR
   return out;
 }
 
+/**
+ * 한국디자인진흥원 첨부 — 보이는 단추는 `href="###"` + `submitForm(this,'down',번호)` 라 수확기가 파일 하나만 잡고 놓쳤다(2026-10-16 고정본 실측).
+ * 파일마다 바로 받는 숨은 링크(`/usr/upload/…`)가 단추 바로 뒤에 있으면 GET 으로, 없으면 폼(`#frontBoardVo`)의 숨은 값에 `act=down&fno=번호` 를 더한 POST 로 받는다.
+ * 본문 차례는 폼의 숨은 입력값 차례 그대로다.
+ */
+export function kidpDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  const root = parseHtml(pageHtml);
+  const hidden = root
+    .querySelectorAll('#frontBoardVo input[type="hidden"]')
+    .map((i) => [i.getAttribute("name") ?? "", i.getAttribute("value") ?? ""]);
+  const c = attachmentCollector();
+  for (const a of root.querySelectorAll(`a[onclick*="submitForm(this,'down'"]`)) {
+    const m = (a.getAttribute("onclick") ?? "").match(/submitForm\(this,'down',(\d+)/);
+    if (!m) continue;
+    // 끝의 내려받기 횟수 「(3)」를 지운 뒤 정리한다.
+    const name = cleanAttachmentName(a.text.replace(/\s*\(\d+\)\s*$/, ""));
+    const sib = a.nextElementSibling;
+    const sh = sib?.getAttribute("href") ?? "";
+    if (sib && sib.tagName === "A" && sib.getAttribute("aria-hidden") === "true" && sh.startsWith("/usr/upload/")) {
+      c.add(name, absolutize(sh, "https://www.kidp.or.kr/"));
+    } else {
+      c.add(name, "https://www.kidp.or.kr/skin/board/Valid.html", {
+        body: new URLSearchParams([...hidden, ["act", "down"], ["fno", m[1]]]).toString(),
+      });
+    }
+  }
+  return c.list;
+}
+
 export const kidpConfig: BoardConfig = {
   id: "kidp",
   label: "한국디자인진흥원",
@@ -140,4 +170,5 @@ export const kidpConfig: BoardConfig = {
    * 3·3·5·8·8·10·8·7). 그래서 「한 쪽의 절반」인 5로 두면 정상 회차가 「서식 깨짐」으로 버려진다.
    */
   expectMinRows: 2,
+  detailAttachments: ({ pageHtml }) => kidpDetailAttachments(pageHtml),
 };

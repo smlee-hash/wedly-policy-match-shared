@@ -196,9 +196,11 @@ describe("중소벤처24 설정", () => {
     expect(smes24Config.list.init).toBeUndefined();
   });
 
-  it("상세 주소 호스트가 baseUrl 과 같아 허용 호스트 검사를 통과한다", () => {
+  it("상세 주소 호스트가 baseUrl 과 같아 허용 호스트 검사를 통과한다 — 더한 호스트는 기업마당 하나뿐", () => {
     expect(new URL(rows[0].detailUrl).host).toBe(new URL(smes24Config.baseUrl).host);
-    expect(smes24Config.allowedHosts).toBeUndefined();
+    // 기업마당 연동 공고의 첨부 상자는 기업마당 상세 화면에만 있고, 비동기 첨부 갈고리의 fetchText 가
+    // 허용 호스트를 강제하므로 그 호스트 하나만 연다(첨부 목록 다시 읽기, 2026-10-15).
+    expect(smes24Config.allowedHosts).toEqual(["www.bizinfo.go.kr"]);
   });
 
   it("자격 요약을 targetText 로 싣지 않는다 — 채우면 뒷단계의 상세 채움이 이 공고를 건너뛴다", () => {

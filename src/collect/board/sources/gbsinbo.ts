@@ -1,5 +1,6 @@
 import { parseHtml } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { putFileHtmlAttachments } from "./put-file-html";
 
 /**
  * 경북신용보증재단 공지사항(재단소식 > 공지사항, mn=10052/pageNo=10005).
@@ -94,6 +95,11 @@ export function parseGbsinboList(html: string, _page = 1, now = Date.now()): Boa
   return out;
 }
 
+/** 경북신용보증재단 첨부 — 대구신보와 같은 솔루션이라 `putFileHtml("…")` 스크립트 호출에만 있어 수확기가 0건이었다(2026-10-16 고정본 실측). */
+export function gbsinboDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  return putFileHtmlAttachments(pageHtml, BASE);
+}
+
 export const gbsinboConfig: BoardConfig = {
   id: "gbsinbo",
   label: "경북신용보증재단",
@@ -124,4 +130,5 @@ export const gbsinboConfig: BoardConfig = {
   detailContentSelector: "div.board_view > div.text",
   // 한 쪽 15건(+붙박이)에서 거르개를 지나면 실측 4건. 절반(7)로 두면 정상 목록도 서식 변경으로 버린다.
   expectMinRows: 2,
+  detailAttachments: ({ pageHtml }) => gbsinboDetailAttachments(pageHtml),
 };

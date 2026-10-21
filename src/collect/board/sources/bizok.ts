@@ -1,5 +1,6 @@
 import { absolutize, parseHtml } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 const YY_MD = /\b(\d{2})-(\d{2})-(\d{2})\b/g;
 
@@ -37,6 +38,17 @@ export function parseBizokList(html: string, cfg: BoardConfig): BoardRow[] {
   return out;
 }
 
+/** 인천 비즈OK 첨부 — 공고 구역(`div.board_view`) 안에 「BizOK 이용자 매뉴얼」 PDF 가 섞여 수확기가 엉뚱한 PDF 2개를 넣고 엑셀 첨부 1개를 놓쳤다(2026-10-16 고정본 실측). */
+export function bizokDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  const c = attachmentCollector();
+  for (const a of parseHtml(pageHtml).querySelectorAll('div.board_view dl dd a[href*="act=down"]')) {
+    const href = a.getAttribute("href") ?? "";
+    if (!href) continue;
+    c.add(cleanAttachmentName(a.text), absolutize(href, "https://bizok.incheon.go.kr/"));
+  }
+  return c.list;
+}
+
 export const bizokConfig: BoardConfig = {
   id: "bizok",
   label: "인천 비즈OK",
@@ -58,6 +70,8 @@ export const bizokConfig: BoardConfig = {
   customParse: (html) => parseBizokList(html, bizokConfig),
   detailContentSelector: "div.board_view",
   // 상세 상단·바닥에 「BizOK 이용자 매뉴얼」 PDF 가 있어 전체 수확이 오염된다(적대 리뷰) — 공고 구역만.
+  // 다만 매뉴얼 PDF 가 공고 구역 안에도 있어 첨부는 갈고리(`bizokDetailAttachments`)가 읽는다(2026-10-16).
   attachmentsScopeSelector: "div.board_view",
   expectMinRows: 5,
+  detailAttachments: ({ pageHtml }) => bizokDetailAttachments(pageHtml),
 };

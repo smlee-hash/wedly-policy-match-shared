@@ -1,5 +1,6 @@
 import { parseHtml } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 안산시 기업지원 공고 — 시 고시/공고 통합게시판(`bbs_code=WWW13`)을 **담당부서 넷**으로 좁혀 읽는다.
@@ -147,6 +148,21 @@ export function parseAnsanList(html: string, _page = 1, now = Date.now()): Board
   return out;
 }
 
+/** 안산시 첨부 — 내려받기가 `onclick="fnFileDownLoad('…')"` 라 수확기가 0건이었다(2026-10-16 고정본 실측). 이름은 아이콘 글자(`span.p-icon`)가 아닌 첫 `span` 이다. */
+export function ansanDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  const c = attachmentCollector();
+  for (const a of parseHtml(pageHtml).querySelectorAll('ul.p-attach li a.p-attach__link[onclick*="fnFileDownLoad("]')) {
+    const m = (a.getAttribute("onclick") ?? "").match(/fnFileDownLoad\('([^']+)'\)/);
+    if (!m) continue;
+    const name = a.querySelectorAll("span").find((s) => !s.classList.contains("p-icon"))?.text ?? "";
+    c.add(
+      cleanAttachmentName(name),
+      `https://www.ansan.go.kr/common/file/FileDown.do?file_id=${encodeURIComponent(m[1])}`,
+    );
+  }
+  return c.list;
+}
+
 export const ansanConfig: BoardConfig = {
   id: "ansan",
   label: "안산시 기업지원 공고",
@@ -207,4 +223,5 @@ export const ansanConfig: BoardConfig = {
    * 서식이 깨지면 어차피 customParse 가 0행을 내어 「행 0개」로 걸린다.
    */
   expectMinRows: 3,
+  detailAttachments: ({ pageHtml }) => ansanDetailAttachments(pageHtml),
 };

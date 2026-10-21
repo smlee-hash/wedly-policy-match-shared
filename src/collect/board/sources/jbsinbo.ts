@@ -1,5 +1,6 @@
-import { parseHtml } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import { absolutize, parseHtml } from "../html";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 전북신용보증재단 공지사항(소식안내 > 새소식, MENU_000000000000090).
@@ -113,6 +114,17 @@ export function parseJbsinboList(html: string, _page = 1, now = Date.now()): Boa
   return out;
 }
 
+/** 전북신용보증재단 첨부 — 주소가 `/site/resource/file/FILE_…/1` 이라 확장자가 없어 수확기가 0건이었다(2026-10-16 고정본 실측). */
+export function jbsinboDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  const c = attachmentCollector();
+  for (const a of parseHtml(pageHtml).querySelectorAll('td.file a[href^="/site/resource/file/"]')) {
+    const href = a.getAttribute("href") ?? "";
+    if (!href) continue;
+    c.add(cleanAttachmentName(a.text), absolutize(href, "https://www.jbcredit.or.kr/"));
+  }
+  return c.list;
+}
+
 export const jbsinboConfig: BoardConfig = {
   id: "jbsinbo",
   label: "전북신용보증재단",
@@ -149,4 +161,5 @@ export const jbsinboConfig: BoardConfig = {
    * 파일 이름을 제목으로 저장한다 — 오류가 틀린 저장보다 낫다.
    */
   skipHeuristic: true,
+  detailAttachments: ({ pageHtml }) => jbsinboDetailAttachments(pageHtml),
 };

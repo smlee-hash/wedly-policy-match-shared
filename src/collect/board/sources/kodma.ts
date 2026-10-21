@@ -1,5 +1,6 @@
-import { parseHtml } from "../html";
-import type { BoardConfig, BoardRow } from "../types";
+import { absolutize, parseHtml } from "../html";
+import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
+import { attachmentCollector, cleanAttachmentName } from "./attachment-collect";
 
 /**
  * 중소벤처기업유통원 공지사항 통합 게시판(`key=2409240028`).
@@ -89,6 +90,19 @@ export function parseKodmaList(html: string): BoardRow[] {
   return out;
 }
 
+/** 중소벤처기업유통원 첨부 — 본문 편집기의 `file:///c:/Data/bbs/…hwp` 2개를 수확기가 첨부로 넣고 진짜 첨부 `/atch/fileDown.do?atchFileSn=…` 3개를 놓쳤다(2026-10-16 고정본 실측). */
+export function kodmaDetailAttachments(pageHtml: string): PolicyAttachmentRequest[] {
+  const c = attachmentCollector();
+  for (const a of parseHtml(pageHtml).querySelectorAll(
+    'div.view-attachment div.attachment a[href^="/atch/fileDown.do?atchFileSn="]',
+  )) {
+    const href = a.getAttribute("href") ?? "";
+    if (!href) continue;
+    c.add(cleanAttachmentName(a.querySelector("span.name")?.text ?? ""), absolutize(href, "https://www.kodma.or.kr/"));
+  }
+  return c.list;
+}
+
 export const kodmaConfig: BoardConfig = {
   id: "kodma",
   label: "중소벤처기업유통원",
@@ -115,4 +129,5 @@ export const kodmaConfig: BoardConfig = {
   skipHeuristic: true,
   // 1쪽 10행에서 DROP 뒤 실측 4건(`[국정성과]` 를 버리면서 5→4). 0행이면 서식 변경이므로 2로 둔다.
   expectMinRows: 2,
+  detailAttachments: ({ pageHtml }) => kodmaDetailAttachments(pageHtml),
 };
