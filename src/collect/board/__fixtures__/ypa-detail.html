@@ -1,0 +1,756 @@
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ko">
+	
+		
+	
+
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-RJSW4P1VJM"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-RJSW4P1VJM');
+</script>
+
+
+	<meta charset="utf-8"> 
+	<!-- <meta http-equiv="Content-Type" content="text/html; charset=euc-kr" /> -->
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<!-- <meta name="viewport" content="width=device-width, initial-scale=1.0"> -->
+	<meta name="description" content="용인시 기업들이 원하는 정보를 한눈에! 용인시 지원사업과 기업정보 관리 일원화를 위한 종합시스템">
+	<meta name="description" content="용기씨">
+	<meta name="author" content="용인기업지원시스템">
+	<meta name="Keywords" content="용인시, 용인시산업진흥원, 용인시 지원사업,기업지원, 기업지원정보, 용인시소식, 자금보증지원, 기업SOS지원, 통산지원, 기업맞춤형지원,창업지원,소상공인지원,인증지원,기업규제">
+	<meta name="keywords" content="용기씨">
+	<!-- open graph -->
+	<meta property="og:type" content="website">
+	<meta property="og:title" content="용인시산업진흥원">
+	<meta property="og:description" content="용인시 기업들이 원하는 정보를 한눈에! 용인시 지원사업과 기업정보 관리 일원화를 위한 종합시스템">
+	<meta property="og:image" content="http://ybs.ypa.or.kr/images/oglogo.jpg">
+	<meta property="og:url" content="http://ybs.ypa.or.kr">
+	
+	<meta name="NaverBot" content="All"/>
+	<meta name="NaverBot" content="index,follow"/>
+	<meta name="Yeti" content="All"/>
+	<meta name="Yeti" content="index,follow"/>
+	
+	<link rel="canonical" href=http://ybs.ypa.or.kr>
+
+
+
+
+
+    <title>용인기업지원시스템</title>
+    <meta name="naver-site-verification" content="c036f2a01a6b2d7b6ae2080977af281ae2974740" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+
+    <!--[if lte IE 9]>
+	<script type="text/javascript" src="/js/respond.min.js"></script>
+	<script type="text/javascript" src="/js/html5.js"></script>
+	<![endif]-->
+    <script type="text/javascript" src="/js/jquery.min.js"></script>
+
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+    <script type="text/javascript" src="/js/bxslider/jquery.bxslider.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/js/bxslider/jquery.bxslider.css">
+    <link rel="stylesheet" type="text/css" href="/css/common.css">
+    <link rel="stylesheet" type="text/css" href="/css/layout.css">
+    
+    
+    <link rel="stylesheet" type="text/css" href="/css/sub.css">
+    
+	
+	
+	
+
+    <script src="/js/common.js"></script>
+    
+    
+</head>
+<body>
+<noscript>자바스크립트를 지원하지 않는 브라우저에서는 일부 기능을 사용하실 수 없습니다.</noscript>
+<script>
+
+	$(document).ready(function(){
+		var now = new Date();
+		var year = now.getFullYear();
+		var month = String(now.getMonth()+1).padStart(2, "0");
+		var toDay = String(now.getDate()).padStart(2, "0");
+		var hours = String(now.getHours()).padStart(2, "0");
+		var minutes = String(now.getMinutes()).padStart(2, "0");
+		var day = Number(year + month + toDay + hours + minutes);
+		var startDay = Number(String('20260901') + String('0000'));
+		var endDay = Number(String('20261001') + String('0000'));
+		
+		if(startDay != 0 && endDay != 0){
+			if(day < startDay || endDay <= day ){
+				$("#submitBtn").css("display", "none")
+			}
+		}
+	})
+
+	function fn_submit(){
+		 
+		 
+		 if(confirm("로그인 후 이용가능합니다. 이동하시겠습니까?")){
+			 location.href = "/login.do";
+		 }
+		 
+	}
+</script>
+<style>
+	.appFileDiv {padding-left:30px;}
+	.appFileDiv a {padding-left:15px;background-image: url(/images/board/i_file.png);background-repeat: no-repeat;background-position: left center;}
+</style>
+<!-- 전체 레이어 시작 -->
+<div id="wrap">
+	<div id="wrap">
+		
+
+
+
+
+
+
+		
+			
+			
+		
+
+
+
+
+
+<header id="header" class="container">
+			<div id="lguWrap">
+				<h1 id="logo"><a href="/" title="용인기업지원시스템 용기씨">용인기업지원시스템</a></h1>
+				<button class="all_menu" type="button"><i class="ico_cate">전체메뉴</i></button>
+				<nav id="gnbWrap">
+					<a href="#" class="btn_close"></a>
+					<div class="mo_only login_box">
+						<p class="mb10"><strong>로그인 후</strong> 이용하세요.</p>
+						<ul>
+							
+								
+								
+								<li class="login"><a href="/login.do">로그인</a></li>
+								<li class="join"><a href="/memberRegisterBefore.do">회원가입</a></li>
+								
+							
+							
+						</ul>
+					</div>
+					<ul id="gnb">
+						
+							
+						
+
+
+<script>
+	function gbn_makeHeaderMenu(menuUri, portalUpperMenuNo, portalMenuNo, menuNm, siteNo, newWindowYn){
+	
+	    if(menuUri == ""){
+	        menuUri = "javascript:void(0)";
+	    }
+	
+	    var targetAttr = (newWindowYn == "Y") ? ' target="_blank"' : '';
+	
+	    var menuItem = '<li><a class="dropdown-item" href="' + menuUri + '"' + targetAttr + '>' + menuNm + '</a></li>';
+	
+	    $($("#topmenu_" + portalUpperMenuNo).find("ul")[0]).append(menuItem);
+	}
+	
+	function fn_firstPage(obj){
+		
+		if ($(window).width() > 820 ) {
+			
+			var objUl = $(obj).next();
+			var objLi =  objUl.children("li:eq(0)");
+			var objA = objLi.find("a")
+			$(".nav-link").prop("href", $(objA).attr('href'))
+		}
+	}
+
+	$(document).ready(function(){
+		$.each($("#gnb>li"),function(index,item){
+			if($(this).find("li").length == 0){
+				$(this).find("ul").remove();
+			}
+		});
+	});
+</script>
+
+	
+		<li class="nav-item dropdown" id="topmenu_21">
+			<a class="nav-link dropdown-toggle" href="javascript:void(0)" role="button" data-bs-toggle="dropdown" aria-expanded="false" onclick="fn_firstPage(this)">지원사업 안내</a>
+			<ul class="dropdown-menu gnb_sub" aria-labelledby="navbarDropdown" style="margin-left: -30px;"></ul>
+		</li>
+	
+	
+
+	
+		<li class="nav-item dropdown" id="topmenu_20">
+			<a class="nav-link dropdown-toggle" href="javascript:void(0)" role="button" data-bs-toggle="dropdown" aria-expanded="false" onclick="fn_firstPage(this)">지원사업 공고</a>
+			<ul class="dropdown-menu gnb_sub" aria-labelledby="navbarDropdown" style="margin-left: -30px;"></ul>
+		</li>
+	
+	
+
+	
+		<li class="nav-item dropdown" id="topmenu_64">
+			<a class="nav-link dropdown-toggle" href="javascript:void(0)" role="button" data-bs-toggle="dropdown" aria-expanded="false" onclick="fn_firstPage(this)">기업규제</a>
+			<ul class="dropdown-menu gnb_sub" aria-labelledby="navbarDropdown" style="margin-left: -30px;"></ul>
+		</li>
+	
+	
+
+	
+		<li class="nav-item dropdown" id="topmenu_22">
+			<a class="nav-link dropdown-toggle" href="javascript:void(0)" role="button" data-bs-toggle="dropdown" aria-expanded="false" onclick="fn_firstPage(this)">정보광장</a>
+			<ul class="dropdown-menu gnb_sub" aria-labelledby="navbarDropdown" style="margin-left: -30px;"></ul>
+		</li>
+	
+	
+
+	
+		<li class="nav-item dropdown" id="topmenu_54">
+			<a class="nav-link dropdown-toggle" href="javascript:void(0)" role="button" data-bs-toggle="dropdown" aria-expanded="false" onclick="fn_firstPage(this)">시스템 소개</a>
+			<ul class="dropdown-menu gnb_sub" aria-labelledby="navbarDropdown" style="margin-left: -30px;"></ul>
+		</li>
+	
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=43","19","43","기업 소개","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=44","19","44","제품소개","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/application.do","20","46","용인시 지원사업","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=47","20","47","유관기관 사업공고","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=65","21","65","자금·보증지원","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=66","21","66","기업SOS지원","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=67","21","67","통상지원","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=68","21","68","기업 맞춤형지원","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=69","21","69","창업지원","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=70","21","70","공장설립 및 산업단지","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/facilityGuide.do","21","80","시설·장비 예약안내","","N");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=71","21","71","소상공인 지원","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=72","21","72","인증 지원","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/researchEquipmentGuide.do","21","52","공동연구장비","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=50","22","50","용인시 소식","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=39","22","39","시스템공지","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/userSelectQnaList.do","22","28","Q&A","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/faq.do","22","27","FAQ","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/userProductView.do","22","79","제품 소개","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("https://ypa.bidman.co.kr/","22","78","맞춤형 입찰정보 서비스","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=55","54","55","시스템 소개","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=60","54","60","사이트맵","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=53","54","53","찾아오시는 길","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/companySelectQnaList.do","64","63","기업애로 및 규제","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=74","73","74","공사입찰","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=76","73","76","용역입찰","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=77","73","77","물품입찰","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=56","99","56","이용약관","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=57","99","57","개인정보처리방침","","");
+		</script>
+	
+
+	
+	
+		<script>
+			gbn_makeHeaderMenu("/page.do?site=10&id=58","99","58","이메일무단수집거부","","");
+		</script>
+	
+
+
+					</ul>
+				</nav>
+				<div id="utillWrap">
+					<ul class="ut_list">
+						
+							
+							
+							<li class="login"><a href="/login.do">로그인</a></li>
+							<li class="join"><a href="/memberRegisterBefore.do" >회원가입</a></li>
+							
+						
+						
+					</ul>
+				</div>
+			</div>
+		</header>
+<script>
+	var p_param = "";
+  	p_param += "&_csrf=00000000-0000-0000-0000-000000000000";
+	$.ajax({
+		url		: "/getQnaCnt.do",
+		type 	: "post",
+		dataType: "json",
+		async	: false,
+ 		data	: p_param,
+		success : function(responseData){
+			if(responseData.qnaCnt > 0){
+				$(".qnaNew").show();
+			}
+		},
+		error 	: function(xhr, status, error){}
+	});
+</script>
+		
+			
+			
+		
+
+
+
+<script>
+	$(document).ready(function(){
+		$.ajax({
+		    url: "/getAplcTypeCode.do",
+		    data: {"_csrf": "00000000-0000-0000-0000-000000000000"},
+		    type: "POST",
+		    dataType: "json",
+		    
+		    success : function(result){
+		        
+		        $("#subHeader_sch_list").html("");
+		        
+		        const uniqueMap = new Map();
+		        $.each(result.resultList, function(){
+		            if (!uniqueMap.has(this.code)) {
+		                uniqueMap.set(this.code, this.codeNm);
+		            }
+		        });
+		        
+		        uniqueMap.forEach((codeNm, code) => {
+		            $("#subHeader_sch_list").append(
+		                "<li><a href='javascript:void(0)' onclick='fn_selectAplCode(\"" + code + "\")'>" + codeNm + "</a></li>"
+		            );
+		        });
+		    }
+		    
+		});
+		
+		$(".icon_btn >.print").on("click",function(){
+			window.print();
+		});
+		$(".icon_btn >.share").on("click",function(){
+			let url = '';
+			  const textarea = document.createElement("textarea");
+			  document.body.appendChild(textarea);
+			  url = window.document.location.href;
+			  textarea.value = url;
+			  textarea.select();
+			  document.execCommand("copy");
+			  document.body.removeChild(textarea);
+			  alert("URL이 복사되었습니다.");
+		});
+	});
+	
+	function subHeader_selectCode(code){
+		$("#subHeadre_aplcType").val(code);
+		//$("#subHeader_searchKeyword").val(code);
+		gfn_subHeader_search();
+	}
+	
+	function gfn_subHeader_search(){
+		$("#subHeader_searchFrm").submit();
+	}
+</script>
+<div id="subTop">
+            <div id="schWrap" class="container">
+                <div class="sch_box">
+                	<form action="/search.do" method="post" id="subHeader_searchFrm">
+						<input type="hidden" name="_csrf" value="00000000-0000-0000-0000-000000000000" />
+						<input type="hidden" name="aplcType" id="subHeadre_aplcType" value="" />
+	                    <label for="subHeader_searchKeyword"><span class="blind">검색어 입력</span></label>
+	                    <input type="text" name="searchKeyword" id="subHeader_searchKeyword" class="sch_ipt" placeholder="검색어를 입력해주세요."/>
+	                    <button type="button" class="sch_btn" onclick="gfn_subHeader_search()"><span>검색</span></button>
+                    </form>
+                </div>
+                <dl>
+                    
+                    <dt># 어떤 지원사업을 찾으세요?</dt>
+                    <dd>
+                        <ul class="sch_list" id="subHeader_sch_list">
+                        </ul>
+                    </dd>
+                </dl>
+            </div>
+            <div id="lnb">
+                <div class="container">
+                    <ul>
+                        <li class="home"><span>메인</span></li>
+                        <li class="1dep"><span>용인시 지원사업</span></li>
+                        <li class="2dep">
+                            <a href="#none" title="2번째 메뉴 바로가기">용인시 지원사업</a>
+                            <ul class="dropdown">
+                                <li><a href="#">지원사업 공고</a></li>
+                                <li><a href="#">유관기관 사업공고</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <span class="icon_btn">
+                        <button class="print"><span class="blind">인쇄</span></button>
+                        <button class="share"><span class="blind">공유</span></button>
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+        	$(document).ready(function(){
+        		$(".2dep > ul >li").remove();
+        		$.each($("#gnb").find("a"),function(){
+        			if($(this).html() == "용인시 지원사업"){
+        				$(".1dep").html("<span>"+$(this).parent().parent().parent().find(">a").html()+"</span>");
+        				$(".2dep > ul").append($(this).parent().parent().find(">li").clone());
+        			}
+        		})
+        		
+        		
+        	});
+        </script>
+	<section class="py-5">
+		<div class="container">
+
+			<h3 id="subTitle" class="mt50">「2026년 용인시 일자리창출 우수기업 인증제 시행계획」공고</h3>
+
+			
+				<div style="border-bottom: 1px solid #ccc;margin-bottem:50px;padding: 20px;background: #fafafa;border-bottom: 1px solid #eee;">
+
+					
+						<div style="border-top: 1px solid #ccc;">
+							<!-- <span style="border-right:1px solid #ccc;padding-right:50px;font-size:20px;font-weight: bold;">첨부파일</span> -->
+							<h3 id="subTitle" class="mt50" style="font-size: 30px;margin-bottom: 20px;margin-top: 20px;text-align: left;">첨부파일 목록</h3>
+							<div class="appFileDiv">
+								
+									
+									
+								
+
+
+
+
+
+<script type="text/javascript">
+	function fn_egov_downFile(atchFileId, fileSn){
+		window.open("/FileDown.do?atchFileId="+atchFileId+"&fileSn="+fileSn+"");
+	}	
+	
+	function fn_egov_deleteFile(atchFileId, fileSn) {
+		forms = document.getElementsByTagName("form");
+
+		for (var i = 0; i < forms.length; i++) {
+			if (typeof(forms[i].atchFileId) != "undefined" &&
+					typeof(forms[i].fileSn) != "undefined" &&
+					typeof(forms[i].fileListCnt) != "undefined") {
+				form = forms[i];
+			}
+		}
+		//form = document.forms[0];
+		form.atchFileId.value = atchFileId;
+		form.fileSn.value = fileSn;
+		form.action = "/cmm/fms/deleteFileInfs.do";
+		form.submit();
+	}
+	
+	function fn_egov_deleteProFile(atchFileId, fileSn, streFileNm) {
+		$("#atchFileId").val(atchFileId);
+		$("#streFileNm").val(streFileNm);
+		$("#fileSn").val(fileSn);
+		form.action = "/deleteProFileInf.do?_csrf=00000000-0000-0000-0000-000000000000";
+		form.submit();		
+	}
+	
+	function fn_egov_check_file(flag) {
+		if (flag=="Y") {
+			document.getElementById('file_upload_posbl').style.display = "block";
+			document.getElementById('file_upload_imposbl').style.display = "none";			
+		} else {
+			document.getElementById('file_upload_posbl').style.display = "none";
+			document.getElementById('file_upload_imposbl').style.display = "block";
+		}
+	}
+</script>
+
+
+      
+<!-- <form name="fileForm" action="" method="post" >  -->
+<input type="hidden" id="atchFileId" name="atchFileId" value="FILE_000000000230380">
+<input type="hidden" id="fileSn" name="fileSn" >
+<input type="hidden" id="streFileNm" name="streFileNm" value="">
+<input type="hidden" name="fileListCnt" value="3">
+      	
+	       
+		       
+		       
+		       
+			       <a href="#LINK" onclick="javascript:fn_egov_downFile('FILE_000000000230380','2')">
+			       『2026년 용인시 일자리창출 우수기업 인증제 시행계획』 공고.hwpx&nbsp;[71098&nbsp;byte]
+			       </a>
+		       
+	       
+	       <br/>
+        
+	       
+		       
+		       
+		       
+			       <a href="#LINK" onclick="javascript:fn_egov_downFile('FILE_000000000230380','1')">
+			       (붙임1) 『2026년 일자리창출 우수기업 인증제』 심사항목 및 점수표.hwpx&nbsp;[67586&nbsp;byte]
+			       </a>
+		       
+	       
+	       <br/>
+        
+	       
+		       
+		       
+		       
+			       <a href="#LINK" onclick="javascript:fn_egov_downFile('FILE_000000000230380','0')">
+			       (붙임2) 『2026년 일자리창출 우수기업 인증제』 신청서식.hwpx&nbsp;[385273&nbsp;byte]
+			       </a>
+		       
+	       
+	       <br/>
+        
+        
+      
+							</div>
+						</div>
+					
+					
+
+
+				</div>
+			
+
+			<div class="mb50" style="padding-top: 50px; overflow-x: scroll;">
+				<p style="letter-spacing: -0.8px;">지역 일자리 창출에 기여한 고용 우수기업을 선발하는 「2026년 용인시 일자리창출 우수기업 인증제」를 다음과 같이 공고하오니 관내 기업의 많은 관심과 참여를 부탁드립니다.</p><p style="letter-spacing: -0.8px;"><br></p><p style="letter-spacing: -0.8px;">○ 신청기간  :  2026. 9. 1.(화) ~ 9. 30.(수)</p><p style="letter-spacing: -0.8px;"><br></p><p style="letter-spacing: -0.8px;">○ 신청자격  :  1년 이상 용인시에 주소를두고 2년이상 정상 가동중인 중소기업 (세부기준 공고문 참조)</p><p style="letter-spacing: -0.8px;"><br></p><p style="letter-spacing: -0.8px;">○ 접수방법 : 전자우편 또는 용인기업지원시스템 접수</p><p style="letter-spacing: -0.8px;"><br></p><p style="letter-spacing: -0.8px;">※ 신청서 및 구비서류 등 자세한 사항은 공고문 참조</p><p style="letter-spacing: -0.8px;">※ 문의처 : 용인시 일자리정책과 일자리정책팀(☎031-6193-3852)</p>
+			</div>
+				
+		</div>
+	</section>
+</div>
+
+
+<footer id="footer">
+            <div class="ft_utill">
+                <div class="container">
+                    <ul class="ft_link">
+                        <li><a href="/page.do?site=10&id=56" title="새창열림">이용약관</a></li>
+                        <li><a href="/page.do?site=10&id=57" title="새창열림"><strong>개인정보처리방침</strong></a></li>
+                        <li><a href="/page.do?site=10&id=58" title="새창열림">이메일무단수집거부</a></li>
+                        <li><a href="/page.do?site=10&id=53">오시는길</a></li>
+                    </ul>
+                    <ul class="ft_sns">
+                        <li><a href="https://www.facebook.com/yonginypa" target="_blank"><img src="/images/sns_icon_face.png" alt="용인기업지원시스템 공식 페이스북"></a></li>
+                        <li><a href="https://www.instagram.com/yonginypa" target="_blank"><img src="/images/sns_icon_instar.png" alt="용인기업지원시스템 공식 인스타그램"></a></li>
+                        <li><a href="https://www.youtube.com/channel/UCH9fmwPkRaEBYOuRLIzi1iA" target="_blank"><img src="/images/sns_icon_youtube.png" alt="용인기업지원시스템 공식 유튜브"></a></li>
+                        <li><a href="https://blog.naver.com/yongindipa" target="_blank"><img src="/images/sns_icon_blog.png" alt="용인기업지원시스템 공식 블로그"></a></li>
+                        <li><a href="https://pf.kakao.com/_UzDqb" target="_blank"><img src="/images/sns_icon_kakao.png" alt="용인기업지원시스템 공식 카카오"></a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="ft_con">
+                <div class="container">
+                    <ul class="address">
+                        <li><span>(우)17057 경기도 용인시 처인구 명지로 15-20(김량장동)</span> | <span>Tel. 031-323-4643</span> | <span>Fax. 031-323-3054</span> | <span>문의메일 info@ypa.or.kr</span></li>
+                        <li class="copyright">COPYRIGHT©YONGIN INDUSTRY PROMOTION AGENCY ALL RIGHTS RESERVED</li>
+                    </ul>
+                    <!-- <div class="cscenter">
+                        <dl>
+                            <dt>고객센터</dt>
+                            <dd>031.323.4643</dd>
+                        </dl>
+                        <ul>
+                            <li>월~금 09:00 ~ 18:00</li>
+                            <li>법정공휴일 휴무</li>
+                        </ul>
+                    </div> -->
+                </div>
+            </div>
+        </footer>
+</body>
+</html>
+

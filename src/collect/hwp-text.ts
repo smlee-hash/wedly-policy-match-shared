@@ -4,7 +4,8 @@
 import { parse as parseCfb } from "cfb";
 import { crc32, inflateRawSync } from "node:zlib";
 
-const MAX_INPUT_BYTES = 10 * 1024 * 1024;
+// 그림이 많은 한글 공고가 10MB 를 넘는다(앱은 첨부를 20MB 까지 받는다).
+const MAX_INPUT_BYTES = 20 * 1024 * 1024;
 const MAX_SECTIONS = 128;
 const MAX_RECORDS = 200_000;
 const MAX_DECODED_BYTES = 16 * 1024 * 1024;
@@ -51,21 +52,41 @@ export function extractHwpText(buf: Buffer): string {
   }
 }
 
-function extractHwpTextOrEmpty(buf: Buffer): string {
-  if (buf.length > MAX_INPUT_BYTES) return "";
-  if (!hasOleSignature(buf)) return "";
+/**
+ * 암호·배포용·DRM·인증서 보호 한글인지. 본문을 못 뽑은 까닭을 가르는 데 쓴다.
+ * 본문 추출과 같은 길로 FileHeader 를 읽고, 형식이 아니거나 깨졌으면 거짓이다(던지지 않는다).
+ */
+export function isProtectedHwp(buf: Buffer): boolean {
+  try {
+    const opened = openHwp(buf);
+    return opened !== null && (opened.flags & FLAG_PROTECTED) !== 0;
+  } catch {
+    return false;
+  }
+}
+
+/** OLE 서명 → CFB → 줄기 → FileHeader(길이·서명·버전)까지 확인하고 플래그와 줄기를 돌려준다. 하나라도 아니면 null. */
+function openHwp(buf: Buffer): { streams: Map<string, Buffer>; flags: number } | null {
+  if (!hasOleSignature(buf)) return null;
   const cfb = parseCfbFile(buf);
-  if (!cfb) return "";
+  if (!cfb) return null;
   const streams = rootStreams(cfb);
-  if (!streams) return "";
+  if (!streams) return null;
 
   const headerBuf = streams.get("FileHeader");
-  if (!headerBuf || headerBuf.length !== FILE_HEADER_BYTES) return "";
+  if (!headerBuf || headerBuf.length !== FILE_HEADER_BYTES) return null;
   const header = headerBuf.subarray(0, FILE_HEADER_BYTES);
-  if (!header.subarray(0, FILE_HEADER_SIGNATURE.length).equals(Buffer.from(FILE_HEADER_SIGNATURE, "ascii"))) return "";
-  if (header.subarray(FILE_HEADER_SIGNATURE.length, 32).some(byte => byte !== 0)) return "";
-  if (header[35] !== HWP5_MAJOR) return "";
-  const flags = header.readUInt32LE(36);
+  if (!header.subarray(0, FILE_HEADER_SIGNATURE.length).equals(Buffer.from(FILE_HEADER_SIGNATURE, "ascii"))) return null;
+  if (header.subarray(FILE_HEADER_SIGNATURE.length, 32).some(byte => byte !== 0)) return null;
+  if (header[35] !== HWP5_MAJOR) return null;
+  return { streams, flags: header.readUInt32LE(36) };
+}
+
+function extractHwpTextOrEmpty(buf: Buffer): string {
+  if (buf.length > MAX_INPUT_BYTES) return "";
+  const opened = openHwp(buf);
+  if (!opened) return "";
+  const { streams, flags } = opened;
   if ((flags & FLAG_PROTECTED) !== 0) return "";
   const compressed = (flags & FLAG_COMPRESSED) !== 0;
 

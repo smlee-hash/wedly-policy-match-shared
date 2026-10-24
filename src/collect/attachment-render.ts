@@ -5,7 +5,7 @@
  * 밀어내면 그 앞 파일에도 잘림 표식을 남긴다. 반복은 파일 수를 넘지 않는다.
  */
 
-export type PieceKind = "heading" | "body" | "preview" | "unverified" | "fail" | "blocked" | "skipped";
+export type PieceKind = "heading" | "body" | "preview" | "unverified" | "fail" | "blocked" | "skipped" | "variant";
 
 export type TextPiece = {
   kind: PieceKind;

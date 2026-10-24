@@ -61,6 +61,9 @@ export const cbaConfig: BoardConfig = {
   },
   customParse: (html) => parseCbaList(html),
   detailContentSelector: ".substance",
+  // 2026-10-01 실측: 옆 메뉴 「중소기업 지원시책」 전자책 `/ebook/…/pages.pdf` 가 모든 글의 첨부로 잡혔다.
+  // 첨부 칸(`td.txt_left`)·본문(`.substance`)으로 좁힌다.
+  attachmentsScopeSelector: "td.txt_left, .substance",
   // 고정 공지 중복을 지운 뒤 한 쪽에 15건 안팎. 고정 공지가 늘면 더 줄 수 있어 8.
   expectMinRows: 8,
 };

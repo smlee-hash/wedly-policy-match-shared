@@ -59,6 +59,10 @@ export const exportvoucherConfig: BoardConfig = {
   customParse: (html) => parseExportvoucherList(html, exportvoucherConfig),
   // w3-ev-detail.html 실측: 본문은 div.bbsCon (제목·등록일은 div.bbsInfo, 바깥은 article#contents).
   detailContentSelector: "div.bbsCon",
+  // 2026-10-01 실측: 화면 고정 메뉴 「정산가이드」·바닥글 「관리지침」이 모든 글의 첨부로 잡혔다. 첨부 칸 `div.file` 로 좁힌다.
+  // 진짜 첨부는 이 칸 안에서 스크립트로 불러와 쪽 HTML 에 없다(0건이 맞다).
+  // `attachmentsScopeRequired` 는 켜지 않는다 — 첨부 없는 글은 칸이 비어도 정상이다.
+  attachmentsScopeSelector: "div.file",
   // ★정정(적대 리뷰 ③). 앞서 「한 쪽에 2건만 남으면 검증이 걸려 뒷쪽을 포기한다」고 적고 1로 내렸는데
   //   **사실이 아니었다** — 뒤 페이지 검증(`collectLaterPages`)은 expectMinRows 를 아예 안 넘긴다.
   //   이 값은 1쪽 관문에만 쓰이고, `1` 은 `validate.ts` 에서 0·미지정과 동작이 같아 서식 변경 감지를

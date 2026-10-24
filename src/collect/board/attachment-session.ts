@@ -1,6 +1,7 @@
 // 첨부 내려받기에 상세 세션(쿠키)·Referer 가 필요한 게시판을 위한 요청 감싸개.
 import type { AttachmentFetch } from "../attachment-text";
 import { allowedHostsOf } from "./engine";
+import { withBrowserIdentity } from "./fetch-identity";
 import { markProxyTransportError } from "./proxy";
 import { cookieHeaderFor, cookieJarAbsorb, mergeCookieHeader, setCookieValuesOf, type CookieJar } from "./registry";
 import type { BoardConfig } from "./types";
@@ -98,6 +99,11 @@ function warmupFailed(reason: string): Error {
   return markProxyTransportError(new Error(`[attachment-session] 상세 세션을 받지 못했다: ${reason}`));
 }
 
+/** 사전 호출 실패도 **통로 탓**이다 — 첨부는 부르지 않고, 원본 메시지는 안 쓴다(경유 주소·쿠키가 섞일 수 있다). */
+function precallFailed(reason: string): Error {
+  return markProxyTransportError(new Error(`[attachment-session] 사전 호출 실패: ${reason}`));
+}
+
 /** 원인 한 마디. DOMException 은 `code` 가 숫자라 `name`(TimeoutError·AbortError)을 쓴다. */
 function reasonOf(e: unknown): string {
   const rec = (e ?? {}) as { code?: unknown; name?: unknown; cause?: { code?: unknown } };
@@ -136,7 +142,7 @@ async function warmupCookieJar(
       const cookie = cookieHeaderFor(jar, target);
       if (cookie) headers.Cookie = cookie;
       if (referer) headers.Referer = referer;
-      res = await baseFetch(target, { signal, redirect: "manual", headers });
+      res = await baseFetch(target, { signal, redirect: "manual", headers: withBrowserIdentity(headers) });
     } catch (e) {
       // 시간초과·연결 실패·경유 죽음 — 전부 「우리가 세션을 못 얻었다」다.
       throw warmupFailed(reasonOf(e));
@@ -177,6 +183,7 @@ async function warmupCookieJar(
  * 쿠키는 **이 함수가 만든 감싸개 하나당 한 번만** 데운다. 부르는 쪽이 공고 한 줄마다 새로 만들므로
  * 곧 「한 줄에 한 번」이고, 그 줄의 첨부 여러 개는 같은 쿠키를 나눠 쓴다. 데우기가 실패하면
  * **그 줄의 첨부 요청이 전부** 통로 탓 오류로 떨어진다(재시도는 1시간 뒤).
+ * 첨부·사전 호출 응답이 준 쿠키도 같은 항아리에 담겨 그 줄의 다음 요청에 실린다.
  */
 export function sessionAttachmentFetch(
   cfg: BoardConfig | undefined,
@@ -193,7 +200,7 @@ export function sessionAttachmentFetch(
   const referer = session.referer === "detail" ? safeDetail : (session.referer ?? "");
   const warmup = session.warmup === "detail" && !!safeDetail;
   // 붙일 것이 하나도 없으면 감싸지 않는다 — 예전 통로 그대로가 낫다.
-  if (!warmup && !referer) return undefined;
+  if (!warmup && !referer && !session.precall) return undefined;
 
   // 토큰은 **데우기가 켜져 있을 때만** 쓸 수 있다 — 쿠키와 같은 응답에서 나와야 짝이 맞는다.
   const csrf = warmup ? session.csrf : undefined;
@@ -217,7 +224,34 @@ export function sessionAttachmentFetch(
   };
 
   return async (url, init) => {
-    const { jar, html } = await warmupOf(init?.signal instanceof AbortSignal ? init.signal : undefined);
+    const callerSignal = init?.signal instanceof AbortSignal ? init.signal : undefined;
+    const { jar, html } = await warmupOf(callerSignal);
+    // 사전 호출 — 서버가 「받을 파일」을 기억하고 세션 쿠키를 주는 곳(부산TP). 서버가 마지막 호출만 기억하므로
+    // 기억해 두지 않고 첨부 요청마다 부르고, 데우기가 있으면 그 뒤에 부른다.
+    const preUrl = session.precall?.(url) ?? null;
+    if (preUrl) {
+      if (!isAllowedUrl(preUrl, allowed)) {
+        console.warn("[attachment-session] 사전 호출 주소가 허용 호스트가 아니다", cfg.id, preUrl);
+      } else {
+        const preHeaders: Record<string, string> = {};
+        if (referer) preHeaders.Referer = referer;
+        const preCookie = cookieHeaderFor(jar, preUrl);
+        if (preCookie) preHeaders.Cookie = preCookie;
+        let pre: Response;
+        try {
+          pre = await baseFetch(preUrl, {
+            signal: callerSignal ?? AbortSignal.timeout(WARMUP_TIMEOUT_MS),
+            redirect: "manual",
+            headers: withBrowserIdentity(preHeaders),
+          });
+        } catch (e) {
+          throw precallFailed(reasonOf(e));
+        }
+        if (pre.headers) cookieJarAbsorb(jar, preUrl, setCookieValuesOf(pre.headers));
+        await pre.body?.cancel().catch(() => {});
+        if (pre.status < 200 || pre.status >= 300) throw precallFailed(`HTTP ${pre.status}`);
+      }
+    }
     const headers = normalizeHeaders(init?.headers);
     const refKey = headerKeyOf(headers, "referer");
     if (referer && !refKey) headers.Referer = referer;
@@ -241,7 +275,10 @@ export function sessionAttachmentFetch(
       }
       body = withCsrfField(init, got.field || csrf.field, got.token);
     }
-    return baseFetch(url, body === undefined ? { ...init, headers } : { ...init, headers, body });
+    const res = await baseFetch(url, body === undefined ? { ...init, headers } : { ...init, headers, body });
+    // 첨부 응답이 준 쿠키도 항아리에 담아 같은 줄의 다음 첨부에 싣는다. 응답은 그대로 돌려준다.
+    if (res.headers) cookieJarAbsorb(jar, url, setCookieValuesOf(res.headers));
+    return res;
   };
 }
 

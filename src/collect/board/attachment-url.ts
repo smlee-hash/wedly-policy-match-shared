@@ -90,3 +90,19 @@ function percentEncodeEucKr(text: string): string | null {
   }
   return out;
 }
+
+/** 옛 수확기가 `&para…=` 를 「¶」로 풀어 굳힌 자리. 뒤가 「영문·숫자·밑줄 … =」일 때만 — 아니면 euc-kr 이름 조각일 수 있다. */
+const BROKEN_PARA = /(?:%C2%B6|¶)(?=[A-Za-z0-9_]*=)/gi;
+/** 용인시산업진흥원(ybs.ypa.or.kr)의 eGov 표준 첨부 경로. */
+const YPA_EGOV_PATH = /^(https?:\/\/ybs\.ypa\.or\.kr)\/cmm\/fms\/FileDown\.do(?=[?#]|$)/i;
+
+/**
+ * 이미 저장된 첨부 주소를 읽을 때 되살린다(2026-10-01 운영 실측). 순수·멱등이고, 고칠 것이 없으면 받은 글자 그대로다.
+ *  · 물음표 뒤 `%C2%B6mMenuId=` → `&paramMenuId=` (보건산업진흥원 352건·에너지기술평가원 217건). 경로는 안 건드린다.
+ *  · ybs.ypa.or.kr `/cmm/fms/FileDown.do` → `/FileDown.do` (표준 경로는 200 + 0바이트, 실제 경로만 파일을 준다).
+ */
+export function repairStoredAttachmentUrl(url: string): string {
+  const q = url.indexOf("?");
+  const params = q < 0 ? url : url.slice(0, q + 1) + url.slice(q + 1).replace(BROKEN_PARA, "&para");
+  return params.replace(YPA_EGOV_PATH, "$1/FileDown.do");
+}

@@ -47,5 +47,7 @@ export const jbbaConfig: BoardConfig = {
   customParse: (html) => parseJbbaList(html, jbbaConfig),
   // 본문(#bo_v_con)이 빈 공고가 있다 — 지원대상·일정은 스킨의 정보 표(.tbl_frs01)에 있다(적대 리뷰).
   detailContentSelector: ".tbl_frs01, #bo_v_con",
+  // 2026-10-01 실측: 상세를 한 번 GET 해 받은 세션이 있어야 첨부를 준다(Referer 도 함께).
+  attachmentSession: { warmup: "detail", referer: "detail" },
   expectMinRows: 5,
 };

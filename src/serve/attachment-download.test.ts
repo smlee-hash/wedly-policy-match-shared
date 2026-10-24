@@ -152,6 +152,24 @@ describe("갈래 — GET 은 그대로, POST 만 대신 받는다", () => {
     expect(wrapMock).not.toHaveBeenCalled();
   });
 
+  /**
+   * ★저장 주소가 망가진 GET 첨부(2026-10-01 운영 실측 — 보건산업진흥원 `&paramMenuId` 가 「¶」로 풀려
+   * `%C2%B6mMenuId=` 로 저장됨)는 **되살린 주소로** 보낸다. 본문이 찬 줄은 다시 수확하지 않으므로
+   * 저장 JSON 을 읽는 자리(`asPolicyAttachments`)가 고친다 — 여기서 그 길을 그대로 탄다.
+   */
+  it("★GET 첨부의 저장 주소가 `%C2%B6` 으로 망가져 있으면 되살린 주소로 302", async () => {
+    const bad = "https://www.khidi.or.kr/fileDownload?titleId=531733&fileId=1&fileDownType=C%C2%B6mMenuId=MENU01108";
+    findUnique.mockResolvedValue(
+      row([{ name: "공고문.pdf", url: bad, kind: "pdf" }], "khidi", "https://www.khidi.or.kr/board/view?linkId=1"),
+    );
+    const res = await call("a1", "0");
+    expect(res).toEqual({
+      kind: "redirect",
+      status: 302,
+      url: "https://www.khidi.or.kr/fileDownload?titleId=531733&fileId=1&fileDownType=C&paramMenuId=MENU01108",
+    });
+  });
+
   it("★POST 첨부는 감싸개(세션·경유 훅)를 거쳐 method·body 그대로 나간다", async () => {
     findUnique.mockResolvedValue(row([postAtt]));
     const send = vi.fn(async (_u: string, _init?: RequestInit) =>
