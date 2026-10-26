@@ -322,3 +322,64 @@ describe("기준 공고 고정본 — 서울 도봉구 양말 임가공 7명(NO.
     expect(judge(JANGWI, busan).verdict).toBe("excluded");
   });
 });
+
+describe("리뷰 review-29a732f5 P2 — 규모 포함 관계·채용 지원금·범위 상한·걸림돌 중복(NO.585 2·3절)", () => {
+  const scaleCheck = (value: string[], verdict: "pass" | "fail"): ConditionCheck => ({
+    condition: { key: "companyScale", op: "in", value, rawText: value.join("·"), machineReadable: true },
+    verdict,
+    note: verdict === "fail" ? `대상: ${value.join("·")}` : "",
+  });
+
+  it("규모를 「소상공인」으로 적은 고객도 중소기업·우선지원대상기업 공고(S-OJT) 대상이다", () => {
+    const r = judge(S_OJT, { ...SOCKS, companyScale: "소상공인" });
+    expect(r.verdict).toBe("fit");
+    expect(r.step).toBe(1);
+  });
+
+  it("「중소기업」이라 적었어도 직원 수·매출이 소상공인이면 소상공인 공고 대상이다", () => {
+    const r = reviewEligibility(base({ profile: { ...SOCKS, companyScale: "중소기업" }, checks: [scaleCheck(["소상공인"], "fail")] }));
+    expect(r.verdict).toBe("fit");
+  });
+
+  it("「중소기업」이라 적은 매출 200억 고객은 글자가 겹쳐도 소기업 공고 대상이 아니다", () => {
+    const big = { ...SOCKS, companyScale: "중소기업", employeeCount: 80, lastYearRevenueKrw: 20_000_000_000 };
+    expect(reviewEligibility(base({ profile: big, checks: [scaleCheck(["소기업"], "pass")] })).verdict).toBe("excluded");
+  });
+
+  it("「중견기업」이라 적은 큰 회사는 소상공인 공고 대상이 아니다", () => {
+    const big = { ...SOCKS, companyScale: "중견기업", employeeCount: 300, lastYearRevenueKrw: 100_000_000_000 };
+    expect(reviewEligibility(base({ profile: big, checks: [scaleCheck(["소상공인"], "fail")] })).verdict).toBe("excluded");
+  });
+
+  it.each([
+    "방위산업 중소기업 신규직원 채용 지원사업 참여기업 모집",
+    "청년 정규직 채용 장려금 신청 안내",
+    "중소기업 신규채용 인건비 지원",
+  ])("고용지원금 공고 「%s」는 남긴다", (title) => {
+    expect(nonBenefitReason(title)).toBeNull();
+  });
+
+  it.each(["○○공단 신규직원 채용 공고", "중소기업 지원사업 담당 직원 채용"])("구인 글 「%s」는 뺀다", (title) => {
+    expect(nonBenefitReason(title)).not.toBeNull();
+  });
+
+  it("「상시근로자 5인 이상 50인 미만」은 위 경계도 본다 — 120명 고객은 안 맞음, 7명 고객은 맞음", () => {
+    const text = ["상시근로자 5인 이상 50인 미만 기업"];
+    expect(reviewEligibility(base({ profile: { ...SOCKS, employeeCount: 120 }, humanCheckTexts: text })).verdict).toBe("excluded");
+    expect(reviewEligibility(base({ humanCheckTexts: text })).verdict).toBe("fit");
+  });
+
+  it("「업력 3년 이상 7년 미만」은 위 경계도 본다 — 업력 26년 고객은 안 맞음", () => {
+    expect(reviewEligibility(base({ humanCheckTexts: ["업력 3년 이상 7년 미만 기업"] })).verdict).toBe("excluded");
+  });
+
+  it("체납 문장이 여럿이어도 걸림돌 「체납 정리 필요」는 한 번만 센다", () => {
+    const many: Fixture = {
+      ...S_OJT,
+      structure: { ...S_OJT.structure, humanCheck: ["국세 체납이 없는 자", "지방세 체납이 없는 자"] },
+    };
+    const r = judge(many, { ...SOCKS, taxDelinquent: true });
+    expect(r.obstacles).toEqual(["체납 정리 필요"]);
+    expect(r.step).toBe(4);
+  });
+});

@@ -116,17 +116,37 @@ export function scaleFactOf(name: string, p: BusinessProfile, now: Date): ScaleF
   }
 }
 
+export type ScaleVerdict = { verdict: "pass" | "fail" | "unknown"; unknownNames: string[] };
+
 /**
  * 규모 조건(companyScale in [...]) 판정 — 하나라도 해당하면 pass, 모두 해당 안 하면 fail, 그 밖은 unknown.
- * 고객이 규모를 직접 적었으면(profile.companyScale) 이 함수를 쓰지 않는다 — 그 값이 먼저다.
+ * 고객이 규모를 직접 적었으면(profile.companyScale) `declaredScaleVerdict` 가 먼저 본다.
  */
-export function companyScaleVerdict(
-  values: readonly string[],
-  p: BusinessProfile,
-  now: Date,
-): { verdict: "pass" | "fail" | "unknown"; unknownNames: string[] } {
+export function companyScaleVerdict(values: readonly string[], p: BusinessProfile, now: Date): ScaleVerdict {
   const facts = values.map((v) => ({ name: v, fact: scaleFactOf(v, p, now) }));
   if (facts.some((f) => f.fact === "yes")) return { verdict: "pass", unknownNames: [] };
   if (facts.length > 0 && facts.every((f) => f.fact === "no")) return { verdict: "fail", unknownNames: [] };
   return { verdict: "unknown", unknownNames: facts.filter((f) => f.fact !== "no").map((f) => f.name) };
+}
+
+/** 고객이 적은 규모가 들어가는 규모 이름 — 소공인 ⊂ 소상공인 ⊂ 소기업 ⊂ 중소기업(= 우선지원대상기업). */
+const DECLARED_WITHIN: Record<string, readonly string[]> = {
+  소공인: ["소공인", "소상공인", "소기업", "중소기업", "우선지원대상기업"],
+  소상공인: ["소상공인", "소기업", "중소기업", "우선지원대상기업"],
+  소기업: ["소기업", "중소기업", "우선지원대상기업"],
+  중소기업: ["중소기업", "우선지원대상기업"],
+  중견기업: ["중견기업"],
+};
+
+/**
+ * 고객이 규모를 직접 적었을 때의 규모 조건 판정(리뷰 review-29a732f5 P2) — 글자 겹침이 아니라 포함 관계로 본다.
+ * 적은 규모가 공고 대상 안에 들면 통과(소상공인은 중소기업 공고 대상이다). 아니면 직원 수·매출로 다시 본다
+ * (「중소기업」이라 적은 5인 미만 회사도 소상공인 공고 대상이고, 매출 200억 회사는 「소기업」 글자가 겹쳐도 아니다).
+ * 적은 이름이 표에 없으면(예비창업자 등) null — 부르는 쪽이 하던 대로 판정한다.
+ */
+export function declaredScaleVerdict(values: readonly string[], p: BusinessProfile, now: Date): ScaleVerdict | null {
+  const within = DECLARED_WITHIN[(p.companyScale ?? "").replace(/\s+/g, "")];
+  if (!within) return null;
+  if (values.some((v) => within.some((w) => v.replace(/\s+/g, "").includes(w)))) return { verdict: "pass", unknownNames: [] };
+  return companyScaleVerdict(values, p, now);
 }

@@ -1532,6 +1532,18 @@ describe("정밀 맞음 — 상품을 같은 이름 공고에 접을 때(리뷰 
     expect(item).toBeDefined();
     expect(item!.fitVerdict).not.toBe("fit");
   });
+
+  it("상품에 걸림돌만 남았으면 공고도 걸림돌(4단계)로 내린다 — 「확인할 것」으로 섞지 않는다(리뷰 review-29a732f5 P3)", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({ id: "tw3", title: "소상공인 경영안정 자금", agency: "소진공", structureStatus: "done",
+        structure: { ...EMPTY_RULE, regionScope: "all", industryScope: "all", conditions: [{ key: "employeeMax", op: "lte", value: 50, rawText: "50인 이하", machineReadable: true }] } }),
+    ]);
+    productFindMany.mockResolvedValue([prod({ id: "pt", name: "소상공인 경영안정 자금", institution: "소진공", targetRules: { humanCheck: ["국세 체납이 없는 자"] } })]);
+    const data = await buildFundingMap({ employeeCount: 10, region: "서울", taxDelinquent: true } as BusinessProfile, NOW, { filters: { includeExcluded: true } });
+    const item = itemsOf(data.groups).find((x) => x.id === "a:tw3");
+    expect(item).toMatchObject({ fitVerdict: "unverified", step: 4, obstacles: ["체납 정리 필요"] });
+    expect(item!.toCheck ?? []).not.toContain("체납 정리 필요");
+  });
 });
 
 describe("상품 접기 — 공고를 안 맞음으로 끌어내리지 않는다(리뷰 review-8c467476 P1-4)", () => {

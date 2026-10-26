@@ -875,19 +875,21 @@ function twinKeyOf(it: FundingItem): string {
 /** 같은 이름·기관 상품이 「맞음」이 아니면 공고도 「맞음」이 아니다(최대 확인 필요로만 내린다). */
 function downgradeFitTwins(items: FundingItem[]): void {
   const productVerdict = new Map<string, FitVerdict>();
-  const productChecks = new Map<string, string[]>();
+  // 확인할 것과 걸림돌은 따로 넘긴다 — 섞으면 걸림돌만 남은 공고가 4단계가 아니라 5단계가 된다(리뷰 review-29a732f5 P3).
+  const productChecks = new Map<string, { toCheck: string[]; obstacles: string[] }>();
   for (const it of items) {
     if (it.kind !== "product") continue;
     const key = twinKeyOf(it);
     if (key && it.fitVerdict !== "fit") {
       productVerdict.set(key, it.fitVerdict);
-      productChecks.set(key, [...(it.toCheck ?? []), ...(it.obstacles ?? [])]);
+      productChecks.set(key, { toCheck: it.toCheck ?? [], obstacles: it.obstacles ?? [] });
     }
   }
   if (productVerdict.size === 0) return;
   for (const it of items) {
     if (it.kind === "announcement" && it.fitVerdict === "fit" && productVerdict.has(twinKeyOf(it))) {
-      markUnverified(it, productChecks.get(twinKeyOf(it)) ?? []);
+      const twin = productChecks.get(twinKeyOf(it));
+      markUnverified(it, twin?.toCheck ?? [], twin?.obstacles ?? []);
     }
   }
 }

@@ -9,7 +9,7 @@
 //    고칠 수 있는 걸림돌(체납·인증·특허)만 어긋나면 안 맞음이 아니라 걸림돌로 둔다.
 //  · 지원 가능(fit) — 확인할 조건이 모두 고객 정보로 확인됐고 어긋난 것이 없다.
 // 단계: 1 무상(자부담 없음) · 2 자부담 있음 · 3 융자·보증·투자 · 4 걸림돌 · 5 확인 필요. 같은 단계 안은 마감 순(정렬은 funding-map).
-import { companyScaleVerdict, scaleFactOf } from "./company-scale";
+import { companyScaleVerdict, declaredScaleVerdict, scaleFactOf, type ScaleVerdict } from "./company-scale";
 import {
   businessAgeYears,
   canonicalRegion,
@@ -194,12 +194,20 @@ const OPERATOR_RECRUIT =
 const NOTICE_ONLY =
   /(?:변경|설립|등록|영업|선박\s*투자업)\s*인가|인가\s*(?:신청\s*사실\s*)?공고|이의\s*신청|(?:행정|입법)\s*예고|고시\s*(?:개정|제정|일부\s*개정)|지정\s*고시|보상\s*계획\s*공고|계획\s*예고|선보인다|선보여|밝혔다|현안\s*보고|결정\s*내용\s*공개|(?:지구|개발|실시)\s*계획\s*(?:\(\d+차\)\s*)?(?:변경\s*)?(?:\(\d+차\)\s*)?승인|지형\s*도면|도로\s*구역|당선작|미술\s*대전|일정\s*변경\s*(?:공지|안내)|부스\s*배치도|(?:임원|상임\s*이사|비상임\s*(?:이사|감사)|감사|심판관)[^,]{0,10}(?:공개\s*)?(?:모집|임용)|경계\s*변경/;
 
+/** NON_PROGRAM 의 구인 글 모양 낱말 — 아래 고용지원금 말과 함께 있으면 지원사업이다. */
+const HIRING_WORDS = /(?:직원|신규|경력|정규직|계약직)\s*채용|채용\s*공고/g;
+/** 고용지원금 공고의 말(「신규직원 채용 지원사업」·「정규직 채용 장려금」·「신규채용 인건비 지원」). */
+const HIRING_BENEFIT = /채용\s*(?:지원|장려)|인건비|장려금|지원금|보조금/;
+
 export function nonBenefitReason(title: string): string | null {
   const t = title ?? "";
   if (!t) return null;
-  if (NON_PROGRAM.test(t) || NOTICE_ONLY.test(t)) return "지원사업 공고가 아닌 글";
+  if (NOTICE_ONLY.test(t)) return "지원사업 공고가 아닌 글";
+  // 채용 말만 걸렸고 고용지원금 말이 있으면 살린다(리뷰 review-29a732f5 P2 — 실제 고용지원 공고가 숨었다).
+  const hiringAid = /채용/.test(t) && HIRING_BENEFIT.test(t) && !NON_PROGRAM.test(t.replace(HIRING_WORDS, " "));
+  if (NON_PROGRAM.test(t) && !hiringAid) return "지원사업 공고가 아닌 글";
   if (OPERATOR_RECRUIT.test(t)) return "운영기관·위원·강사 모집 글";
-  if (NON_BENEFIT.test(t) && !BENEFIT_HINT.test(t)) return "행사·포상·채용·교육 모집 글";
+  if (NON_BENEFIT.test(t) && !BENEFIT_HINT.test(t) && !hiringAid) return "행사·포상·채용·교육 모집 글";
   return null;
 }
 
@@ -335,6 +343,25 @@ function compareNumber(value: number, limit: number, cmp: string): boolean {
   }
 }
 
+/** 「5인 이상 50인 미만」·「3년 이상 ~ 7년 이하」의 두 번째 경계 — 첫 경계 바로 뒤에서만 읽는다. */
+const SECOND_BOUND = /^\s*(?:~|∼|-|–)?\s*(\d{1,4})\s*(?:명|인|년)?\s*(미만|이하|이상|초과|이내)/;
+
+function secondBoundOf(first: RegExpMatchArray, text: string): RegExpMatchArray | null {
+  return text.slice((first.index ?? 0) + first[0].length).match(SECOND_BOUND);
+}
+
+/** 범위 문장은 두 경계를 다 본다(리뷰 review-29a732f5 P2 — 첫 경계만 보고 상한 밖 고객을 통과시켰다). */
+function withinRange(value: number, first: RegExpMatchArray, text: string): boolean {
+  if (!compareNumber(value, Number(first[1]), first[2])) return false;
+  const second = secondBoundOf(first, text);
+  return !second || compareNumber(value, Number(second[1]), second[2]);
+}
+
+function rangeLabel(first: RegExpMatchArray, text: string, unit: string): string {
+  const second = secondBoundOf(first, text);
+  return `${first[1]}${unit} ${first[2]}${second ? ` ${second[1]}${unit} ${second[2]}` : ""}`;
+}
+
 /**
  * 조건 문장 하나 → 판단. `negated` 는 AI 가 「아니어야 하는 것」(other eq false)으로 정리한 조건이다.
  * 고객 정보로 가릴 수 있으면 pass/fail, 결격·안내면 ignore, 그 밖은 짧은 「확인할 것」.
@@ -414,7 +441,7 @@ export function judgeRequirementText(
   if (bizAge) {
     const age = businessAgeYears(p.foundedDate, now);
     if (age == null) return check("설립일 입력");
-    return compareNumber(age, Number(bizAge[1]), bizAge[2]) ? PASS : failOr(`업력 ${bizAge[1]}년 ${bizAge[2]}`);
+    return withinRange(age, bizAge, text) ? PASS : failOr(`업력 ${rangeLabel(bizAge, text, "년")}`);
   }
   // 소상공인 정의(제조업 10명·그 밖 5명) — 업종별 기준이 둘 다 적힌 문장.
   if (/10\s*명/.test(text) && /5\s*명/.test(text) && /근로자|직원|종업원/.test(text)) {
@@ -426,7 +453,7 @@ export function judgeRequirementText(
   const workers = text.match(WORKERS);
   if (workers) {
     if (p.employeeCount == null) return check("직원 수 입력");
-    return compareNumber(p.employeeCount, Number(workers[1]), workers[2]) ? PASS : failOr(`상시근로자 ${workers[1]}명 ${workers[2]}`);
+    return withinRange(p.employeeCount, workers, text) ? PASS : failOr(`상시근로자 ${rangeLabel(workers, text, "명")}`);
   }
   if (/소기업\s*(?:규모\s*)?기준|매출\s*액?\s*(?:등이)?\s*소기업/.test(text)) {
     const fact = scaleFactOf("소기업", p, now);
@@ -564,9 +591,20 @@ function regionValuesOutcome(c: ConditionCheck, p: BusinessProfile): Outcome {
   return { kind: "check", label: `지역 조건 확인(${shortText(values.join("·"), 16)})` };
 }
 
+function scaleOutcome(v: ScaleVerdict, values: readonly string[]): Outcome {
+  if (v.verdict === "pass") return { kind: "pass" };
+  if (v.verdict === "fail") return { kind: "fail", reason: `대상: ${values.join("·")}` };
+  return { kind: "check", label: `기업 규모: ${v.unknownNames.join("·")}` };
+}
+
 function reviewCheck(c: ConditionCheck, p: BusinessProfile, now: Date): Outcome {
   const key = c.condition.key;
   const raw = c.condition.rawText ?? "";
+  // 고객이 적은 규모는 글자 겹침이 아니라 포함 관계·직원 수·매출로 본다(리뷰 review-29a732f5 P2 — 「소상공인」 고객의 S-OJT).
+  if (key === "companyScale" && c.verdict !== "unknown") {
+    const declared = declaredScaleVerdict(valuesOf(c), p, now);
+    if (declared) return scaleOutcome(declared, valuesOf(c));
+  }
   if (c.verdict === "pass") {
     // 지역 통과라도 원문이 같은 시도의 다른 시군구만 적었으면 다른 지역이다(「서울 성북구 소재」).
     if (key === "region" && c.condition.origin !== "augmented" && (raw || valuesOf(c).length > 0)) {
@@ -595,10 +633,7 @@ function reviewCheck(c: ConditionCheck, p: BusinessProfile, now: Date): Outcome 
       return missing ? { kind: "check", label: missing } : regionValuesOutcome(c, p);
     case "companyScale": {
       if (p.companyScale) return missing ? { kind: "check", label: missing } : { kind: "check", label: `기업 규모: ${valuesOf(c).join("·")}` };
-      const v = companyScaleVerdict(valuesOf(c), p, now);
-      if (v.verdict === "pass") return { kind: "pass" };
-      if (v.verdict === "fail") return { kind: "fail", reason: `대상: ${valuesOf(c).join("·")}` };
-      return { kind: "check", label: `기업 규모: ${v.unknownNames.join("·")}` };
+      return scaleOutcome(companyScaleVerdict(valuesOf(c), p, now), valuesOf(c));
     }
     case "industry": {
       if (missing) return { kind: "check", label: missing };
@@ -787,7 +822,8 @@ export function reviewEligibility(input: EligibilityInput): EligibilityReview {
     }
     const j = judgeRequirementText(h, p, now);
     if (j.kind === "fail") exclude(j.reason);
-    else if (j.kind === "obstacle") obstacles.push(j.label);
+    // 같은 걸림돌(국세·지방세 체납 두 줄 …)은 한 번만 — 겹치면 메모가 반복되고 확인 무게가 부풀어 뒤로 밀린다(리뷰 review-29a732f5 P2).
+    else if (j.kind === "obstacle" && !obstacles.includes(j.label)) obstacles.push(j.label);
     else if (j.kind === "check") addCheck(j.label);
   }
 
