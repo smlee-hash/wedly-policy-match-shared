@@ -36,7 +36,8 @@ import {
 } from "../engine/match-engine";
 import { withRegionConditions } from "../engine/region-augment";
 import type { StructuredCondition } from "../engine/structure-types";
-import { fitVerdictOf, scoreOf, type FitVerdict } from "../engine/recommend-score";
+import { scoreOf, type FitVerdict } from "../engine/recommend-score";
+import { GENERIC_TO_CHECK, reviewEligibility, SCOPE_UNKNOWN_TO_CHECK, STEP_LABELS, unverifiedStep, type EligibilityReview } from "../engine/eligibility-review";
 import { rulesToConditions } from "../funding/products/rules-to-conditions";
 import { MANUAL_PRODUCTS } from "../funding/products/sources/manual";
 import type { ProductTargetRules } from "../funding/products/types";
@@ -313,6 +314,46 @@ function isNewSince(firstSeenAt: Date | null | undefined, now: Date): boolean {
 interface BuiltItem {
   item: FundingItem;
   gapLabels: string[];
+  /** 출처 기관의 지역만으로 안 맞음이 된 수집본 — 묶음이 버린다(`groupAnnouncements`). */
+  excludedBySourceOnly?: boolean;
+}
+
+/** 판정 결과 → 항목 칸. 빈 값은 싣지 않는다(응답 크기). */
+function reviewFields(r: EligibilityReview): Pick<FundingItem, "fitVerdict" | "step" | "stepLabel" | "copayText" | "toCheck" | "obstacles" | "excludeReason"> {
+  return {
+    fitVerdict: r.verdict,
+    ...(r.step != null ? { step: r.step, stepLabel: r.stepLabel } : {}),
+    ...(r.copayText ? { copayText: r.copayText } : {}),
+    ...(r.toCheck.length > 0 ? { toCheck: r.toCheck } : {}),
+    ...(r.obstacles.length > 0 ? { obstacles: r.obstacles } : {}),
+    ...(r.excludeReason ? { excludeReason: r.excludeReason } : {}),
+  };
+}
+
+/**
+ * 맞음 → 확인 필요로 내린다(같은 공고의 다른 수집본·같은 사업 상품에 확인이 남았을 때). 확인할 것을 이어 붙인다.
+ * 안 맞음·확인 필요는 건드리지 않는다 — 확인할 것만 보탠다.
+ */
+function markUnverified(it: FundingItem, toCheck: readonly string[], obstacles: readonly string[] = []): void {
+  if (it.fitVerdict === "excluded") return;
+  const checks = [...(it.toCheck ?? [])];
+  for (const c of toCheck) if (!checks.includes(c)) checks.push(c);
+  const obs = [...(it.obstacles ?? [])];
+  for (const o of obstacles) if (!obs.includes(o)) obs.push(o);
+  if (it.fitVerdict === "fit" && checks.length === 0 && obs.length === 0) checks.push("같은 사업 다른 안내 확인");
+  it.fitVerdict = "unverified";
+  if (checks.length > 0) it.toCheck = checks;
+  if (obs.length > 0) it.obstacles = obs;
+  it.step = unverifiedStep(checks, obs);
+  it.stepLabel = STEP_LABELS[it.step];
+}
+
+/** 다른 줄의 판정이 이 줄을 내려야 하는가 — 내용이 있는 확인할 것·걸림돌만 친다(정리 덜 된 표시·범위 「모름」은 빼고). */
+function substantiveChecksOf(it: FundingItem): { toCheck: string[]; obstacles: string[] } | null {
+  if (it.fitVerdict !== "unverified") return null;
+  const toCheck = (it.toCheck ?? []).filter((c) => !GENERIC_TO_CHECK.has(c) && !SCOPE_UNKNOWN_TO_CHECK.has(c));
+  const obstacles = it.obstacles ?? [];
+  return toCheck.length > 0 || obstacles.length > 0 ? { toCheck, obstacles } : null;
 }
 
 /** 공고 한 건 → 지도 항목. 갈래를 못 붙이면 grant 칸에 싣고 미분류 표식을 남긴다(빼면 누락이다). */
@@ -331,6 +372,20 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
     regionFieldFallback: true,
   });
   const m = matchAnnouncement(structure, profile, now, { title: r.title ?? "" });
+  // 추천 판정·단계(NO.585) — 지역·업종·혜택 아닌 글은 안 맞음, 고객 정보로 못 가린 것만 「확인할 것」.
+  const review = reviewEligibility({
+    kind: "announcement",
+    group,
+    title: r.title ?? "",
+    source: r.source ?? "",
+    profile,
+    now,
+    checks: m.checks,
+    humanCheckTexts: m.humanCheck,
+    structure,
+    ruleOnly: r.structureStatus !== "done",
+    amountText: r.amountText ?? "",
+  });
   const fit = fitsOf(m.checks);
   const humanCheck = m.humanCheck.length;
   const why = whyOf(fit, humanCheck);
@@ -363,11 +418,7 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
     deadline: deadlineOfAnnouncement(r.applyEnd, r.applyPeriodText ?? "", now, r.applyStart),
     where: r.agency ?? "",
     fit,
-    // 정밀 맞음(2026-09-24) — 제목의 지역·예비창업자 대상·사람 확인 조건도 본다.
-    fitVerdict: fitVerdictOf(m.checks, {
-      title: r.title ?? "", profile, humanCheckTexts: m.humanCheck, ruleOnly: r.structureStatus !== "done",
-      requireIndustryScope: true, industryScope: structure.industryScope, regionScope: structure.regionScope,
-    }),
+    ...reviewFields(review),
     humanCheck,
     score: scoreOf(m.checks),
     why: unclassified ? `${UNCLASSIFIED_PREFIX}${why}` : why,
@@ -378,7 +429,11 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
     // 빈 값으로 물으면 통로가 빈 배열을 주고 화면엔 뜻 없는 빈 목록이 남는다.
     ...((r.dedupKey ?? "").trim() ? { dedupKey: (r.dedupKey ?? "").trim() } : {}),
   };
-  return { item, gapLabels: gapLabelsOfConditions(structure.conditions) };
+  return {
+    item,
+    gapLabels: gapLabelsOfConditions(structure.conditions),
+    ...(review.excludedBySourceOnly ? { excludedBySourceOnly: true } : {}),
+  };
 }
 
 /** 상시 상품 한 줄 — DB 에서 읽는 칸(select)과 짝이 맞아야 한다. */
@@ -482,6 +537,17 @@ function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): Buil
   const humanCheck = Math.max(conditions.filter((c) => !c.machineReadable).length, p.source === "manual" ? 1 : 0);
   const why = whyOf(fit, humanCheck);
   const rate = productRate(p);
+  const review = reviewEligibility({
+    kind: "product",
+    group,
+    title: p.name ?? "",
+    source: p.source ?? "",
+    profile,
+    now,
+    checks,
+    amountText: p.limitText ?? "",
+    manualProduct: p.source === "manual",
+  });
 
   const item: FundingItem = {
     id: `p:${p.id}`,
@@ -505,7 +571,7 @@ function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): Buil
     deadline: deadlineOfProduct(p.deadlineText ?? "", now),
     where: p.channel || p.institution || "",
     fit,
-    fitVerdict: fitVerdictOf(checks, { title: p.name ?? "", profile, humanCheck }),
+    ...reviewFields(review),
     humanCheck,
     score: scoreOf(checks),
     why: unclassified ? `${UNCLASSIFIED_PREFIX}${why}` : why,
@@ -699,6 +765,8 @@ function repRankOf(pairs: AnnPair[]): (p: AnnPair) => number {
 interface AnnPair {
   row: AnnouncementRow;
   item: FundingItem;
+  /** 출처 기관의 지역만으로 안 맞음 — 다른 수집본이 있으면 버린다. */
+  excludedBySourceOnly?: boolean;
 }
 
 /** 마감 정렬 열쇠 — 마감일이 없으면 맨 뒤(「언제까지인지 모르는 줄」을 대표로 세우지 않는다). */
@@ -748,12 +816,22 @@ function groupAnnouncements(pairs: AnnPair[]): FundingItem[] {
   }
   return slots.map((s) => {
     if ("item" in s) return s.item;
-    const bucket = buckets.get(s.key) ?? [];
+    const all = buckets.get(s.key) ?? [];
+    // 지역 기관이 다시 올린 전국 공고 사본(출처 지역만 다름)은 묶음 판정에 끼우지 않는다 — 그 사본 하나 때문에
+    // 전국 원본까지 안 맞음이 되면 안 된다(NO.585). 사본만 있는 묶음은 그대로 둔다.
+    const kept = all.filter((p) => !p.excludedBySourceOnly);
+    const bucket = kept.length > 0 ? kept : all;
     const sorted = [...bucket].sort(compareRep(repRankOf(bucket)));
     const rep = sorted[0].item;
     // 정밀 맞음(2026-09-24) — 묶음 안에 확인이 남은 수집본이 하나라도 있으면 대표도 맞음이 아니다
     // (리뷰 review-116b747b P1-2: 조건이 덜 읽힌 쪽이 이겨 사람 확인 조건이 버려졌다).
-    if (rep.fitVerdict === "fit" && sorted.some((p) => p.item.fitVerdict !== "fit")) rep.fitVerdict = "unverified";
+    // NO.585 — 「정리 전 원문 확인」처럼 내용 없는 표시만 남은 수집본은 대표를 내리지 않는다.
+    if (rep.fitVerdict === "fit") {
+      for (const p of sorted) {
+        const sub = substantiveChecksOf(p.item);
+        if (sub) markUnverified(rep, sub.toCheck, sub.obstacles);
+      }
+    }
     // 혼자면 표식을 붙이지 않는다 — 화면이 「외 0곳」을 그리게 된다.
     if (sorted.length > 1) {
       rep.groupCount = sorted.length;
@@ -797,14 +875,20 @@ function twinKeyOf(it: FundingItem): string {
 /** 같은 이름·기관 상품이 「맞음」이 아니면 공고도 「맞음」이 아니다(최대 확인 필요로만 내린다). */
 function downgradeFitTwins(items: FundingItem[]): void {
   const productVerdict = new Map<string, FitVerdict>();
+  const productChecks = new Map<string, string[]>();
   for (const it of items) {
     if (it.kind !== "product") continue;
     const key = twinKeyOf(it);
-    if (key && it.fitVerdict !== "fit") productVerdict.set(key, it.fitVerdict);
+    if (key && it.fitVerdict !== "fit") {
+      productVerdict.set(key, it.fitVerdict);
+      productChecks.set(key, [...(it.toCheck ?? []), ...(it.obstacles ?? [])]);
+    }
   }
   if (productVerdict.size === 0) return;
   for (const it of items) {
-    if (it.kind === "announcement" && it.fitVerdict === "fit" && productVerdict.has(twinKeyOf(it))) it.fitVerdict = "unverified";
+    if (it.kind === "announcement" && it.fitVerdict === "fit" && productVerdict.has(twinKeyOf(it))) {
+      markUnverified(it, productChecks.get(twinKeyOf(it)) ?? []);
+    }
   }
 }
 
@@ -828,7 +912,7 @@ function foldTwinProducts(pool: FundingItem[], mark = true): FundingItem[] {
     if (mark) twin.relatedProductId = it.refId;
     // 정밀 맞음(리뷰 review-7898081a P1-3) — 숨기는 상품에 확인이 남았으면 공고도 맞음이 아니다.
     // 건수만 세는 호출(mark:false)은 판정을 바꾸지 않고, 바꿀 때도 「확인 필요」까지만 내린다(review-8c467476 P1-4).
-    if (mark && twin.fitVerdict === "fit" && it.fitVerdict !== "fit") twin.fitVerdict = "unverified";
+    if (mark && twin.fitVerdict === "fit" && it.fitVerdict !== "fit") markUnverified(twin, it.toCheck ?? [], it.obstacles ?? []);
     return false;
   });
 }
@@ -903,7 +987,12 @@ export async function buildFundingMap(
   };
 
   const items: FundingItem[] = [
-    ...groupAnnouncements(rows.map((r) => ({ row: r, item: remember(itemOfAnnouncement(r, profile, now)) }))),
+    ...groupAnnouncements(
+      rows.map((r) => {
+        const built = itemOfAnnouncement(r, profile, now);
+        return { row: r, item: remember(built), ...(built.excludedBySourceOnly ? { excludedBySourceOnly: true } : {}) };
+      }),
+    ),
     ...(products as ProductRow[]).map((p) => remember(itemOfProduct(p, profile, now))),
     ...manualRows.map((m) => remember(itemOfProduct(m, profile, now))),
   ];
