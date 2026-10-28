@@ -134,7 +134,19 @@ function isBoundaryChar(ch: string | undefined): boolean {
 }
 
 export function sigunguInTitle(title: string): Array<{ name: string; sido: string }> {
-  const text = title ?? "";
+  return findSigungu(title, false);
+}
+
+/** 이름 뒤에 붙어도 경계로 보는 조사·말(본문 「강남구에 주사무소」·「서대문구에 거주」). */
+const TRAILING_PARTICLE = /^(?:에서|에|의|은|는|이|가|을|를|으로|로|와|과|내|민|소재|관내|지역|주민|거주|청)/;
+
+/** 본문용 — 제목과 같되 이름 뒤 조사(에·의·내·소재 …)도 경계로 본다. */
+export function sigunguInText(text: string): Array<{ name: string; sido: string }> {
+  return findSigungu(text, true);
+}
+
+function findSigungu(input: string, particles: boolean): Array<{ name: string; sido: string }> {
+  const text = input ?? "";
   if (!text) return [];
   const found: Array<{ name: string; sido: string; index: number }> = [];
   const seen = new Set<string>();
@@ -143,7 +155,9 @@ export function sigunguInTitle(title: string): Array<{ name: string; sido: strin
     while (from <= text.length - name.length) {
       const i = text.indexOf(name, from);
       if (i < 0) break;
-      if (isBoundaryChar(text[i - 1]) && isBoundaryChar(text[i + name.length])) {
+      const after = i + name.length;
+      const endOk = isBoundaryChar(text[after]) || (particles && /[구군시]$/.test(name) && TRAILING_PARTICLE.test(text.slice(after, after + 3)));
+      if (isBoundaryChar(text[i - 1]) && endOk) {
         if (!seen.has(name)) {
           seen.add(name);
           found.push({ name, sido: SIGUNGU_TO_SIDO[name], index: i });

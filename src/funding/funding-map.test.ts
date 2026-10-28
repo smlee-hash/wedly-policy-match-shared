@@ -22,6 +22,7 @@ import {
   profileBandParts,
   profileBandWords,
   repayWords,
+  reviewWeight,
   sortItems,
   splitByFit,
   unclassifiedFooterWords,
@@ -308,6 +309,26 @@ describe("정렬 4종", () => {
     const always = mkItem({ id: "always", fitVerdict: "fit", score: 50, deadline: ALWAYS });
     const past = mkItem({ id: "past", fitVerdict: "fit", score: 50, deadline: deadlineOfAnnouncement(kstEnd("2026-09-01"), "", NOW) });
     expect(ids(sortItems([always, past, far, near], "rec"))).toEqual(["near", "far", "always", "past"]);
+  });
+  it("추천 — 확인 필요 안에서는 걸림돌이 붙은 공고가 같은 확인만 남은 공고 뒤에 선다(NO.585 5절)", () => {
+    const d = deadlineOfAnnouncement(kstEnd("2026-09-10"), "", NOW);
+    const plain = mkItem({ id: "plain", fitVerdict: "unverified", step: 5, toCheck: ["기관 문의"], score: 10, deadline: d });
+    const hurdle = mkItem({ id: "hurdle", fitVerdict: "unverified", step: 5, toCheck: ["기관 문의"], obstacles: ["요구 인증 필요"], score: 99, deadline: d });
+    expect(reviewWeight(plain)).toBe(1);
+    expect(reviewWeight(hurdle)).toBe(4);
+    expect(ids(sortItems([hurdle, plain], "rec"))).toEqual(["plain", "hurdle"]);
+  });
+  it("추천 — 조건 정리 전 공고는 확인할 것 셋이 남은 공고보다 뒤(조건 수를 모른다, NO.585 5절)", () => {
+    const three = mkItem({
+      id: "three", fitVerdict: "unverified", step: 5,
+      toCheck: ["집적지 근처 인정 여부 확인", "기관 문의", "업종 제한 여부 확인"],
+      deadline: deadlineOfAnnouncement(kstEnd("2026-12-31"), "", NOW),
+    });
+    const blank = mkItem({
+      id: "blank", fitVerdict: "unverified", step: 5, toCheck: ["공고 원문 확인(조건 정리 전)"],
+      deadline: deadlineOfAnnouncement(kstEnd("2026-09-05"), "", NOW),
+    });
+    expect(ids(sortItems([blank, three], "rec"))).toEqual(["three", "blank"]);
   });
   it("마감 — 가까운 순, 상시는 뒤, 마감 지남은 맨 뒤", () => {
     expect(ids(sortItems([A, B, C, D, E], "dead"))).toEqual(["D", "B", "A", "C", "E"]);

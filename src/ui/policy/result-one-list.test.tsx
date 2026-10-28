@@ -39,8 +39,8 @@ import {
 } from "./PolicyMatchScreen";
 import { ERP_POLICY_MATCH_ENDPOINTS, type PolicyMatchEndpoints } from "./endpoints";
 import {
-  FUNDING_TOP_N, RESULT_PAGE_SIZE, VERDICT_TABS, chipsOf, ddayBadgeOf, defaultVerdictTab, filterByChip, flattenFundingItems,
-  kindTagOf, oneListReducer, oneListViewOf, pageCountOf, pageSlice, searchItems, sortOneList, toggleSelectedId,
+  FUNDING_TOP_N, INITIAL_ONE_LIST_STATE, ONE_LIST_SORTS, RESULT_PAGE_SIZE, VERDICT_TABS, chipsOf, ddayBadgeOf, defaultVerdictTab,
+  filterByChip, flattenFundingItems, kindTagOf, oneListReducer, reviewNotesOf, stepTagOf, oneListViewOf, pageCountOf, pageSlice, searchItems, sortOneList, toggleSelectedId,
   unknownNoticeOf, verdictCountsOf, serverVerdictCountsOf, cutNoticeOf, localSearchScopeOf, localSearchNoticeOf, type OneListAction, type OneListState,
 } from "./result-one-list";
 
@@ -103,7 +103,7 @@ function payload(groups: Array<{ group: FundingItem["group"]; items: FundingItem
   } as FundingMapPayload;
 }
 
-const 처음상태: OneListState = { tab: null, chip: "all", sort: "deadline", page: 1, selectedId: "" };
+const 처음상태: OneListState = { tab: null, chip: "all", sort: "rec", page: 1, selectedId: "" };
 
 // ── 합치기 ──────────────────────────────────────────────────────────────
 describe("flattenFundingItems — 갈래 항목을 id 로 중복 없이 한 배열로(안 맞음은 붙이지도 않고 실려 와도 버린다)", () => {
@@ -245,7 +245,7 @@ describe("돈의 성격 칩 — 「전체」+ 6갈래 이름 그대로, 숫자�
 
   it("칩 · 정렬 · 찾기어가 바뀌어도 1쪽으로 돌아간다", () => {
     expect(oneListReducer({ ...처음상태, page: 3 }, { type: "chip", chip: "policy" })).toMatchObject({ chip: "policy", page: 1 });
-    expect(oneListReducer({ ...처음상태, page: 3 }, { type: "sort", sort: "score" })).toMatchObject({ sort: "score", page: 1 });
+    expect(oneListReducer({ ...처음상태, page: 3 }, { type: "sort", sort: "deadline" })).toMatchObject({ sort: "deadline", page: 1 });
     expect(oneListReducer({ ...처음상태, page: 3 }, { type: "query" })).toMatchObject({ page: 1 });
     expect(oneListReducer({ ...처음상태, page: 3 }, { type: "page", page: 2 })).toMatchObject({ page: 2 });
   });
@@ -259,7 +259,7 @@ describe.each(["inline", "split"] as const)("목록 조작 뒤 선택 초기화 
     { name: "탭 이동", action: { type: "tab", tab: "unverified" } },
     { name: "현재 탭 누름", action: { type: "tab", tab: "fit" } },
     { name: "종류 칩", action: { type: "chip", chip: "grant" } },
-    { name: "정렬", action: { type: "sort", sort: "score" } },
+    { name: "정렬", action: { type: "sort", sort: "deadline" } },
     { name: "1쪽에서 검색어 변경", action: { type: "query" }, query: "지원사업" },
     { name: "쪽 이동", action: { type: "page", page: 2 } },
   ];
@@ -351,7 +351,7 @@ describe("찾기 — 두 탭 전체를 뒤지고 탭 숫자가 찾기 결과 개
 });
 
 // ── 정렬 ────────────────────────────────────────────────────────────────
-describe("정렬 — 마감 임박 순(기본) · 추천 순", () => {
+describe("정렬 — 추천 순(기본, 서버 추천순과 같은 단계 순서) · 마감 임박 순", () => {
   const items = [
     mk({ id: "a:1", deadline: 날짜(20), score: 10 }),
     mk({ id: "a:2", deadline: 날짜(3), score: 30 }),
@@ -364,19 +364,46 @@ describe("정렬 — 마감 임박 순(기본) · 추천 순", () => {
     expect(sortOneList(items, "deadline").map((x) => x.id)).toEqual(["a:2", "a:5", "a:1", "a:3", "a:4"]);
   });
 
-  it("추천 순: score 내림차순", () => {
-    expect(sortOneList(items, "score").map((x) => x.id)).toEqual(["a:3", "a:4", "a:2", "a:5", "a:1"]);
+  it("기본은 추천 순이고 선택지 첫째도 추천 순이다 — 상세창과 정책매칭이 같은 기본값을 쓴다(NO.585 6절 g)", () => {
+    expect(INITIAL_ONE_LIST_STATE.sort).toBe("rec");
+    expect(ONE_LIST_SORTS.map((o) => o.value)).toEqual(["rec", "deadline"]);
+    expect(ONE_LIST_SORTS[0].label).toBe("추천 순");
+    expect(readFileSync(new URL("ResultOneList.tsx", import.meta.url), "utf8")).toContain(
+      'onSort(v === "deadline" ? "deadline" : "rec")',
+    );
+  });
+
+  it("추천 순: 판정 → 오늘 마감은 맨 아래 → 단계(무상 → 자부담 → 융자 → 걸림돌 → 확인 필요) → 확인할 것이 적은 순 → 마감 가까운 순(상시 뒤)", () => {
+    const 줄 = [
+      mk({ id: "a:f1", step: 2, stepLabel: "자부담 있음", deadline: 날짜(5) }),
+      mk({ id: "a:f2", step: 1, stepLabel: "무상 지원", deadline: 날짜(20) }),
+      mk({ id: "a:u1", fitVerdict: "unverified", step: 5, toCheck: ["공고 원문 확인(조건 정리 전)"], deadline: 날짜(2) }),
+      mk({ id: "a:f3", step: 1, stepLabel: "무상 지원", deadline: 날짜(3) }),
+      mk({ id: "a:f4", step: 1, stepLabel: "무상 지원", deadline: 상시 }),
+      mk({ id: "a:f5", step: 1, stepLabel: "무상 지원", deadline: 날짜(0), score: 99 }),
+      mk({ id: "a:u2", fitVerdict: "unverified", step: 5, toCheck: ["대표자 만 40세 이상"], deadline: 날짜(30) }),
+      mk({ id: "a:f6", step: 3, stepLabel: "융자·보증", group: "policy", deadline: 날짜(1) }),
+      mk({ id: "a:u3", fitVerdict: "unverified", step: 4, obstacles: ["국세 체납 정리"], deadline: 날짜(10) }),
+    ];
+    expect(sortOneList(줄, "rec").map((x) => x.id)).toEqual([
+      "a:f3", "a:f2", "a:f4", "a:f1", "a:f6", "a:f5", "a:u3", "a:u2", "a:u1",
+    ]);
+  });
+
+  it("단계가 없는 옛 응답도 추천 순이 마감 순으로 선다(점수만으로 줄 세우지 않는다)", () => {
+    expect(sortOneList(items, "rec").map((x) => x.id)).toEqual(["a:2", "a:5", "a:1", "a:3", "a:4"]);
   });
 
   it("원래 배열은 건드리지 않는다", () => {
     const before = items.map((x) => x.id);
     sortOneList(items, "deadline");
+    sortOneList(items, "rec");
     expect(items.map((x) => x.id)).toEqual(before);
   });
 
-  it("그림: 정렬 선택에 두 선택지 글자가 있고 기존 CustomSelect 를 쓴다", () => {
+  it("그림: 정렬 선택은 기본 「추천 순」을 보이고 기존 CustomSelect 를 쓴다", () => {
     const html = 글자(renderToStaticMarkup(<ResultOneListView {...기본속성(items)} />));
-    expect(html).toContain("마감 임박 순");
+    expect(html).toContain("추천 순");
     expect(readFileSync(new URL("ResultOneList.tsx", import.meta.url), "utf8")).toContain("<CustomSelect");
   });
 });
@@ -410,6 +437,79 @@ describe("쪽 넘김 — 10건씩", () => {
 });
 
 // ── 목록 줄 ─────────────────────────────────────────────────────────────
+describe("목록 줄 — 단계 이름표 · 자부담 · 확인할 것 · 걸림돌(NO.585 4·5절)", () => {
+  it("단계 이름표: 1~4단계만 — 5단계(확인 필요)는 판정 알약과 같은 말이라 따로 달지 않는다, 단계가 없는 옛 줄도 안 단다", () => {
+    expect(stepTagOf(mk({ id: "a:1", step: 1, stepLabel: "무상 지원" }))).toBe("무상 지원");
+    expect(stepTagOf(mk({ id: "a:2", step: 2, stepLabel: "자부담 있음" }))).toBe("자부담 있음");
+    expect(stepTagOf(mk({ id: "a:3", step: 3, stepLabel: "투자", group: "invest" }))).toBe("투자");
+    expect(stepTagOf(mk({ id: "a:4", fitVerdict: "unverified", step: 4, stepLabel: "걸림돌 있음" }))).toBe("걸림돌 있음");
+    expect(stepTagOf(mk({ id: "a:5", fitVerdict: "unverified", step: 5, stepLabel: "확인 필요" }))).toBeNull();
+    expect(stepTagOf(mk({ id: "a:6" }))).toBeNull();
+    expect(stepTagOf(mk({ id: "a:7", step: 1, stepLabel: "" }))).toBeNull();
+  });
+
+  it("자부담 · 걸림돌 · 확인할 것 순서로, 확인할 것은 셋까지 보이고 나머지는 「외 N개」", () => {
+    expect(reviewNotesOf(mk({ id: "a:1", step: 1, copayText: "자부담 원문에 없음" }))).toEqual([
+      { kind: "copay", text: "자부담 원문에 없음" },
+    ]);
+    // 디지털 전환(6절 d) — 확인 필요 줄에도 자부담을 같이 보인다
+    expect(reviewNotesOf(mk({
+      id: "a:2", fitVerdict: "unverified", step: 5, copayText: "부가세 고객 부담", toCheck: ["대표자 만 40세 이상", "올해 서울시 지원 이력"],
+    }))).toEqual([
+      { kind: "copay", text: "부가세 고객 부담" },
+      { kind: "check", text: "확인할 것: 대표자 만 40세 이상 · 올해 서울시 지원 이력" },
+    ]);
+    expect(reviewNotesOf(mk({
+      id: "a:3", fitVerdict: "unverified", step: 4, obstacles: ["국세 체납 정리"], toCheck: ["기관 문의"],
+    }))).toEqual([
+      { kind: "obstacle", text: "걸림돌: 국세 체납 정리" },
+      { kind: "check", text: "확인할 것: 기관 문의" },
+    ]);
+    expect(reviewNotesOf(mk({
+      id: "a:4", fitVerdict: "unverified", step: 5, toCheck: ["가", "나", "다", "라", "마"],
+    }))).toEqual([{ kind: "check", text: "확인할 것: 가 · 나 · 다 외 2개" }]);
+    // 융자(자부담 글자 없음)·옛 응답(칸 없음)은 아무것도 달지 않는다
+    expect(reviewNotesOf(mk({ id: "a:5", step: 3, copayText: "", group: "policy" }))).toEqual([]);
+    expect(reviewNotesOf(mk({ id: "a:6" }))).toEqual([]);
+    // 맞음 줄에 확인할 것이 실려 와도 붙이지 않는다(맞음은 남은 확인이 없다)
+    expect(reviewNotesOf(mk({ id: "a:7", toCheck: ["기관 문의"] }))).toEqual([]);
+  });
+
+  it("그림: 단계 이름표는 판정 알약 앞, 자부담·확인할 것은 기관 줄 아래 — WEDLY 토큰만", () => {
+    const 맞음 = mk({ id: "a:1", step: 1, stepLabel: "무상 지원", copayText: "자부담 원문에 없음", deadline: 날짜(5) });
+    const 확인 = mk({
+      id: "a:2", fitVerdict: "unverified", step: 5, stepLabel: "확인 필요", copayText: "부가세 고객 부담",
+      toCheck: ["집적지 근처 인정 여부 확인", "기관 문의"], deadline: 날짜(9),
+    });
+    const 걸림 = mk({ id: "a:3", fitVerdict: "unverified", step: 4, stepLabel: "걸림돌 있음", obstacles: ["국세 체납 정리"], deadline: 날짜(9) });
+    const fit탭 = 글자(renderToStaticMarkup(<ResultOneListView {...기본속성([맞음, 확인, 걸림])} state={{ ...처음상태, tab: "fit" }} />));
+    expect(fit탭).toMatch(/data-step-tag[^>]*>무상 지원<[\s\S]*지원 가능/);
+    expect(fit탭).toMatch(/data-review-note="copay"[^>]*>자부담 원문에 없음</);
+    expect(fit탭.indexOf("창업진흥원 · ")).toBeLessThan(fit탭.indexOf('data-review-note="copay"'));
+    const 확인탭 = 글자(renderToStaticMarkup(<ResultOneListView {...기본속성([맞음, 확인, 걸림])} state={{ ...처음상태, tab: "unverified" }} />));
+    expect(확인탭).toMatch(/data-review-note="copay"[^>]*>부가세 고객 부담</);
+    expect(확인탭).toMatch(/data-review-note="check"[^>]*>확인할 것: 집적지 근처 인정 여부 확인 · 기관 문의</);
+    expect(확인탭).toMatch(/data-review-note="obstacle"[^>]*text-wedly-red-ink[^>]*>걸림돌: 국세 체납 정리</);
+    expect(확인탭).toMatch(/data-step-tag[^>]*>걸림돌 있음</);
+    // 5단계 줄에는 단계 이름표를 따로 달지 않는다
+    const 줄글 = (html: string, id: string) => {
+      const from = html.indexOf(`data-row-wrap="${id}"`);
+      const next = html.indexOf("data-row-wrap=", from + 1);
+      return html.slice(from, next < 0 ? undefined : next);
+    };
+    expect(줄글(확인탭, "a:2")).toContain("확인할 것:");
+    expect(줄글(확인탭, "a:2")).not.toContain("data-step-tag");
+    expect(줄글(확인탭, "a:3")).toContain("data-step-tag");
+    for (const html of [fit탭, 확인탭]) expect(html).not.toMatch(RAW색);
+  });
+
+  it("그림: 오늘 마감은 빨간 「오늘 마감」으로 보인다", () => {
+    const html = 글자(renderToStaticMarkup(<ResultOneListView {...기본속성([mk({ id: "a:1", deadline: 날짜(0) })])} />));
+    expect(html).toMatch(/text-wedly-red-ink[^>]*>오늘 마감</);
+    expect(html).not.toContain(">D-day<");
+  });
+});
+
 describe("목록 줄 — 이름표 넷 · 제목 두 줄 · 기관·기간·금액 · D-day", () => {
   it("종류 이름표: 은행 상품 · 상시 · 공고", () => {
     expect(kindTagOf(mk({ id: "p:1", kind: "product", group: "bank", deadline: 상시 }))).toBe("은행 상품");
@@ -421,7 +521,8 @@ describe("목록 줄 — 이름표 넷 · 제목 두 줄 · 기관·기간·금�
   it("D-day: 날짜 마감만, 7일 안이면 빨강", () => {
     expect(ddayBadgeOf(mk({ id: "a:1", deadline: 날짜(11) }))).toEqual({ text: "D-11", hot: false });
     expect(ddayBadgeOf(mk({ id: "a:2", deadline: 날짜(7) }))).toEqual({ text: "D-7", hot: true });
-    expect(ddayBadgeOf(mk({ id: "a:3", deadline: 날짜(0) }))).toEqual({ text: "D-day", hot: true });
+    // 오늘 마감은 「D-day」가 아니라 쉬운 말로 — 오늘 안에 서류를 못 낼 수 있다(NO.585 2절).
+    expect(ddayBadgeOf(mk({ id: "a:3", deadline: 날짜(0) }))).toEqual({ text: "오늘 마감", hot: true });
     expect(ddayBadgeOf(mk({ id: "a:4", deadline: 상시 }))).toBeNull();
     expect(ddayBadgeOf(mk({ id: "a:5", deadline: 날짜(-2) }))).toBeNull();
   });
@@ -508,7 +609,7 @@ describe("상세 칸 — 공고는 DetailPanel, 상품은 FundingDrawer 본문",
         }}
       />,
     );
-    expect(seen).toEqual(["a:1"]); // 마감 임박 순이라 공고(D-2)가 먼저
+    expect(seen).toEqual(["a:1"]); // 추천 순도 같은 단계 안은 마감 가까운 순이라 공고(D-2)가 상시 상품보다 먼저
   });
 
   it("상품을 고르면 상품이, 공고를 고르면 공고가 상세 칸으로 간다", () => {
@@ -903,7 +1004,8 @@ describe('layout="inline" — 좁은 자리용 한 열, 상세는 줄 바로 아
     expect(도구).not.toContain("w-56"); // 두 칸 모양의 고정 폭 찾기 칸이 아니다
     expect((도구.match(/data-tab="/g) ?? []).length).toBe(2);
     expect(도구.indexOf('data-tab="unverified"')).toBeLessThan(도구.indexOf('aria-label="공고 찾기"'));
-    expect(도구.indexOf('aria-label="공고 찾기"')).toBeLessThan(도구.indexOf("마감 임박 순"));
+    expect(도구.indexOf('aria-label="공고 찾기"')).toBeLessThan(도구.indexOf('id="result-one-list-sort"'));
+    expect(도구.indexOf('id="result-one-list-sort"')).toBeGreaterThan(-1);
     // 목록 상자가 가로로 넘치는 것을 한 번 더 막는다
     expect(html).toMatch(/data-area="result-list-pane"[^>]*class="[^"]*min-w-0[^"]*overflow-hidden/);
   });

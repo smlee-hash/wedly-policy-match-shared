@@ -160,20 +160,22 @@ export function filterByChip(items: FundingItem[], chip: ChipKey): FundingItem[]
 }
 
 // ── 정렬 ────────────────────────────────────────────────────────────────
-export type OneListSort = "deadline" | "score";
+export type OneListSort = "rec" | "deadline";
 
+/** 추천 순이 기본이다 — 상세창(한 열)과 정책매칭(두 칸)이 이 표 하나를 같이 쓴다(NO.585 6절 g). */
 export const ONE_LIST_SORTS: ReadonlyArray<{ value: OneListSort; label: string }> = [
+  { value: "rec", label: "추천 순" },
   { value: "deadline", label: "마감 임박 순" },
-  { value: "score", label: "추천 순" },
 ];
 
 /**
+ * 추천 순 = 서버 「추천순」과 같은 규칙(`sortItems` "rec") — 판정 → 오늘 마감은 맨 아래 → 단계(무상 → 자부담 → 융자 →
+ *  걸림돌 → 확인 필요) → 확인할 것이 적은 순 → 마감 가까운 순(상시 뒤) → 점수(NO.585 4·5절).
  * 마감 임박 순 = 남은 날(dDay)이 적은 것부터, 상시·모름·마감됨은 뒤(서버 「마감 빠른 순」과 같은 규칙).
- * 추천 순 = score 내림차순. 원래 배열은 건드리지 않고, 같은 값은 받은 차례를 지킨다.
+ * 원래 배열은 건드리지 않고, 같은 값은 받은 차례를 지킨다.
  */
 export function sortOneList(items: readonly FundingItem[], sort: OneListSort): FundingItem[] {
-  if (sort === "deadline") return sortItems([...items], "dead");
-  return [...items].sort((a, b) => b.score - a.score);
+  return sortItems([...items], sort === "deadline" ? "dead" : "rec");
 }
 
 // ── 쪽 넘김 ─────────────────────────────────────────────────────────────
@@ -210,11 +212,49 @@ export function groupTagOf(it: FundingItem): { label: string; tone?: FundingGrou
   return { label: meta.name, tone: meta.tone };
 }
 
-/** 날짜 마감의 D-day 글자. 날짜 마감이 아니거나 이미 지났으면 null. 7일 안(오늘 포함)이면 빨강. */
+/** 날짜 마감의 D-day 글자. 날짜 마감이 아니거나 이미 지났으면 null. 7일 안(오늘 포함)이면 빨강. 오늘이면 「오늘 마감」(NO.585 2절). */
 export function ddayBadgeOf(it: FundingItem): { text: string; hot: boolean } | null {
   const d = it.deadline;
   if (d.kind !== "date" || d.dDay === null || d.dDay < 0) return null;
-  return { text: d.dDay === 0 ? "D-day" : `D-${d.dDay}`, hot: d.dDay <= HOT_DAYS };
+  return { text: d.dDay === 0 ? "오늘 마감" : `D-${d.dDay}`, hot: d.dDay <= HOT_DAYS };
+}
+
+/**
+ * 단계 이름표(NO.585 4절 「줄마다 단계 라벨」) — 1~4단계만. 5단계(확인 필요)는 판정 알약과 같은 말이라 따로 달지 않고,
+ * 단계가 없는 옛 응답에도 달지 않는다.
+ */
+export function stepTagOf(it: FundingItem): string | null {
+  if (it.step == null || it.step === 5) return null;
+  return it.stepLabel?.trim() || null;
+}
+
+export interface ReviewNote {
+  kind: "copay" | "obstacle" | "check";
+  text: string;
+}
+
+/** 확인할 것을 줄에 몇 개까지 보이나 — 나머지는 「외 N개」, 전부는 펼친 상세에서 본다. */
+const TO_CHECK_SHOWN = 3;
+
+/**
+ * 줄 아래 짧은 판정 메모 — 자부담(무상 지원금) · 걸림돌 · 확인할 것(NO.585 4·5절). 서버가 실어 준 칸만 쓰고 지어내지 않는다.
+ * 확인할 것은 확인 필요 줄에만 단다(맞음은 남은 확인이 없다).
+ */
+export function reviewNotesOf(it: FundingItem): ReviewNote[] {
+  const notes: ReviewNote[] = [];
+  const copay = it.copayText?.trim();
+  if (copay) notes.push({ kind: "copay", text: copay });
+  const obstacles = (it.obstacles ?? []).filter((o) => o.trim());
+  if (obstacles.length > 0) notes.push({ kind: "obstacle", text: `걸림돌: ${obstacles.join(" · ")}` });
+  const checks = it.fitVerdict === "unverified" ? (it.toCheck ?? []).filter((c) => c.trim()) : [];
+  if (checks.length > 0) {
+    const rest = checks.length - TO_CHECK_SHOWN;
+    notes.push({
+      kind: "check",
+      text: `확인할 것: ${checks.slice(0, TO_CHECK_SHOWN).join(" · ")}${rest > 0 ? ` 외 ${rest}개` : ""}`,
+    });
+  }
+  return notes;
 }
 
 /** 기간 글자 — 상시는 「상시」, 그 밖에는 공고 원문 기간. 원문이 없으면 종류에 맞는 말. */
@@ -282,7 +322,7 @@ export type OneListAction =
   | { type: "page"; page: number }
   | { type: "select"; id: string };
 
-export const INITIAL_ONE_LIST_STATE: OneListState = { tab: null, chip: "all", sort: "deadline", page: 1, selectedId: "" };
+export const INITIAL_ONE_LIST_STATE: OneListState = { tab: null, chip: "all", sort: "rec", page: 1, selectedId: "" };
 
 export function oneListReducer(state: OneListState, action: OneListAction): OneListState {
   switch (action.type) {

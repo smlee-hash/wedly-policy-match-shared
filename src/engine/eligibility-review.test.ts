@@ -1,0 +1,385 @@
+// 추천 판정·단계(NO.585) 회귀 시험 — 행사 글 빼기, 업종·지역 범위 「모름」, 기준 공고 고정본.
+// 고정본 공고 셋(S-OJT·장위 의류봉제·서울 중장년 디지털 전환)은 운영 AI 정리본에서 판정에 쓰는 칸만 옮겼다.
+// 고객은 성진섬유와 같은 모양(서울 도봉구·양말 임가공 제조·7명·체납 없음)으로 지어낸 값이다.
+import { describe, expect, it } from "vitest";
+import {
+  INDUSTRY_SCOPE_UNKNOWN,
+  nonBenefitReason,
+  REGION_SCOPE_UNKNOWN,
+  reviewEligibility,
+  SCOPE_UNKNOWN_TO_CHECK,
+  toCheckWeight,
+  unverifiedStep,
+  type EligibilityInput,
+} from "./eligibility-review";
+import { matchAnnouncement, readStoredStructure, type BusinessProfile } from "./match-engine";
+import { withRegionConditions } from "./region-augment";
+import type { ConditionCheck } from "./structure-types";
+
+const NOW = new Date("2026-10-26T07:00:00Z");
+
+const SOCKS: BusinessProfile = {
+  bizno: "123-45-67890",
+  industry: "제조업(임가공, 양말)",
+  region: "서울",
+  regionSigungu: "도봉구",
+  employeeCount: 7,
+  foundedDate: "2000-05-01",
+  lastYearRevenueKrw: 600_000_000,
+  taxDelinquent: false,
+  hasCert: false,
+  hasPatent: false,
+};
+
+/** 고객 정보로 확인된 진짜 통과 하나 — 「맞다」의 근거(규모). */
+const SCALE_PASS: ConditionCheck = {
+  condition: { key: "companyScale", op: "in", value: ["소상공인"], rawText: "소상공인", machineReadable: true },
+  verdict: "pass",
+  note: "",
+};
+
+function base(over: Partial<EligibilityInput> = {}): EligibilityInput {
+  return {
+    kind: "announcement",
+    group: "grant",
+    title: "2026년 소상공인 경영 개선 지원사업 모집 공고",
+    source: "bizinfo",
+    profile: SOCKS,
+    now: NOW,
+    checks: [SCALE_PASS],
+    structure: { industryScope: "all", regionScope: "all", supportAmountText: "", benefitSummary: "" },
+    ...over,
+  };
+}
+
+describe("nonBenefitReason — 행사·안내 글은 지원금 공고가 아니다(NO.585 2절)", () => {
+  it.each([
+    "2026 우수기업 현판 수여식 개최",
+    "중소기업 주간 기념식 안내",
+    "청년 서포터즈 발대식",
+    "○○ 창업지원센터 개소식",
+    "스마트공장 준공식",
+  ])("행사 글 「%s」는 뺀다", (title) => {
+    expect(nonBenefitReason(title)).toBe("행사·포상·채용·교육 모집 글");
+  });
+
+  it.each(["2026 판로 박람회 일정 변경 공지", "수출 상담회 부스 배치도 안내"])("안내 글 「%s」는 뺀다", (title) => {
+    expect(nonBenefitReason(title)).toBe("지원사업 공고가 아닌 글");
+  });
+
+  it.each([
+    "2026 해외 전시회 참가기업 모집",
+    "국제 섬유 박람회 부스 지원 사업",
+    "우수기업 현판 제작 지원 안내",
+    "체계적 현장훈련(S-OJT) 지원사업",
+  ])("혜택을 주는 「%s」는 남긴다", (title) => {
+    expect(nonBenefitReason(title)).toBeNull();
+  });
+});
+
+describe("업종·지역 범위를 AI 가 「모름」이라 한 공고는 지원 가능이 아니다", () => {
+  it("범위를 둘 다 안다고 했고 규모가 맞으면 지원 가능", () => {
+    const r = reviewEligibility(base());
+    expect(r.verdict).toBe("fit");
+    expect(r.toCheck).toEqual([]);
+  });
+
+  it.each([
+    ["모른다고 답함", { industryScope: "unknown" as const, regionScope: "all" as const }],
+    ["답하지 않음(옛 정리분)", { regionScope: "all" as const }],
+  ])("업종 범위 %s → 확인 필요 「업종 제한 여부 확인」", (_name, scope) => {
+    const r = reviewEligibility(base({ structure: { supportAmountText: "", benefitSummary: "", ...scope } }));
+    expect(r.verdict).toBe("unverified");
+    expect(r.step).toBe(5);
+    expect(r.toCheck).toEqual([INDUSTRY_SCOPE_UNKNOWN]);
+  });
+
+  it("업종 조건이 고객 업종과 맞아 통과했으면 업종 범위를 몰라도 묻지 않는다", () => {
+    const industryPass: ConditionCheck = {
+      condition: { key: "industry", op: "in", value: ["제조업"], rawText: "제조업 영위 기업", machineReadable: true },
+      verdict: "pass",
+      note: "",
+    };
+    const r = reviewEligibility(
+      base({ checks: [SCALE_PASS, industryPass], structure: { industryScope: "unknown", regionScope: "all", supportAmountText: "", benefitSummary: "" } }),
+    );
+    expect(r.toCheck).not.toContain(INDUSTRY_SCOPE_UNKNOWN);
+    expect(r.verdict).toBe("fit");
+  });
+
+  it("지역 범위를 모르면 「지역 제한 여부 확인」", () => {
+    const r = reviewEligibility(base({ structure: { industryScope: "all", regionScope: "unknown", supportAmountText: "", benefitSummary: "" } }));
+    expect(r.verdict).toBe("unverified");
+    expect(r.toCheck).toEqual([REGION_SCOPE_UNKNOWN]);
+  });
+
+  it.each([
+    ["제목이 고객 지역을 적었다", { title: "[서울] 2026년 소상공인 경영 개선 지원사업" }],
+    ["고객 지역 기관이 낸 공고다", { source: "sba" }],
+    [
+      "지역 조건이 전국이다",
+      {
+        checks: [
+          SCALE_PASS,
+          { condition: { key: "region" as const, op: "in" as const, value: ["전국"], rawText: "전국", machineReadable: true }, verdict: "pass" as const, note: "" },
+        ],
+      },
+    ],
+  ])("지역 범위를 몰라도 %s → 묻지 않는다", (_name, over) => {
+    const r = reviewEligibility(base({ ...over, structure: { industryScope: "all", regionScope: "unknown", supportAmountText: "", benefitSummary: "" } }));
+    expect(r.toCheck).not.toContain(REGION_SCOPE_UNKNOWN);
+    expect(r.verdict).toBe("fit");
+  });
+
+  it("다른 시도 기관의 공고는 범위를 몰라도 안 맞음(출처만으로 뺀 표시)", () => {
+    const r = reviewEligibility(base({ source: "bepa", structure: { industryScope: "all", regionScope: "unknown", supportAmountText: "", benefitSummary: "" } }));
+    expect(r.verdict).toBe("excluded");
+    expect(r.excludeReason).toMatch(/^다른 지역 기관 공고/);
+    expect(r.excludedBySourceOnly).toBe(true);
+  });
+
+  it("조건 정리 전(규칙 추출본) 공고와 금융상품에는 범위 확인을 붙이지 않는다", () => {
+    const rule = reviewEligibility(base({ ruleOnly: true, structure: undefined }));
+    expect(rule.toCheck).toEqual(["공고 원문 확인(조건 정리 전)"]);
+    const product = reviewEligibility(base({ kind: "product", group: "policy", structure: undefined }));
+    expect(product.toCheck).not.toContain(INDUSTRY_SCOPE_UNKNOWN);
+    expect(product.toCheck).not.toContain(REGION_SCOPE_UNKNOWN);
+  });
+
+  it("범위 「모름」은 남은 조건 하나로 센다 — 조건 수를 모르는 원문 확인(6)보다 가볍다", () => {
+    expect([...SCOPE_UNKNOWN_TO_CHECK]).toEqual([INDUSTRY_SCOPE_UNKNOWN, REGION_SCOPE_UNKNOWN]);
+    expect(toCheckWeight([INDUSTRY_SCOPE_UNKNOWN])).toBe(1);
+    expect(toCheckWeight([INDUSTRY_SCOPE_UNKNOWN, REGION_SCOPE_UNKNOWN])).toBe(2);
+    expect(toCheckWeight(["공고 원문 확인(조건 정리 전)"])).toBe(6);
+    expect(toCheckWeight(["자격 조건 원문 확인"])).toBe(6);
+  });
+});
+
+describe("걸림돌 단계 — 걸림돌만 남아야 4단계, 확인할 것도 남으면 5단계(NO.585 4·5절)", () => {
+  /** 고객이 「인증 없음」이라 적어 확정된 걸림돌. */
+  const CERT_FAIL: ConditionCheck = {
+    condition: { key: "certRequired", op: "eq", value: true, rawText: "벤처기업 인증 보유 기업", machineReadable: true },
+    verdict: "fail",
+    note: "요구 인증 미보유",
+  };
+
+  it("unverifiedStep — 걸림돌만이면 4, 확인할 것이 하나라도 있으면 5", () => {
+    expect(unverifiedStep([], ["체납 정리 필요"])).toBe(4);
+    expect(unverifiedStep(["기관 문의"], ["체납 정리 필요"])).toBe(5);
+    expect(unverifiedStep(["기관 문의"], [])).toBe(5);
+  });
+
+  it("인증이 없는 고객 — 다른 확인이 없으면 4단계 걸림돌", () => {
+    const r = reviewEligibility(base({ checks: [SCALE_PASS, CERT_FAIL] }));
+    expect(r.verdict).toBe("unverified");
+    expect(r.step).toBe(4);
+    expect(r.stepLabel).toBe("걸림돌 있음");
+    expect(r.obstacles).toEqual(["요구 인증 필요"]);
+  });
+
+  it("인증이 없는데 기관 문의까지 남으면 5단계 확인 필요 — 걸림돌은 지우지 않는다", () => {
+    const r = reviewEligibility(base({ checks: [SCALE_PASS, CERT_FAIL], humanCheckTexts: ["센터별 세부 사항이 상이하므로 기관 문의 바람"] }));
+    expect(r.verdict).toBe("unverified");
+    expect(r.step).toBe(5);
+    expect(r.stepLabel).toBe("확인 필요");
+    expect(r.toCheck).toContain("기관 문의");
+    expect(r.obstacles).toEqual(["요구 인증 필요"]);
+  });
+});
+
+/* ───────── 기준 공고 고정본 ───────── */
+
+interface Fixture {
+  title: string;
+  source: string;
+  agency: string;
+  region: string;
+  structure: Record<string, unknown>;
+}
+
+const cond = (key: string, op: string, value: unknown, rawText: string) => ({ key, op, value, rawText, machineReadable: key !== "other" });
+
+const S_OJT: Fixture = {
+  title: "체계적 현장훈련 참여기업으로 선정되면 훈련 실시에 소요되는 훈련비와 훈련과정 컨설팅을 지원받을 수 있습니다",
+  source: "work24",
+  agency: "고용노동부(고용24)",
+  region: "",
+  structure: {
+    industryScope: "restricted",
+    regionScope: "all",
+    benefitSummary: "체계적 현장훈련 참여기업으로 선정되면 훈련비, 훈련과정컨설팅(훈련과정 개발비), 훈련교사수당, 내부훈련교사 교육 등을 지원받을 수 있습니다.",
+    supportAmountText: "훈련비: 훈련직종별 기준단가(평균 7,000원) × 훈련시간 × 훈련인원(수료기준) × 3배 / 훈련과정컨설팅: 내부전문가 최대 50만원",
+    conditions: [
+      cond("companyScale", "in", ["우선지원대상기업", "중소기업"], "고용보험가입 사업장 중 고용보험법 시행령 제 12 조에서 우선지원대상기업 (= 중소기업 ) 이면 지원받을 수 있으나 일부 기업의 경우 지원이 제한됩니다 ."),
+      cond("noTaxDelinquency", "eq", true, "고용보험료를 신청일 기준으로 체납하지 않아야 합니다 ."),
+      cond("other", "eq", true, "임금체불명단 공개 사업장 및 산재다발 사업장이 아니여야 합니다 ."),
+      cond(
+        "industry",
+        "in",
+        ["풍속영업", "청소년 유해업종", "성매매알선", "공공기관", "지방공기업", "비영리사업자", "협회"],
+        "기타 아래의 업종은 제한되니 확인해보세요 . 「 풍속영업의 규제에 관한 법률 」 제 2 조에 따른 업종에 해당하는 기업",
+      ),
+    ],
+    humanCheck: ["그 밖에 이사업의 목적에 적합하지 아니하다고 판단하는 기업"],
+  },
+};
+
+const JANGWI: Fixture = {
+  title: "서울 장위 의류봉제 소공인특화지원센터 소공인 모집 공고",
+  source: "semas",
+  agency: "소상공인시장진흥공단",
+  region: "",
+  structure: {
+    industryScope: "unknown",
+    regionScope: "restricted",
+    benefitSummary: "서울 장위 의류봉제 소공인특화지원센터의 교육사업(정보교류·경영·기술역량 배양)과 지역·업종 특화사업",
+    supportAmountText: "",
+    conditions: [
+      cond("companyScale", "in", ["소공인"], "□ 지원대상 : 집적지 내 또는 집적지 인근 소공인"),
+      cond("region", "in", ["서울"], "서울 장위 의류봉제 소공인특화지원센터 소공인 모집 공고"),
+    ],
+    humanCheck: [
+      "□ 지원대상 : 집적지 내 또는 집적지 인근 소공인",
+      "□ 지원규모와 신청서류 : 센터별 사업 세부내용 및 각 사업별 모집시기 상이하므로, 소공인특화지원센터에 문의",
+    ],
+  },
+};
+
+const SEOUL_DIGITAL: Fixture = {
+  title: "[서울] 2026년 하반기 중장년 소상공인 디지털 전환지원 사업 모집 공고",
+  source: "bizinfo",
+  agency: "서울특별시",
+  // 운영 수집본의 지역 칸은 낱말 꼬리표 묶음이다(서울·서울특별시가 섞여 있다).
+  region: "경영,서울,인력관리,디지털전환,서울신용보증재단,서울특별시,컨설팅,마케팅,소상공인",
+  structure: {
+    industryScope: "unknown",
+    regionScope: "restricted",
+    benefitSummary: "서울 소재 만 40세 이상 소상공인 200명에게 디지털 전환 교육, 컨설팅 4회, 솔루션 이행비용(부가세 제외 최대 3백만원)",
+    supportAmountText: "솔루션 이행(최대 3백만원 지원), 부가가치세 제외 최대 3백만 원 이내 지원",
+    conditions: [
+      cond("region", "in", ["서울", "서울특별시", "서울시"], "소 재 지: 사업자등록증상 사업장 소재지가 ‘서울시’인 기업"),
+      cond("companyScale", "in", ["소상공인"], "지원대상: 사업 신청일 기준 다음 요건을 모두 충족하는 소상공인"),
+      cond("other", "gte", 40, "지원연령: 만 40세 이상인 자"),
+      cond("other", "eq", true, "업 력: 개업일이 2025년 7월 1일 이전인 자"),
+      cond("other", "eq", false, "휴업 중 또는 이미 폐업한 기업"),
+      cond("other", "eq", false, "’26년도 서울시 소상공인 종합지원사업*을 지원받았거나 진행 중인 자"),
+    ],
+    humanCheck: ["(우대사항) - 디지털 취약 업종(숙박·음식점업, 제조업, 수리·기타서비스업) - 디지털 취약 연령(만 50세 이상)"],
+  },
+};
+
+/** funding-map-build 의 공고 한 건 판정과 같은 순서 — 지역 보태기 → 대조 → 판정. */
+function judge(f: Fixture, profile: BusinessProfile = SOCKS) {
+  const structure = withRegionConditions(readStoredStructure(f.structure), { title: f.title, agency: f.agency, region: f.region }, { regionFieldFallback: true });
+  const m = matchAnnouncement(structure, profile, NOW, { title: f.title });
+  return reviewEligibility({
+    kind: "announcement",
+    group: "grant",
+    title: f.title,
+    source: f.source,
+    profile,
+    now: NOW,
+    checks: m.checks,
+    humanCheckTexts: m.humanCheck,
+    structure,
+    ruleOnly: false,
+  });
+}
+
+describe("기준 공고 고정본 — 서울 도봉구 양말 임가공 7명(NO.585 6절)", () => {
+  it("(b) S-OJT 는 지원 가능 · 1단계 무상", () => {
+    const r = judge(S_OJT);
+    expect(r.verdict).toBe("fit");
+    expect(r.step).toBe(1);
+    expect(r.copayText).toBe("자부담 원문에 없음");
+  });
+
+  it("(e) 장위 의류봉제는 확인 필요 — 「집적지 근처 인정 여부 확인」이 맨 앞", () => {
+    const r = judge(JANGWI);
+    expect(r.verdict).toBe("unverified");
+    expect(r.step).toBe(5);
+    expect(r.toCheck[0]).toBe("집적지 근처 인정 여부 확인");
+  });
+
+  it("(d) 서울 중장년 디지털 전환은 부가세 고객 부담과 함께 확인 필요 — 대표 나이가 남는다", () => {
+    const r = judge(SEOUL_DIGITAL);
+    expect(r.verdict).toBe("unverified");
+    expect(r.copayText).toBe("부가세 고객 부담");
+    expect(r.toCheck).toContain("대표자 만 40세 이상");
+    expect(r.toCheck).not.toContain(REGION_SCOPE_UNKNOWN);
+  });
+
+  it("(h) 체납 고객 — S-OJT 는 4단계 걸림돌 「체납 정리 필요」로 남는다", () => {
+    const r = judge(S_OJT, { ...SOCKS, taxDelinquent: true });
+    expect(r.verdict).toBe("unverified");
+    expect(r.step).toBe(4);
+    expect(r.obstacles).toContain("체납 정리 필요");
+  });
+
+  it("(a) 부산 고객에게 서울 공고는 안 맞음", () => {
+    const busan = { ...SOCKS, region: "부산", regionSigungu: "해운대구" };
+    expect(judge(SEOUL_DIGITAL, busan).verdict).toBe("excluded");
+    expect(judge(JANGWI, busan).verdict).toBe("excluded");
+  });
+});
+
+describe("리뷰 review-29a732f5 P2 — 규모 포함 관계·채용 지원금·범위 상한·걸림돌 중복(NO.585 2·3절)", () => {
+  const scaleCheck = (value: string[], verdict: "pass" | "fail"): ConditionCheck => ({
+    condition: { key: "companyScale", op: "in", value, rawText: value.join("·"), machineReadable: true },
+    verdict,
+    note: verdict === "fail" ? `대상: ${value.join("·")}` : "",
+  });
+
+  it("규모를 「소상공인」으로 적은 고객도 중소기업·우선지원대상기업 공고(S-OJT) 대상이다", () => {
+    const r = judge(S_OJT, { ...SOCKS, companyScale: "소상공인" });
+    expect(r.verdict).toBe("fit");
+    expect(r.step).toBe(1);
+  });
+
+  it("「중소기업」이라 적었어도 직원 수·매출이 소상공인이면 소상공인 공고 대상이다", () => {
+    const r = reviewEligibility(base({ profile: { ...SOCKS, companyScale: "중소기업" }, checks: [scaleCheck(["소상공인"], "fail")] }));
+    expect(r.verdict).toBe("fit");
+  });
+
+  it("「중소기업」이라 적은 매출 200억 고객은 글자가 겹쳐도 소기업 공고 대상이 아니다", () => {
+    const big = { ...SOCKS, companyScale: "중소기업", employeeCount: 80, lastYearRevenueKrw: 20_000_000_000 };
+    expect(reviewEligibility(base({ profile: big, checks: [scaleCheck(["소기업"], "pass")] })).verdict).toBe("excluded");
+  });
+
+  it("「중견기업」이라 적은 큰 회사는 소상공인 공고 대상이 아니다", () => {
+    const big = { ...SOCKS, companyScale: "중견기업", employeeCount: 300, lastYearRevenueKrw: 100_000_000_000 };
+    expect(reviewEligibility(base({ profile: big, checks: [scaleCheck(["소상공인"], "fail")] })).verdict).toBe("excluded");
+  });
+
+  it.each([
+    "방위산업 중소기업 신규직원 채용 지원사업 참여기업 모집",
+    "청년 정규직 채용 장려금 신청 안내",
+    "중소기업 신규채용 인건비 지원",
+  ])("고용지원금 공고 「%s」는 남긴다", (title) => {
+    expect(nonBenefitReason(title)).toBeNull();
+  });
+
+  it.each(["○○공단 신규직원 채용 공고", "중소기업 지원사업 담당 직원 채용"])("구인 글 「%s」는 뺀다", (title) => {
+    expect(nonBenefitReason(title)).not.toBeNull();
+  });
+
+  it("「상시근로자 5인 이상 50인 미만」은 위 경계도 본다 — 120명 고객은 안 맞음, 7명 고객은 맞음", () => {
+    const text = ["상시근로자 5인 이상 50인 미만 기업"];
+    expect(reviewEligibility(base({ profile: { ...SOCKS, employeeCount: 120 }, humanCheckTexts: text })).verdict).toBe("excluded");
+    expect(reviewEligibility(base({ humanCheckTexts: text })).verdict).toBe("fit");
+  });
+
+  it("「업력 3년 이상 7년 미만」은 위 경계도 본다 — 업력 26년 고객은 안 맞음", () => {
+    expect(reviewEligibility(base({ humanCheckTexts: ["업력 3년 이상 7년 미만 기업"] })).verdict).toBe("excluded");
+  });
+
+  it("체납 문장이 여럿이어도 걸림돌 「체납 정리 필요」는 한 번만 센다", () => {
+    const many: Fixture = {
+      ...S_OJT,
+      structure: { ...S_OJT.structure, humanCheck: ["국세 체납이 없는 자", "지방세 체납이 없는 자"] },
+    };
+    const r = judge(many, { ...SOCKS, taxDelinquent: true });
+    expect(r.obstacles).toEqual(["체납 정리 필요"]);
+    expect(r.step).toBe(4);
+  });
+});

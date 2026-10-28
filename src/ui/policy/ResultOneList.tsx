@@ -18,7 +18,8 @@ import { GROUP_TONE_TILE, cardFooterOf, type FundingMapPayload } from "../Fundin
 import { staleErrorText } from "./ResultGroupList";
 import {
   INITIAL_ONE_LIST_STATE, ONE_LIST_SORTS, VERDICT_TABS, ddayBadgeOf, defaultVerdictTab, flattenFundingItems,
-  cutNoticeOf, groupTagOf, kindTagOf, lineTextOf, localSearchNoticeOf, localSearchScopeOf, oneListReducer, oneListViewOf,
+  cutNoticeOf, groupTagOf, kindTagOf, lineTextOf, localSearchNoticeOf, localSearchScopeOf, oneListReducer, oneListViewOf, reviewNotesOf,
+  stepTagOf, type ReviewNote,
   serverCountsForQuery, serverVerdictCountsOf, sourceNameOf,
   toggleSelectedId, unknownNoticeOf, verdictTabOf,
   type ChipKey, type ListTab, type OneListSort, type OneListState, type ServerVerdictCounts,
@@ -56,6 +57,13 @@ const CHIP_OFF = "border-wedly-bd bg-white text-wedly-t1 hover:bg-wedly-bg-gray"
 /** 0건 칩 — 흐리게 두고 누를 수 없다(disabled). */
 const CHIP_ZERO = "cursor-not-allowed border-wedly-bd bg-white text-wedly-t2 opacity-50";
 
+/** 판정 메모 글자색 — 걸림돌만 빨강(고치면 받을 수 있다), 확인할 것은 본문색, 자부담은 흐린 색. */
+const REVIEW_NOTE_TONE: Record<ReviewNote["kind"], string> = {
+  copay: "text-wedly-t2",
+  obstacle: "text-wedly-red-ink",
+  check: "text-wedly-t1",
+};
+
 /** 판정 이름표 — 목록 줄·탭과 같은 낱말, 색은 기존 판정 알약(`verdictPillOf`)과 같은 톤. 안 맞음은 줄 자체가 없어 이름표도 없다. */
 const VERDICT_TAG: Record<ListTab, { label: string; className: string }> = {
   fit: { label: "지원 가능", className: "bg-wedly-bg-green text-wedly-green-ink" },
@@ -79,6 +87,8 @@ function OneListRow({ item, selected, onSelect, footer, showSource, inline = fal
   const group = groupTagOf(item);
   const dday = ddayBadgeOf(item);
   const verdict = VERDICT_TAG[tab];
+  const stepTag = stepTagOf(item);
+  const notes = reviewNotesOf(item);
   return (
     // 판정 피드백(랩)은 줄 **안** 아래에 붙인다 — 단추 안에 또 단추를 넣을 수 없어 단추와 형제로 둔다.
     <div
@@ -114,7 +124,12 @@ function OneListRow({ item, selected, onSelect, footer, showSource, inline = fal
             {group.tone && <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${GROUP_TONE_TILE[group.tone].dot}`} />}
             {group.label}
           </span>
-          <span className={`ml-auto rounded-full px-2 py-0.5 text-wedly-hint font-semibold ${verdict.className}`}>
+          {stepTag && (
+            <span data-step-tag className="ml-auto rounded-full border border-wedly-bd bg-white px-2 py-0.5 text-wedly-hint font-semibold text-wedly-t1">
+              {stepTag}
+            </span>
+          )}
+          <span className={`${stepTag ? "" : "ml-auto "}rounded-full px-2 py-0.5 text-wedly-hint font-semibold ${verdict.className}`}>
             {verdict.label}
           </span>
         </span>
@@ -129,6 +144,15 @@ function OneListRow({ item, selected, onSelect, footer, showSource, inline = fal
             </span>
           )}
         </span>
+        {notes.length > 0 && (
+          <span data-review-notes className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+            {notes.map((n) => (
+              <span key={n.kind} data-review-note={n.kind} className={`min-w-0 break-keep text-wedly-hint ${REVIEW_NOTE_TONE[n.kind]}`}>
+                {n.text}
+              </span>
+            ))}
+          </span>
+        )}
       </button>
       {inline && selected && (
         <div data-area="row-detail" className="min-w-0 border-t border-wedly-bd px-3 pb-3 pt-3">
@@ -285,7 +309,7 @@ export function ResultOneListView({
       id="result-one-list-sort"
       aria-label="정렬"
       value={state.sort}
-      onChange={(v) => onSort(v === "score" ? "score" : "deadline")}
+      onChange={(v) => onSort(v === "deadline" ? "deadline" : "rec")}
       options={ONE_LIST_SORTS.map((o) => ({ value: o.value, label: o.label }))}
       className="w-40"
       controlClassName="h-9 text-wedly-sub"

@@ -18,7 +18,7 @@ export const SECTOR_FAMILIES: SectorFamily[] = [
   { family: "정보통신", announcementWords: ["소프트웨어", "SW", "ICT", "정보통신", "블록체인", "인공지능", "AI", "게임", "메타버스", "플랫폼"], companyWords: ["소프트웨어", "정보통신", "정보처리", "컴퓨터", "게임", "플랫폼", "앱", "IT"], relatedFamilies: ["콘텐츠", "제약바이오", "반도체전자", "교육", "유통", "자동차"] },
   { family: "콘텐츠", announcementWords: ["콘텐츠", "영상", "영화", "드라마", "방송", "웹툰", "애니메이션", "음악", "출판", "만화", "게임"], companyWords: ["콘텐츠", "영상", "영화", "방송", "출판", "만화", "음악", "광고", "게임", "애니메이션", "캐릭터", "공연"], relatedFamilies: ["정보통신", "광고인쇄"] },
   { family: "뷰티", announcementWords: ["뷰티", "화장품", "미용"], companyWords: ["화장품", "미용", "뷰티"], relatedFamilies: ["제약바이오", "유통"] },
-  { family: "섬유패션", announcementWords: ["섬유", "패션", "의류"], companyWords: ["섬유", "의류", "패션", "봉제", "귀금속", "장신구"], relatedFamilies: ["유통", "광고인쇄", "기계금속"] },
+  { family: "섬유패션", announcementWords: ["섬유", "패션", "의류"], companyWords: ["섬유", "의류", "패션", "봉제", "양말", "니트", "편직", "직물", "방적", "방직", "원단", "귀금속", "장신구"], relatedFamilies: ["유통", "광고인쇄", "기계금속"] },
   { family: "자동차", announcementWords: ["자동차", "모빌리티"], companyWords: ["자동차"], relatedFamilies: ["기계금속", "반도체전자", "정보통신"] },
   { family: "조선해양", announcementWords: ["조선", "해양", "선박"], companyWords: ["조선", "선박"], relatedFamilies: ["기계금속"] },
   { family: "반도체전자", announcementWords: ["반도체", "디스플레이", "전자부품"], companyWords: ["반도체", "디스플레이", "전자부품", "전자제품", "전자기기", "인쇄회로", "인쇄 회로", "회로기판"], relatedFamilies: ["정보통신", "기계금속", "자동차"] },

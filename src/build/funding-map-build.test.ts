@@ -283,7 +283,7 @@ describe("자금 조달 지도 조립 — 두 표를 한 모양으로", () => {
 
   it("갈래를 못 붙인 공고도 지도에서 사라지지 않는다 — grant 칸에 싣되 미분류 표식·한 줄 이유 앞머리", async () => {
     loadOpenAnnouncements.mockResolvedValue([
-      ann({ id: "u1", title: "2026년 우수기업 현판 수여식 안내", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
+      ann({ id: "u1", title: "2026년 우수기업 현판 전달 안내", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
     ]);
     const data = await buildFundingMap({}, NOW);
     const item = byId(data.groups, "a:u1")!;
@@ -303,7 +303,7 @@ describe("자금 조달 지도 조립 — 두 표를 한 모양으로", () => {
         amountMaxWon: BigInt(50_000_000),
         ruleStructure: { ...EMPTY_RULE, conditions: [{ key: "businessAgeMaxYears", op: "lte", value: 10, rawText: "업력 10년 이하", machineReadable: true }] },
       }),
-      ann({ id: "u1", title: "2026년 우수기업 현판 수여식 안내", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountMaxWon: BigInt(900_000_000) }),
+      ann({ id: "u1", title: "2026년 우수기업 현판 전달 안내", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountMaxWon: BigInt(900_000_000) }),
     ]);
     const data = await buildFundingMap({ foundedDate: "2020-01-01" }, NOW); // 업력 조건이 pass 하려면 프로필에 설립일이 있어야 한다
     expect(data.glance.grantFit).toBe(1);
@@ -314,7 +314,7 @@ describe("자금 조달 지도 조립 — 두 표를 한 모양으로", () => {
   it("무상 갈래에 이자 글이 비면 「무상」 — 미분류 줄에는 붙이지 않는다", async () => {
     loadOpenAnnouncements.mockResolvedValue([
       ann({ id: "g1", rateText: "" }),
-      ann({ id: "u1", title: "2026년 우수기업 현판 수여식 안내", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", rateText: "" }),
+      ann({ id: "u1", title: "2026년 우수기업 현판 전달 안내", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", rateText: "" }),
       ann({ id: "p2", fundingGroup: "policy", rateText: "" }),
     ]);
     const data = await buildFundingMap({}, NOW);
@@ -1238,8 +1238,8 @@ describe("숫자의 뜻 — 독립 검사 ①②③(2026-09-04)", () => {
    */
   it("미확인만 있는 갈래는 딱지가 0 — 줄은 실려서 「종류 미확인」 블록으로 간다(독립 검사 ③)", async () => {
     loadOpenAnnouncements.mockResolvedValue([
-      ann({ id: "u1", title: "2026년 우수기업 현판 수여식 안내", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
-      ann({ id: "u2", title: "2026년 기업인 간담회 개최 알림", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
+      ann({ id: "u1", title: "2026년 우수기업 현판 전달 안내", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
+      ann({ id: "u2", title: "2026년 기업인 현장 방문 상담 알림", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
     ]);
     const data = await buildFundingMap({}, NOW);
     const grant = data.groups.find((b) => b.group === "grant")!;
@@ -1484,6 +1484,29 @@ describe("정밀 맞음 — 리뷰 review-116b747b P1-2·P1-3", () => {
     const rep = itemsOf(data.groups).find((x) => x.id === "a:d1" || x.id === "a:d2");
     expect(rep?.fitVerdict).not.toBe("fit");
   });
+  it("묶음 대표를 내릴 때 — 걸림돌만 남으면 4단계, 확인할 것까지 남으면 5단계(NO.585 4·5절)", async () => {
+    const cert = { key: "certRequired", op: "eq", value: true, rawText: "벤처기업 인증 보유 기업", machineReadable: true };
+    const done = (humanCheck: string[], extra: unknown[] = []) => ({
+      structure: { ...rule(humanCheck), conditions: [...rule().conditions, ...extra], regionScope: "all", industryScope: "all" },
+      structureStatus: "done",
+    });
+    const repOf = async (humanCheck: string[]) => {
+      loadOpenAnnouncements.mockResolvedValue([
+        ann({ id: "d1", dedupKey: "same", title: "2026년 소상공인 경영개선 지원", ...done([]) }),
+        ann({ id: "d2", dedupKey: "same", title: "2026년 소상공인 경영개선 지원", ...done(humanCheck, [cert]) }),
+      ]);
+      productFindMany.mockResolvedValue([]);
+      const data = await buildFundingMap({ region: "서울", employeeCount: 10, hasCert: false } as BusinessProfile, NOW, { filters: { includeExcluded: true } });
+      return itemsOf(data.groups).filter((x) => x.id === "a:d1" || x.id === "a:d2");
+    };
+    const onlyHurdle = await repOf([]);
+    expect(onlyHurdle.map((x) => x.id)).toEqual(["a:d1"]);
+    expect(onlyHurdle[0]).toMatchObject({ fitVerdict: "unverified", step: 4, obstacles: ["요구 인증 필요"] });
+    const hurdleAndCheck = await repOf(["센터별 세부 사항이 상이하므로 기관 문의 바람"]);
+    expect(hurdleAndCheck.map((x) => x.id)).toEqual(["a:d1"]);
+    expect(hurdleAndCheck[0]).toMatchObject({ fitVerdict: "unverified", step: 5, stepLabel: "확인 필요", obstacles: ["요구 인증 필요"] });
+    expect(hurdleAndCheck[0].toCheck).toContain("기관 문의");
+  });
   it("손 등록 명부(창구 안내·엔젤매칭) 상품은 설명 글의 조건을 기계가 다 못 읽으므로 맞음이 아니다", async () => {
     loadOpenAnnouncements.mockResolvedValue([]);
     productFindMany.mockResolvedValue([]);
@@ -1508,6 +1531,18 @@ describe("정밀 맞음 — 상품을 같은 이름 공고에 접을 때(리뷰 
     const item = itemsOf(data.groups).find((x) => x.id === "a:tw");
     expect(item).toBeDefined();
     expect(item!.fitVerdict).not.toBe("fit");
+  });
+
+  it("상품에 걸림돌만 남았으면 공고도 걸림돌(4단계)로 내린다 — 「확인할 것」으로 섞지 않는다(리뷰 review-29a732f5 P3)", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({ id: "tw3", title: "소상공인 경영안정 자금", agency: "소진공", structureStatus: "done",
+        structure: { ...EMPTY_RULE, regionScope: "all", industryScope: "all", conditions: [{ key: "employeeMax", op: "lte", value: 50, rawText: "50인 이하", machineReadable: true }] } }),
+    ]);
+    productFindMany.mockResolvedValue([prod({ id: "pt", name: "소상공인 경영안정 자금", institution: "소진공", targetRules: { humanCheck: ["국세 체납이 없는 자"] } })]);
+    const data = await buildFundingMap({ employeeCount: 10, region: "서울", taxDelinquent: true } as BusinessProfile, NOW, { filters: { includeExcluded: true } });
+    const item = itemsOf(data.groups).find((x) => x.id === "a:tw3");
+    expect(item).toMatchObject({ fitVerdict: "unverified", step: 4, obstacles: ["체납 정리 필요"] });
+    expect(item!.toCheck ?? []).not.toContain("체납 정리 필요");
   });
 });
 
@@ -1592,17 +1627,17 @@ describe("BF11 — 검색어·탭은 80건으로 자르기 전에 서버에서 �
   });
 
   const parked = () => [
-    ann({ id: "u1", title: "2026년 우수기업 현판 수여식 안내", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
-    ann({ id: "u2", title: "2026년 기업인 간담회 개최 알림", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
+    ann({ id: "u1", title: "2026년 우수기업 현판 전달 안내", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
+    ann({ id: "u2", title: "2026년 기업인 현장 방문 상담 알림", agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
   ];
 
   // 11차 리뷰 P2② — 검색에서 빠진 미확인 줄이 「N건 중 M건만 보여 드림」에 남으면 안 된다.
   it("미확인 2건 중 1건만 검색에 맞으면 미확인 전체 수도 1건", async () => {
     loadOpenAnnouncements.mockResolvedValue(parked());
-    const data = await buildFundingMap({}, NOW, { query: "수여식" });
+    const data = await buildFundingMap({}, NOW, { query: "현판" });
     expect(data.unclassified).toBe(1);
     expect(data.totals.filtered).toBe(1);
-    expect(filterFundingData(data, { tab: "all", query: "수여식" }).unclassified).toBe(1);
+    expect(filterFundingData(data, { tab: "all", query: "현판" }).unclassified).toBe(1);
   });
 
   // 13차 리뷰 P2 — 서버 자료를 그대로 쓰더라도 묶음 탭이면 고른 갈래 카드만 남는다.
@@ -1639,13 +1674,13 @@ describe("BF11 — 검색어·탭은 80건으로 자르기 전에 서버에서 �
   it("옛 통로 응답에서 미확인 81건 중 80건만 받았으면 전체 수 81을 그대로 둔다", async () => {
     loadOpenAnnouncements.mockResolvedValue(
       Array.from({ length: 81 }, (_, i) =>
-        ann({ id: `u${i}`, url: `https://bizinfo.go.kr/u${i}`, dedupKey: `u${i}`, title: `2026년 우수기업 현판 수여식 ${i}회 안내`, agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
+        ann({ id: `u${i}`, url: `https://bizinfo.go.kr/u${i}`, dedupKey: `u${i}`, title: `2026년 우수기업 현판 전달 ${i}회 안내`, agency: "한국산업단지공단", wedlyCategory: "", fundingGroup: "", amountText: "", amountMaxWon: null }),
       ),
     );
     const { search: _s, ...old } = await buildFundingMap({}, NOW);
     void _s;
     expect(old.unclassified).toBe(81);
-    const shown = filterFundingData(old, { tab: "all", query: "수여식" });
+    const shown = filterFundingData(old, { tab: "all", query: "현판" });
     expect(shown.unclassified).toBe(81);
     expect(sectionsOf(shown).find((s) => s.key === "unclassified")!.total).toBe(80);
   });
@@ -1654,6 +1689,6 @@ describe("BF11 — 검색어·탭은 80건으로 자르기 전에 서버에서 �
     loadOpenAnnouncements.mockResolvedValue(parked());
     const data = await buildFundingMap({}, NOW);
     expect(data.unclassified).toBe(2);
-    expect(filterFundingData(data, { tab: "all", query: "수여식" }).unclassified).toBe(1);
+    expect(filterFundingData(data, { tab: "all", query: "현판" }).unclassified).toBe(1);
   });
 });

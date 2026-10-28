@@ -53,6 +53,21 @@ export interface FundingItem {
   where: string;
   fit: FundingFit[];
   fitVerdict: FitVerdict;
+  /**
+   * 추천 단계(NO.585, 2026-10-26 대표 요청) — 1 무상 · 2 자부담 있음 · 3 융자·보증·투자 · 4 걸림돌 · 5 확인 필요.
+   * 안 맞음이면 싣지 않는다. 옛 응답(이 칸 없음)은 화면이 판정만으로 줄 세운다.
+   */
+  step?: 1 | 2 | 3 | 4 | 5;
+  /** 단계 이름표(「무상 지원」·「자부담 있음」·「융자·보증」·「투자」·「걸림돌 있음」·「확인 필요」). */
+  stepLabel?: string;
+  /** 무상 지원금의 자부담 글자 — 「자부담 원문에 없음」·「자부담 20%」·「부가세 고객 부담」. */
+  copayText?: string;
+  /** 확인 필요 줄의 「확인할 것」(짧은 말). 비면 싣지 않는다. */
+  toCheck?: string[];
+  /** 고칠 수 있는 걸림돌(체납 정리·인증·특허). 비면 싣지 않는다. */
+  obstacles?: string[];
+  /** 안 맞음 까닭 한 줄 — 안 맞음 줄에만. */
+  excludeReason?: string;
   humanCheck: number;
   score: number;
   why: string;
@@ -209,6 +224,42 @@ export interface FundingFilters {
 
 /** 갈래 한 칸에 실어 보내는 최대 건수 — 나머지는 「N건 전부 보기」가 아니라 표 보기로 간다. */
 export const GROUP_TOP_N = 80;
+
+/** 조건을 정리하지 못해 붙는 뭉뚱그린 확인할 것 — 고객 정보를 채워도 사라지지 않는다. */
+export const GENERIC_TO_CHECK: ReadonlySet<string> = new Set(["공고 원문 확인(조건 정리 전)", "자격 조건 원문 확인"]);
+
+/**
+ * AI 가 업종·지역 범위를 「모름」이라 답해 붙는 확인할 것 — 남은 조건 하나로 세지만(무게 1),
+ * 한 안내만 범위를 모른다고 같은 사업의 다른 안내(맞음)까지 내리지는 않는다.
+ */
+export const INDUSTRY_SCOPE_UNKNOWN = "업종 제한 여부 확인";
+export const REGION_SCOPE_UNKNOWN = "지역 제한 여부 확인";
+export const SCOPE_UNKNOWN_TO_CHECK: ReadonlySet<string> = new Set([INDUSTRY_SCOPE_UNKNOWN, REGION_SCOPE_UNKNOWN]);
+
+/** 분류하지 못한 원문을 그대로 줄인 확인할 것(「조건 확인: …」·「제외 조건: …」). */
+const RAW_TO_CHECK = /^(?:조건 확인|제외 조건): /;
+
+/** 조건 정리가 안 된 확인할 것 하나의 무게 — 조건 수를 모른다. */
+const GENERIC_WEIGHT = 6;
+/** 걸림돌 하나의 무게 — 고객 정보로 「안 된다」가 확인된 조건이라 모르는 조건(1)보다 무겁다. */
+const OBSTACLE_WEIGHT = 3;
+
+/**
+ * 확인 필요 안의 순서에 쓰는 「남은 확인」의 무게(대표 요청 5절 「확인 못 한 조건 수가 적은 순」).
+ * 짧은 말로 정리된 확인할 것은 1, 원문을 그대로 줄인 것은 2로 센다. 조건 정리가 안 된 공고는 남은 조건 수를
+ * 모르니 하나로 세지 않고 6으로 센다 — 그래야 「집적지 근처 인정 여부 확인」 등 셋이 남은 장위 공고가
+ * 조건을 하나도 모르는 공고들보다 앞서 화면 80줄 안에 든다(NO.585 성진섬유 실측 121번째 → 59번째).
+ */
+export function toCheckWeight(labels: readonly string[] | undefined): number {
+  let w = 0;
+  for (const l of labels ?? []) w += GENERIC_TO_CHECK.has(l) ? GENERIC_WEIGHT : RAW_TO_CHECK.test(l) ? 2 : 1;
+  return w;
+}
+
+/** 확인 필요 줄의 순서 무게 — 남은 확인 + 걸림돌. 같은 확인이 남았으면 걸림돌이 있는 공고가 뒤에 선다. */
+export function reviewWeight(it: Pick<FundingItem, "toCheck" | "obstacles">): number {
+  return toCheckWeight(it.toCheck) + OBSTACLE_WEIGHT * (it.obstacles?.length ?? 0);
+}
 
 /* ───────── 검색어·탭 — 서버가 80건으로 자르기 **전에** 거르는 규칙(화면과 한 벌) ───────── */
 
@@ -670,6 +721,19 @@ export function topPerVerdict(sorted: FundingItem[], topN: number): FundingItem[
   });
 }
 
+/** 오늘 마감(D-day) — 오늘 안에 서류를 못 낸다. 추천순은 같은 판정 안에서 맨 아래로 둔다(NO.585 대표 요청 2절). */
+export function isDueToday(d: FundingDeadline): boolean {
+  if (d.kind === "closed") return false;
+  if (d.kind === "upcoming") return d.endDDay === 0;
+  return d.dDay === 0;
+}
+
+/** 단계가 없는 옛 줄 — 맞음은 1단계 뒤, 확인 필요는 5단계와 같은 자리에 둔다. */
+function stepRank(it: FundingItem): number {
+  if (it.step != null) return it.step;
+  return it.fitVerdict === "fit" ? 3 : 5;
+}
+
 export function sortItems(items: FundingItem[], sort: FundingSort): FundingItem[] {
   const list = [...items];
   if (sort === "dead") return list.sort((a, b) => deadRank(a.deadline) - deadRank(b.deadline));
@@ -677,10 +741,18 @@ export function sortItems(items: FundingItem[], sort: FundingSort): FundingItem[
     return list.sort((a, b) => (a.rateMin ?? Number.MAX_SAFE_INTEGER) - (b.rateMin ?? Number.MAX_SAFE_INTEGER));
   }
   if (sort === "amt") return list.sort((a, b) => (b.amountMaxWon ?? -1) - (a.amountMaxWon ?? -1));
-  // 추천순(2026-09-24 승인 시안): 맞음 → 확인 필요 → 안 맞음, 같은 칸 안에서는 마감 가까운 순, 같으면 점수.
+  // 추천순(NO.585, 2026-10-26 대표 요청 — 2026-09-24 승인 시안의 「판정 → 마감」 사이에 단계를 넣었다):
+  // 맞음 → 확인 필요 → 안 맞음 / 그 안에서 오늘 마감은 맨 아래 / 단계(무상 → 자부담 → 융자 → 걸림돌 → 확인 필요)
+  // / 확인할 것·걸림돌이 적은 순 / 마감 가까운 순(상시 뒤) / 점수.
   return list.sort((a, b) => {
     const byFit = FIT_RANK[a.fitVerdict] - FIT_RANK[b.fitVerdict];
     if (byFit !== 0) return byFit;
+    const byToday = Number(isDueToday(a.deadline)) - Number(isDueToday(b.deadline));
+    if (byToday !== 0) return byToday;
+    const byStep = stepRank(a) - stepRank(b);
+    if (byStep !== 0) return byStep;
+    const byChecks = reviewWeight(a) - reviewWeight(b);
+    if (byChecks !== 0) return byChecks;
     const byDead = deadRank(a.deadline) - deadRank(b.deadline);
     if (byDead !== 0) return byDead;
     return b.score - a.score;
