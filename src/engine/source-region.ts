@@ -3,6 +3,10 @@
 // 다시 올린 「비즈플러스카드」가 서울 회사의 추천 위쪽에 떴다. 전국 공고는 중앙 출처(기업마당·중소벤처24 …)에 따로 있다.
 // 이름은 funding/source-labels.ts 의 출처 이름을 보고 적었다. 17곳 통합(ccei)·산업단지공단(kicox)처럼 여러 지역을 맡는
 // 출처와 중앙 기관은 넣지 않는다. 시군구 이름은 sigungu.ts 사전에 있는 이름만 쓴다(시험이 확인한다).
+// 서민금융진흥원 상품(product-kinfa)은 출처 하나에 전국 신용보증재단 상품이 다 들어 있어 출처로는 못 가린다 — 창구 이름
+// (「전남신용보증재단」)을 orgRegionsOf 로 읽는다(NO.585 운영 QA: 서울 회사에 전남·광주 재단 상품이 「지원 가능」으로 떴다).
+
+import { REGION_ALIASES } from "./match-engine";
 
 export interface SourceRegion {
   sido: string;
@@ -93,4 +97,26 @@ export const SOURCE_REGION: Readonly<Record<string, SourceRegion>> = {
 export function sourceRegionOf(source: string | null | undefined): SourceRegion | null {
   if (!source) return null;
   return Object.prototype.hasOwnProperty.call(SOURCE_REGION, source) ? SOURCE_REGION[source] : null;
+}
+
+/** 시도 이름 바로 뒤에 붙는 지역 기관 꼬리. 「신용보증재단중앙회」·「지역신용보증재단」은 앞이 시도가 아니라 안 걸린다. */
+const REGIONAL_ORG_TAIL = /(?:신용보증재단|기업진흥원|경제진흥원|산업진흥원|테크노파크)$/;
+const SIDO_OF_ALIAS: ReadonlyMap<string, string> = new Map(
+  Object.entries(REGION_ALIASES).flatMap(([canon, list]) => list.map((alias) => [alias, canon] as const)),
+);
+
+/**
+ * 기관 이름 → 그 기관이 맡은 시도(「강원신용보증재단, 전북신용보증재단」처럼 여럿이면 모두).
+ * 이름 전체가 「시도 + 지역 기관 꼬리」일 때만 읽는다 — 「BNK경남은행」·「서민금융진흥원」은 지역 기관이 아니다.
+ */
+export function orgRegionsOf(name: string | null | undefined): SourceRegion[] {
+  const out: SourceRegion[] = [];
+  for (const part of (name ?? "").split(/[,，·ㆍ/]+/)) {
+    const t = part.replace(/\s+/g, "");
+    const tail = t.match(REGIONAL_ORG_TAIL);
+    if (!tail) continue;
+    const sido = SIDO_OF_ALIAS.get(t.slice(0, t.length - tail[0].length));
+    if (sido && !out.some((r) => r.sido === sido)) out.push({ sido });
+  }
+  return out;
 }

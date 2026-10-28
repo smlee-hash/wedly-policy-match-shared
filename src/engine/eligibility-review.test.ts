@@ -383,3 +383,136 @@ describe("리뷰 review-29a732f5 P2 — 규모 포함 관계·채용 지원금·
     expect(r.step).toBe(4);
   });
 });
+
+describe("다른 지역 대상 상품 — 운영 QA(NO.585 2절: 서울 밖 공고·상품이 어느 탭에도 없다)", () => {
+  /** 상품 어댑터가 대상 원문을 옮겨 적은 사람 확인 조건(rules-to-conditions 의 humanCheck). */
+  const other = (rawText: string): ConditionCheck => ({
+    condition: { key: "other", op: "eq", value: true, rawText, machineReadable: false },
+    verdict: "unknown",
+    note: "",
+  });
+  const product = (over: Partial<EligibilityInput> = {}): EligibilityInput => ({
+    kind: "product",
+    group: "guarantee",
+    title: "소상공인 특례보증",
+    source: "product-kinfa",
+    profile: SOCKS,
+    now: NOW,
+    checks: [other("소상공인")],
+    placeOrgs: ["", "서민금융진흥원"],
+    ...over,
+  });
+
+  it.each(["광주광역시 소재 소기업.소상공인", "경상남도에서 사업 중인 소상공인", "부산광역시에 사업장을 둔 중소기업", "충청북도 내 주소를 둔 소상공인"])(
+    "「%s」는 규모가 맞아도 서울 회사에 안 맞음",
+    (text) => {
+      const r = reviewEligibility(product({ checks: [other(text)] }));
+      expect(r.verdict).toBe("excluded");
+      expect(r.excludeReason).toMatch(/^다른 지역 대상\(/);
+    },
+  );
+
+  it("공고의 사람 확인 문장도 같다 — 「대구광역시 소재 소상공인」은 서울 회사에 안 맞음", () => {
+    const r = reviewEligibility(base({ humanCheckTexts: ["대구광역시 소재 소상공인"] }));
+    expect(r.verdict).toBe("excluded");
+    expect(r.excludeReason).toBe("다른 지역 대상(대구)");
+  });
+
+  it.each(["서울특별시 소재 소상공인", "서울 도봉구에 사업장을 둔 소상공인"])("고객 지역 문장 「%s」는 맞음", (text) => {
+    expect(reviewEligibility(product({ checks: [other(text)] })).verdict).toBe("fit");
+  });
+
+  it("다른 지역이 우대 문장에만 있으면 빼지 않는다", () => {
+    const r = reviewEligibility(product({ checks: [other("소상공인"), other("부산 소재 기업 우대")] }));
+    expect(r.verdict).not.toBe("excluded");
+  });
+
+  it("「또는」으로 다른 길이 있으면 빼지 않고 확인할 것", () => {
+    const r = reviewEligibility(product({ checks: [other("부산광역시 소재 소상공인 또는 부산으로 이전 예정인 소상공인")] }));
+    expect(r.verdict).toBe("unverified");
+    expect(r.toCheck).toContain("지역 조건 확인");
+  });
+
+  it("「성북구 외」·「인근」처럼 다른 구도 받는 문장은 빼지 않는다", () => {
+    const r = reviewEligibility(product({ checks: [other("서울 성북구 및 인근 지역 소재 소상공인")] }));
+    expect(r.verdict).not.toBe("excluded");
+  });
+
+  it.each([
+    ["전남신용보증재단", "다른 지역 기관 상품(전남)"],
+    ["충청북도기업진흥원", "다른 지역 기관 상품(충북)"],
+    ["강원신용보증재단, 전북신용보증재단", "다른 지역 기관 상품(강원·전북)"],
+  ])("창구가 다른 시도 지역 기관(%s)이면 대상 원문에 지역이 없어도 안 맞음(출처만으로 뺀 표시)", (channel, reason) => {
+    const r = reviewEligibility(product({ checks: [other("각 시·군에 주민등록이 되어있고 실제 거주하고 있는 소상공인")], placeOrgs: [channel, "서민금융진흥원"] }));
+    expect(r.verdict).toBe("excluded");
+    expect(r.excludeReason).toBe(reason);
+    expect(r.excludedBySourceOnly).toBe(true);
+  });
+
+  it.each(["서울신용보증재단", "강원신용보증재단, 서울신용보증재단", "신용보증재단중앙회", "지역신용보증재단", "서민금융진흥원", "BNK경남은행"])(
+    "창구 「%s」 상품은 서울 회사에 남는다",
+    (channel) => {
+      const r = reviewEligibility(product({ placeOrgs: [channel, "서민금융진흥원"] }));
+      expect(r.verdict).toBe("fit");
+    },
+  );
+
+  it("창구가 비면 기관 이름으로 본다", () => {
+    const r = reviewEligibility(product({ placeOrgs: ["", "경기신용보증재단"] }));
+    expect(r.excludeReason).toBe("다른 지역 기관 상품(경기)");
+  });
+
+  it("고객 시도를 모르면 빼지 않고 「소재지 확인」", () => {
+    const r = reviewEligibility(product({ profile: { ...SOCKS, region: undefined, regionSigungu: undefined }, placeOrgs: ["전남신용보증재단", "서민금융진흥원"] }));
+    expect(r.verdict).toBe("unverified");
+    expect(r.toCheck).toContain("소재지 확인");
+  });
+
+  it("지역 기관 출처 상품(product-gcgf)도 다른 시도 고객에게 안 맞음", () => {
+    const r = reviewEligibility(product({ source: "product-gcgf", placeOrgs: ["경기신용보증재단 지점", "경기신용보증재단"] }));
+    expect(r.excludeReason).toBe("다른 지역 기관 상품(경기)");
+  });
+
+  it("지역 문장·창구 지역만으로 뺀 상품은 「지역만으로 뺌」 표시, 출처 사본 표시는 창구 지역일 때만", () => {
+    const byText = reviewEligibility(product({ checks: [other("광주광역시 소재 소기업.소상공인")], placeOrgs: ["광주신용보증재단", "서민금융진흥원"] }));
+    expect(byText.excludedByPlaceOnly).toBe(true);
+    expect(byText.excludedBySourceOnly).toBeUndefined();
+    const byChannel = reviewEligibility(product({ placeOrgs: ["전남신용보증재단", "서민금융진흥원"] }));
+    expect(byChannel.excludedByPlaceOnly).toBe(true);
+    const notPlace = reviewEligibility(product({ checks: [other("광주광역시 소재 소기업.소상공인"), other("개인사업자 제외")], placeOrgs: ["광주신용보증재단", "서민금융진흥원"] }));
+    expect(notPlace.verdict).toBe("excluded");
+    expect(notPlace.excludedByPlaceOnly).toBeUndefined();
+  });
+});
+
+describe("「X 외 지역」 문장 — 리뷰 review-fca5517e P2·P3(NO.585 2절)", () => {
+  const busan = { ...SOCKS, region: "부산", regionSigungu: "해운대구" };
+
+  it.each(["수도권 외 지역에 소재한 중소기업", "서울 외 지역 소재 소상공인", "서울 이외 지역에 사업장을 둔 소상공인"])(
+    "부산 회사에게 「%s」는 지역 때문에 빠지지 않는다",
+    (text) => {
+      expect(reviewEligibility(base({ profile: busan, humanCheckTexts: [text] })).verdict).not.toBe("excluded");
+    },
+  );
+
+  it.each([
+    ["수도권 외 지역에 소재한 중소기업", "다른 지역 대상(서울·경기·인천 밖)"],
+    ["서울 외 지역 소재 소상공인", "다른 지역 대상(서울 밖)"],
+  ])("서울 회사에게 「%s」는 안 맞음", (text, reason) => {
+    const r = reviewEligibility(base({ humanCheckTexts: [text] }));
+    expect(r.verdict).toBe("excluded");
+    expect(r.excludeReason).toBe(reason);
+  });
+
+  it("「비수도권 소재」는 지역 이름 목록으로 읽혀 서울 회사는 안 맞음·부산 회사는 빠지지 않는다", () => {
+    expect(reviewEligibility(base({ humanCheckTexts: ["비수도권 소재 중소기업"] })).excludeReason).toMatch(/^다른 지역 대상\(/);
+    expect(reviewEligibility(base({ profile: busan, humanCheckTexts: ["비수도권 소재 중소기업"] })).verdict).not.toBe("excluded");
+  });
+
+  it.each(["서울 및 서울 외 지역 소재 소상공인", "수도권 및 비수도권 소재 중소기업 모두", "비수도권 소재 기업 우대", "서울 외 지역 소재 기업 또는 서울 소재 사회적기업"])(
+    "서울 회사에게 「%s」는 빼지 않는다",
+    (text) => {
+      expect(reviewEligibility(base({ humanCheckTexts: [text] })).verdict).not.toBe("excluded");
+    },
+  );
+});

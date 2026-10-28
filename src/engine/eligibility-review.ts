@@ -20,7 +20,7 @@ import {
 } from "./match-engine";
 import { relatedFamiliesOf, sectorFamiliesInTitle, sectorFamiliesOfIndustry } from "./sector";
 import { sigunguInText, sigunguSido } from "./sigungu";
-import { sourceRegionOf } from "./source-region";
+import { orgRegionsOf, sourceRegionOf, type SourceRegion } from "./source-region";
 import type { AnnouncementStructure, ConditionCheck } from "./structure-types";
 import type { FitVerdict } from "./recommend-score";
 import {
@@ -66,6 +66,11 @@ export interface EligibilityReview {
   excludeReason?: string;
   /** 안 맞음 까닭이 **출처 기관의 지역뿐**이다 — 같은 공고의 다른 수집본(전국 출처)을 끌어내리지 않게 묶음이 이 사본을 버린다. */
   excludedBySourceOnly?: boolean;
+  /**
+   * 안 맞음 까닭이 **지역뿐**이다(출처·창구 지역, 「광주광역시 소재」 같은 지역 문장) — 상품이 같은 이름·기관의 전국 공고를
+   * 끌어내리지 않게 한다. 묶음이 사본을 버리는 `excludedBySourceOnly` 와 다르다(내용 지역 문장은 그 공고 자체의 조건이다).
+   */
+  excludedByPlaceOnly?: boolean;
 }
 
 /** 내용이 아니라 「정리가 덜 됐다」는 뜻의 확인할 것 — 같은 공고 다른 수집본의 판정을 내리는 근거로 쓰지 않는다(정본은 funding-map). */
@@ -91,6 +96,8 @@ export interface EligibilityInput {
   amountText?: string;
   /** 손 등록 상품 — 창구 안내에 기계로 못 읽은 조건이 남아 있다. */
   manualProduct?: boolean;
+  /** 상품의 창구·기관 이름(앞쪽이 먼저) — 「전남신용보증재단」처럼 지역 기관이면 그 지역 상품이다(NO.585 운영 QA). */
+  placeOrgs?: readonly string[];
 }
 
 /* ───────── 글자 도우미 ───────── */
@@ -123,6 +130,26 @@ const PLACE_NOISE =
 
 /** 지역 조건 문장이 그 시군구 밖도 받는다는 말 — 「○○구 외」·「○○구 등」·「인근·인접」·「제외」(「종로구·동대문구」 나열은 아니다). */
 const OTHER_SIGUNGU_TOO = /[구군시]\s*(?:외(?!국)|등(?![록급]))|제외|인근|인접|근처|주변/;
+/** 그 지역에 사업장·주소가 있어야 한다는 말 — 「광주광역시 소재」·「경상남도에서 사업 중인」·「주민등록이 되어 있고 거주」. */
+const PLACE_REQUIRED = /소재|주소|본사|본점|사업장|거주|주민\s*등록|사업\s*중|영위/;
+/** 지역 문장 안 맞음 까닭의 머리말. */
+const OTHER_PLACE_REASON = "다른 지역 대상";
+/** 지역 때문에 빠졌다는 까닭 — 「다른 지역 대상(…)」·「다른 지역 공고(…)」·「다른 지역 기관 상품(…)」. */
+const PLACE_REASON = /^다른 지역/;
+/** 적힌 지역 말고 다른 곳도 받는다는 말 — 「광주 및 타 지역」·「전국」. */
+const OTHER_PLACE_TOO = /타\s*(?:지역|시\s*[·ㆍ]?\s*도)|전국/;
+/** 「서울 외」와 「서울」을 함께 받는다는 말 — 「서울 및 서울 외 지역」·「수도권 외 지역 포함」. */
+const BOTH_PLACES = /포함|모두|및|까지/;
+/**
+ * 지역 이름 바로 뒤의 「외·이외·밖」 — 「수도권 외 지역」·「서울 이외」·「광주 밖」. 셋째 묶음은 「지역·소재」가 바로 이어지는
+ * 「○○ 외 지역에 소재」꼴이다(「서울 외에 경기 소재 기업도」는 아니다). 「해외」·「제외」·「외국」·「외식」은 앞말·뒷말로 거른다.
+ */
+const AFTER_PLACE_OUTSIDE = /([가-힣]+)\s*(이외|(?<!제)외|밖)(?![국부래식과곽])(\s*(?:의|에)?\s*(?:지역|소재|시\s*[·ㆍ]?\s*도|곳))?/g;
+
+/** 읽힌 지역의 짧은 이름(「광주」·「성북구」) — 안 맞음 까닭에 쓴다. */
+function placeLabel(read: PlaceRead): string {
+  return shortText([...read.sigungus.map((s) => s.name), ...read.sidos].join("·"), 16);
+}
 
 /** 권역 낱말 → 시도. */
 const REGION_GROUPS: Array<readonly [RegExp, readonly string[]]> = [
@@ -157,6 +184,27 @@ function placesIn(text: string): PlaceRead {
     for (const s of sidosInText(word)) sidos.add(s);
   }
   return { sidos: [...sidos], sigungus };
+}
+
+/**
+ * 「○○ 외」로 적힌 지역 — 그 지역이 빠진다는 뜻이다. 앞말이 지역이 아니면(「그 외」·「해외」) 없는 것으로 본다.
+ * `only`는 「○○ 외 지역에 소재」처럼 바깥만 받는 꼴, `rest`는 「○○ 외」를 뺀 나머지 글자다.
+ */
+function outsidePlacesIn(text: string): { read: PlaceRead; only: boolean; rest: string } | null {
+  const sidos = new Set<string>();
+  const sigungus: PlaceRead["sigungus"] = [];
+  let only = false;
+  let rest = text ?? "";
+  for (const m of (text ?? "").matchAll(AFTER_PLACE_OUTSIDE)) {
+    const read = placesIn(m[1]);
+    if (read.sidos.length === 0 && read.sigungus.length === 0) continue;
+    read.sidos.forEach((s) => sidos.add(s));
+    sigungus.push(...read.sigungus);
+    if (m[3]) only = true;
+    rest = rest.split(m[0]).join(" ");
+  }
+  if (sidos.size === 0 && sigungus.length === 0) return null;
+  return { read: { sidos: [...sidos], sigungus }, only, rest };
 }
 
 type PlaceVerdict = "match" | "differ" | "none" | "unknown-customer";
@@ -420,6 +468,21 @@ export function judgeRequirementText(
     // 무엇을 빼는지 모르는 제외 문장 — 대상 범위(직무·품목·과제)를 좁히는 말이 대부분이다.
     if (/직무|과제|품목|항목|비용|경비|사업비|용도|훈련|교육|구매|지출/.test(text)) return IGNORE;
     return check(`제외 조건: ${shortText(text)}`);
+  }
+
+  // 4-1) 다른 지역에 사업장·주소를 둔 기업만 받는 문장 — 규모(소상공인 …)가 맞아도 지역이 먼저다(NO.585 운영 QA:
+  //  「광주광역시 소재 소기업·소상공인」이 서울 회사에 「지원 가능」으로 떴다). 우대·절차 문장과 「인근·○○구 외·타 지역」은 빼지 않는다.
+  //  「○○ 외 지역 소재」는 거꾸로 읽는다 — 그 지역 고객만 빠지고, 다른 지역 고객은 지역 때문에 빠지지 않는다(리뷰 review-fca5517e).
+  if (PLACE_REQUIRED.test(text) && !PREFERENCE.test(text) && !PROCEDURE.test(text)) {
+    const outside = outsidePlacesIn(text);
+    if (outside) {
+      const onlyOutside = outside.only && !BOTH_PLACES.test(text) && comparePlaces(placesIn(outside.rest), p) !== "match";
+      if (onlyOutside && comparePlaces(outside.read, p) === "match") {
+        return EITHER.test(text) ? check("지역 조건 확인") : { kind: "fail", reason: `${OTHER_PLACE_REASON}(${placeLabel(outside.read)} 밖)` };
+      }
+    } else if (placeVerdict === "differ" && !OTHER_SIGUNGU_TOO.test(text) && !OTHER_PLACE_TOO.test(text)) {
+      return EITHER.test(text) ? check("지역 조건 확인") : { kind: "fail", reason: `${OTHER_PLACE_REASON}(${placeLabel(places)})` };
+    }
   }
 
   // 5) 고객 정보로 가릴 수 있는 것.
@@ -740,6 +803,21 @@ function isWeakPass(c: ConditionCheck): boolean {
   return false;
 }
 
+/**
+ * 출처·창구가 맡은 지역. 공고는 출처 기관만 본다. 상품은 출처가 지역 기관이 아니면 창구·기관 이름을 읽는다 —
+ * 서민금융진흥원 출처(product-kinfa)에는 전국 신용보증재단 상품이 다 들어 있다(NO.585 운영 QA).
+ */
+function sourceRegionsOf(input: EligibilityInput): SourceRegion[] {
+  const src = sourceRegionOf(input.source);
+  if (src) return [src];
+  if (input.kind !== "product") return [];
+  for (const org of input.placeOrgs ?? []) {
+    const found = orgRegionsOf(org);
+    if (found.length > 0) return found;
+  }
+  return [];
+}
+
 export function reviewEligibility(input: EligibilityInput): EligibilityReview {
   const { profile: p, now } = input;
   const title = input.title ?? "";
@@ -751,10 +829,12 @@ export function reviewEligibility(input: EligibilityInput): EligibilityReview {
   let excludeReason: string | undefined;
   let excludedByContent = false;
   let excludedBySource = false;
+  let excludedByNonPlace = false;
   const exclude = (reason: string, bySource = false) => {
     if (!excludeReason) excludeReason = reason;
     if (bySource) excludedBySource = true;
     else excludedByContent = true;
+    if (!bySource && !PLACE_REASON.test(reason)) excludedByNonPlace = true;
   };
 
   // 1) 혜택이 아닌 글.
@@ -841,18 +921,18 @@ export function reviewEligibility(input: EligibilityInput): EligibilityReview {
   }
   /** 출처 기관의 지역이 고객 지역과 같다고 확인됐나 — AI 가 지역 범위를 모른다고 해도 그 지역 기관 공고는 지역이 맞는다. */
   let sourceRegionSame = false;
-  if (input.kind === "announcement" && !aiRegionPass) {
-    const src = sourceRegionOf(input.source);
-    if (src) {
-      const mine = customerPlace(p);
-      if (!mine.sido) addCheck("소재지 확인");
-      else if (src.sido !== mine.sido) exclude(`다른 지역 기관 공고(${src.sigungu ?? src.sido})`, true);
-      else if (src.sigungu) {
-        if (!mine.sigungu) addCheck("시군구 확인");
-        else if (src.sigungu !== mine.sigungu) exclude(`다른 지역 기관 공고(${src.sigungu})`, true);
-        else sourceRegionSame = true;
-      } else sourceRegionSame = true;
-    }
+  const srcRegions = aiRegionPass ? [] : sourceRegionsOf(input);
+  if (srcRegions.length > 0) {
+    const mine = customerPlace(p);
+    const noun = input.kind === "product" ? "상품" : "공고";
+    // 창구가 여럿(「강원·전북 신용보증재단」)이면 하나라도 고객 지역이면 맞는다.
+    const sameSido = srcRegions.filter((r) => r.sido === mine.sido);
+    if (!mine.sido) addCheck("소재지 확인");
+    else if (sameSido.length === 0) exclude(`다른 지역 기관 ${noun}(${srcRegions.map((r) => r.sigungu ?? r.sido).join("·")})`, true);
+    else if (sameSido.some((r) => !r.sigungu)) sourceRegionSame = true;
+    else if (!mine.sigungu) addCheck("시군구 확인");
+    else if (sameSido.some((r) => r.sigungu === mine.sigungu)) sourceRegionSame = true;
+    else exclude(`다른 지역 기관 ${noun}(${sameSido.map((r) => r.sigungu).join("·")})`, true);
   }
 
   // 5) 예비창업자 전용.
@@ -917,6 +997,7 @@ export function reviewEligibility(input: EligibilityInput): EligibilityReview {
     return {
       verdict: "excluded", step: null, stepLabel: "", copayText, toCheck, obstacles, excludeReason,
       ...(excludedBySource && !excludedByContent ? { excludedBySourceOnly: true } : {}),
+      ...(!excludedByNonPlace ? { excludedByPlaceOnly: true } : {}),
     };
   }
   if (obstacles.length > 0 || toCheck.length > 0) {

@@ -314,8 +314,10 @@ function isNewSince(firstSeenAt: Date | null | undefined, now: Date): boolean {
 interface BuiltItem {
   item: FundingItem;
   gapLabels: string[];
-  /** 출처 기관의 지역만으로 안 맞음이 된 수집본 — 묶음이 버린다(`groupAnnouncements`). */
+  /** 출처 기관의 지역만으로 안 맞음이 된 공고 사본 — 묶음이 버린다(`groupAnnouncements`). */
   excludedBySourceOnly?: boolean;
+  /** 지역(창구 지역·「광주광역시 소재」 문장)만으로 안 맞음이 된 상품 — 쌍둥이 공고를 내리지 않는다(`downgradeFitTwins`). */
+  excludedByPlaceOnly?: boolean;
 }
 
 /** 판정 결과 → 항목 칸. 빈 값은 싣지 않는다(응답 크기). */
@@ -547,6 +549,7 @@ function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): Buil
     checks,
     amountText: p.limitText ?? "",
     manualProduct: p.source === "manual",
+    placeOrgs: [p.channel ?? "", p.institution ?? ""],
   });
 
   const item: FundingItem = {
@@ -579,7 +582,11 @@ function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): Buil
     isNew: isNewSince(p.firstSeenAt, now),
     ...(unclassified ? { unclassified: true } : {}),
   };
-  return { item, gapLabels: gapLabelsOfConditions(conditions) };
+  return {
+    item,
+    gapLabels: gapLabelsOfConditions(conditions),
+    ...(review.excludedByPlaceOnly ? { excludedByPlaceOnly: true } : {}),
+  };
 }
 
 /**
@@ -872,13 +879,16 @@ function twinKeyOf(it: FundingItem): string {
  *   것이라, 번호까지 남기면 뒤이어 도는 정상·안 맞음 풀의 접기가 「이미 접어 둔 공고」로 읽혀
  *   상품 줄이 접히지 않는다(지도에 같은 사업이 두 줄로 뜬다).
  */
-/** 같은 이름·기관 상품이 「맞음」이 아니면 공고도 「맞음」이 아니다(최대 확인 필요로만 내린다). */
-function downgradeFitTwins(items: FundingItem[]): void {
+/**
+ * 같은 이름·기관 상품이 「맞음」이 아니면 공고도 「맞음」이 아니다(최대 확인 필요로만 내린다).
+ * @param placeOnly 지역(창구 지역·지역 문장)만으로 안 맞음이 된 상품 — 다른 시도 재단의 같은 이름 상품이 공고를 내리지 않게 뺀다(NO.585).
+ */
+function downgradeFitTwins(items: FundingItem[], placeOnly: ReadonlySet<FundingItem> = new Set()): void {
   const productVerdict = new Map<string, FitVerdict>();
   // 확인할 것과 걸림돌은 따로 넘긴다 — 섞으면 걸림돌만 남은 공고가 4단계가 아니라 5단계가 된다(리뷰 review-29a732f5 P3).
   const productChecks = new Map<string, { toCheck: string[]; obstacles: string[] }>();
   for (const it of items) {
-    if (it.kind !== "product") continue;
+    if (it.kind !== "product" || placeOnly.has(it)) continue;
     const key = twinKeyOf(it);
     if (key && it.fitVerdict !== "fit") {
       productVerdict.set(key, it.fitVerdict);
@@ -987,6 +997,12 @@ export async function buildFundingMap(
     gapLabelsByItem.set(b.item, b.gapLabels);
     return b.item;
   };
+  /** 지역만으로 안 맞음이 된 상품(쌍둥이 공고를 내리지 않는다). */
+  const placeOnlyProducts = new Set<FundingItem>();
+  const rememberProduct = (b: BuiltItem): FundingItem => {
+    if (b.excludedByPlaceOnly) placeOnlyProducts.add(b.item);
+    return remember(b);
+  };
 
   const items: FundingItem[] = [
     ...groupAnnouncements(
@@ -995,8 +1011,8 @@ export async function buildFundingMap(
         return { row: r, item: remember(built), ...(built.excludedBySourceOnly ? { excludedBySourceOnly: true } : {}) };
       }),
     ),
-    ...(products as ProductRow[]).map((p) => remember(itemOfProduct(p, profile, now))),
-    ...manualRows.map((m) => remember(itemOfProduct(m, profile, now))),
+    ...(products as ProductRow[]).map((p) => rememberProduct(itemOfProduct(p, profile, now))),
+    ...manualRows.map((m) => rememberProduct(itemOfProduct(m, profile, now))),
   ];
 
   // ★「전체」 건수는 **쌍둥이 상품을 접은 뒤**로 센다(코덱스 13차 #5, 2026-09-04) — 접힌 상품 줄은
@@ -1005,7 +1021,7 @@ export async function buildFundingMap(
   //  안 맞음 풀의 접기보다 **먼저** 돌아야 한다(뒤로 미루면 표식이 이미 붙어 개수가 틀린다).
   // 정밀 맞음(리뷰 review-059ee0f4 P1-1) — 거르기 **전에** 같은 이름 상품의 확인 조건을 공고에 반영한다.
   // 거른 뒤에 하면 상시 상품이 「7일 안 마감」 칩에서 빠져 공고만 「맞음」으로 남는다.
-  downgradeFitTwins(items);
+  downgradeFitTwins(items, placeOnlyProducts);
   const allCount = foldTwinProducts(items, false).length;
 
   // ★한눈에 4칸(`glance`)이 셀 목록 — **칩을 거치기 전**이다(브라우저 독립 검사 ①, 2026-09-04).
