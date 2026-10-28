@@ -1732,4 +1732,17 @@ describe("상품 창구가 다른 시도 지역 기관이면 안 맞음(NO.585 �
     expect(byId(data.groups, "p:jn")?.fitVerdict).toBe("excluded");
     expect(byId(data.groups, "a:tw")?.fitVerdict).toBe("fit");
   });
+
+  it("지역 문장(「광주광역시 소재」) 때문에 빠진 상품도 같은 이름·기관 공고를 끌어내리지 않는다 — 리뷰 review-fca5517e", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({
+        id: "tw", title: "시·군 소상공인 융자금 이차보전사업", agency: "서민금융진흥원", structureStatus: "done",
+        structure: { ...EMPTY_RULE, regionScope: "all", industryScope: "all", conditions: [{ key: "employeeMax", op: "lte", value: 50, rawText: "상시근로자 50인 이하", machineReadable: true }] },
+      }),
+    ]);
+    productFindMany.mockResolvedValue([kinfa("gj", "광주신용보증재단", "광주광역시 소재 소기업.소상공인")]);
+    const data = await buildFundingMap(SEOUL, NOW, { filters: { includeExcluded: true } });
+    expect(byId(data.groups, "p:gj")?.fitVerdict).toBe("excluded");
+    expect(byId(data.groups, "a:tw")?.fitVerdict).toBe("fit");
+  });
 });

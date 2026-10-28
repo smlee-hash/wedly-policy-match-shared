@@ -472,4 +472,47 @@ describe("다른 지역 대상 상품 — 운영 QA(NO.585 2절: 서울 밖 공�
     const r = reviewEligibility(product({ source: "product-gcgf", placeOrgs: ["경기신용보증재단 지점", "경기신용보증재단"] }));
     expect(r.excludeReason).toBe("다른 지역 기관 상품(경기)");
   });
+
+  it("지역 문장·창구 지역만으로 뺀 상품은 「지역만으로 뺌」 표시, 출처 사본 표시는 창구 지역일 때만", () => {
+    const byText = reviewEligibility(product({ checks: [other("광주광역시 소재 소기업.소상공인")], placeOrgs: ["광주신용보증재단", "서민금융진흥원"] }));
+    expect(byText.excludedByPlaceOnly).toBe(true);
+    expect(byText.excludedBySourceOnly).toBeUndefined();
+    const byChannel = reviewEligibility(product({ placeOrgs: ["전남신용보증재단", "서민금융진흥원"] }));
+    expect(byChannel.excludedByPlaceOnly).toBe(true);
+    const notPlace = reviewEligibility(product({ checks: [other("광주광역시 소재 소기업.소상공인"), other("개인사업자 제외")], placeOrgs: ["광주신용보증재단", "서민금융진흥원"] }));
+    expect(notPlace.verdict).toBe("excluded");
+    expect(notPlace.excludedByPlaceOnly).toBeUndefined();
+  });
+});
+
+describe("「X 외 지역」 문장 — 리뷰 review-fca5517e P2·P3(NO.585 2절)", () => {
+  const busan = { ...SOCKS, region: "부산", regionSigungu: "해운대구" };
+
+  it.each(["수도권 외 지역에 소재한 중소기업", "서울 외 지역 소재 소상공인", "서울 이외 지역에 사업장을 둔 소상공인"])(
+    "부산 회사에게 「%s」는 지역 때문에 빠지지 않는다",
+    (text) => {
+      expect(reviewEligibility(base({ profile: busan, humanCheckTexts: [text] })).verdict).not.toBe("excluded");
+    },
+  );
+
+  it.each([
+    ["수도권 외 지역에 소재한 중소기업", "다른 지역 대상(서울·경기·인천 밖)"],
+    ["서울 외 지역 소재 소상공인", "다른 지역 대상(서울 밖)"],
+  ])("서울 회사에게 「%s」는 안 맞음", (text, reason) => {
+    const r = reviewEligibility(base({ humanCheckTexts: [text] }));
+    expect(r.verdict).toBe("excluded");
+    expect(r.excludeReason).toBe(reason);
+  });
+
+  it("「비수도권 소재」는 지역 이름 목록으로 읽혀 서울 회사는 안 맞음·부산 회사는 빠지지 않는다", () => {
+    expect(reviewEligibility(base({ humanCheckTexts: ["비수도권 소재 중소기업"] })).excludeReason).toMatch(/^다른 지역 대상\(/);
+    expect(reviewEligibility(base({ profile: busan, humanCheckTexts: ["비수도권 소재 중소기업"] })).verdict).not.toBe("excluded");
+  });
+
+  it.each(["서울 및 서울 외 지역 소재 소상공인", "수도권 및 비수도권 소재 중소기업 모두", "비수도권 소재 기업 우대", "서울 외 지역 소재 기업 또는 서울 소재 사회적기업"])(
+    "서울 회사에게 「%s」는 빼지 않는다",
+    (text) => {
+      expect(reviewEligibility(base({ humanCheckTexts: [text] })).verdict).not.toBe("excluded");
+    },
+  );
 });

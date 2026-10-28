@@ -314,8 +314,10 @@ function isNewSince(firstSeenAt: Date | null | undefined, now: Date): boolean {
 interface BuiltItem {
   item: FundingItem;
   gapLabels: string[];
-  /** 출처 기관(상품은 창구)의 지역만으로 안 맞음이 된 줄 — 공고는 묶음이 버리고(`groupAnnouncements`), 상품은 쌍둥이 공고를 내리지 않는다(`downgradeFitTwins`). */
+  /** 출처 기관의 지역만으로 안 맞음이 된 공고 사본 — 묶음이 버린다(`groupAnnouncements`). */
   excludedBySourceOnly?: boolean;
+  /** 지역(창구 지역·「광주광역시 소재」 문장)만으로 안 맞음이 된 상품 — 쌍둥이 공고를 내리지 않는다(`downgradeFitTwins`). */
+  excludedByPlaceOnly?: boolean;
 }
 
 /** 판정 결과 → 항목 칸. 빈 값은 싣지 않는다(응답 크기). */
@@ -583,7 +585,7 @@ function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): Buil
   return {
     item,
     gapLabels: gapLabelsOfConditions(conditions),
-    ...(review.excludedBySourceOnly ? { excludedBySourceOnly: true } : {}),
+    ...(review.excludedByPlaceOnly ? { excludedByPlaceOnly: true } : {}),
   };
 }
 
@@ -879,7 +881,7 @@ function twinKeyOf(it: FundingItem): string {
  */
 /**
  * 같은 이름·기관 상품이 「맞음」이 아니면 공고도 「맞음」이 아니다(최대 확인 필요로만 내린다).
- * @param placeOnly 창구·출처 지역만으로 안 맞음이 된 상품 — 다른 시도 재단의 같은 이름 상품이 공고를 내리지 않게 뺀다(NO.585).
+ * @param placeOnly 지역(창구 지역·지역 문장)만으로 안 맞음이 된 상품 — 다른 시도 재단의 같은 이름 상품이 공고를 내리지 않게 뺀다(NO.585).
  */
 function downgradeFitTwins(items: FundingItem[], placeOnly: ReadonlySet<FundingItem> = new Set()): void {
   const productVerdict = new Map<string, FitVerdict>();
@@ -995,10 +997,10 @@ export async function buildFundingMap(
     gapLabelsByItem.set(b.item, b.gapLabels);
     return b.item;
   };
-  /** 창구·출처 지역만으로 안 맞음이 된 상품(쌍둥이 공고를 내리지 않는다). */
+  /** 지역만으로 안 맞음이 된 상품(쌍둥이 공고를 내리지 않는다). */
   const placeOnlyProducts = new Set<FundingItem>();
   const rememberProduct = (b: BuiltItem): FundingItem => {
-    if (b.excludedBySourceOnly) placeOnlyProducts.add(b.item);
+    if (b.excludedByPlaceOnly) placeOnlyProducts.add(b.item);
     return remember(b);
   };
 
