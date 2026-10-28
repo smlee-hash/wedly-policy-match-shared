@@ -20,7 +20,7 @@ import {
 } from "./match-engine";
 import { relatedFamiliesOf, sectorFamiliesInTitle, sectorFamiliesOfIndustry } from "./sector";
 import { sigunguInText, sigunguSido } from "./sigungu";
-import { sourceRegionOf } from "./source-region";
+import { orgRegionsOf, sourceRegionOf, type SourceRegion } from "./source-region";
 import type { AnnouncementStructure, ConditionCheck } from "./structure-types";
 import type { FitVerdict } from "./recommend-score";
 import {
@@ -91,6 +91,8 @@ export interface EligibilityInput {
   amountText?: string;
   /** 손 등록 상품 — 창구 안내에 기계로 못 읽은 조건이 남아 있다. */
   manualProduct?: boolean;
+  /** 상품의 창구·기관 이름(앞쪽이 먼저) — 「전남신용보증재단」처럼 지역 기관이면 그 지역 상품이다(NO.585 운영 QA). */
+  placeOrgs?: readonly string[];
 }
 
 /* ───────── 글자 도우미 ───────── */
@@ -123,6 +125,13 @@ const PLACE_NOISE =
 
 /** 지역 조건 문장이 그 시군구 밖도 받는다는 말 — 「○○구 외」·「○○구 등」·「인근·인접」·「제외」(「종로구·동대문구」 나열은 아니다). */
 const OTHER_SIGUNGU_TOO = /[구군시]\s*(?:외(?!국)|등(?![록급]))|제외|인근|인접|근처|주변/;
+/** 그 지역에 사업장·주소가 있어야 한다는 말 — 「광주광역시 소재」·「경상남도에서 사업 중인」·「주민등록이 되어 있고 거주」. */
+const PLACE_REQUIRED = /소재|주소|본사|본점|사업장|거주|주민\s*등록|사업\s*중|영위/;
+
+/** 읽힌 지역의 짧은 이름(「광주」·「성북구」) — 안 맞음 까닭에 쓴다. */
+function placeLabel(read: PlaceRead): string {
+  return shortText([...read.sigungus.map((s) => s.name), ...read.sidos].join("·"), 16);
+}
 
 /** 권역 낱말 → 시도. */
 const REGION_GROUPS: Array<readonly [RegExp, readonly string[]]> = [
@@ -420,6 +429,12 @@ export function judgeRequirementText(
     // 무엇을 빼는지 모르는 제외 문장 — 대상 범위(직무·품목·과제)를 좁히는 말이 대부분이다.
     if (/직무|과제|품목|항목|비용|경비|사업비|용도|훈련|교육|구매|지출/.test(text)) return IGNORE;
     return check(`제외 조건: ${shortText(text)}`);
+  }
+
+  // 4-1) 다른 지역에 사업장·주소를 둔 기업만 받는 문장 — 규모(소상공인 …)가 맞아도 지역이 먼저다(NO.585 운영 QA:
+  //  「광주광역시 소재 소기업·소상공인」이 서울 회사에 「지원 가능」으로 떴다). 우대·절차 문장과 「인근·○○구 외」는 빼지 않는다.
+  if (placeVerdict === "differ" && PLACE_REQUIRED.test(text) && !PREFERENCE.test(text) && !PROCEDURE.test(text) && !OTHER_SIGUNGU_TOO.test(text)) {
+    return EITHER.test(text) ? check("지역 조건 확인") : { kind: "fail", reason: `다른 지역 대상(${placeLabel(places)})` };
   }
 
   // 5) 고객 정보로 가릴 수 있는 것.
@@ -740,6 +755,21 @@ function isWeakPass(c: ConditionCheck): boolean {
   return false;
 }
 
+/**
+ * 출처·창구가 맡은 지역. 공고는 출처 기관만 본다. 상품은 출처가 지역 기관이 아니면 창구·기관 이름을 읽는다 —
+ * 서민금융진흥원 출처(product-kinfa)에는 전국 신용보증재단 상품이 다 들어 있다(NO.585 운영 QA).
+ */
+function sourceRegionsOf(input: EligibilityInput): SourceRegion[] {
+  const src = sourceRegionOf(input.source);
+  if (src) return [src];
+  if (input.kind !== "product") return [];
+  for (const org of input.placeOrgs ?? []) {
+    const found = orgRegionsOf(org);
+    if (found.length > 0) return found;
+  }
+  return [];
+}
+
 export function reviewEligibility(input: EligibilityInput): EligibilityReview {
   const { profile: p, now } = input;
   const title = input.title ?? "";
@@ -841,18 +871,18 @@ export function reviewEligibility(input: EligibilityInput): EligibilityReview {
   }
   /** 출처 기관의 지역이 고객 지역과 같다고 확인됐나 — AI 가 지역 범위를 모른다고 해도 그 지역 기관 공고는 지역이 맞는다. */
   let sourceRegionSame = false;
-  if (input.kind === "announcement" && !aiRegionPass) {
-    const src = sourceRegionOf(input.source);
-    if (src) {
-      const mine = customerPlace(p);
-      if (!mine.sido) addCheck("소재지 확인");
-      else if (src.sido !== mine.sido) exclude(`다른 지역 기관 공고(${src.sigungu ?? src.sido})`, true);
-      else if (src.sigungu) {
-        if (!mine.sigungu) addCheck("시군구 확인");
-        else if (src.sigungu !== mine.sigungu) exclude(`다른 지역 기관 공고(${src.sigungu})`, true);
-        else sourceRegionSame = true;
-      } else sourceRegionSame = true;
-    }
+  const srcRegions = aiRegionPass ? [] : sourceRegionsOf(input);
+  if (srcRegions.length > 0) {
+    const mine = customerPlace(p);
+    const noun = input.kind === "product" ? "상품" : "공고";
+    // 창구가 여럿(「강원·전북 신용보증재단」)이면 하나라도 고객 지역이면 맞는다.
+    const sameSido = srcRegions.filter((r) => r.sido === mine.sido);
+    if (!mine.sido) addCheck("소재지 확인");
+    else if (sameSido.length === 0) exclude(`다른 지역 기관 ${noun}(${srcRegions.map((r) => r.sigungu ?? r.sido).join("·")})`, true);
+    else if (sameSido.some((r) => !r.sigungu)) sourceRegionSame = true;
+    else if (!mine.sigungu) addCheck("시군구 확인");
+    else if (sameSido.some((r) => r.sigungu === mine.sigungu)) sourceRegionSame = true;
+    else exclude(`다른 지역 기관 ${noun}(${sameSido.map((r) => r.sigungu).join("·")})`, true);
   }
 
   // 5) 예비창업자 전용.

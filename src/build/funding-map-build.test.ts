@@ -1692,3 +1692,44 @@ describe("BF11 — 검색어·탭은 80건으로 자르기 전에 서버에서 �
     expect(filterFundingData(data, { tab: "all", query: "현판" }).unclassified).toBe(1);
   });
 });
+
+describe("상품 창구가 다른 시도 지역 기관이면 안 맞음(NO.585 운영 QA — 서울 회사에 전남·광주 신용보증재단 상품)", () => {
+  const SEOUL = {
+    bizno: "123-45-67890", industry: "제조업(임가공, 양말)", region: "서울", regionSigungu: "도봉구",
+    employeeCount: 7, foundedDate: "2000-05-01", lastYearRevenueKrw: 600_000_000, taxDelinquent: false,
+  } as BusinessProfile;
+  const kinfa = (id: string, channel: string, humanCheck: string, name = "시·군 소상공인 융자금 이차보전사업") =>
+    prod({
+      id, source: "product-kinfa", fundingGroup: "guarantee", institution: "서민금융진흥원", institutionType: "public",
+      name, channel, targetText: humanCheck, targetRules: { humanCheck: [humanCheck] },
+    });
+
+  it("다른 시도 창구 상품은 정상 목록에 없고 이유가 남는다 — 서울 창구 상품은 남는다", async () => {
+    productFindMany.mockResolvedValue([
+      kinfa("jn", "전남신용보증재단", "각 시·군에 주민등록이 되어있고 실제 거주하고 있는 소상공인"),
+      kinfa("gj", "광주신용보증재단", "광주광역시 소재 소기업.소상공인", "금융기관 협약보증"),
+      kinfa("se", "서울신용보증재단", "서울특별시 소재 소상공인", "서울시 소상공인 특례보증"),
+    ]);
+    const data = await buildFundingMap(SEOUL, NOW, { filters: { includeExcluded: true } });
+    expect(byId(data.groups, "p:jn")).toMatchObject({ fitVerdict: "excluded", excludeReason: "다른 지역 기관 상품(전남)" });
+    expect(byId(data.groups, "p:gj")?.fitVerdict).toBe("excluded");
+    expect(byId(data.groups, "p:se")?.fitVerdict).toBe("fit");
+    const shown = shownOf(data.groups).map((x) => x.id);
+    expect(shown).not.toContain("p:jn");
+    expect(shown).not.toContain("p:gj");
+    expect(shown).toContain("p:se");
+  });
+
+  it("다른 시도 창구 상품이 안 맞음이어도 같은 이름·기관 공고를 끌어내리지 않는다", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({
+        id: "tw", title: "시·군 소상공인 융자금 이차보전사업", agency: "서민금융진흥원", structureStatus: "done",
+        structure: { ...EMPTY_RULE, regionScope: "all", industryScope: "all", conditions: [{ key: "employeeMax", op: "lte", value: 50, rawText: "상시근로자 50인 이하", machineReadable: true }] },
+      }),
+    ]);
+    productFindMany.mockResolvedValue([kinfa("jn", "전남신용보증재단", "각 시·군에 주민등록이 되어있고 실제 거주하고 있는 소상공인")]);
+    const data = await buildFundingMap(SEOUL, NOW, { filters: { includeExcluded: true } });
+    expect(byId(data.groups, "p:jn")?.fitVerdict).toBe("excluded");
+    expect(byId(data.groups, "a:tw")?.fitVerdict).toBe("fit");
+  });
+});
