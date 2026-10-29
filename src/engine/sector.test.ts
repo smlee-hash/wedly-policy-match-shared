@@ -233,10 +233,23 @@ describe("NO.585 추가 제보(2026-10-29) — 공고 업종 값에 자주 나�
     ["해조류", ["농림어업"]],
     ["미세조류", ["농림어업"]],
     ["해양생명자원", ["제약바이오"]],
+    ["돼지·한우·젖소", ["농림어업"]],
+    ["종돈", ["농림어업"]],
+    ["양봉농가", ["농림어업"]],
+    ["농민", ["농림어업"]],
+    ["농작물", ["농림어업"]],
+    ["산림", ["농림어업"]],
+    ["어선", ["농림어업"]],
+    ["의약", ["제약바이오"]],
+    ["가죽", ["섬유패션"]],
   ])("「%s」는 %j", (word, fams) => {
     expect(sectorFamiliesOfIndustry(word)).toEqual(fams);
   });
   it("미세조류·해양생명은 이웃(제약바이오↔농림어업)이라 서로 다른 업종으로 빼지 않는다", () => {
     expect(relatedFamiliesOf(sectorFamiliesOfIndustry("미세조류")).has("제약바이오")).toBe(true);
+  });
+  it("농산물 도매는 농림어업·유통 둘 다 — 가축분뇨 처리업은 환경 업종도 읽는다(리뷰 P3)", () => {
+    expect(sectorFamiliesOfIndustry("농산물 도매업")).toEqual(expect.arrayContaining(["농림어업", "유통"]));
+    expect(sectorFamiliesOfIndustry("가축분뇨 처리업")).toEqual(expect.arrayContaining(["농림어업", "에너지환경"]));
   });
 });

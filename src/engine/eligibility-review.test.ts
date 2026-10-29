@@ -151,6 +151,18 @@ describe("업종·지역 범위를 AI 가 「모름」이라 한 공고는 지�
     expect(r.excludedBySourceOnly).toBe(true);
   });
 
+  it("주관기관이 다른 시도 기관이어도 AI·제목이 「전국」이면 빼지 않고 지역 제한을 확인할 것으로 — 지역 수집원은 그대로 뺀다(리뷰 P2)", () => {
+    const allScope = { industryScope: "all" as const, regionScope: "all" as const, supportAmountText: "", benefitSummary: "" };
+    const unknownScope = { ...allScope, regionScope: "unknown" as const };
+    const byAi = reviewEligibility(base({ source: "bojo24", placeOrgs: ["충북테크노파크"], structure: allScope }));
+    expect(byAi.verdict).not.toBe("excluded");
+    expect(byAi.toCheck).toContain("지역 제한 여부 확인");
+    const byTitle = reviewEligibility(base({ source: "bojo24", title: "2026년 전국 화장품 비임상 지원기업 모집", placeOrgs: ["충북테크노파크"], structure: unknownScope }));
+    expect(byTitle.verdict).not.toBe("excluded");
+    expect(byTitle.toCheck).toContain("지역 제한 여부 확인");
+    expect(reviewEligibility(base({ source: "bepa", structure: allScope })).excludeReason).toMatch(/^다른 지역 기관 공고/);
+  });
+
   it("주관기관이 고객 지역 기관이면 지역 범위를 몰라도 묻지 않는다 — 전국 기관·빈 이름은 범위 확인을 그대로 둔다", () => {
     const unknownScope = { industryScope: "all" as const, regionScope: "unknown" as const, supportAmountText: "", benefitSummary: "" };
     const jeju = { ...SOCKS, region: "제주", regionSigungu: "제주시" };
@@ -576,18 +588,31 @@ describe("displayChecks — 보이는 지역·업종·규모 줄은 판정 결�
     expect(shown.some((c) => c.verdict === "unknown")).toBe(false);
   });
 
-  it("업종 값의 과반이 분야 사전으로 읽히고 모두 다른 분야면 안 맞음 — 반만 읽히면 확인으로 둔다", () => {
+  it("업종 값이 분야 사전으로 읽히거나 읽힌 값의 일부면 안 맞음 — 사전 밖 값이 따로 서면 확인으로 둔다", () => {
     const { shown } = shownOf([
       cond("industry", ["축산", "축산업", "축산농가", "가축"], "관내 축산농가", false),
+      cond("industry", ["해양수산", "해양", "수산"], "해양수산·해양·수산", false),
       cond("industry", ["축산업", "수산업", "가두리"], "축산업·수산업·가두리", false),
       cond("industry", ["농업", "스마트팜"], "농업·스마트팜", false),
     ]);
-    expect(shown.map((c) => c.verdict)).toEqual(["fail", "fail", "unknown"]);
-    expect(shown[2].note).toBe("업종 해당 여부(농업·스마트팜)");
-    // 판정도 같다 — 과반이 다른 분야인 업종 조건이 있으면 빠진다.
+    expect(shown.map((c) => c.verdict)).toEqual(["fail", "fail", "unknown", "unknown"]);
+    expect(shown[2].note).toBe("업종 해당 여부(축산업·수산업·가두리)");
+    expect(shown[3].note).toBe("업종 해당 여부(농업·스마트팜)");
+    // 판정도 같다 — 값이 모두 다른 분야로 읽히는 업종 조건이 있으면 빠진다.
     const painterChecks = (conds: StructuredCondition[]) => conds.map((c) => checkCondition(c, PAINTER, NOW));
-    expect(reviewEligibility(base({ profile: PAINTER, checks: painterChecks([cond("industry", ["축산업", "수산업", "가두리"], "축산업·수산업·가두리", false)]) })).excludeReason).toMatch(/^다른 업종 공고\(/);
-    expect(reviewEligibility(base({ profile: PAINTER, checks: painterChecks([cond("industry", ["농업", "스마트팜"], "농업·스마트팜", false)]) })).verdict).not.toBe("excluded");
+    expect(reviewEligibility(base({ profile: PAINTER, checks: painterChecks([cond("industry", ["해양수산", "해양", "수산"], "해양수산·해양·수산", false)]) })).excludeReason).toMatch(/^다른 업종 공고\(/);
+    expect(reviewEligibility(base({ profile: PAINTER, checks: painterChecks([cond("industry", ["축산업", "수산업", "가두리"], "축산업·수산업·가두리", false)]) })).verdict).not.toBe("excluded");
+  });
+
+  it("사전 밖 값이 고객 업종일 수 있으면 빼지 않는다 — 양말 제조 × 생활용품·잡화, IT × 스마트팜(리뷰 P2)", () => {
+    const socks: BusinessProfile = { ...PAINTER, industry: "제조업(임가공, 양말)" };
+    const it_: BusinessProfile = { ...PAINTER, industry: "소프트웨어 개발업" };
+    const beauty = cond("industry", ["뷰티", "화장품", "미용", "생활용품", "잡화"], "뷰티·화장품·미용·생활용품·잡화", false);
+    const farm = cond("industry", ["농업", "축산", "스마트팜"], "농업·축산·스마트팜", false);
+    expect(shownOf([beauty], socks).shown[0].verdict).toBe("unknown");
+    expect(shownOf([farm], it_).shown[0].verdict).toBe("unknown");
+    expect(reviewEligibility(base({ profile: socks, checks: [checkCondition(beauty, socks, NOW)] })).verdict).not.toBe("excluded");
+    expect(reviewEligibility(base({ profile: it_, checks: [checkCondition(farm, it_, NOW)] })).verdict).not.toBe("excluded");
   });
 
   it("업종 — 고객 업종 글자가 든 값은 맞음, 값이 모두 다른 분야면 안 맞음", () => {
@@ -615,6 +640,13 @@ describe("displayChecks — 보이는 지역·업종·규모 줄은 판정 결�
     const { shown } = shownOf([cond("companyScale", ["소상공인"], "소상공인")], mid);
     expect(shown[0].verdict).toBe("unknown");
     expect(shown[0].note).toBe("직원 수·매출로 못 가림 — 기업 규모: 소상공인");
+  });
+
+  it("규모 판정이 모르는 이름(여성기업)은 직원 수·매출 탓을 하지 않는다 — 원래 메모 그대로(리뷰 P3)", () => {
+    const { checks, shown } = shownOf([cond("companyScale", ["여성기업"], "여성기업")]);
+    expect(shown[0].verdict).toBe("unknown");
+    expect(shown[0].note).not.toMatch(/직원 수·매출/);
+    expect(shown[0]).toBe(checks[0]);
   });
 
   it("고객 정보가 없거나 이웃 업종이면 맞음·안 맞음을 정하지 않는다 — 메모만 확인할 것으로", () => {
