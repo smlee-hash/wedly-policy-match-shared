@@ -96,7 +96,7 @@ export interface EligibilityInput {
   amountText?: string;
   /** 손 등록 상품 — 창구 안내에 기계로 못 읽은 조건이 남아 있다. */
   manualProduct?: boolean;
-  /** 상품의 창구·기관 이름(앞쪽이 먼저) — 「전남신용보증재단」처럼 지역 기관이면 그 지역 상품이다(NO.585 운영 QA). */
+  /** 상품의 창구·기관, 공고의 주관기관 이름(앞쪽이 먼저) — 「전남신용보증재단」처럼 지역 기관이면 그 지역 상품·공고다(NO.585 운영 QA). */
   placeOrgs?: readonly string[];
 }
 
@@ -707,12 +707,20 @@ function reviewCheck(c: ConditionCheck, p: BusinessProfile, now: Date): Outcome 
           : { kind: "pass" };
       }
       if (values.some((v) => industryValueMatches(v, p))) return { kind: "pass" };
-      // 값이 모두 분야 사전으로 읽히고 고객 분야와 무관하면 다른 업종이다.
+      // 값이 모두 분야 사전으로 읽히고 읽힌 분야가 모두 고객 분야와 무관하면 다른 업종이다. AI 는 같은 업종을 줄여
+      // 적기도 해(「해양수산·해양·수산」) 사전 밖 값이 읽힌 값의 일부이면 읽힌 것으로 본다(NO.585 추가 제보 2026-10-29).
+      // 사전 밖 값이 따로 서면(「뷰티·화장품·미용·생활용품·잡화」·「농업·축산·스마트팜」) 그 값이 고객 업종일 수 있어
+      // 확인으로 둔다 — 과반만 읽혀도 빼던 판은 양말 제조·IT 고객을 잘못 뺐다(리뷰 P2).
       const mine = sectorFamiliesOfIndustry(p.industry ?? "");
       const fams = values.map((v) => sectorFamiliesOfIndustry(v));
-      if (mine.length > 0 && fams.length > 0 && fams.every((f) => f.length > 0)) {
-        const related = relatedFamiliesOf(fams.flat());
-        const all = new Set([...fams.flat(), ...related]);
+      const readValues = values.filter((_, i) => fams[i].length > 0).map((v) => v.replace(/\s+/g, ""));
+      const partOfRead = (v: string) => {
+        const s = v.replace(/\s+/g, "");
+        return s.length >= 2 && readValues.some((r) => r.includes(s));
+      };
+      if (mine.length > 0 && readValues.length > 0 && values.every((v, i) => fams[i].length > 0 || partOfRead(v))) {
+        const read = fams.flat();
+        const all = new Set([...read, ...relatedFamiliesOf(read)]);
         if (!mine.some((m) => all.has(m))) return { kind: "exclude", reason: `다른 업종 공고(${shortText(values.join("·"), 16)})` };
       }
       return { kind: "check", label: `업종 해당 여부(${shortText(values.join("·"), 14)})` };
@@ -767,6 +775,38 @@ function reviewCheck(c: ConditionCheck, p: BusinessProfile, now: Date): Outcome 
   }
 }
 
+/** 고객 정보(소재지·업종·직원 수·매출)로 가리는 조건 — 화면의 조건 줄도 이 판정의 맞음·안 맞음을 따른다. */
+const SETTLED_DISPLAY_KEYS = new Set(["region", "industry", "targetSector", "companyScale"]);
+/** AI 가 기계 대조를 끈 조건의 메모 — 무엇을 확인할지 말하지 않는다. */
+const MACHINE_OFF_NOTE = /^기계로 판정할 수 없는 조건/;
+
+/**
+ * 화면에 보일 조건 줄(NO.585 추가 제보 2026-10-29 배보라 — 상태표에 소재지·업종·직원 수가 있는데 지역·업종·규모 줄이
+ * 「직접 확인 — 기계로 판정할 수 없는 조건」·「기업 규모 미입력」으로 남았다). 지역·업종·규모·규모 이름 대상 유형 줄은
+ * 이 판정이 맞음·안 맞음을 정했으면 그 결과로 보여 준다. 확인할 것으로 남긴 줄은 확인으로 두되, 메모가 「기계로 판정할 수
+ * 없는 조건」이면 판정이 남긴 확인할 것(「업종 해당 여부(…)」 등)으로 바꾼다. 업종 값에 분야 사전 밖 값이 따로 서면
+ * 판정이 확인으로 남긴다 — 잘못 빼면 자격 있는 회사를 놓친다.
+ * 점수(scoreOf)와 판정은 원래 줄로 계산한다 — 바꾸는 것은 보이는 줄뿐이다.
+ */
+export function displayChecks(checks: readonly ConditionCheck[], p: BusinessProfile, now: Date): ConditionCheck[] {
+  return checks.map((c) => {
+    const key = c.condition.key;
+    const scaleNames = key === "targetOrg" && Array.isArray(c.condition.value);
+    if (!SETTLED_DISPLAY_KEYS.has(key) && !scaleNames) return c;
+    const o = reviewCheck(c, p, now);
+    if (o.kind === "pass") return c.verdict === "pass" ? c : { condition: c.condition, verdict: "pass", note: "" };
+    if (o.kind === "exclude" || o.kind === "fail") return c.verdict === "fail" ? c : { condition: c.condition, verdict: "fail", note: o.reason };
+    // 직원 수·매출이 있는데 규모를 못 가린 줄은 「미입력」이 아니다 — 업종별 기준 사이 값이라 확인이 남은 것이다.
+    // 남은 이름이 규모 판정이 모르는 이름(「여성기업」)뿐이면 직원 수·매출과 무관하니 원래 메모를 둔다(리뷰 P3).
+    if (key === "companyScale" && !p.companyScale && o.kind === "check" && (p.employeeCount != null || p.lastYearRevenueKrw != null)
+      && companyScaleVerdict(valuesOf(c), p, now).unknownNames.some((n) => scaleFactOf(n, p, now) !== null)) {
+      return { ...c, note: `직원 수·매출로 못 가림 — ${o.label}` };
+    }
+    if (o.kind === "check" && MACHINE_OFF_NOTE.test(c.note)) return { ...c, note: o.label };
+    return c;
+  });
+}
+
 /* ───────── 자부담 ───────── */
 
 const COPAY_PERCENT = /(?:자부담|자기\s*부담|본인\s*부담|기업\s*부담|참여\s*기업\s*부담|민간\s*부담)\s*(?:금|비율)?\s*[:：]?\s*(?:총\s*사업비의?\s*)?(\d{1,2}(?:\.\d+)?)\s*%/;
@@ -804,13 +844,12 @@ function isWeakPass(c: ConditionCheck): boolean {
 }
 
 /**
- * 출처·창구가 맡은 지역. 공고는 출처 기관만 본다. 상품은 출처가 지역 기관이 아니면 창구·기관 이름을 읽는다 —
- * 서민금융진흥원 출처(product-kinfa)에는 전국 신용보증재단 상품이 다 들어 있다(NO.585 운영 QA).
+ * 출처·창구가 맡은 지역. 출처가 지역 기관이 아니면 창구·기관 이름을 읽는다 — 서민금융진흥원 출처(product-kinfa)에는
+ * 전국 신용보증재단 상품이 다 들어 있고(NO.585 운영 QA), 전국 수집원(보조24)도 제주·부산 신용보증재단 공고를 옮겨 싣는다(운영 QA 2차).
  */
 function sourceRegionsOf(input: EligibilityInput): SourceRegion[] {
   const src = sourceRegionOf(input.source);
   if (src) return [src];
-  if (input.kind !== "product") return [];
   for (const org of input.placeOrgs ?? []) {
     const found = orgRegionsOf(org);
     if (found.length > 0) return found;
@@ -925,14 +964,22 @@ export function reviewEligibility(input: EligibilityInput): EligibilityReview {
   if (srcRegions.length > 0) {
     const mine = customerPlace(p);
     const noun = input.kind === "product" ? "상품" : "공고";
+    // 지역 기관이 맡은 전국 사업도 있다(지역 테크노파크가 주관하는 전국 공모) — 전국 수집원이 옮긴 공고를 주관기관
+    // 이름으로 읽었는데 AI 나 제목이 「전국」이라 했으면 빼지 않고 지역 제한을 확인할 것으로 남긴다(리뷰 P2).
+    // 지역 수집원(bepa 등)에서 온 공고는 전처럼 출처 지역으로 본다.
+    const nationwideAnn = input.kind !== "product" && !sourceRegionOf(input.source) && (titleScopeAll || /전국/.test(title));
+    const otherRegion = (where: string) => {
+      if (nationwideAnn) addCheck(REGION_SCOPE_UNKNOWN);
+      else exclude(`다른 지역 기관 ${noun}(${where})`, true);
+    };
     // 창구가 여럿(「강원·전북 신용보증재단」)이면 하나라도 고객 지역이면 맞는다.
     const sameSido = srcRegions.filter((r) => r.sido === mine.sido);
     if (!mine.sido) addCheck("소재지 확인");
-    else if (sameSido.length === 0) exclude(`다른 지역 기관 ${noun}(${srcRegions.map((r) => r.sigungu ?? r.sido).join("·")})`, true);
+    else if (sameSido.length === 0) otherRegion(srcRegions.map((r) => r.sigungu ?? r.sido).join("·"));
     else if (sameSido.some((r) => !r.sigungu)) sourceRegionSame = true;
     else if (!mine.sigungu) addCheck("시군구 확인");
     else if (sameSido.some((r) => r.sigungu === mine.sigungu)) sourceRegionSame = true;
-    else exclude(`다른 지역 기관 ${noun}(${sameSido.map((r) => r.sigungu).join("·")})`, true);
+    else otherRegion(sameSido.map((r) => r.sigungu).join("·"));
   }
 
   // 5) 예비창업자 전용.
