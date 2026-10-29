@@ -13,8 +13,8 @@ export interface SectorFamily {
 
 export const SECTOR_FAMILIES: SectorFamily[] = [
   { family: "식품", announcementWords: ["식품", "농식품", "푸드테크", "외식", "밀키트", "음료"], companyWords: ["식품", "음식", "외식", "음료", "제과", "제빵", "주류", "식료품"], relatedFamilies: ["농림어업", "유통", "제약바이오"] },
-  { family: "농림어업", announcementWords: ["수산", "어업", "농업", "농식품", "산림", "임업", "축산"], companyWords: ["농업", "어업", "수산", "임업", "축산", "양식업", "양식장", "작물 재배", "작물재배", "재배업"], relatedFamilies: ["식품", "유통"] },
-  { family: "제약바이오", announcementWords: ["제약", "바이오", "의료기기", "의약품", "헬스케어"], companyWords: ["제약", "바이오", "의약품", "의료기기", "헬스케어", "의료", "건강기능식품"], relatedFamilies: ["식품", "뷰티", "정보통신", "유통", "농림어업"] },
+  { family: "농림어업", announcementWords: ["수산", "어업", "농업", "농식품", "산림", "임업", "축산"], companyWords: ["농업", "어업", "수산", "임업", "축산", "양식업", "양식장", "작물 재배", "작물재배", "재배업", "가축", "농가", "영농", "양계", "가금", "양돈", "낙농", "해조", "미세조류"], relatedFamilies: ["식품", "유통"] },
+  { family: "제약바이오", announcementWords: ["제약", "바이오", "의료기기", "의약품", "헬스케어"], companyWords: ["제약", "바이오", "의약품", "의료기기", "헬스케어", "의료", "건강기능식품", "해양생명"], relatedFamilies: ["식품", "뷰티", "정보통신", "유통", "농림어업"] },
   { family: "정보통신", announcementWords: ["소프트웨어", "SW", "ICT", "정보통신", "블록체인", "인공지능", "AI", "게임", "메타버스", "플랫폼"], companyWords: ["소프트웨어", "정보통신", "정보처리", "컴퓨터", "게임", "플랫폼", "앱", "IT"], relatedFamilies: ["콘텐츠", "제약바이오", "반도체전자", "교육", "유통", "자동차"] },
   { family: "콘텐츠", announcementWords: ["콘텐츠", "영상", "영화", "드라마", "방송", "웹툰", "애니메이션", "음악", "출판", "만화", "게임"], companyWords: ["콘텐츠", "영상", "영화", "방송", "출판", "만화", "음악", "광고", "게임", "애니메이션", "캐릭터", "공연"], relatedFamilies: ["정보통신", "광고인쇄"] },
   { family: "뷰티", announcementWords: ["뷰티", "화장품", "미용"], companyWords: ["화장품", "미용", "뷰티"], relatedFamilies: ["제약바이오", "유통"] },

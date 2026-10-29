@@ -1745,4 +1745,41 @@ describe("상품 창구가 다른 시도 지역 기관이면 안 맞음(NO.585 �
     expect(byId(data.groups, "p:gj")?.fitVerdict).toBe("excluded");
     expect(byId(data.groups, "a:tw")?.fitVerdict).toBe("fit");
   });
+
+  it("전국 수집원(보조24)이 옮긴 다른 시도 신용보증재단 공고도 서울 회사에 안 맞음 — 운영 QA 2차(제주·부산 신용보증재단)", async () => {
+    const unknownScope = { ...EMPTY_RULE, regionScope: "unknown", industryScope: "all", conditions: [{ key: "employeeMax", op: "lte", value: 50, rawText: "상시근로자 50인 이하", machineReadable: true }] };
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({ id: "jj", source: "bojo24", title: "골목상권 해드림 특별보증", agency: "제주신용보증재단", structureStatus: "done", structure: unknownScope }),
+      ann({ id: "bs", source: "bojo24", title: "브릿지보증", agency: "부산신용보증재단", structureStatus: "done", structure: unknownScope }),
+      ann({ id: "kn", source: "bojo24", title: "소상공인 특례보증", agency: "신용보증재단중앙회", structureStatus: "done", structure: { ...unknownScope, regionScope: "all" } }),
+    ]);
+    productFindMany.mockResolvedValue([]);
+    const data = await buildFundingMap(SEOUL, NOW, { filters: { includeExcluded: true } });
+    expect(byId(data.groups, "a:jj")).toMatchObject({ fitVerdict: "excluded", excludeReason: "다른 지역 기관 공고(제주)" });
+    expect(byId(data.groups, "a:bs")).toMatchObject({ fitVerdict: "excluded", excludeReason: "다른 지역 기관 공고(부산)" });
+    expect(byId(data.groups, "a:kn")?.fitVerdict).toBe("fit");
+    const jeju = await buildFundingMap({ ...SEOUL, region: "제주", regionSigungu: "제주시" }, NOW, { filters: { includeExcluded: true } });
+    expect(byId(jeju.groups, "a:jj")?.fitVerdict).toBe("fit");
+  });
+
+  it("보이는 조건 줄은 판정이 가린 지역·규모를 따른다 — 추가 제보(충남 공고가 「조건 3개 중 0개 맞음 · 직접 확인」으로 보임)", async () => {
+    const structure = {
+      ...EMPTY_RULE,
+      regionScope: "restricted",
+      industryScope: "all",
+      conditions: [
+        { key: "region", op: "in", value: ["충청남도"], rawText: "(신청자격) 충청남도에 본사·공장 소재 기업", machineReadable: false },
+        { key: "companyScale", op: "in", value: ["소상공인"], rawText: "소상공인", machineReadable: true },
+        { key: "companyScale", op: "in", value: ["중소기업"], rawText: "중소기업", machineReadable: false },
+      ],
+    };
+    loadOpenAnnouncements.mockResolvedValue([ann({ id: "cn", title: "해양바이오산업 클러스터 플랫폼 구축 사업 수혜기업 모집", structureStatus: "done", structure })]);
+    productFindMany.mockResolvedValue([]);
+    const data = await buildFundingMap(SEOUL, NOW, { filters: { includeExcluded: true } });
+    const item = byId(data.groups, "a:cn")!;
+    expect(item.fitVerdict).toBe("excluded");
+    expect(item.fit.map((f) => f.verdict)).toEqual(["fail", "pass", "pass"]);
+    expect(item.fit[0].note).toBe("다른 지역 공고(충청남도)");
+    expect(item.fit.some((f) => /기계로 판정할 수 없는 조건|기업 규모 미입력/.test(f.note))).toBe(false);
+  });
 });

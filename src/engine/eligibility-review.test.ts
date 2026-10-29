@@ -3,6 +3,7 @@
 // 고객은 성진섬유와 같은 모양(서울 도봉구·양말 임가공 제조·7명·체납 없음)으로 지어낸 값이다.
 import { describe, expect, it } from "vitest";
 import {
+  displayChecks,
   INDUSTRY_SCOPE_UNKNOWN,
   nonBenefitReason,
   REGION_SCOPE_UNKNOWN,
@@ -12,9 +13,9 @@ import {
   unverifiedStep,
   type EligibilityInput,
 } from "./eligibility-review";
-import { matchAnnouncement, readStoredStructure, type BusinessProfile } from "./match-engine";
+import { checkCondition, matchAnnouncement, readStoredStructure, type BusinessProfile } from "./match-engine";
 import { withRegionConditions } from "./region-augment";
-import type { ConditionCheck } from "./structure-types";
+import type { ConditionCheck, StructuredCondition } from "./structure-types";
 
 const NOW = new Date("2026-10-26T07:00:00Z");
 
@@ -136,6 +137,30 @@ describe("업종·지역 범위를 AI 가 「모름」이라 한 공고는 지�
     expect(r.verdict).toBe("excluded");
     expect(r.excludeReason).toMatch(/^다른 지역 기관 공고/);
     expect(r.excludedBySourceOnly).toBe(true);
+  });
+
+  it.each([
+    ["제주신용보증재단", "다른 지역 기관 공고(제주)"],
+    ["부산신용보증재단", "다른 지역 기관 공고(부산)"],
+  ])("전국 수집원(보조24)이 옮긴 공고도 주관기관이 다른 시도 지역 기관(%s)이면 안 맞음 — 운영 QA 2차", (agency, reason) => {
+    const r = reviewEligibility(
+      base({ source: "bojo24", placeOrgs: [agency], structure: { industryScope: "all", regionScope: "unknown", supportAmountText: "", benefitSummary: "" } }),
+    );
+    expect(r.verdict).toBe("excluded");
+    expect(r.excludeReason).toBe(reason);
+    expect(r.excludedBySourceOnly).toBe(true);
+  });
+
+  it("주관기관이 고객 지역 기관이면 지역 범위를 몰라도 묻지 않는다 — 전국 기관·빈 이름은 범위 확인을 그대로 둔다", () => {
+    const unknownScope = { industryScope: "all" as const, regionScope: "unknown" as const, supportAmountText: "", benefitSummary: "" };
+    const jeju = { ...SOCKS, region: "제주", regionSigungu: "제주시" };
+    const own = reviewEligibility(base({ source: "bojo24", profile: jeju, placeOrgs: ["제주신용보증재단"], structure: unknownScope }));
+    expect(own.verdict).toBe("fit");
+    for (const agency of ["신용보증재단중앙회", "서민금융진흥원", "중소벤처기업부", ""]) {
+      const r = reviewEligibility(base({ source: "bojo24", placeOrgs: [agency], structure: unknownScope }));
+      expect(r.verdict).toBe("unverified");
+      expect(r.toCheck).toEqual([REGION_SCOPE_UNKNOWN]);
+    }
   });
 
   it("조건 정리 전(규칙 추출본) 공고와 금융상품에는 범위 확인을 붙이지 않는다", () => {
@@ -515,4 +540,100 @@ describe("「X 외 지역」 문장 — 리뷰 review-fca5517e P2·P3(NO.585 2�
       expect(reviewEligibility(base({ humanCheckTexts: [text] })).verdict).not.toBe("excluded");
     },
   );
+});
+
+describe("displayChecks — 보이는 지역·업종·규모 줄은 판정 결과를 따른다(NO.585 추가 제보 2026-10-29)", () => {
+  // 제보 예시와 같은 모양으로 지어낸 고객 — 경기 화성·도장·도배 공사업·5명·매출 8억.
+  const PAINTER: BusinessProfile = {
+    industry: "건설업(도장·도배 공사업)",
+    region: "경기",
+    regionSigungu: "화성시",
+    employeeCount: 5,
+    foundedDate: "2015-03-01",
+    lastYearRevenueKrw: 800_000_000,
+    taxDelinquent: false,
+    hasCert: false,
+    hasPatent: false,
+  };
+  const cond = (key: StructuredCondition["key"], value: StructuredCondition["value"], rawText: string, machineReadable = true): StructuredCondition =>
+    ({ key, op: key === "noTaxDelinquency" ? "eq" : "in", value, rawText, machineReadable }) as StructuredCondition;
+  const shownOf = (conds: StructuredCondition[], p: BusinessProfile = PAINTER) => {
+    const checks = conds.map((c) => checkCondition(c, p, NOW));
+    return { checks, shown: displayChecks(checks, p, NOW) };
+  };
+
+  it("충남 해양바이오 공고(조건 4개 중 1개 맞음 · 3개 직접 확인) — 지역·업종은 안 맞음, 규모는 맞음, 「직접 확인」이 남지 않는다", () => {
+    const { checks, shown } = shownOf([
+      cond("region", ["충청남도"], "(신청자격) 충청남도에 본사·공장 소재 기업", false),
+      cond("industry", ["해양생명자원", "미세조류", "해조류", "수산물"], "(지원분야) 해양생명자원·미세조류·해조류·수산물", false),
+      cond("companyScale", ["중소기업"], "중소기업", false),
+      cond("noTaxDelinquency", true, "국세·지방세 체납, 가압류 등으로 사업 수행이 어려운 기업 제외"),
+    ]);
+    expect(checks.map((c) => c.verdict)).toEqual(["unknown", "unknown", "unknown", "pass"]);
+    expect(shown.map((c) => c.verdict)).toEqual(["fail", "fail", "pass", "pass"]);
+    expect(shown[0].note).toBe("다른 지역 공고(충청남도)");
+    expect(shown[1].note).toMatch(/^다른 업종 공고\(해양생명자원·/);
+    expect(shown.some((c) => c.verdict === "unknown")).toBe(false);
+  });
+
+  it("업종 값의 과반이 분야 사전으로 읽히고 모두 다른 분야면 안 맞음 — 반만 읽히면 확인으로 둔다", () => {
+    const { shown } = shownOf([
+      cond("industry", ["축산", "축산업", "축산농가", "가축"], "관내 축산농가", false),
+      cond("industry", ["축산업", "수산업", "가두리"], "축산업·수산업·가두리", false),
+      cond("industry", ["농업", "스마트팜"], "농업·스마트팜", false),
+    ]);
+    expect(shown.map((c) => c.verdict)).toEqual(["fail", "fail", "unknown"]);
+    expect(shown[2].note).toBe("업종 해당 여부(농업·스마트팜)");
+    // 판정도 같다 — 과반이 다른 분야인 업종 조건이 있으면 빠진다.
+    const painterChecks = (conds: StructuredCondition[]) => conds.map((c) => checkCondition(c, PAINTER, NOW));
+    expect(reviewEligibility(base({ profile: PAINTER, checks: painterChecks([cond("industry", ["축산업", "수산업", "가두리"], "축산업·수산업·가두리", false)]) })).excludeReason).toMatch(/^다른 업종 공고\(/);
+    expect(reviewEligibility(base({ profile: PAINTER, checks: painterChecks([cond("industry", ["농업", "스마트팜"], "농업·스마트팜", false)]) })).verdict).not.toBe("excluded");
+  });
+
+  it("업종 — 고객 업종 글자가 든 값은 맞음, 값이 모두 다른 분야면 안 맞음", () => {
+    const { checks, shown } = shownOf([
+      cond("industry", ["도배업", "축산업"], "도배업·축산업"),
+      cond("industry", ["축산업", "수산업"], "축산업·수산업", false),
+    ]);
+    expect(checks.map((c) => c.verdict)).toEqual(["unknown", "unknown"]);
+    expect(shown.map((c) => c.verdict)).toEqual(["pass", "fail"]);
+    expect(shown[1].note).toBe("다른 업종 공고(축산업·수산업)");
+  });
+
+  it("규모 이름은 직원 수·매출로 맞음·안 맞음 — 「기업 규모 미입력」을 보이지 않는다", () => {
+    const { checks, shown } = shownOf([
+      cond("companyScale", ["소상공인"], "소상공인"),
+      cond("companyScale", ["중견기업"], "중견기업"),
+      cond("companyScale", ["소공인"], "소공인"),
+    ]);
+    expect(checks.map((c) => c.note)).toEqual(["기업 규모 미입력", "기업 규모 미입력", "기업 규모 미입력"]);
+    expect(shown.map((c) => c.verdict)).toEqual(["pass", "fail", "fail"]);
+  });
+
+  it("업종별 기준 사이라 못 가린 규모는 확인으로 두되 「미입력」이라 하지 않는다", () => {
+    const mid = { ...PAINTER, industry: "", employeeCount: 7, lastYearRevenueKrw: 3_000_000_000 };
+    const { shown } = shownOf([cond("companyScale", ["소상공인"], "소상공인")], mid);
+    expect(shown[0].verdict).toBe("unknown");
+    expect(shown[0].note).toBe("직원 수·매출로 못 가림 — 기업 규모: 소상공인");
+  });
+
+  it("고객 정보가 없거나 이웃 업종이면 맞음·안 맞음을 정하지 않는다 — 메모만 확인할 것으로", () => {
+    const empty: BusinessProfile = { industry: "건설업(도장·도배 공사업)" };
+    const { checks, shown } = shownOf(
+      [cond("region", ["충청남도"], "충청남도", false), cond("companyScale", ["소상공인"], "소상공인"), cond("industry", ["금속"], "금속 가공", false)],
+      empty,
+    );
+    expect(shown.map((c) => c.verdict)).toEqual(["unknown", "unknown", "unknown"]);
+    expect(shown.map((c) => c.note)).toEqual(["소재지 확인", "기업 규모 미입력", "업종 해당 여부(금속)"]);
+    expect(shown[1]).toBe(checks[1]);
+  });
+
+  it("규모 이름으로 적은 대상 유형 줄도 따른다 — 참·거짓 문장으로 정리한 대상 유형은 그대로", () => {
+    const { checks, shown } = shownOf([
+      cond("targetOrg", ["소상공인"], "소상공인", false),
+      cond("targetOrg", true, "주관연구개발기관 유형 대학 및 정부출연연구소", false),
+    ]);
+    expect(shown[0].verdict).toBe("pass");
+    expect(shown[1]).toBe(checks[1]);
+  });
 });

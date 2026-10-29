@@ -221,3 +221,22 @@ describe("통합 5차 리뷰(2026-09-17) 반영", () => {
     expect(checkCondition(titleSectorCondition("2026년 뿌리기업 공정혁신 지원사업")!, { industry: "귀금속 및 관련 제품 제조업" }, NOW).verdict).toBe("unknown");
   });
 });
+
+describe("NO.585 추가 제보(2026-10-29) — 공고 업종 값에 자주 나오는 농축수산·해양 낱말", () => {
+  it.each([
+    ["가축", ["농림어업"]],
+    ["축산농가", ["농림어업"]],
+    ["영농", ["농림어업"]],
+    ["양계·가금", ["농림어업"]],
+    ["양돈·종돈", ["농림어업"]],
+    ["낙농", ["농림어업"]],
+    ["해조류", ["농림어업"]],
+    ["미세조류", ["농림어업"]],
+    ["해양생명자원", ["제약바이오"]],
+  ])("「%s」는 %j", (word, fams) => {
+    expect(sectorFamiliesOfIndustry(word)).toEqual(fams);
+  });
+  it("미세조류·해양생명은 이웃(제약바이오↔농림어업)이라 서로 다른 업종으로 빼지 않는다", () => {
+    expect(relatedFamiliesOf(sectorFamiliesOfIndustry("미세조류")).has("제약바이오")).toBe(true);
+  });
+});

@@ -37,7 +37,7 @@ import {
 import { withRegionConditions } from "../engine/region-augment";
 import type { StructuredCondition } from "../engine/structure-types";
 import { scoreOf, type FitVerdict } from "../engine/recommend-score";
-import { GENERIC_TO_CHECK, reviewEligibility, SCOPE_UNKNOWN_TO_CHECK, STEP_LABELS, unverifiedStep, type EligibilityReview } from "../engine/eligibility-review";
+import { displayChecks, GENERIC_TO_CHECK, reviewEligibility, SCOPE_UNKNOWN_TO_CHECK, STEP_LABELS, unverifiedStep, type EligibilityReview } from "../engine/eligibility-review";
 import { rulesToConditions } from "../funding/products/rules-to-conditions";
 import { MANUAL_PRODUCTS } from "../funding/products/sources/manual";
 import type { ProductTargetRules } from "../funding/products/types";
@@ -387,8 +387,10 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
     structure,
     ruleOnly: r.structureStatus !== "done",
     amountText: r.amountText ?? "",
+    placeOrgs: [r.agency ?? ""],
   });
-  const fit = fitsOf(m.checks);
+  // 보이는 조건 줄은 판정이 정한 지역·업종·규모 결과를 따른다(NO.585 추가 제보) — 점수는 원래 줄로 센다.
+  const fit = fitsOf(displayChecks(m.checks, profile, now));
   const humanCheck = m.humanCheck.length;
   const why = whyOf(fit, humanCheck);
 
@@ -532,7 +534,7 @@ function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): Buil
 
   const conditions = rulesToConditions(readTargetRules(p.targetRules), p.targetText ?? "");
   const checks = conditions.map((c) => checkCondition(c, profile, now));
-  const fit = fitsOf(checks);
+  const fit = fitsOf(displayChecks(checks, profile, now));
   // 상품에는 AI 의 「사람 확인」 목록이 없다 — 기계로 못 재는 조건(대표 나이 등)이 그 자리다.
   // 손 등록 명부는 창구 안내·설명 글에 기계로 못 읽은 조건(엔젤투자 이력 등)이 남아 있다 — 사람 확인 1건으로
   // 센다(정밀 맞음, 리뷰 review-116b747b P1-3).
