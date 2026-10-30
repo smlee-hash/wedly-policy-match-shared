@@ -669,3 +669,136 @@ describe("displayChecks — 보이는 지역·업종·규모 줄은 판정 결�
     expect(shown[1]).toBe(checks[1]);
   });
 });
+
+describe("대상 업종 문장을 제외 업종 목록으로 읽지 않는다 — 운영 QA 3차(NO.585 2026-10-30)", () => {
+  // 원문·값은 운영 AI 정리본 그대로다. 고객은 위와 같은 화성 도장·도배 공사업.
+  const PAINTER: BusinessProfile = {
+    industry: "건설업(도장·도배 공사업)",
+    region: "경기",
+    regionSigungu: "화성시",
+    employeeCount: 5,
+    foundedDate: "2015-03-01",
+    lastYearRevenueKrw: 800_000_000,
+    taxDelinquent: false,
+    hasCert: false,
+    hasPatent: false,
+  };
+  const FOOD: BusinessProfile = { ...PAINTER, industry: "식품 제조업(김치)" };
+  const ind = (value: string[], rawText: string): StructuredCondition => ({ key: "industry", op: "in", value, rawText, machineReadable: true });
+  const shown = (c: StructuredCondition, p: BusinessProfile = PAINTER, scope?: "all" | "restricted" | "unknown") =>
+    displayChecks([checkCondition(c, p, NOW)], p, NOW, scope)[0];
+  const review = (c: StructuredCondition, p: BusinessProfile = PAINTER, scope: "all" | "restricted" | "unknown" = "restricted") =>
+    reviewEligibility(base({ profile: p, checks: [SCALE_PASS, checkCondition(c, p, NOW)], structure: { industryScope: scope, regionScope: "all", supportAmountText: "", benefitSummary: "" } }));
+
+  const food = ind(["식품", "식품 수출", "식품수출업체"], "식품 수출업체 중 제외국(미국 등) 현지실사 대상 업체");
+  const fishery = ind(
+    ["어업", "어업인", "어업용 면세경유", "수산"],
+    "「조세특례제한법」 제106조의2 및 「농·축산·임·어업용 기자재 및 석유류에 대한 부가가치세 영세율 및 면세 적용 등에 관한 특례규정」에 따라 어업용 면세경유를 공급받은 자(이하 “어업인”)",
+  );
+  const tac = ind(["어업", "어업인", "TAC 참여 어업"], "○ TAC 참여 어업인(단, 제주도 소라 채취 어업인은 및 TAC 참여 1단계 어업인은 제외)");
+  const delivery = ind(
+    ["배달대행", "배달", "퀵서비스", "퀵", "대리운전", "플랫폼종사자"],
+    "온라인 플랫폼을 이용하여 배달대행·퀵서비스·대리운전 노무를 제공하고 사업주 또는 노무수령자로부터 대가를 받는 사람(택배기사와 택시기사 제외)",
+  );
+  const news = ind(
+    ["일간신문", "주간신문", "인터넷신문", "신문", "언론"],
+    "신문법상 일간신문, 주간신문, 인터넷신문(* 무료신문 제외, 해당 년도 언론진흥기금 공모사업 지원 자격 충족)",
+  );
+  const medical = ind(["의료기기", "의료기기 전방산업", "의료기기 후방산업"], "☞ 의료기기 전ㆍ후방 산업군에 해당하는 전국의 중소ㆍ중견기업");
+
+  it("「제외국」·「○○제한법」은 제외 말이 아니다 — 다른 업종 대상 공고는 안 맞음, 같은 업종은 맞음", () => {
+    expect(shown(food).verdict).toBe("fail");
+    expect(shown(food).note).toMatch(/^다른 업종 공고\(식품/);
+    expect(shown(fishery).verdict).toBe("fail");
+    expect(review(food).excludeReason).toMatch(/^다른 업종 공고\(/);
+    expect(review(fishery).excludeReason).toMatch(/^다른 업종 공고\(/);
+    expect(shown(food, FOOD).verdict).toBe("pass");
+  });
+
+  it("괄호 속 「(… 제외)」는 대상 업종 안의 덜어 냄이다 — 대상 값이 괄호 밖에 있으면 대상 업종 목록", () => {
+    expect(shown(tac).verdict).toBe("fail");
+    expect(review(tac).excludeReason).toMatch(/^다른 업종 공고\(/);
+    // 사전 밖 값이 따로 서면 맞음도 안 맞음도 아니다 — 확인할 것.
+    expect(shown(delivery).verdict).toBe("unknown");
+    expect(shown(delivery).note).toMatch(/^업종 표기가 달라 확인 필요 — 대상 업종: 배달대행/);
+    expect(shown(news).verdict).toBe("unknown");
+    expect(review(delivery).verdict).not.toBe("fit");
+    expect(review(news).verdict).not.toBe("fit");
+  });
+
+  it("AI 가 「특정 업종만」이라 한 공고의 결격 낱말(의료·금융·회계) 값은 맞음이 아니라 확인 — 빼지도 않는다", () => {
+    expect(shown(medical, PAINTER, "restricted").verdict).toBe("unknown");
+    expect(shown(medical, PAINTER, "restricted").note).toMatch(/^업종 표기가 달라 확인 필요 — 대상 업종: 의료기기/);
+    const r = review(medical);
+    expect(r.verdict).not.toBe("fit");
+    expect(r.verdict).not.toBe("excluded");
+    const finance = ind(["금융기관", "금융"], "금융기관 출연금 납부시 제출하여야 할 서류를 아래와 같이 알려드리오니 출연금 납부일 5일전까지 제출하여 주시기 바랍니다.");
+    expect(shown(finance, PAINTER, "restricted").verdict).toBe("unknown");
+    // 범위를 「모름」이라 했거나 범위가 없어도 확인(리뷰 P2) — 「전체 업종」이라 한 공고만 결격 낱말 목록을 제외 목록으로 본다.
+    expect(shown(medical, PAINTER, "unknown").verdict).toBe("unknown");
+    expect(review(medical, PAINTER, "unknown").verdict).not.toBe("fit");
+    expect(shown(medical).verdict).toBe("unknown");
+    expect(shown(medical, PAINTER, "all").verdict).toBe("pass");
+    // 판정도 같은 범위를 쓴다 — 「전체 업종」 공고면 제외 목록이라 업종이 걸림이 아니다.
+    expect(review(medical, PAINTER, "all").verdict).toBe("fit");
+  });
+
+  it("본문의 「제한 없음」·「○○로 제한」·「해당 시·군」·「단, … 제외」 꼬리절은 제외 목록 표시가 아니다(리뷰 P2)", () => {
+    const tail = ind(["제조업", "지식서비스업"], "제조업·지식서비스업 영위 중소기업, 단 유흥·사행업 등은 제외");
+    const limited = ind(["의료기기"], "의료기기 제조업체로 제한");
+    const city = ind(["수산물 가공업"], "해당 시·군 소재 수산물 가공업체");
+    const noLimit = ind(["제조업"], "제조업 영위 기업, 업력 제한 없음");
+    for (const c of [tail, limited, city, noLimit]) {
+      expect(shown(c, PAINTER, "restricted").verdict).not.toBe("pass");
+      expect(review(c).verdict).not.toBe("fit");
+    }
+    expect(shown(city, PAINTER, "restricted").verdict).toBe("fail");
+    // 값 바로 뒤의 「에 한」·「만」은 대상 한정 — 뒤따르는 「제외」가 있어도 대상 업종 목록이다.
+    const onlyFood = ind(["식품제조업"], "식품제조업에 한하며 주류 제조는 제외");
+    expect(shown(onlyFood).verdict).toBe("fail");
+    expect(shown(onlyFood, FOOD).verdict).not.toBe("fail");
+  });
+
+  it("두 겹 괄호의 「제외」도 덜어 냄이다 — 바깥 괄호까지 지운다(리뷰 P3)", () => {
+    const nested = ind(["어업", "어업인", "TAC 참여 어업"], "○ TAC 참여 어업인(단, 제주도 소라 채취 어업인(1단계) 제외)");
+    expect(shown(nested).verdict).toBe("fail");
+    const nestedNoProviso = ind(["어업", "어업인", "TAC 참여 어업"], "○ TAC 참여 어업인(제주도 소라 채취 어업인(1단계) 제외)");
+    expect(shown(nestedNoProviso).verdict).toBe("fail");
+  });
+
+  it("진짜 제외 업종 목록은 그대로 — 괄호 속 결격 업종, 본문의 「제외」, 범위가 「특정 업종만」이어도", () => {
+    const vice = ind(["일반유흥주점업", "사행시설 관리 및 운영업"], "○ 모든 중소기업(단, 일반유흥주점업, 사행시설 관리 및 운영업 등 제외)");
+    const loanBan = ind(["숙박업", "부동산업"], "정책자금 융자제외업종(별표1)을 영위하는 기업은 지원 제외");
+    const plain = ind(["유흥주점업", "부동산업"], "유흥주점업, 부동산업 등은 지원 제외");
+    // 괄호가 이름표뿐이면 앞 값이 제외 업종이다 — 대상 목록으로 읽으면 양말 회사를 숙박·음식·부동산 공고로 뺀다(리뷰 P2).
+    const labeled = ind(["숙박업", "음식점업", "부동산업"], "숙박업, 음식점업, 부동산업(지원 제외 업종)");
+    // 「에 한함」이 값이 아닌 말(중소기업)에 붙으면 한정 절이 아니다 — 「다만」·「5천만 원」도(리뷰 P2).
+    const onlySme = ind(["유흥업", "부동산업"], "중소기업에 한함. 단, 유흥업·부동산업은 지원 제외");
+    const butTail = ind(["유흥업", "부동산업"], "매출 5천만 원 이하 소상공인, 다만 유흥업·부동산업은 제외");
+    const SOCKS: BusinessProfile = { ...PAINTER, industry: "제조업(임가공, 양말)", region: "서울", regionSigungu: "도봉구" };
+    for (const c of [vice, loanBan, plain, labeled, onlySme, butTail]) {
+      for (const p of [PAINTER, SOCKS]) {
+        expect(shown(c, p).verdict).toBe("pass");
+        expect(shown(c, p, "restricted").verdict).toBe("pass");
+        expect(review(c, p).verdict).not.toBe("excluded");
+      }
+    }
+    // 고객이 그 업종이면 확인할 것(맞음 아님) — AI 가 기계 대조를 끈 조건. 대조를 켠 조건은 앞 단계(checkCondition)가
+    // 고객 업종 글자로 맞음을 내며, 이번 고침 밖이다.
+    const realtor: BusinessProfile = { ...PAINTER, industry: "부동산업(중개)" };
+    const plainOff = { ...plain, machineReadable: false };
+    expect(shown(plainOff, realtor).verdict).toBe("unknown");
+    expect(shown(plainOff, realtor).note).toBe("제외 업종 해당 여부");
+  });
+
+  it("범위가 「특정 업종만」이고 제외 말이 없는 결격 낱말 목록은 빼지 않는다 — 확인으로 둔다", () => {
+    // 부동산·숙박은 분야 사전으로도 읽혀 대상 업종 목록으로 넘기면 건설 고객을 잘못 뺀다.
+    const bare = ind(["부동산업", "숙박업"], "부동산업, 숙박업");
+    expect(shown(bare, PAINTER, "restricted").verdict).toBe("unknown");
+    expect(review(bare).verdict).not.toBe("excluded");
+    expect(shown(bare, PAINTER, "unknown").verdict).toBe("unknown");
+    expect(shown(bare).verdict).toBe("unknown");
+    // 「전체 업종」 공고의 결격 낱말 목록은 제외 목록이다.
+    expect(shown(bare, PAINTER, "all").verdict).toBe("pass");
+  });
+});

@@ -21,7 +21,7 @@ import {
 import { relatedFamiliesOf, sectorFamiliesInTitle, sectorFamiliesOfIndustry } from "./sector";
 import { sigunguInText, sigunguSido } from "./sigungu";
 import { orgRegionsOf, sourceRegionOf, type SourceRegion } from "./source-region";
-import type { AnnouncementStructure, ConditionCheck } from "./structure-types";
+import type { AnnouncementStructure, ConditionCheck, IndustryScope } from "./structure-types";
 import type { FitVerdict } from "./recommend-score";
 import {
   GENERIC_TO_CHECK,
@@ -602,12 +602,62 @@ function valuesOf(c: ConditionCheck): string[] {
 
 /** 제외 업종 목록으로 정리된 업종 조건인가(값이 결격 업종·원문이 「제한·제외」). */
 const EXCLUDED_INDUSTRY_WORDS = /유흥|사행|도박|성매매|풍속|부동산|무도|골프|청소년|투기|사치|향락|다단계|공공기관|공기업|비영리|협회|단체|훈련기관|금융|보험|주점|안마|증기탕|담배|주류|기관|법무|회계|세무|의료|약국/;
-function isExclusionIndustryList(c: ConditionCheck): boolean {
-  const raw = c.condition.rawText ?? "";
+/**
+ * 제외 말이 아닌 낱말(NO.585 운영 QA 3차) — 「제외국(諸外國)」·「조세특례제한법」 같은 법 이름, 「업력 제한 없음」,
+ * 대상을 못 박는 「○○로 제한」, 「해당 시·군 소재」.
+ */
+const NOT_EXCLUDING = /제외국|[가-힣]*제한법(?!인)|제한\s*(?:이\s*)?없|(?:으로|로)\s*제한|해당\s*시\s*[·ㆍ･]?\s*[군도구]/g;
+/** 괄호 한 겹 — 「TAC 참여 어업인(단, 제주도 … 제외)」처럼 대상 업종 안에서 일부를 덜어 내는 자리. */
+const PAREN_PART = /[(（][^()（）]*[)）]/g;
+/** 괄호가 이름표뿐인 자리 — 「숙박업, 부동산업(지원 제외 업종)」의 괄호는 앞 값이 제외 업종이라는 표시다(리뷰 P2). */
+const LABEL_ONLY = /^[\s*※·,]*(?:지원\s*)?(?:제외|불가|배제|제한|금지)(?:\s*(?:업종|대상|업체|기업|분야))?[\s*※·,]*$/;
+/** 「단, …」·「다만 …」 꼬리절 — 문장 끝까지가 덜어 내는 자리다(「제조업 영위 중소기업, 단 유흥업 등은 제외」). */
+const PROVISO_PART = /(?<![가-힣])(?:단|다만)(?:\s*[,，:]|\s)[^.。\n]*/g;
+
+/** 덜어 내는 자리를 지운 본문 — 괄호는 안쪽부터 되풀이해 두 겹도 지운다(리뷰 P3). 이름표 괄호는 글만 남긴다. */
+function mainClause(text: string): string {
+  let s = text;
+  for (let prev = ""; s !== prev; ) {
+    prev = s;
+    s = s.replace(PAREN_PART, (m) => (LABEL_ONLY.test(m.slice(1, -1)) ? ` ${m.slice(1, -1)} ` : " "));
+  }
+  return s.replace(PROVISO_PART, " ");
+}
+
+/** 값 바로 뒤에 「만」·「에 한」이 붙은 한정 절인가 — 「제조업에 한하며 유흥업 제외」. 「다만」·「5천만 원」·「중소기업에 한함」은 아니다. */
+function valueOnlyClause(raw: string, values: readonly string[]): boolean {
+  return values.some((v) => {
+    const word = v.trim();
+    const at = word.length >= 2 ? raw.indexOf(word) : -1;
+    if (at < 0) return false;
+    const tail = raw.slice(at + word.length, at + word.length + 12).split(/[,，.。·ㆍ;\n()（）]/)[0];
+    return /^[가-힣\s]{0,8}?(?:만(?![가-힣]|\s*원)|에\s*한)/.test(tail);
+  });
+}
+
+/**
+ * 업종 조건이 제외 업종 목록(exclusion)인가, 대상 업종 목록(target)인가, 가릴 수 없나(unsure).
+ * 제외 말이 괄호·「단, …」 꼬리절 속에만 있고 값이 그 밖 본문에 있으면 대상 업종 안의 덜어 냄이다 — 「식품 수출업체 중
+ * 제외국」·「(택배기사와 택시기사 제외)」를 제외 목록으로 읽어 다른 업종 공고가 「업종 맞음」·지원 가능으로 떴다(NO.585 운영 QA 3차).
+ * 제외 말 없이 결격 낱말(의료기기·금융기관)만 걸리면 AI 가 업종 범위를 「전체」라 한 공고만 제외 목록이다. 「특정 업종만」·
+ * 「모름」·범위 없음이면 어느 쪽인지 모른다 — 대상 목록으로 넘기면 사전으로 읽히는 결격 업종(부동산·숙박)이 다른 업종 고객을
+ * 잘못 빼므로 확인으로 둔다.
+ */
+function industryListKind(c: ConditionCheck, industryScope?: IndustryScope): "exclusion" | "target" | "unsure" {
+  const raw = (c.condition.rawText ?? "").replace(NOT_EXCLUDING, " ");
   const values = valuesOf(c);
-  if (EXCLUDING.test(raw) && !/만\s|에\s*한/.test(raw)) return true;
+  if (!valueOnlyClause(raw, values)) {
+    const body = mainClause(raw);
+    if (EXCLUDING.test(body)) return "exclusion";
+    if (EXCLUDING.test(raw)) {
+      const bodyText = compact(body);
+      const inBody = values.filter((v) => compact(v).length >= 2 && bodyText.includes(compact(v))).length;
+      if (inBody * 2 <= values.length) return "exclusion";
+    }
+  }
   const hits = values.filter((v) => EXCLUDED_INDUSTRY_WORDS.test(v)).length;
-  return values.length > 0 && hits * 2 >= values.length;
+  if (values.length > 0 && hits * 2 >= values.length) return industryScope === "all" ? "exclusion" : "unsure";
+  return "target";
 }
 
 /** 업종 조건 값 「제조업」 → 「제조」가 고객 업종에 있으면 맞다. */
@@ -660,7 +710,7 @@ function scaleOutcome(v: ScaleVerdict, values: readonly string[]): Outcome {
   return { kind: "check", label: `기업 규모: ${v.unknownNames.join("·")}` };
 }
 
-function reviewCheck(c: ConditionCheck, p: BusinessProfile, now: Date): Outcome {
+function reviewCheck(c: ConditionCheck, p: BusinessProfile, now: Date, industryScope?: IndustryScope): Outcome {
   const key = c.condition.key;
   const raw = c.condition.rawText ?? "";
   // 고객이 적은 규모는 글자 겹침이 아니라 포함 관계·직원 수·매출로 본다(리뷰 review-29a732f5 P2 — 「소상공인」 고객의 S-OJT).
@@ -701,11 +751,13 @@ function reviewCheck(c: ConditionCheck, p: BusinessProfile, now: Date): Outcome 
     case "industry": {
       if (missing) return { kind: "check", label: missing };
       const values = valuesOf(c);
-      if (isExclusionIndustryList(c)) {
+      const list = industryListKind(c, industryScope);
+      if (list === "exclusion") {
         return values.some((v) => industryValueMatches(v, p)) || industryInList(raw, p)
           ? { kind: "check", label: "제외 업종 해당 여부" }
           : { kind: "pass" };
       }
+      if (list === "unsure") return { kind: "check", label: `업종 해당 여부(${shortText(values.join("·"), 14)})` };
       if (values.some((v) => industryValueMatches(v, p))) return { kind: "pass" };
       // 값이 모두 분야 사전으로 읽히고 읽힌 분야가 모두 고객 분야와 무관하면 다른 업종이다. AI 는 같은 업종을 줄여
       // 적기도 해(「해양수산·해양·수산」) 사전 밖 값이 읽힌 값의 일부이면 읽힌 것으로 본다(NO.585 추가 제보 2026-10-29).
@@ -787,13 +839,14 @@ const MACHINE_OFF_NOTE = /^기계로 판정할 수 없는 조건/;
  * 없는 조건」이면 판정이 남긴 확인할 것(「업종 해당 여부(…)」 등)으로 바꾼다. 업종 값에 분야 사전 밖 값이 따로 서면
  * 판정이 확인으로 남긴다 — 잘못 빼면 자격 있는 회사를 놓친다.
  * 점수(scoreOf)와 판정은 원래 줄로 계산한다 — 바꾸는 것은 보이는 줄뿐이다.
+ * industryScope 는 판정(reviewEligibility)이 받은 공고의 AI 업종 범위와 같은 값을 넘긴다 — 상품은 없다.
  */
-export function displayChecks(checks: readonly ConditionCheck[], p: BusinessProfile, now: Date): ConditionCheck[] {
+export function displayChecks(checks: readonly ConditionCheck[], p: BusinessProfile, now: Date, industryScope?: IndustryScope): ConditionCheck[] {
   return checks.map((c) => {
     const key = c.condition.key;
     const scaleNames = key === "targetOrg" && Array.isArray(c.condition.value);
     if (!SETTLED_DISPLAY_KEYS.has(key) && !scaleNames) return c;
-    const o = reviewCheck(c, p, now);
+    const o = reviewCheck(c, p, now, industryScope);
     if (o.kind === "pass") return c.verdict === "pass" ? c : { condition: c.condition, verdict: "pass", note: "" };
     if (o.kind === "exclude" || o.kind === "fail") return c.verdict === "fail" ? c : { condition: c.condition, verdict: "fail", note: o.reason };
     // 직원 수·매출이 있는데 규모를 못 가린 줄은 「미입력」이 아니다 — 업종별 기준 사이 값이라 확인이 남은 것이다.
@@ -894,7 +947,7 @@ export function reviewEligibility(input: EligibilityInput): EligibilityReview {
   /** 「맞다」를 말할 근거가 되는 통과 — 전국·보탠 지역·법인 여부 통과만으로는 맞음을 주지 않는다. */
   let realPass = 0;
   for (const c of input.checks) {
-    const o = reviewCheck(c, p, now);
+    const o = reviewCheck(c, p, now, input.structure?.industryScope);
     const raw = compact(c.condition.rawText ?? "");
     if (c.condition.key === "region" && c.condition.origin !== "augmented" && valuesOf(c).some((v) => v.includes("전국"))) nationwideRegion = true;
     if (c.condition.key === "industry" || c.condition.key === "targetSector") sawIndustryCondition = true;
