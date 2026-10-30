@@ -892,4 +892,37 @@ describe("대상 업종 문장을 제외 업종 목록으로 읽지 않는다 �
       }
     }
   });
+
+  it("값에 「제외」를 붙여 적은 제외 목록(「건설업 제외」)도 덜어 낸 자리의 값으로 찾는다(운영 대조 2026-10-30)", () => {
+    // 본문에 「관내」·「벤처」가 있어 누구나 해당하는 말뿐이 아니고, 값은 꼬리의 「제외」 때문에 원문에서 못 찾아 확인이 됐다.
+    const localSol = ind(["건설업 제외", "단순유통 제외"], "대 상 : 관내 중소·벤처기업(건설업, 단순유통 등 제외)");
+    const SOCKS: BusinessProfile = { ...PAINTER, industry: "제조업(임가공, 양말)", region: "서울", regionSigungu: "도봉구" };
+    const off = { ...localSol, machineReadable: false };
+    for (const scope of ["all", "restricted", "unknown"] as const) {
+      expect(shown(localSol, SOCKS, scope).verdict).toBe("pass");
+      expect(shown(off, SOCKS, scope).verdict).toBe("pass");
+      expect(shown(localSol, PAINTER, scope).verdict).toBe("unknown");
+      expect(shown(off, PAINTER, scope).note).toBe("제외 업종 해당 여부");
+    }
+    expect(review(localSol, SOCKS).verdict).not.toBe("excluded");
+    expect(review(localSol, PAINTER).verdict).not.toBe("fit");
+    // 「제외」를 붙인 값은 본문 낱말과 겹쳐도 대상 값이 아니다 — 그 업종 고객은 제외 업종 해당 여부를 묻는다.
+    const mfgBuild = ind(["제조업", "건설업 제외"], "제조업·건설업 영위 중소기업(단, 종합건설업 제외)");
+    expect(shown({ ...mfgBuild, machineReadable: false }, PAINTER, "restricted").note).toBe("제외 업종 해당 여부");
+    // 본문의 「건설업 외」는 제외 말이 아니어도 값이 「건설업 제외」다 — 대상 목록으로 읽으면 대상이 비어 모든 고객이 확인이 된다.
+    const otherThanBuild = ind(["건설업 제외"], "건설업 외 업종 영위 중소기업(단, 휴·폐업 기업 제외)");
+    expect(shown(otherThanBuild, SOCKS, "restricted").verdict).toBe("pass");
+    expect(shown(otherThanBuild, PAINTER, "restricted").verdict).toBe("unknown");
+    // 제외 목록의 값도 꼬리를 떼고 고객 업종과 맞춘다 — 원문이 「건설 관련 업종」이라 원문 낱말로는 건설 고객을 못 찾는다.
+    const smeNoBuild = ind(["건설업 제외"], "모든 중소기업(단, 건설 관련 업종 제외)");
+    expect(shown(smeNoBuild, PAINTER, "restricted").verdict).toBe("unknown");
+    expect(shown(smeNoBuild, SOCKS, "restricted").verdict).toBe("pass");
+    // 「창업 제외 업종」은 법령 목록의 이름이다 — 「창업」만 떼어 찾으면 제외 목록이 되어 부동산 고객이 맞음이 된다.
+    const startupList = ind(
+      ["창업 제외 업종"],
+      "④ 「중소기업창업 지원법 시행령」 제4조(창업에서 제외되는 업종)의 업종을 영위하고 있거나 영위하고자 하는 자(기업) ([붙임 2] 지원 제외 대상 업종 참조)",
+    );
+    const REALTY: BusinessProfile = { ...SOCKS, industry: "부동산업(중개)" };
+    expect(shown(startupList, REALTY, "restricted").verdict).toBe("unknown");
+  });
 });
