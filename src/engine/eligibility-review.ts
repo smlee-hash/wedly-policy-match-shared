@@ -602,31 +602,61 @@ function valuesOf(c: ConditionCheck): string[] {
 
 /** 제외 업종 목록으로 정리된 업종 조건인가(값이 결격 업종·원문이 「제한·제외」). */
 const EXCLUDED_INDUSTRY_WORDS = /유흥|사행|도박|성매매|풍속|부동산|무도|골프|청소년|투기|사치|향락|다단계|공공기관|공기업|비영리|협회|단체|훈련기관|금융|보험|주점|안마|증기탕|담배|주류|기관|법무|회계|세무|의료|약국/;
-/** 제외 말이 아닌 낱말 — 「제외국(諸外國)」·「조세특례제한법」 같은 법 이름(NO.585 운영 QA 3차). */
-const NOT_EXCLUDING = /제외국|[가-힣]*제한법(?!인)/g;
+/**
+ * 제외 말이 아닌 낱말(NO.585 운영 QA 3차) — 「제외국(諸外國)」·「조세특례제한법」 같은 법 이름, 「업력 제한 없음」,
+ * 대상을 못 박는 「○○로 제한」, 「해당 시·군 소재」.
+ */
+const NOT_EXCLUDING = /제외국|[가-힣]*제한법(?!인)|제한\s*(?:이\s*)?없|(?:으로|로)\s*제한|해당\s*시\s*[·ㆍ･]?\s*[군도구]/g;
 /** 괄호 한 겹 — 「TAC 참여 어업인(단, 제주도 … 제외)」처럼 대상 업종 안에서 일부를 덜어 내는 자리. */
 const PAREN_PART = /[(（][^()（）]*[)）]/g;
+/** 괄호가 이름표뿐인 자리 — 「숙박업, 부동산업(지원 제외 업종)」의 괄호는 앞 값이 제외 업종이라는 표시다(리뷰 P2). */
+const LABEL_ONLY = /^[\s*※·,]*(?:지원\s*)?(?:제외|불가|배제|제한|금지)(?:\s*(?:업종|대상|업체|기업|분야))?[\s*※·,]*$/;
+/** 「단, …」·「다만 …」 꼬리절 — 문장 끝까지가 덜어 내는 자리다(「제조업 영위 중소기업, 단 유흥업 등은 제외」). */
+const PROVISO_PART = /(?<![가-힣])(?:단|다만)(?:\s*[,，:]|\s)[^.。\n]*/g;
+
+/** 덜어 내는 자리를 지운 본문 — 괄호는 안쪽부터 되풀이해 두 겹도 지운다(리뷰 P3). 이름표 괄호는 글만 남긴다. */
+function mainClause(text: string): string {
+  let s = text;
+  for (let prev = ""; s !== prev; ) {
+    prev = s;
+    s = s.replace(PAREN_PART, (m) => (LABEL_ONLY.test(m.slice(1, -1)) ? ` ${m.slice(1, -1)} ` : " "));
+  }
+  return s.replace(PROVISO_PART, " ");
+}
+
+/** 값 바로 뒤에 「만」·「에 한」이 붙은 한정 절인가 — 「제조업에 한하며 유흥업 제외」. 「다만」·「5천만 원」·「중소기업에 한함」은 아니다. */
+function valueOnlyClause(raw: string, values: readonly string[]): boolean {
+  return values.some((v) => {
+    const word = v.trim();
+    const at = word.length >= 2 ? raw.indexOf(word) : -1;
+    if (at < 0) return false;
+    const tail = raw.slice(at + word.length, at + word.length + 12).split(/[,，.。·ㆍ;\n()（）]/)[0];
+    return /^[가-힣\s]{0,8}?(?:만(?![가-힣]|\s*원)|에\s*한)/.test(tail);
+  });
+}
 
 /**
  * 업종 조건이 제외 업종 목록(exclusion)인가, 대상 업종 목록(target)인가, 가릴 수 없나(unsure).
- * 제외 말이 괄호 속에만 있고 값이 괄호 밖 본문에 있으면 대상 업종 안의 덜어 냄이다 — 「식품 수출업체 중 제외국」·
- * 「(택배기사와 택시기사 제외)」를 제외 목록으로 읽어 다른 업종 공고가 「업종 맞음」·지원 가능으로 떴다(NO.585 운영 QA 3차).
- * AI 가 「특정 업종만」이라 한 공고에서 제외 말 없이 결격 낱말(의료기기·금융기관)만 걸리면 어느 쪽인지 모른다 —
- * 대상 목록으로 넘기면 사전으로 읽히는 결격 업종(부동산·숙박)이 다른 업종 고객을 잘못 빼므로 확인으로 둔다.
+ * 제외 말이 괄호·「단, …」 꼬리절 속에만 있고 값이 그 밖 본문에 있으면 대상 업종 안의 덜어 냄이다 — 「식품 수출업체 중
+ * 제외국」·「(택배기사와 택시기사 제외)」를 제외 목록으로 읽어 다른 업종 공고가 「업종 맞음」·지원 가능으로 떴다(NO.585 운영 QA 3차).
+ * 제외 말 없이 결격 낱말(의료기기·금융기관)만 걸리면 AI 가 업종 범위를 「전체」라 한 공고만 제외 목록이다. 「특정 업종만」·
+ * 「모름」·범위 없음이면 어느 쪽인지 모른다 — 대상 목록으로 넘기면 사전으로 읽히는 결격 업종(부동산·숙박)이 다른 업종 고객을
+ * 잘못 빼므로 확인으로 둔다.
  */
 function industryListKind(c: ConditionCheck, industryScope?: IndustryScope): "exclusion" | "target" | "unsure" {
   const raw = (c.condition.rawText ?? "").replace(NOT_EXCLUDING, " ");
   const values = valuesOf(c);
-  const onlyClause = /만\s|에\s*한/.test(raw);
-  const body = raw.replace(PAREN_PART, " ");
-  if (EXCLUDING.test(body) && !onlyClause) return "exclusion";
-  if (EXCLUDING.test(raw) && !onlyClause) {
-    const bodyText = compact(body);
-    const inBody = values.filter((v) => compact(v).length >= 2 && bodyText.includes(compact(v))).length;
-    if (inBody * 2 <= values.length) return "exclusion";
+  if (!valueOnlyClause(raw, values)) {
+    const body = mainClause(raw);
+    if (EXCLUDING.test(body)) return "exclusion";
+    if (EXCLUDING.test(raw)) {
+      const bodyText = compact(body);
+      const inBody = values.filter((v) => compact(v).length >= 2 && bodyText.includes(compact(v))).length;
+      if (inBody * 2 <= values.length) return "exclusion";
+    }
   }
   const hits = values.filter((v) => EXCLUDED_INDUSTRY_WORDS.test(v)).length;
-  if (values.length > 0 && hits * 2 >= values.length) return industryScope === "restricted" ? "unsure" : "exclusion";
+  if (values.length > 0 && hits * 2 >= values.length) return industryScope === "all" ? "exclusion" : "unsure";
   return "target";
 }
 

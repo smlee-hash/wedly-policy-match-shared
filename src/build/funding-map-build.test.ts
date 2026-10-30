@@ -1800,5 +1800,11 @@ describe("상품 창구가 다른 시도 지역 기관이면 안 맞음(NO.585 �
     expect(item.fitVerdict).not.toBe("fit");
     expect(item.fit[0].verdict).toBe("unknown");
     expect(item.fit[0].note).toMatch(/^업종 표기가 달라 확인 필요 — 대상 업종: 의료기기/);
+
+    // 같은 조건도 AI 가 「전체 업종」이라 한 공고면 제외 업종 목록 — 보이는 줄과 판정이 함께 맞음.
+    loadOpenAnnouncements.mockResolvedValue([ann({ id: "md", title: "GLP 비임상시험 지원사업", structureStatus: "done", structure: { ...structure, industryScope: "all" } })]);
+    const all = byId((await buildFundingMap(SEOUL, NOW, { filters: { includeExcluded: true } })).groups, "a:md")!;
+    expect(all.fit[0].verdict).toBe("pass");
+    expect(all.fitVerdict).toBe("fit");
   });
 });
