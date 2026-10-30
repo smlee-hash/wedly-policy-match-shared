@@ -649,6 +649,30 @@ function valueOnlyClause(raw: string, values: readonly string[]): boolean {
   });
 }
 
+/** 누구나 해당하는 대상 말 — 본문에 이것만 남으면 업종은 덜어 낸 자리에만 적혔다(「모든 중소기업(단, 도소매업 제외)」). */
+const GENERIC_SUBJECT = /모든|전체|국내|중소|중견|소상공인|소기업|기업|업체|사업자|신청|자격|대상|지원|[^가-힣A-Za-z]/g;
+
+/**
+ * 제외 말이 덜어 내는 자리(괄호·「단/다만」 꼬리절)에만 있는 업종 조건의 값을 가른다 — 본문에 든 값, 덜어 낸 자리에만 든 값.
+ * 원문 어디에도 없는 AI 정리 값(「영농」)은 어느 쪽에도 넣지 않는다. 그런 꼴이 아니면(값 한정 절·본문의 제외 말·제외 말
+ * 없음) null.
+ */
+function removedPartValues(c: ConditionCheck): { inBody: string[]; inRemoved: string[]; genericBody: boolean } | null {
+  const raw = (c.condition.rawText ?? "").replace(NOT_EXCLUDING, " ");
+  const values = valuesOf(c);
+  if (valueOnlyClause(raw, values)) return null;
+  const body = mainClause(raw);
+  if (EXCLUDING.test(body) || !EXCLUDING.test(raw)) return null;
+  const bodyText = compact(body);
+  const rawText = compact(raw);
+  const found = (text: string, v: string) => compact(v).length >= 2 && text.includes(compact(v));
+  return {
+    inBody: values.filter((v) => found(bodyText, v)),
+    inRemoved: values.filter((v) => !found(bodyText, v) && found(rawText, v)),
+    genericBody: body.replace(GENERIC_SUBJECT, "") === "",
+  };
+}
+
 /**
  * 업종 조건이 제외 업종 목록(exclusion)인가, 대상 업종 목록(target)인가, 가릴 수 없나(unsure).
  * 제외 말이 괄호·「단, …」 꼬리절 속에만 있고 값이 그 밖 본문에 있으면 대상 업종 안의 덜어 냄이다 — 「식품 수출업체 중
@@ -660,21 +684,17 @@ function valueOnlyClause(raw: string, values: readonly string[]): boolean {
 function industryListKind(c: ConditionCheck, industryScope?: IndustryScope): "exclusion" | "target" | "unsure" {
   const raw = (c.condition.rawText ?? "").replace(NOT_EXCLUDING, " ");
   const values = valuesOf(c);
-  if (!valueOnlyClause(raw, values)) {
-    const body = mainClause(raw);
-    if (EXCLUDING.test(body)) return "exclusion";
-    if (EXCLUDING.test(raw)) {
-      // 제외 말이 덜어 내는 자리에만 있으면 값이 어디 적혔는지로 가린다. 본문에 값이 하나도 없으면 값은 덜어 낸 업종이다.
-      // 본문에 값이 있으면 덜어 낸 자리의 값이 더 많을 때만 제외 목록 — 원문에 없는 AI 정리 값(「영농」)은 어느 쪽에도
-      // 세지 않는다. 「본문 값이 절반 이하」로 세던 판은 「실제 농업에 이용되는 농지. 다만 … 제외」(값 농업·영농)를 제외
-      // 목록으로 읽어 양말 제조 고객에게 업종 「맞음」을 냈다(NO.585 운영 QA 4차).
-      const bodyText = compact(body);
-      const rawText = compact(raw);
-      const found = (text: string, v: string) => compact(v).length >= 2 && text.includes(compact(v));
-      const inBody = values.filter((v) => found(bodyText, v)).length;
-      const inRemoved = values.filter((v) => !found(bodyText, v) && found(rawText, v)).length;
-      if (inBody === 0 || inRemoved > inBody) return "exclusion";
-    }
+  if (!valueOnlyClause(raw, values) && EXCLUDING.test(mainClause(raw))) return "exclusion";
+  const part = removedPartValues(c);
+  if (part) {
+    // 제외 말이 덜어 내는 자리에만 있으면 값이 어디 적혔는지로 가린다. 본문에 값이 하나라도 있으면 대상 업종 목록이다 —
+    // 덜어 낸 자리의 값이 더 많아도(「제조업 영위 중소기업(단, 유흥·사행성 업종 제외)」) 본문이 대상을 적었다(리뷰 P2).
+    // 「본문 값이 절반 이하」로 세던 판은 「실제 농업에 이용되는 농지. 다만 … 제외」(값 농업·영농)를 제외 목록으로 읽어
+    // 양말 제조 고객에게 업종 「맞음」을 냈다(NO.585 운영 QA 4차). 본문에 값이 없으면 덜어 낸 자리에서 값을 찾았거나
+    // 본문이 누구나 해당하는 말(「모든 중소기업」)뿐일 때만 제외 목록이고, 원문 어디에도 없는 AI 정리 값만 있는데 본문에
+    // 다른 글(「실제 경작하는 농가」)이 있으면 어느 쪽인지 모른다(리뷰 P2).
+    if (part.inBody.length > 0) return "target";
+    return part.inRemoved.length > 0 || part.genericBody ? "exclusion" : "unsure";
   }
   const hits = values.filter((v) => EXCLUDED_INDUSTRY_WORDS.test(v)).length;
   if (values.length > 0 && hits * 2 >= values.length) return industryScope === "all" ? "exclusion" : "unsure";
@@ -779,24 +799,29 @@ function reviewCheck(c: ConditionCheck, p: BusinessProfile, now: Date, industryS
           : { kind: "pass" };
       }
       if (list === "unsure") return { kind: "check", label: `업종 해당 여부(${shortText(values.join("·"), 14)})` };
-      if (values.some((v) => industryValueMatches(v, p))) return { kind: "pass" };
+      // 덜어 낸 자리의 값(「제조업 영위 중소기업(단, 유흥·사행성 업종 제외)」의 유흥·사행)은 대상 업종이 아니다 — 고객이
+      // 그 업종이면 확인, 아니면 본문 값만으로 가린다(리뷰 P2).
+      const removed = removedPartValues(c)?.inRemoved ?? [];
+      if (removed.some((v) => industryValueMatches(v, p))) return { kind: "check", label: "제외 업종 해당 여부" };
+      const targets = values.filter((v) => !removed.includes(v));
+      if (targets.some((v) => industryValueMatches(v, p))) return { kind: "pass" };
       // 값이 모두 분야 사전으로 읽히고 읽힌 분야가 모두 고객 분야와 무관하면 다른 업종이다. AI 는 같은 업종을 줄여
       // 적기도 해(「해양수산·해양·수산」) 사전 밖 값이 읽힌 값의 일부이면 읽힌 것으로 본다(NO.585 추가 제보 2026-10-29).
       // 사전 밖 값이 따로 서면(「뷰티·화장품·미용·생활용품·잡화」·「농업·축산·스마트팜」) 그 값이 고객 업종일 수 있어
       // 확인으로 둔다 — 과반만 읽혀도 빼던 판은 양말 제조·IT 고객을 잘못 뺐다(리뷰 P2).
       const mine = sectorFamiliesOfIndustry(p.industry ?? "");
-      const fams = values.map((v) => sectorFamiliesOfIndustry(v));
-      const readValues = values.filter((_, i) => fams[i].length > 0).map((v) => v.replace(/\s+/g, ""));
+      const fams = targets.map((v) => sectorFamiliesOfIndustry(v));
+      const readValues = targets.filter((_, i) => fams[i].length > 0).map((v) => v.replace(/\s+/g, ""));
       const partOfRead = (v: string) => {
         const s = v.replace(/\s+/g, "");
         return s.length >= 2 && readValues.some((r) => r.includes(s));
       };
-      if (mine.length > 0 && readValues.length > 0 && values.every((v, i) => fams[i].length > 0 || partOfRead(v))) {
+      if (mine.length > 0 && readValues.length > 0 && targets.every((v, i) => fams[i].length > 0 || partOfRead(v))) {
         const read = fams.flat();
         const all = new Set([...read, ...relatedFamiliesOf(read)]);
-        if (!mine.some((m) => all.has(m))) return { kind: "exclude", reason: `다른 업종 공고(${shortText(values.join("·"), 16)})` };
+        if (!mine.some((m) => all.has(m))) return { kind: "exclude", reason: `다른 업종 공고(${shortText(targets.join("·"), 16)})` };
       }
-      return { kind: "check", label: `업종 해당 여부(${shortText(values.join("·"), 14)})` };
+      return { kind: "check", label: `업종 해당 여부(${shortText(targets.join("·"), 14)})` };
     }
     case "targetSector":
       return missing ? { kind: "check", label: missing } : { kind: "check", label: `업종 해당 여부(${shortText(valuesOf(c).join("·"), 14)})` };
