@@ -821,6 +821,28 @@ describe("대상 업종 문장을 제외 업종 목록으로 읽지 않는다 �
     expect(shown(mfgButVice, SOCKS, "restricted").verdict).toBe("pass");
   });
 
+  it("「…, 제조업, …을 제외한 업종」 — 고객의 넓은 업종이 목록에 따로 서 있으면 맞음이 아니라 확인(운영 QA 4차)", () => {
+    // 사업전환자금: 서울 양말 제조 고객에게 업종 「맞음」·지원 가능으로 떴다. 넓은 말(제조업)은 「불건전 영상게임기 제조업」 같은
+    // 긴 이름의 꼬리로는 세지 않으므로 낱말 하나로 따로 선 자리만 본다.
+    const service = ind(
+      ["서비스업"],
+      "* 「서비스업」은 한국표준산업분류상의 \"농업 및 임업, 어업, 광업, 제조업, 전기.가스.증기 및 수도사업, 건설업\"을 제외한 업종(제11차 한국산업분류기준)",
+    );
+    const SOCKS: BusinessProfile = { ...PAINTER, industry: "제조업(임가공, 양말)", region: "서울", regionSigungu: "도봉구" };
+    const SW: BusinessProfile = { ...SOCKS, industry: "정보통신업(소프트웨어 개발)" };
+    expect(shown(service, SOCKS).verdict).toBe("unknown");
+    expect(review(service, SOCKS, "unknown").verdict).not.toBe("fit");
+    expect(shown({ ...service, machineReadable: false }, SOCKS).note).toBe("제외 업종 해당 여부");
+    expect(shown(service, PAINTER).verdict).toBe("unknown");
+    expect(shown(service, SW).verdict).toBe("pass");
+    // 긴 업종 이름 꼬리의 「제조업」은 따로 선 낱말이 아니다 — 양말 제조 고객은 그대로 맞음.
+    const vice = ind(
+      ["불건전 영상게임기 제조업", "도박게임장비 등 불건전 오락용품 제조업", "주점업"],
+      "사행산업 등 국민 정서상 지원이 부적절한 업종 영위 기업 (지원제외 업종: 33402中 불건전 영상게임기 제조업, 33409中 도박게임장비 등 불건전 오락용품 제조업, 5621 주점업)",
+    );
+    expect(shown(vice, SOCKS).verdict).toBe("pass");
+  });
+
   it("값이 모두 덜어 낸 자리에 있거나 원문 어디에도 없으면 예전처럼 제외 목록이다(운영 QA 4차)", () => {
     // 본문에 대상 값이 하나도 없으면 값은 덜어 낸 업종을 적은 것이다 — 대상 목록으로 읽으면 제조 고객을 도소매 공고로 뺀다.
     const notRetail = ind(["도매 및 소매업"], "중소기업(단, 도소매업 제외)");

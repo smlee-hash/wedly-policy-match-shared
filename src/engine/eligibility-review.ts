@@ -336,7 +336,21 @@ function specificIndustryWords(industry: string | undefined): string[] {
 function industryInList(text: string, p: BusinessProfile): boolean {
   const words = specificIndustryWords(p.industry);
   const t = compact(text);
-  return words.some((w) => t.includes(w));
+  return words.some((w) => t.includes(w)) || broadIndustryListed(text, p);
+}
+
+/** 목록 낱말 가르개 — 쉼표·가운뎃점·따옴표·괄호·「및/와/과」. 띄어쓰기로는 가르지 않는다(「불건전 영상게임기 제조업」은 한 낱말). */
+const LIST_ITEM_SPLIT = /[,，、;·ㆍ"“”'‘’「」『』()（）[\]/\n]|\s(?:및|와|과|또는)\s/;
+/**
+ * 고객의 넓은 업종(제조업·서비스업 …)이 원문 목록에 낱말 하나로 따로 서 있나 — 「농업 및 임업, 어업, 광업, 제조업 …을 제외한 업종」.
+ * 넓은 말은 긴 업종 이름의 꼬리(「불건전 영상게임기 제조업」)로는 세지 않는다. 사업전환자금이 서울 양말 제조 고객에게 업종 「맞음」·
+ * 지원 가능으로 떴다(NO.585 운영 QA 4차).
+ */
+function broadIndustryListed(text: string, p: BusinessProfile): boolean {
+  const broad = (p.industry ?? "").split(/[^가-힣A-Za-z]+/).filter((w) => w.length >= 3 && w.endsWith("업") && GENERIC_INDUSTRY_WORDS.has(w));
+  if (broad.length === 0) return false;
+  const items = text.split(LIST_ITEM_SPLIT).map((s) => compact(s).replace(/(?:등|을|를)$/, ""));
+  return broad.some((w) => items.includes(w));
 }
 
 const YEAR_NOW_CACHE = new Map<number, RegExp>();
