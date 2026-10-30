@@ -650,9 +650,16 @@ function industryListKind(c: ConditionCheck, industryScope?: IndustryScope): "ex
     const body = mainClause(raw);
     if (EXCLUDING.test(body)) return "exclusion";
     if (EXCLUDING.test(raw)) {
+      // 제외 말이 덜어 내는 자리에만 있으면 값이 어디 적혔는지로 가린다. 본문에 값이 하나도 없으면 값은 덜어 낸 업종이다.
+      // 본문에 값이 있으면 덜어 낸 자리의 값이 더 많을 때만 제외 목록 — 원문에 없는 AI 정리 값(「영농」)은 어느 쪽에도
+      // 세지 않는다. 「본문 값이 절반 이하」로 세던 판은 「실제 농업에 이용되는 농지. 다만 … 제외」(값 농업·영농)를 제외
+      // 목록으로 읽어 양말 제조 고객에게 업종 「맞음」을 냈다(NO.585 운영 QA 4차).
       const bodyText = compact(body);
-      const inBody = values.filter((v) => compact(v).length >= 2 && bodyText.includes(compact(v))).length;
-      if (inBody * 2 <= values.length) return "exclusion";
+      const rawText = compact(raw);
+      const found = (text: string, v: string) => compact(v).length >= 2 && text.includes(compact(v));
+      const inBody = values.filter((v) => found(bodyText, v)).length;
+      const inRemoved = values.filter((v) => !found(bodyText, v) && found(rawText, v)).length;
+      if (inBody === 0 || inRemoved > inBody) return "exclusion";
     }
   }
   const hits = values.filter((v) => EXCLUDED_INDUSTRY_WORDS.test(v)).length;
