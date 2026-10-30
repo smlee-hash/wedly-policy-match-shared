@@ -390,7 +390,7 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
     placeOrgs: [r.agency ?? ""],
   });
   // 보이는 조건 줄은 판정이 정한 지역·업종·규모 결과를 따른다(NO.585 추가 제보) — 점수는 원래 줄로 센다.
-  const fit = fitsOf(displayChecks(m.checks, profile, now));
+  const fit = fitsOf(displayChecks(m.checks, profile, now, structure?.industryScope));
   const humanCheck = m.humanCheck.length;
   const why = whyOf(fit, humanCheck);
 

@@ -1782,4 +1782,23 @@ describe("상품 창구가 다른 시도 지역 기관이면 안 맞음(NO.585 �
     expect(item.fit[0].note).toBe("다른 지역 공고(충청남도)");
     expect(item.fit.some((f) => /기계로 판정할 수 없는 조건|기업 규모 미입력/.test(f.note))).toBe(false);
   });
+
+  it("「특정 업종만」 공고의 결격 낱말 업종 값은 보이는 줄에서도 「맞음」이 아니다 — 운영 QA 3차(양말 회사에 의료기기 공고가 지원 가능)", async () => {
+    const structure = {
+      ...EMPTY_RULE,
+      regionScope: "all",
+      industryScope: "restricted",
+      conditions: [
+        { key: "industry", op: "in", value: ["의료기기", "의료기기 전방산업", "의료기기 후방산업"], rawText: "☞ 의료기기 전ㆍ후방 산업군에 해당하는 전국의 중소ㆍ중견기업", machineReadable: true },
+        { key: "employeeMax", op: "lte", value: 50, rawText: "상시근로자 50인 이하", machineReadable: true },
+      ],
+    };
+    loadOpenAnnouncements.mockResolvedValue([ann({ id: "md", title: "GLP 비임상시험 지원사업", structureStatus: "done", structure })]);
+    productFindMany.mockResolvedValue([]);
+    const data = await buildFundingMap(SEOUL, NOW, { filters: { includeExcluded: true } });
+    const item = byId(data.groups, "a:md")!;
+    expect(item.fitVerdict).not.toBe("fit");
+    expect(item.fit[0].verdict).toBe("unknown");
+    expect(item.fit[0].note).toMatch(/^업종 표기가 달라 확인 필요 — 대상 업종: 의료기기/);
+  });
 });
