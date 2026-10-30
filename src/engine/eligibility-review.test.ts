@@ -801,4 +801,128 @@ describe("대상 업종 문장을 제외 업종 목록으로 읽지 않는다 �
     // 「전체 업종」 공고의 결격 낱말 목록은 제외 목록이다.
     expect(shown(bare, PAINTER, "all").verdict).toBe("pass");
   });
+
+  it("「다만 … 제외」 꼬리절만 있는 대상 업종 문장 — 본문에 대상 값이 있으면 제외 목록이 아니다(운영 QA 4차)", () => {
+    // 기본형 공익직접지불금: 값 「영농」은 원문에 없는 AI 정리 값이라 「본문에 든 값이 절반 이하」로 세면 제외 목록이 돼
+    // 양말 제조·도장 고객에게 업종 「맞음」으로 떴다.
+    const farm = ind(
+      ["농업", "영농"],
+      "○ 지급대상 농지 : 종전의 쌀, 밭, 조건불리직불금 지급대상 농지의 기준연도를 충족하고 현재에도 실제 농업에 이용되는 농지. 다만 농지전용 등 지급대상 농지에서 제외되는 사유가 있는 경우 제외",
+    );
+    const SOCKS: BusinessProfile = { ...PAINTER, industry: "제조업(임가공, 양말)", region: "서울", regionSigungu: "도봉구" };
+    for (const p of [PAINTER, SOCKS]) {
+      expect(shown(farm, p).verdict).not.toBe("pass");
+      expect(shown(farm, p, "restricted").verdict).not.toBe("pass");
+      expect(review(farm, p).verdict).not.toBe("fit");
+    }
+    // 대상 값과 덜어 낸 값이 하나씩이면 대상 업종 목록 — 다른 업종 고객은 맞음이 아니다. 기계 대조를 끈 조건이라야
+    // 앞 단계(checkCondition)의 글자 맞음을 거치지 않고 이 셈을 탄다(리뷰 P3).
+    const mfgButVice = ind(["제조업", "유흥"], "제조업 영위 중소기업(유흥 관련 제외)");
+    const mfgButViceOff = { ...mfgButVice, machineReadable: false };
+    expect(shown(mfgButVice, PAINTER, "restricted").verdict).not.toBe("pass");
+    expect(shown(mfgButViceOff, PAINTER, "restricted").verdict).not.toBe("pass");
+    expect(shown(mfgButViceOff, SOCKS, "restricted").verdict).toBe("pass");
+  });
+
+  it("본문에 대상 값이 하나라도 있으면 덜어 낸 값이 더 많아도 대상 업종 목록 — 덜어 낸 값은 대상으로 세지 않는다(리뷰 P2)", () => {
+    const SOCKS: BusinessProfile = { ...PAINTER, industry: "제조업(임가공, 양말)", region: "서울", regionSigungu: "도봉구" };
+    const mfgButTwo = ind(["제조업", "유흥", "사행"], "제조업 영위 중소기업(단, 유흥·사행성 업종 제외)");
+    for (const scope of ["restricted", "all", "unknown"] as const) {
+      expect(shown(mfgButTwo, PAINTER, scope).verdict).not.toBe("pass");
+      expect(review(mfgButTwo, PAINTER, scope).verdict).not.toBe("fit");
+    }
+    // 확인 줄에는 대상 값만 적는다 — 덜어 낸 「유흥·사행」은 대상 업종이 아니다.
+    const off = { ...mfgButTwo, machineReadable: false };
+    expect(shown(off, PAINTER, "restricted").note).toBe("업종 해당 여부(제조업)");
+    expect(shown(off, SOCKS, "all").verdict).toBe("pass");
+    // 덜어 낸 업종의 고객은 맞음이 아니다 — 대상 값만 보면 지나가는 글자 겹침도 확인으로 둔다.
+    const viceMaker: BusinessProfile = { ...SOCKS, industry: "제조업(사행성 게임기)" };
+    expect(shown(off, viceMaker, "restricted").verdict).toBe("unknown");
+    expect(shown(off, viceMaker, "restricted").note).toBe("제외 업종 해당 여부");
+  });
+
+  it("값이 원문 어디에도 없고 본문에 누구나 해당하는 말 밖의 글이 있으면 제외 목록인지 모른다 — 확인(리뷰 P2)", () => {
+    const SOCKS: BusinessProfile = { ...PAINTER, industry: "제조업(임가공, 양말)", region: "서울", regionSigungu: "도봉구" };
+    // 「영농」·「농업」은 원문에 없는 AI 정리 값이다 — 제외 목록으로 읽으면 양말·도장 고객이 맞음, 대상 목록으로 읽으면 빼게 된다.
+    const farmer = ind(["농업", "영농"], "○ 지급대상: 실제 경작하는 농가(단, 농지전용 등 제외 사유가 있는 경우 제외)");
+    // 「도매 및 소매업」은 원문(도소매업)과 표기가 달라 덜어 낸 자리에서도 못 찾는다 — 본문이 대상 업종(제조업)을 적었다.
+    const mfgNotRetail = ind(["도매 및 소매업"], "제조업 영위 기업(단, 도소매업 제외)");
+    for (const c of [farmer, mfgNotRetail]) {
+      for (const p of [PAINTER, SOCKS]) {
+        for (const scope of ["restricted", "all", "unknown"] as const) {
+          expect(shown(c, p, scope).verdict).toBe("unknown");
+          expect(review(c, p, scope).verdict).not.toBe("fit");
+          expect(review(c, p, scope).verdict).not.toBe("excluded");
+        }
+      }
+    }
+  });
+
+  it("「…, 제조업, …을 제외한 업종」 — 고객의 넓은 업종이 목록에 따로 서 있으면 맞음이 아니라 확인(운영 QA 4차)", () => {
+    // 사업전환자금: 서울 양말 제조 고객에게 업종 「맞음」·지원 가능으로 떴다. 넓은 말(제조업)은 「불건전 영상게임기 제조업」 같은
+    // 긴 이름의 꼬리로는 세지 않으므로 낱말 하나로 따로 선 자리만 본다.
+    const service = ind(
+      ["서비스업"],
+      "* 「서비스업」은 한국표준산업분류상의 \"농업 및 임업, 어업, 광업, 제조업, 전기.가스.증기 및 수도사업, 건설업\"을 제외한 업종(제11차 한국산업분류기준)",
+    );
+    const SOCKS: BusinessProfile = { ...PAINTER, industry: "제조업(임가공, 양말)", region: "서울", regionSigungu: "도봉구" };
+    const SW: BusinessProfile = { ...SOCKS, industry: "정보통신업(소프트웨어 개발)" };
+    expect(shown(service, SOCKS).verdict).toBe("unknown");
+    expect(review(service, SOCKS, "unknown").verdict).not.toBe("fit");
+    expect(shown({ ...service, machineReadable: false }, SOCKS).note).toBe("제외 업종 해당 여부");
+    expect(shown(service, PAINTER).verdict).toBe("unknown");
+    expect(shown(service, SW).verdict).toBe("pass");
+    // 긴 업종 이름 꼬리의 「제조업」은 따로 선 낱말이 아니다 — 양말 제조 고객은 그대로 맞음.
+    const vice = ind(
+      ["불건전 영상게임기 제조업", "도박게임장비 등 불건전 오락용품 제조업", "주점업"],
+      "사행산업 등 국민 정서상 지원이 부적절한 업종 영위 기업 (지원제외 업종: 33402中 불건전 영상게임기 제조업, 33409中 도박게임장비 등 불건전 오락용품 제조업, 5621 주점업)",
+    );
+    expect(shown(vice, SOCKS).verdict).toBe("pass");
+  });
+
+  it("값이 모두 덜어 낸 자리에 있거나, 원문에 없고 본문에 누구나 해당하는 말만 남으면 예전처럼 제외 목록이다(운영 QA 4차)", () => {
+    // 본문에 대상 값이 하나도 없으면 값은 덜어 낸 업종을 적은 것이다 — 대상 목록으로 읽으면 제조 고객을 도소매 공고로 뺀다.
+    const notRetail = ind(["도매 및 소매업"], "중소기업(단, 도소매업 제외)");
+    const allSme = ind(["도매 및 소매업"], "○ 신청자격: 모든 중소기업(단, 도소매업 제외)");
+    const SOCKS: BusinessProfile = { ...PAINTER, industry: "제조업(임가공, 양말)", region: "서울", regionSigungu: "도봉구" };
+    for (const c of [notRetail, allSme]) {
+      for (const p of [PAINTER, SOCKS]) {
+        expect(shown(c, p, "restricted").verdict).toBe("pass");
+        expect(review(c, p).verdict).not.toBe("excluded");
+      }
+    }
+  });
+
+  it("값에 「제외」를 붙여 적은 제외 목록(「건설업 제외」)도 덜어 낸 자리의 값으로 찾는다(운영 대조 2026-10-30)", () => {
+    // 본문에 「관내」·「벤처」가 있어 누구나 해당하는 말뿐이 아니고, 값은 꼬리의 「제외」 때문에 원문에서 못 찾아 확인이 됐다.
+    const localSol = ind(["건설업 제외", "단순유통 제외"], "대 상 : 관내 중소·벤처기업(건설업, 단순유통 등 제외)");
+    const SOCKS: BusinessProfile = { ...PAINTER, industry: "제조업(임가공, 양말)", region: "서울", regionSigungu: "도봉구" };
+    const off = { ...localSol, machineReadable: false };
+    for (const scope of ["all", "restricted", "unknown"] as const) {
+      expect(shown(localSol, SOCKS, scope).verdict).toBe("pass");
+      expect(shown(off, SOCKS, scope).verdict).toBe("pass");
+      expect(shown(localSol, PAINTER, scope).verdict).toBe("unknown");
+      expect(shown(off, PAINTER, scope).note).toBe("제외 업종 해당 여부");
+    }
+    expect(review(localSol, SOCKS).verdict).not.toBe("excluded");
+    expect(review(localSol, PAINTER).verdict).not.toBe("fit");
+    // 「제외」를 붙인 값은 본문 낱말과 겹쳐도 대상 값이 아니다 — 그 업종 고객은 제외 업종 해당 여부를 묻는다.
+    const mfgBuild = ind(["제조업", "건설업 제외"], "제조업·건설업 영위 중소기업(단, 종합건설업 제외)");
+    expect(shown({ ...mfgBuild, machineReadable: false }, PAINTER, "restricted").note).toBe("제외 업종 해당 여부");
+    // 본문의 「건설업 외」는 제외 말이 아니어도 값이 「건설업 제외」다 — 대상 목록으로 읽으면 대상이 비어 모든 고객이 확인이 된다.
+    const otherThanBuild = ind(["건설업 제외"], "건설업 외 업종 영위 중소기업(단, 휴·폐업 기업 제외)");
+    expect(shown(otherThanBuild, SOCKS, "restricted").verdict).toBe("pass");
+    expect(shown(otherThanBuild, PAINTER, "restricted").verdict).toBe("unknown");
+    // 제외 목록의 값도 꼬리를 떼고 고객 업종과 맞춘다 — 원문이 「건설 관련 업종」이라 원문 낱말로는 건설 고객을 못 찾는다.
+    const smeNoBuild = ind(["건설업 제외"], "모든 중소기업(단, 건설 관련 업종 제외)");
+    expect(shown(smeNoBuild, PAINTER, "restricted").verdict).toBe("unknown");
+    expect(shown(smeNoBuild, SOCKS, "restricted").verdict).toBe("pass");
+    // 「창업 제외 업종」은 법령 목록의 이름이다 — 「창업」만 떼어 찾으면 제외 목록이 되어 부동산 고객이 맞음이 된다.
+    const startupList = ind(
+      ["창업 제외 업종"],
+      "④ 「중소기업창업 지원법 시행령」 제4조(창업에서 제외되는 업종)의 업종을 영위하고 있거나 영위하고자 하는 자(기업) ([붙임 2] 지원 제외 대상 업종 참조)",
+    );
+    const REALTY: BusinessProfile = { ...SOCKS, industry: "부동산업(중개)" };
+    expect(shown(startupList, REALTY, "restricted").verdict).toBe("unknown");
+  });
 });
