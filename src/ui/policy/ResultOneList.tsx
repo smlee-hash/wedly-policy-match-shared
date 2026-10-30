@@ -10,7 +10,7 @@
 // 서버를 다시 부르지 않는다(서버에 다시 묻는 것은 찾기어가 바뀔 때뿐 — 부모가 한다).
 // 거르는 규칙은 `result-one-list.ts`(순수 함수)에 있다. 이 파일은 그리기와, 눌림을 그 규칙에 잇는 일만 한다.
 // `ResultOneListView` 는 상태를 밖에서 받아 그리기만 한다(그려서 잴 수 있다) · `ResultOneList` 가 상태를 쥔다.
-import { useEffect, useMemo, useReducer, useRef, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useReducer, useRef, type ReactNode } from "react";
 import { Skeleton } from "@wedly/ui-shared/ui";
 import { FUNDING_QUERY_MAX, type FundingItem } from "../../funding/funding-map";
 import CustomSelect from "../CustomSelect";
@@ -21,8 +21,8 @@ import {
   cutNoticeOf, groupTagOf, kindTagOf, lineTextOf, localSearchNoticeOf, localSearchScopeOf, oneListReducer, oneListViewOf, reviewNotesOf,
   stepTagOf, type ReviewNote,
   serverCountsForQuery, serverVerdictCountsOf, sourceNameOf,
-  toggleSelectedId, unknownNoticeOf, verdictTabOf,
-  type ChipKey, type ListTab, type OneListSort, type OneListState, type ServerVerdictCounts,
+  toggleSelectedId, unknownNoticeFieldsOf, unknownNoticeOf, unknownReasonTextOf, verdictTabOf,
+  type ChipKey, type UnknownField, type ListTab, type OneListSort, type OneListState, type ServerVerdictCounts,
 } from "./result-one-list";
 
 /** 목록 모양 — 두 칸(기본) 또는 좁은 자리용 한 열(줄 아래로 펼침). */
@@ -238,6 +238,11 @@ export interface ResultOneListViewProps {
   error: string;
   /** 폼이 센 모름 칸 수. 모르면 null. */
   unknownCount: number | null;
+  /**
+   * 모르는 칸 이름·까닭·옮겨 갈 칸(NO.627). 있으면 안내가 수 대신 「모르는 칸: 이름(까닭) · …」을 쓰고, 칸이 있는 이름은 누를 수 있다.
+   * 없으면(옛 통로·정책매칭 화면) 수만 센 옛 안내 그대로.
+   */
+  unknownFields?: readonly UnknownField[] | null;
   onRetry: () => void;
   onTab: (tab: ListTab) => void;
   onChip: (chip: ChipKey) => void;
@@ -246,8 +251,11 @@ export interface ResultOneListViewProps {
   onPage: (page: number) => void;
   /** 줄을 눌렀다 — 한 열 모양은 이미 펼친 줄을 누르면 빈 id 로 부른다(접기). */
   onSelect: (id: string) => void;
-  /** 「그 칸 채우기」 — 없으면 안내 문장만 보이고 단추는 숨긴다. */
-  onFill?: () => void;
+  /**
+   * 「그 칸 채우기」·모르는 칸 이름 — 누른 칸 key(「그 칸 채우기」는 첫 칸)를 넘긴다. 칸을 모르면 key 없이 부른다.
+   * 없으면 안내 문장만 보이고 단추는 숨긴다.
+   */
+  onFill?: (fieldKey?: string) => void;
   /** 빈 상태의 「← 회사 정보 고치기」 — 없으면 단추를 숨긴다. */
   onEdit?: () => void;
   /** 줄 안에 끼울 판정 피드백(랩만, place:"card"). 공고 줄에만 그린다(`cardFooterOf`). */
@@ -257,7 +265,7 @@ export interface ResultOneListViewProps {
 }
 
 export function ResultOneListView({
-  items, serverCounts = null, searchScopeCounts = null, state, query, askedQuery, loading, error, unknownCount,
+  items, serverCounts = null, searchScopeCounts = null, state, query, askedQuery, loading, error, unknownCount, unknownFields,
   onRetry, onTab, onChip, onQuery, onSort, onPage, onSelect, onFill, onEdit, renderRowFooter, renderDetail, showSources = false,
   layout = "split", searchReachesAll = true,
 }: ResultOneListViewProps) {
@@ -268,9 +276,12 @@ export function ResultOneListView({
   const searchScope = hasData && !searchReachesAll ? localSearchScopeOf(items ?? [], searchScopeCounts, askedQuery) : null;
   const twoPaneRef = useRef<HTMLDivElement | null>(null);
   usePaneTop(twoPaneRef);
-  const notice = hasData
+  const noticeFields = hasData ? unknownNoticeFieldsOf({ unverifiedCount: view.counts.unverified, unknownFields }) : null;
+  const notice = hasData && !noticeFields
     ? unknownNoticeOf({ unverifiedCount: view.counts.unverified, unknownFieldCount: unknownCount })
     : null;
+  // 「그 칸 채우기」는 옮겨 갈 수 있는 첫 칸으로 — 그런 칸이 없으면 칸 없이 상태표만 연다.
+  const firstFieldKey = noticeFields?.find((f) => f.fieldKey)?.fieldKey;
   // 한 열 모양: 펼친 줄을 다시 누르면 접는다(빈 id = 고른 줄 없음). 두 칸 모양은 그냥 고른다.
   const pickRow = inline ? (id: string) => onSelect(toggleSelectedId(view.selected?.id ?? "", id)) : onSelect;
 
@@ -376,7 +387,7 @@ export function ResultOneListView({
               </button>
             ))}
             {onEdit && (
-              <button type="button" onClick={onEdit} className={BTN_SMALL}>
+              <button type="button" onClick={() => onEdit()} className={BTN_SMALL}>
                 ← 회사 정보 고치기
               </button>
             )}
@@ -473,7 +484,7 @@ export function ResultOneListView({
         })}
       </div>
 
-      {notice && (
+      {(noticeFields || notice) && (
         <div
           data-area="unknown-notice"
           className="flex items-center gap-2.5 rounded-xl border border-wedly-bd bg-white px-3.5 py-2.5 shadow-sm"
@@ -484,12 +495,43 @@ export function ResultOneListView({
           >
             !
           </span>
-          <span className="min-w-0 flex-1 text-wedly-sub text-wedly-t1">
-            <b className="font-semibold">{notice}</b>{" "}
-            <span className="text-wedly-hint text-wedly-t2">채울수록 「확인 필요」가 줄어요.</span>
-          </span>
+          {noticeFields ? (
+            <span className="min-w-0 flex-1 break-keep text-wedly-sub text-wedly-t1">
+              <b className="font-semibold">모르는 칸:</b>{" "}
+              {noticeFields.map((f, i) => {
+                const why = unknownReasonTextOf(f.reason);
+                const key = f.fieldKey;
+                return (
+                  <Fragment key={`${f.label}-${i}`}>
+                    {i > 0 && " · "}
+                    <span data-unknown-field={f.label} className="whitespace-nowrap">
+                      {onFill && key ? (
+                        <button
+                          type="button"
+                          title={`${f.label} 칸으로 가기`}
+                          onClick={() => onFill(key)}
+                          className={`rounded font-semibold text-wedly-accent-ink underline decoration-wedly-accent/40 underline-offset-2 transition-colors hover:decoration-wedly-accent ${FOCUS_RING}`}
+                        >
+                          {f.label}
+                        </button>
+                      ) : (
+                        <b className="font-semibold">{f.label}</b>
+                      )}
+                      {why && <span className="text-wedly-t2">({why})</span>}
+                    </span>
+                  </Fragment>
+                );
+              })}
+              <span className="text-wedly-hint text-wedly-t2"> — 채우면 맞춰 볼 수 있는 공고가 늘어납니다</span>
+            </span>
+          ) : (
+            <span className="min-w-0 flex-1 text-wedly-sub text-wedly-t1">
+              <b className="font-semibold">{notice}</b>{" "}
+              <span className="text-wedly-hint text-wedly-t2">채울수록 「확인 필요」가 줄어요.</span>
+            </span>
+          )}
           {onFill && (
-            <button type="button" onClick={onFill} className={`${BTN_SMALL} shrink-0`}>
+            <button type="button" onClick={() => onFill(firstFieldKey)} className={`${BTN_SMALL} shrink-0`}>
               그 칸 채우기
             </button>
           )}
@@ -570,7 +612,9 @@ interface Props {
   /** 찾기가 서버에 다시 묻는가(기본 true). 받아 둔 줄만 거르는 자리는 false — `ResultOneListViewProps.searchReachesAll`. */
   searchReachesAll?: boolean;
   unknownCount: number | null;
-  onFill?: () => void;
+  /** 모르는 칸 이름·까닭·옮겨 갈 칸 — `ResultOneListViewProps.unknownFields`. */
+  unknownFields?: readonly UnknownField[] | null;
+  onFill?: (fieldKey?: string) => void;
   onEdit?: () => void;
   renderRowFooter?: (item: FundingItem) => ReactNode;
   renderDetail: (item: FundingItem) => ReactNode;
@@ -581,7 +625,7 @@ interface Props {
  * 눌림은 전부 `oneListReducer`(순수 함수)를 지난다 — 탭을 바꾸면 칩은 「전체」·쪽은 1쪽 같은 규칙이 한 자리에 있다.
  */
 export default function ResultOneList({
-  data, loading, error, onRetry, query, askedQuery, onQuery, unknownCount, onFill, onEdit, renderRowFooter, renderDetail, showSources = false,
+  data, loading, error, onRetry, query, askedQuery, onQuery, unknownCount, unknownFields, onFill, onEdit, renderRowFooter, renderDetail, showSources = false,
   layout = "split", searchReachesAll = true,
 }: Props) {
   const [state, dispatch] = useReducer(oneListReducer, INITIAL_ONE_LIST_STATE);
@@ -615,6 +659,7 @@ export default function ResultOneList({
       loading={loading}
       error={error}
       unknownCount={unknownCount}
+      unknownFields={unknownFields}
       onRetry={onRetry}
       onTab={(tab) => dispatch({ type: "tab", tab })}
       onChip={(chip) => dispatch({ type: "chip", chip })}

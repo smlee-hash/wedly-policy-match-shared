@@ -295,6 +295,45 @@ export function unknownNoticeOf(opts: { unverifiedCount: number; unknownFieldCou
   return `모르는 ${unknownFieldCount}칸 때문에 ${unverifiedCount.toLocaleString("ko-KR")}건이 「확인 필요」입니다.`;
 }
 
+/** 모르는 칸을 못 정한 까닭 — 서버(ERP)가 판정 풀이에서 옮겨 준다. */
+export type UnknownFieldReason = "empty" | "unreadable" | "conflict";
+
+/**
+ * 모르는 칸 하나 (NO.627) — 이름은 지도 응답 `profileGaps` 글자 그대로, 까닭·칸은 앱이 아는 만큼만.
+ * `fieldKey` 는 이름을 누르면 옮겨 갈 기업상태표 칸 — 없으면 이름을 누를 수 없다.
+ */
+export interface UnknownField {
+  label: string;
+  reason?: UnknownFieldReason;
+  fieldKey?: string;
+}
+
+const UNKNOWN_REASON_TEXT: Record<UnknownFieldReason, string> = {
+  empty: "비어 있음",
+  unreadable: "적힌 글을 못 읽음",
+  conflict: "적힌 값이 서로 다름",
+};
+
+/** 까닭의 사람 말 — 모르는 까닭이면 undefined(괄호를 안 붙인다). */
+export function unknownReasonTextOf(reason: unknown): string | undefined {
+  return typeof reason === "string" && Object.prototype.hasOwnProperty.call(UNKNOWN_REASON_TEXT, reason)
+    ? UNKNOWN_REASON_TEXT[reason as UnknownFieldReason]
+    : undefined;
+}
+
+/**
+ * 목록 위 「모르는 칸: 이름(까닭) · … — 채우면 맞춰 볼 수 있는 공고가 늘어납니다」에 그릴 칸들 — 확인 필요가 1건 이상이고
+ * 모르는 칸이 있을 때만. 칸 목록이 없으면(옛 통로·다른 화면) null 이고, 그때는 수만 세는 `unknownNoticeOf` 를 쓴다.
+ */
+export function unknownNoticeFieldsOf(opts: {
+  unverifiedCount: number;
+  unknownFields: readonly UnknownField[] | null | undefined;
+}): readonly UnknownField[] | null {
+  const { unverifiedCount, unknownFields } = opts;
+  if (unverifiedCount < 1 || !unknownFields || unknownFields.length < 1) return null;
+  return unknownFields;
+}
+
 // ── 상태 바뀜 ───────────────────────────────────────────────────────────
 export interface OneListState {
   /** 아직 안 골랐으면 null — 그때는 기본 탭(`defaultVerdictTab`)을 쓴다. */
