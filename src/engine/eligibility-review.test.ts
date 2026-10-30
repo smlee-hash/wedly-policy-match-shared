@@ -567,6 +567,68 @@ describe("다른 지역 대상 상품 — 운영 QA(NO.585 2절: 서울 밖 공�
     },
   );
 
+  describe("지방 은행 창구 + 보증재단 보증서 상품 — 운영 QA 6차(울산신보 협약 「우리지역 氣-Up 서포트론」이 서울 회사에 지원 가능)", () => {
+    const FOUNDATION = "신용보증신청 접수일 현재 사업자등록 후 가동(영업)중으로서 지역보증재단의 신용보증서를 발급받은 소기업ㆍ소상공인";
+    const ulsan = { ...SOCKS, region: "울산", regionSigungu: "남구" };
+
+    it.each(["BNK경남은행", "BNK부산은행", "iM뱅크", "광주은행", "전북은행", "제주은행"])(
+      "창구 「%s」 상품이 보증재단 보증서를 요구하면 빼지 않고 지역 제한 확인",
+      (channel) => {
+        const r = reviewEligibility(product({ checks: [other(FOUNDATION)], placeOrgs: [channel, "서민금융진흥원"] }));
+        expect(r.verdict).toBe("unverified");
+        expect(r.toCheck).toContain("지역 제한 여부 확인");
+      },
+    );
+
+    it.each([
+      ["경남", "창원시"],
+      ["울산", "남구"],
+    ] as const)("은행 본거지(%s) 고객도 협약 재단 지역을 모르니 지역 제한 확인 — 서포트론은 울산신보 협약이라 경남 고객에게 지원 가능이면 거짓", (region, regionSigungu) => {
+      const r = reviewEligibility(product({ profile: { ...SOCKS, region, regionSigungu }, checks: [other(FOUNDATION)], placeOrgs: ["BNK경남은행", "서민금융진흥원"] }));
+      expect(r.verdict).toBe("unverified");
+      expect(r.toCheck).toContain("지역 제한 여부 확인");
+    });
+
+    it("「신용보증재단」 보증서 문장도 같다", () => {
+      const r = reviewEligibility(product({ checks: [other("신용보증재단 보증서 발급 소상공인")], placeOrgs: ["광주은행", "서민금융진흥원"] }));
+      expect(r.toCheck).toContain("지역 제한 여부 확인");
+    });
+
+    it("보증재단 문장이 없으면 은행 이름만으로는 바꾸지 않는다(전국 상품도 판다)", () => {
+      const r = reviewEligibility(product({ checks: [other("소상공인")], placeOrgs: ["BNK경남은행", "서민금융진흥원"] }));
+      expect(r.verdict).toBe("fit");
+    });
+
+    it.each(["신용보증기금 보증서를 발급받은 소상공인", "기술보증기금 보증서를 발급받은 소기업ㆍ소상공인"])(
+      "보증기금(신보·기보) 보증서 「%s」는 전국 기관이라 바꾸지 않는다",
+      (text) => {
+        const r = reviewEligibility(product({ checks: [other(text)], placeOrgs: ["BNK경남은행", "서민금융진흥원"] }));
+        expect(r.verdict).toBe("fit");
+      },
+    );
+
+    it("시중은행 창구는 바꾸지 않는다", () => {
+      const r = reviewEligibility(product({ checks: [other(FOUNDATION)], placeOrgs: ["KB국민은행", "서민금융진흥원"] }));
+      expect(r.verdict).toBe("fit");
+    });
+
+    it("대상 원문이 고객 지역을 적었으면 그 판정을 따른다", () => {
+      const r = reviewEligibility(product({ checks: [other("서울특별시 소재 소상공인"), other(FOUNDATION)], placeOrgs: ["BNK경남은행", "서민금융진흥원"] }));
+      expect(r.verdict).toBe("fit");
+    });
+
+    it("원문이 협약 재단 지역을 적었으면 그 지역 고객은 그대로 지원 가능", () => {
+      const r = reviewEligibility(product({ profile: ulsan, checks: [other("울산신용보증재단의 신용보증서를 발급받은 소상공인")], placeOrgs: ["BNK경남은행", "서민금융진흥원"] }));
+      expect(r.verdict).toBe("fit");
+    });
+
+    it("고객 시도를 몰라도 지역 제한 확인", () => {
+      const r = reviewEligibility(product({ profile: { ...SOCKS, region: undefined, regionSigungu: undefined }, checks: [other(FOUNDATION)], placeOrgs: ["BNK경남은행", "서민금융진흥원"] }));
+      expect(r.verdict).toBe("unverified");
+      expect(r.toCheck).toContain("지역 제한 여부 확인");
+    });
+  });
+
   it("창구가 비면 기관 이름으로 본다", () => {
     const r = reviewEligibility(product({ placeOrgs: ["", "경기신용보증재단"] }));
     expect(r.excludeReason).toBe("다른 지역 기관 상품(경기)");

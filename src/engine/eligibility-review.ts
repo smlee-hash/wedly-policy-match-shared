@@ -136,6 +136,15 @@ const PLACE_REQUIRED = /소재|주소|본사|본점|사업장|거주|주민\s*�
 const OTHER_PLACE_REASON = "다른 지역 대상";
 /** 지역 때문에 빠졌다는 까닭 — 「다른 지역 대상(…)」·「다른 지역 공고(…)」·「다른 지역 기관 상품(…)」. */
 const PLACE_REASON = /^다른 지역/;
+/** 지역 신용보증재단 보증서를 요구하는 말 — 「지역보증재단의 신용보증서」·「신용보증재단 보증서」(보증기금은 전국 기관이라 아니다). */
+const FOUNDATION_GUARANTEE = /보증\s*재단|지역\s*신보/;
+/**
+ * 지방 은행 이름(BNK경남·BNK부산·DGB대구/iM뱅크·광주·전북·제주 — 띄어쓰기를 지우고 본다). 지방 은행이 지역 신용보증재단과
+ * 협약해 파는 상품은 원문에 지역이 없어도 협약 재단 지역 상품이다. 어느 재단과 협약했는지는 은행 이름으로 모른다
+ * (경남은행 「우리지역 氣-Up 서포트론」은 울산 재단) — 그래서 본거지 표를 두지 않는다. 은행 이름만으로는 지역 상품이라
+ * 단정하지 않는다(전국 상품도 판다) — FOUNDATION_GUARANTEE 와 함께만 쓴다.
+ */
+const REGIONAL_BANK = /경남은행|부산은행|대구은행|iM뱅크|아이엠뱅크|광주은행|전북은행|제주은행/i;
 /** 적힌 지역 말고 다른 곳도 받는다는 말 — 「광주 및 타 지역」·「전국」. */
 const OTHER_PLACE_TOO = /타\s*(?:지역|시\s*[·ㆍ]?\s*도)|전국/;
 /** 「서울 외」와 「서울」을 함께 받는다는 말 — 「서울 및 서울 외 지역」·「수도권 외 지역 포함」. */
@@ -1100,6 +1109,16 @@ export function reviewEligibility(input: EligibilityInput): EligibilityReview {
     else if (!mine.sigungu) addCheck("시군구 확인");
     else if (sameSido.some((r) => r.sigungu === mine.sigungu)) sourceRegionSame = true;
     else otherRegion(sameSido.map((r) => r.sigungu).join("·"));
+  }
+  // 4-2) 지방 은행 창구 + 보증재단 보증서 상품 — 그 은행과 협약한 지역 재단의 상품이다(운영 QA 6차: 울산신보 협약
+  //  「우리지역 氣-Up 서포트론」이 서울·부산·경기 고객 모두에게 「지원 가능」). 어느 지역 재단인지는 은행 이름으로 모르므로
+  //  (경남은행 상품인데 울산 재단) 은행 본거지 고객도 빼지 않고 지역 제한 확인으로 남긴다. 대상 원문이 고객 지역을
+  //  적었으면(「서울특별시 소재」·「울산신용보증재단의 신용보증서」) 그 판정을 따른다.
+  if (input.kind === "product" && srcRegions.length === 0 && !anyRegionPass && (input.placeOrgs ?? []).some((o) => REGIONAL_BANK.test((o ?? "").replace(/\s+/g, "")))) {
+    const texts = [...input.checks.map((c) => c.condition.rawText ?? ""), ...(input.humanCheckTexts ?? [])];
+    if (texts.some((t) => FOUNDATION_GUARANTEE.test(t)) && !texts.some((t) => comparePlaces(placesIn(t), p) === "match")) {
+      addCheck(REGION_SCOPE_UNKNOWN);
+    }
   }
 
   // 5) 예비창업자 전용.
