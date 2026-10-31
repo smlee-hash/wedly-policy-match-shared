@@ -22,7 +22,7 @@ import FundingDrawer from "./FundingDrawer";
 import { FundingHeaderCard, type FundingMapPayload } from "./FundingMap";
 import InlineFundingSummary from "./policy/InlineFundingSummary";
 import ResultOneList from "./policy/ResultOneList";
-import { FUNDING_TOP_N } from "./policy/result-one-list";
+import { FUNDING_TOP_N, unknownReasonTextOf, type UnknownField, type UnknownFieldReason } from "./policy/result-one-list";
 
 /**
  * @deprecated 옛 레일의 「상위 3건」 이름. 지금은 정책매칭 화면과 같은 80(`FUNDING_TOP_N`)이다.
@@ -50,6 +50,11 @@ export type RecommendFundingData = FundingMapPayload & {
    * true 면 패널이 `FACTS_POLL_MS` 마다 다시 불러와 끝나는 대로 알림을 채운다. **선택 칸** — 없으면 다시 부르지 않는다.
    */
   feedbackFactsPending?: boolean;
+  /**
+   * 모르는 칸마다 까닭(비어 있음·못 읽음·서로 다름)과 옮겨 갈 기업상태표 칸 key(NO.627) — ERP 가 저장된 고객으로 부를 때만 싣는다.
+   * **선택 칸**이라 없으면 `profileGaps` 이름만 보인다. 그리기 전에 `unknownFieldsOf` 가 모양을 거른다.
+   */
+  profileGapDetails?: { label: string; reason?: UnknownFieldReason; fieldKey?: string }[];
 };
 
 /** 기업 사실 뽑기를 기다리며 다시 부르는 간격 — 뽑기 한 번은 최대 3분(원문 읽기 2분 + AI 1분)이다. */
@@ -158,6 +163,25 @@ export function openRecommendItem(
  */
 export function unknownCountOf(data: RecommendFundingData | null): number | null {
   return data && Array.isArray(data.profileGaps) ? data.profileGaps.length : null;
+}
+
+/**
+ * 모르는 칸 목록(NO.627) — 이름은 `profileGaps` 차례 그대로, 까닭·칸은 `profileGapDetails` 에서 같은 이름을 찾아 붙인다.
+ * 상세가 없거나 모양이 어긋나면 이름만 둔다(옛 통로·다른 앱). `profileGaps` 가 없으면 모른다(null).
+ * 칸 key 는 글자일 때만 싣는다 — 이름을 눌렀을 때 앱에 넘기는 값이다.
+ */
+export function unknownFieldsOf(data: RecommendFundingData | null): UnknownField[] | null {
+  if (!data || !Array.isArray(data.profileGaps)) return null;
+  const details = Array.isArray(data.profileGapDetails) ? data.profileGapDetails : [];
+  return data.profileGaps
+    .filter((label): label is string => typeof label === "string" && label.length > 0)
+    .map((label) => {
+      const d = details.find((x) => x && typeof x === "object" && x.label === label);
+      const field: UnknownField = { label };
+      if (d && unknownReasonTextOf(d.reason)) field.reason = d.reason;
+      if (d && typeof d.fieldKey === "string" && d.fieldKey) field.fieldKey = d.fieldKey;
+      return field;
+    });
 }
 
 /** 한 번의 조회 결과 — 「어느 통로·어느 회사·어느 요청」 것인지를 함께 담는다. */
@@ -318,8 +342,9 @@ export interface RecommendPanelProps {
   /**
    * 「피드백과 다른 칸」 구역의 `기업상태표 열기` · 모름 칸 안내의 「그 칸 채우기」 · 빈 상태의 「← 회사 정보 고치기」 —
    * 안 넘기면 세 단추 모두 안 그린다(누르면 아무 일도 안 하는 단추를 두지 않는다).
+   * 모르는 칸 이름·「그 칸 채우기」는 옮겨 갈 기업상태표 칸 key 를 함께 넘긴다(NO.627) — 나머지는 key 없이 부른다.
    */
-  onOpenCompanyStatus?: () => void;
+  onOpenCompanyStatus?: (fieldKey?: string) => void;
   onCloseDrawer: () => void;
   onRefresh: () => void;
   /** 마감 계산 기준 시각 — 생략하면 지금. 시험이 고정값을 넣는다. */
@@ -391,6 +416,7 @@ export function RecommendPanel({
         // GET 통로는 찾기어를 받지 않는다 — 받아 둔 줄 안에서만 찾으므로 「찾으면 나머지도」를 약속하지 않는다.
         searchReachesAll={false}
         unknownCount={unknownCountOf(data)}
+        unknownFields={unknownFieldsOf(data)}
         onFill={onOpenCompanyStatus}
         onEdit={onOpenCompanyStatus}
         renderDetail={(item) => <InlineFundingSummary item={item} now={now} onOpen={onOpen} />}
@@ -427,8 +453,11 @@ export default function FundingRecommendPanel({
   bizno?: string;
   companyName?: string;
   onOpenDetail?: (id: string) => void;
-  /** 「피드백과 다른 칸」 구역의 `기업상태표 열기` · 「그 칸 채우기」 · 「← 회사 정보 고치기」 손잡이 — 기업상태표를 여는 앱이 넘긴다. 안 넘기면 단추가 없다. */
-  onOpenCompanyStatus?: () => void;
+  /**
+   * 「피드백과 다른 칸」 구역의 `기업상태표 열기` · 모르는 칸 이름 · 「그 칸 채우기」 · 「← 회사 정보 고치기」 손잡이 — 기업상태표를 여는 앱이 넘긴다.
+   * 안 넘기면 단추가 없다. 모르는 칸 이름·「그 칸 채우기」는 그 칸 key 를 넘긴다(NO.627).
+   */
+  onOpenCompanyStatus?: (fieldKey?: string) => void;
   /** 조회 통로 주소 — 앱마다 다를 수 있어 밖에서 받는다(기본은 지금 ERP 가 쓰는 주소). */
   endpoint?: string;
   /** 조회 문자열을 만드는 규칙 — 기본은 지금처럼 사업자번호+상호를 함께 싣는다(`fundingMapQuery`). */

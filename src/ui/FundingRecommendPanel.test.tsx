@@ -14,6 +14,7 @@ import FundingRecommendPanel, {
   openTargetOf,
   startFundingMapFetch,
   unknownCountOf,
+  unknownFieldsOf,
   viewState,
   type FundingFetchResult,
   type RecommendFundingData,
@@ -248,6 +249,35 @@ describe("추천 정책 탭 — 정책매칭 화면과 같은 목록(inline)", (
     const 칸없음 = 자료();
     delete (칸없음 as { profileGaps?: string[] }).profileGaps;
     expect(unknownCountOf(칸없음), "칸이 없으면 0 으로 지어내지 않는다").toBeNull();
+  });
+
+  it("모르는 칸 목록 — 이름은 profileGaps 차례, 까닭·칸은 같은 이름의 상세에서, 어긋난 상세는 이름만 (NO.627)", () => {
+    const 상세 = 자료({
+      profileGaps: ["신용점수", "기업 규모", "직원 수"],
+      profileGapDetails: [
+        { label: "기업 규모", reason: "empty", fieldKey: "companyScale" },
+        { label: "신용점수", reason: "unreadable", fieldKey: "creditRating" },
+        { label: "직원 수", reason: "이상한값" as never, fieldKey: 7 as never },
+      ],
+    });
+    expect(unknownFieldsOf(상세)).toEqual([
+      { label: "신용점수", reason: "unreadable", fieldKey: "creditRating" },
+      { label: "기업 규모", reason: "empty", fieldKey: "companyScale" },
+      { label: "직원 수" },
+    ]);
+    expect(unknownFieldsOf(자료()), "상세가 없는 옛 통로는 이름만").toEqual([{ label: "신용점수" }]);
+    expect(unknownFieldsOf(null)).toBeNull();
+    const 칸없음 = 자료();
+    delete (칸없음 as { profileGaps?: string[] }).profileGaps;
+    expect(unknownFieldsOf(칸없음)).toBeNull();
+  });
+
+  it("목록 위 안내가 「모르는 칸: 이름(까닭)」으로 뜨고 이름을 누를 수 있다 — 손잡이가 없으면 글자만 (NO.627)", () => {
+    const data = 자료({ profileGapDetails: [{ label: "신용점수", reason: "unreadable", fieldKey: "creditRating" }] });
+    const 있음 = 판({ data, onOpenCompanyStatus: () => {} });
+    expect(있음.replace(/<[^>]+>/g, "").replace(/<!-- -->/g, "")).toContain("모르는 칸: 신용점수(적힌 글을 못 읽음)");
+    expect(있음).toContain("신용점수 칸으로 가기");
+    expect(판({ data })).not.toContain("칸으로 가기");
   });
 
   it("회사 정보가 비면 「조건을 맞춰 보지 않은 목록」이라 밝히고 「자동 대조 결과」라고 하지 않는다", () => {

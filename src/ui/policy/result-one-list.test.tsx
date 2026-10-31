@@ -41,7 +41,7 @@ import { ERP_POLICY_MATCH_ENDPOINTS, type PolicyMatchEndpoints } from "./endpoin
 import {
   FUNDING_TOP_N, INITIAL_ONE_LIST_STATE, ONE_LIST_SORTS, RESULT_PAGE_SIZE, VERDICT_TABS, chipsOf, ddayBadgeOf, defaultVerdictTab,
   filterByChip, flattenFundingItems, kindTagOf, oneListReducer, reviewNotesOf, stepTagOf, oneListViewOf, pageCountOf, pageSlice, searchItems, sortOneList, toggleSelectedId,
-  unknownNoticeOf, verdictCountsOf, serverVerdictCountsOf, cutNoticeOf, localSearchScopeOf, localSearchNoticeOf, type OneListAction, type OneListState,
+  unknownNoticeOf, unknownNoticeFieldsOf, unknownReasonTextOf, verdictCountsOf, serverVerdictCountsOf, cutNoticeOf, localSearchScopeOf, localSearchNoticeOf, type OneListAction, type OneListState,
 } from "./result-one-list";
 
 /**
@@ -56,6 +56,7 @@ const RAW색 =
   /(?:^|["\s])(?:bg|text|border|from|to)-(?:green|amber|red|sky|blue|indigo|violet|pink|gray|slate|zinc|orange|yellow|lime|emerald|teal|cyan|rose|fuchsia)-(?:50|100|200|300|400|500|600|700|800|900)\b/;
 const 글자 = (html: string) => html.replace(/<!-- -->/g, "");
 const 화면글 = readFileSync(new URL("PolicyMatchScreen.tsx", import.meta.url), "utf8");
+const 화면부품글 = readFileSync(new URL("ResultOneList.tsx", import.meta.url), "utf8");
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -773,6 +774,51 @@ describe("모름 칸 안내 — 센 수만 쓴다", () => {
     const html = 글자(renderToStaticMarkup(<ResultOneListView {...기본속성(items)} onFill={undefined} unknownCount={6} />));
     expect(html).toContain("모르는 6칸 때문에 1건이 「확인 필요」입니다.");
     expect(html).not.toContain("그 칸 채우기");
+  });
+
+  it("칸 이름 목록이 있으면 수 대신 「모르는 칸: 이름(까닭) · …」 — 확인 필요가 없거나 칸이 없으면 안 뜬다 (NO.627)", () => {
+    const 칸 = [{ label: "신용점수", reason: "unreadable" as const, fieldKey: "creditRating" }];
+    expect(unknownNoticeFieldsOf({ unverifiedCount: 3, unknownFields: 칸 })).toEqual(칸);
+    expect(unknownNoticeFieldsOf({ unverifiedCount: 0, unknownFields: 칸 })).toBeNull();
+    expect(unknownNoticeFieldsOf({ unverifiedCount: 3, unknownFields: [] })).toBeNull();
+    expect(unknownNoticeFieldsOf({ unverifiedCount: 3, unknownFields: null })).toBeNull();
+    expect(unknownReasonTextOf("empty")).toBe("비어 있음");
+    expect(unknownReasonTextOf("unreadable")).toBe("적힌 글을 못 읽음");
+    expect(unknownReasonTextOf("conflict")).toBe("적힌 값이 서로 다름");
+    expect(unknownReasonTextOf("toString"), "물려받은 이름은 까닭이 아니다").toBeUndefined();
+    expect(unknownReasonTextOf(undefined)).toBeUndefined();
+  });
+
+  it("그림: 칸이 있는 이름은 누르는 단추, 까닭은 괄호 — 칸 없는 이름은 글자만, 옛 수 안내는 안 나온다 (NO.627)", () => {
+    const items = [mk({ id: "a:1" }), mk({ id: "a:2", fitVerdict: "unverified" })];
+    const 칸 = [
+      { label: "신용점수", reason: "unreadable" as const, fieldKey: "creditRating" },
+      { label: "기업 규모", reason: "empty" as const, fieldKey: "companyScale" },
+      { label: "사업자번호", reason: "empty" as const },
+    ];
+    const html = 글자(renderToStaticMarkup(<ResultOneListView {...기본속성(items)} unknownCount={3} unknownFields={칸} />));
+    const 보이는글 = html.replace(/<[^>]+>/g, "");
+    expect(보이는글).toContain(
+      "모르는 칸: 신용점수(적힌 글을 못 읽음) · 기업 규모(비어 있음) · 사업자번호(비어 있음) — 채우면 맞춰 볼 수 있는 공고가 늘어납니다",
+    );
+    expect(html).not.toContain("모르는 3칸 때문에");
+    expect(html).toMatch(/<button[^>]*title="신용점수 칸으로 가기"[^>]*>신용점수<\/button>/);
+    expect(html).toMatch(/<button[^>]*title="기업 규모 칸으로 가기"[^>]*>기업 규모<\/button>/);
+    expect(html).not.toContain("사업자번호 칸으로 가기");
+    expect(html).toContain("그 칸 채우기");
+
+    // 손잡이가 없으면 이름도 단추가 아니다(누르면 아무 일도 안 하는 단추를 두지 않는다).
+    const 손잡이없음 = 글자(renderToStaticMarkup(<ResultOneListView {...기본속성(items)} onFill={undefined} unknownCount={3} unknownFields={칸} />));
+    expect(손잡이없음).not.toContain("칸으로 가기");
+    expect(손잡이없음).not.toContain("그 칸 채우기");
+  });
+
+  it("누름 배선: 이름은 그 칸 key, 「그 칸 채우기」는 옮겨 갈 수 있는 첫 칸 key 를 넘긴다 (NO.627)", () => {
+    expect(화면부품글).toContain("onClick={() => onFill(key)}");
+    expect(화면부품글).toContain("const firstFieldKey = noticeFields?.find((f) => f.fieldKey)?.fieldKey;");
+    expect(화면부품글).toContain("onClick={() => onFill(firstFieldKey)}");
+    // 빈 상태 「← 회사 정보 고치기」는 눌림 사건을 칸 key 로 넘기지 않는다.
+    expect(화면부품글).toContain("onClick={() => onEdit()}");
   });
 
   it("화면 배선: 「그 칸 채우기」는 회사 정보 단계로 돌아가 첫 빈 칸에 초점을 준다", () => {
