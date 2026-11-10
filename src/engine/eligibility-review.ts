@@ -13,11 +13,13 @@ import { companyScaleVerdict, declaredScaleVerdict, scaleFactOf, type ScaleVerdi
 import {
   businessAgeYears,
   canonicalRegion,
+  checkCondition,
   corporationOf,
   NON_PROGRAM,
   sidosInText,
   type BusinessProfile,
 } from "./match-engine";
+import { guarantorsIn, withoutGuarantors } from "./loan-program";
 import { relatedFamiliesOf, sectorFamiliesInTitle, sectorFamiliesOfIndustry } from "./sector";
 import { sigunguInText, sigunguSido } from "./sigungu";
 import { orgRegionsOf, sourceRegionOf, type SourceRegion } from "./source-region";
@@ -324,6 +326,16 @@ const HISTORY = /(?:지원|수혜|선정|참여|참가|이용)\s*(?:을|를)?\s*
 const CLUSTER = /집적지/;
 /** 우대·가점 문장 — 그 안의 나이·청년은 자격이 아니다. */
 const PREFERENCE = /우대|가점|우선\s*(?:선정|지원|선발)/;
+/**
+ * 기존 보증을 이용 중인 기업만 받는 문장(전환보증, NO.714). 새로 보증을 받는 문장(「보증서 발급이 가능한」)과
+ * 보증을 쓰지 않는 기업을 받는 문장(「이용하고 있지 않은」·「이용 중이 아닌」)은 아니다.
+ */
+const GUARANTEE_IN_USE =
+  /(?:재단|신보|기보|기금)\s*(?:의\s*)?(?:신용\s*)?보증\s*(?:서|부\s*대출)?\s*(?:을|를)?\s*(?:이용|사용|보유)\s*(?:중(?!\s*이\s*아[니닌]|\s*이지\s*않)|하고\s*있(?!\s*지\s*않))/;
+/** 기관 이름을 뺀 문장에서 「보증을 이용 중인」을 걷어 낸다 — 남는 것이 나머지 요건이다. */
+const GUARANTEE_USE_PHRASE = /(?:의\s*)?(?:신용\s*)?보증\s*(?:서|부\s*대출)?\s*(?:을|를)?\s*(?:이용|사용|보유)\s*(?:중|하고\s*있)[가-힣]*/g;
+/** 보증 말을 걷어 내고 주어(「기업」)만 남은 나머지 — 더 볼 요건이 없다. */
+const SUBJECT_ONLY = /^[\s,.·ㆍ]*(?:기업|업체|사업자|회사|자)?[\s,.·ㆍ]*$/;
 /** 「단, 비영리 기관 및 공기업(공사)은 적용하지 않음」 — 기업이 아닌 신청자에게만 붙는 예외. */
 const NON_BUSINESS_EXCEPTION =
   /^[\s※*·ㅇ○●◦□■▶►\-–]*단\s*[,.]?\s*[^.]{0,40}(?:비영리|공기업|공사\)|공공\s*기관|대학|연구\s*기관|출연\s*연)[^.]{0,30}(?:적용하지|적용\s*(?:제외|안\s*함|되지)|해당하지|예외)/;
@@ -477,6 +489,26 @@ export function judgeRequirementText(
     if (INDIVIDUAL_EXCLUDED.test(text) && !corp) return { kind: "fail", reason: "개인사업자 제외" };
     if (CORP_ONLY.test(text) && !corp) return { kind: "fail", reason: "법인만" };
     if (INDIVIDUAL_ONLY.test(text) && corp) return { kind: "fail", reason: "개인사업자만" };
+  }
+
+  // 2-1) 기존 보증을 이용 중인 기업만 받는 문장(전환보증) — 고객의 기관별 보증 기록으로 가린다(NO.714).
+  //  기관 이름 속 지역 낱말은 소재지 요건이 아니다 — 보증이 맞으면 기관 이름·「보증을 이용 중」을 뺀 나머지만 이어서 본다.
+  const guarantors = !excluding && !PREFERENCE.test(text) && GUARANTEE_IN_USE.test(text) ? guarantorsIn(text) : [];
+  if (guarantors.length > 0) {
+    const r = checkCondition(
+      { key: "guaranteeInUse", op: "in", value: guarantors, rawText: text, machineReadable: true },
+      p,
+      now,
+    );
+    if (r.verdict === "fail") return { kind: "fail", reason: r.note };
+    if (r.verdict !== "pass") return check(r.note || "기존 보증 이용 여부");
+    const rest = withoutGuarantors(text).replace(GUARANTEE_USE_PHRASE, " ");
+    if (SUBJECT_ONLY.test(rest)) return PASS;
+    const j = judgeRequirementText(rest, p, now);
+    if (j.kind === "ignore") return PASS;
+    // 모르는 나머지는 기관 이름을 뺀 조각이 아니라 원문 전체로 묻는다.
+    if (j.kind === "check" && j.label.startsWith("조건 확인:")) return check(`조건 확인: ${shortText(text)}`);
+    return j;
   }
 
   // 3) 지역 낱말 — 고객 지역이 들어 있으면 지역은 문제없다. 다르면 사람 확인.
@@ -886,6 +918,9 @@ function reviewCheck(c: ConditionCheck, p: BusinessProfile, now: Date, industryS
     case "patentRequired":
       if (missing) return { kind: "check", label: missing };
       return { kind: "check", label: key === "certRequired" ? "요구 인증 종류 확인" : "요구 특허 종류 확인" };
+    // 원문 문장으로 보내지 않는다 — 기관 이름 속 지역(「충남신용보증재단」)을 소재지로 읽어 맞음이 된다(NO.714).
+    case "guaranteeInUse":
+      return { kind: "check", label: c.note || "기존 보증 이용 여부" };
     case "other": {
       const negated = c.condition.op === "eq" && c.condition.value === false;
       const j = judgeRequirementText(raw, p, now, { negated });

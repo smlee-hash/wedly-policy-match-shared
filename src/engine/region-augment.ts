@@ -22,7 +22,11 @@
  *
  * 대상 유형(targetOrg)도 같다. 제목이 자격 유형을 대상 선언 자리에 못 박았고
  * 구조에 그 키가 없을 때만. 본문의 「사회적기업과 협업」처럼 지나가는 말로 회사를 지우지 않는다.
+ *
+ * 전환보증·대환 조건(guaranteeInUse·hasExistingLoan, NO.714)도 여기서 보탠다.
+ * 제목이 전환보증·대환을 말하고 구조에 같은 칸이 없을 때만.
  */
+import { loanProgramConditions } from "./loan-program";
 import { ALL_SIDO_COUNT, sidosInText } from "./match-engine";
 import { titleRegionConditions, titleSectorCondition, titleTargetOrgCondition } from "./rule-extract";
 import { sigunguSido } from "./sigungu";
@@ -113,5 +117,7 @@ export function withRegionConditions(
     const org = titleTargetOrgCondition(row.title ?? "");
     if (org) out = { ...out, conditions: [...out.conditions, augmented(org)] };
   }
+  const loan = loanProgramConditions(row.title ?? "", row.agency ?? "", out.conditions);
+  if (loan.length > 0) out = { ...out, conditions: [...out.conditions, ...loan.map(augmented)] };
   return out;
 }

@@ -11,7 +11,8 @@
  *   sigungu                    ← 시군구 사전. 아무것도 안 부른다
  *   match-engine               ← structure-types · sigungu
  *   rule-extract               ← match-engine · structure-types · sigungu
- *   region-augment             ← match-engine · rule-extract · structure-types
+ *   loan-program               ← match-engine · structure-types
+ *   region-augment             ← match-engine · rule-extract · structure-types · loan-program
  *   recommend-score            ← structure-types
  *   profile-summary            ← match-engine
  *   feedback-diff              ← match-engine · profile-summary
@@ -34,6 +35,7 @@ export * from "./sigungu";
 export * from "./match-engine";
 export * from "./rule-extract";
 export * from "./region-augment";
+export * from "./loan-program";
 export * from "./recommend-score";
 export * from "./profile-summary";
 export * from "./feedback-diff";
