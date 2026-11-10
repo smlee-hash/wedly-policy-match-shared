@@ -105,12 +105,16 @@ function pickRaw(raw: unknown, keys: readonly string[]): string {
   return "";
 }
 
-/** 상세가 읽는 칸 — ERP 원문과 같은 18칸. */
+/**
+ * 상세가 읽는 칸 — ERP 원문 18칸에 규칙 구조(ruleStructure)를 보탠 19칸.
+ * ruleStructure: 아직 AI 가 못 읽은 공고는 결과 목록 줄이 이 구조로 대조한다 — 상세 대조표도 같은 구조를 써야
+ * 목록과 같은 줄이 나온다(NO.585 후속, engine/visible-checks 의 matchStructureOf).
+ */
 export const ANNOUNCEMENT_DETAIL_SELECT = {
   id: true, source: true, title: true, agency: true, category: true, region: true,
   summary: true, targetText: true, applyStart: true, applyEnd: true, applyPeriodText: true,
   url: true, status: true, attachments: true, raw: true,
-  structure: true, structureStatus: true, structuredAt: true, structureVersion: true,
+  structure: true, ruleStructure: true, structureStatus: true, structuredAt: true, structureVersion: true,
 } as const;
 
 export type AnnouncementDetailRow = {
@@ -130,6 +134,8 @@ export type AnnouncementDetailRow = {
   attachments: unknown;
   raw: unknown;
   structure: unknown;
+  /** 칸을 보태기 전 select 로 읽은 행(앱이 자기 select 를 쓰는 경우)엔 없을 수 있다. */
+  ruleStructure?: unknown;
   structureStatus: string;
   structuredAt: Date | null;
   structureVersion: number;
@@ -151,6 +157,8 @@ export type AnnouncementDetail = {
   status: string;
   attachments: PolicyAttachment[];
   structure: unknown;
+  /** 읽은 행에 칸이 없었으면 빠진다 — 받는 쪽(matchStructureOf)은 그때 structure 를 쓴다. */
+  ruleStructure?: unknown;
   structureStatus: string;
   structuredAt: string | null;
   applyMethod: string;
@@ -179,6 +187,7 @@ export function toAnnouncementDetail(
     status: row.status,
     attachments: readAttachments(row.attachments, row.id, attachmentHref),
     structure: row.structure ?? null,
+    ...(row.ruleStructure !== undefined ? { ruleStructure: row.ruleStructure ?? null } : {}),
     structureStatus: row.structureStatus,
     structuredAt: row.structuredAt ? new Date(row.structuredAt).toISOString() : null,
     applyMethod: pickRaw(row.raw, RAW_FIELDS.applyMethod),
