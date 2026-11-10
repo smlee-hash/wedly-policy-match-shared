@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -38,6 +39,17 @@ const BOT_TEST_FILES = [
   "workflow.test.ts",
 ];
 
+/**
+ * 저장소 뿌리에서만 맞는 시험 — 앱의 `node_modules/@wedly/policy-match-shared/` 안에서 돌면 반드시 실패한다(2026-11-11 NO.700 리뷰 P1).
+ * 린트 연결 확인 시험은 이 저장소의 `eslint.config.mjs` 로 린트하는데, 앱 안에서는 그 설정이 포장에 없어 ESLint 9 가
+ * 위로 올라가 앱의 설정을 집고, 그 기준으로 `node_modules/` 아래 경로는 기본 무시라 `ignored: true` 가 된다.
+ * 앱 쪽에는 `eslint`·`@wedly/eslint-plugin` 이 깔려 있다는 보장도 없다. 그래서 `scripts/lint/__tests__/` 에 둔다.
+ */
+const ROOT_ONLY_TEST_FILES = ["lint-shared-probe.test.ts"];
+
+/** 앱 관문에서 돌 포장 시험이 가져오면 안 되는 모듈 — 이 저장소 뿌리의 린트 설정·devDependencies 에 기대는 것 */
+const ROOT_ONLY_IMPORT = /from\s+["'](?:eslint|@wedly\/eslint-plugin(?:\/[^"']*)?)["']/;
+
 function packedPaths(): string[] {
   const r = spawnSync("npm", ["pack", "--dry-run", "--json"], {
     cwd: REPO_ROOT,
@@ -70,6 +82,17 @@ describe("npm pack 목록(앱 3곳으로 나가는 파일)", () => {
 
   it("봇 시험 파일 이름이 어느 경로에도 없다", () => {
     const leaked = paths.filter((p) => BOT_TEST_FILES.includes(p.split("/").pop() ?? ""));
+    expect(leaked).toEqual([]);
+  });
+
+  it("저장소 뿌리에서만 맞는 시험(린트 연결 확인) 이름이 어느 경로에도 없다", () => {
+    const leaked = paths.filter((p) => ROOT_ONLY_TEST_FILES.includes(p.split("/").pop() ?? ""));
+    expect(leaked).toEqual([]);
+  });
+
+  it("포장되는 시험 파일이 eslint·@wedly/eslint-plugin 을 가져오지 않는다 — 앱 안에서는 린트 설정·꾸러미가 없다", () => {
+    const tests = paths.filter((p) => /\.test\.tsx?$/.test(p));
+    const leaked = tests.filter((p) => ROOT_ONLY_IMPORT.test(readFileSync(resolve(REPO_ROOT, p), "utf8")));
     expect(leaked).toEqual([]);
   });
 
