@@ -279,6 +279,16 @@ describe("judgeRequirementText — 기존 보증을 이용 중인 기업만 받�
   ])("%s → 종전 그대로", (text, want) => {
     expect(judgeRequirementText(text, { loanUses: [GYEONGGI] }, NOW)).toEqual(want);
   });
+
+  // 보증을 쓰지 않는 기업을 받는 말(운영: 속초시 소상공인 특례보증 공고) — 대출 없는 고객을 불가로 만들지 않고 종전 그대로.
+  it.each<[string, unknown]>([
+    ["다른 지역 신용보증재단의 보증을 이용하고 있지 않습니다.", { kind: "check", label: "조건 확인: 다른 지역 신용보증재단의 보증을 이용하고…" }],
+    ["신용보증재단 보증을 이용하고 있지 않은 소상공인", { kind: "check", label: "기업 규모: 소상공인" }],
+    ["재단 보증을 이용 중이 아닌 소상공인", { kind: "check", label: "기업 규모: 소상공인" }],
+  ])("%s → 대출 없는 고객도 종전 그대로", (text, want) => {
+    expect(judgeRequirementText(text, { hasExistingLoan: false }, NOW)).toEqual(want);
+    expect(judgeRequirementText(text, {}, NOW)).toEqual(want);
+  });
 });
 
 describe("guarantorsIn — 문장이 말하는 보증 기관 전부", () => {
