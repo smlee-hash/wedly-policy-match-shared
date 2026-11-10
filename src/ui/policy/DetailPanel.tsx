@@ -26,12 +26,8 @@ import {
 import { IoBulb } from "react-icons/io5";
 import { Modal } from "./Modal";
 import { type PolicyAttachment, type PolicyAttachmentKind } from "../../engine/types";
-import {
-  matchAnnouncement,
-  readStoredStructure,
-  UNREADABLE_STRUCTURE_NOTE,
-  type BusinessProfile,
-} from "../../engine/match-engine";
+import { UNREADABLE_STRUCTURE_NOTE, type BusinessProfile } from "../../engine/match-engine";
+import { matchStructureOf, readByAi, visibleConditionChecks } from "../../engine/visible-checks";
 import { ANNOUNCEMENT_SOURCE_LABELS } from "../../funding/source-labels";
 import type { VerdictResult } from "../../ai/verdict";
 import {
@@ -84,6 +80,8 @@ interface Detail {
   status: string;
   attachments: PolicyAttachment[];
   structure: unknown;
+  /** 아직 AI 가 못 읽은 공고의 무료 규칙 구조 — 목록 줄이 이 구조로 대조한다(칸을 보태기 전 서버는 안 보낸다). */
+  ruleStructure?: unknown;
   structureStatus: string;
   structuredAt: string | null;
   applyMethod: string;
@@ -826,18 +824,23 @@ export default function DetailPanel({
     return shell(<div className={EMPTY}>{error || "공고를 찾을 수 없습니다"}</div>, true);
   }
 
-  const structure = readStoredStructure(detail.structure);
-  const match = matchAnnouncement(structure, profile, new Date(), { title: detail.title ?? "" });
+  const now = new Date();
+  // 대조표 줄은 결과 목록 줄과 같은 함수로 만든다(NO.585 후속) — 지역 보태기·규모 판정이 갈리면 목록의 「맞음」이
+  // 여기서 「기업 규모 미입력」이 된다.
+  //   아직 AI 가 못 읽은 공고는 목록처럼 규칙 구조로 대조한다(matchStructureOf).
+  const { structure, match, shown } = visibleConditionChecks(matchStructureOf(detail), detail, profile, now);
   // 아직 읽는 중인 공고의 「읽지 못했습니다」 줄은 사람이 확인할 조건이 아니다 — 안내로 갈음한다.
   const reading = READING_STATUS.has(detail.structureStatus);
   // noServerAi·serverStructurizes:false 통로에선 이 화면이 AI 읽기를 시작시키지(계속하지) 않는다
   // — 「잠시 후 제공됩니다」는 거짓이 된다. 판단·문구는 detail-poll 의 순수 함수 하나로 통일한다.
   const readingMessage = readingMessageFor({ noServerAi, serverStructurizes, readWaitedOut });
+  // 읽기에 실패한 공고는 규칙 구조로 대조해도 「AI 가 못 읽었다」는 사정은 그대로 알린다(규칙 구조엔 그 줄이 없다).
   const humanCheck = reading
     ? match.humanCheck.filter((h) => h !== UNREADABLE_STRUCTURE_NOTE)
-    : match.humanCheck;
+    : !readByAi(detail) && !match.humanCheck.includes(UNREADABLE_STRUCTURE_NOTE)
+      ? [UNREADABLE_STRUCTURE_NOTE, ...match.humanCheck]
+      : match.humanCheck;
   const badge = ddayBadge(detail.applyEnd, detail.applyPeriodText);
-  const now = new Date();
   const left = daysLeft(detail.applyEnd);
   // 마감일이 없는 채로 닫힌 공고(게시판 90일 규칙)도 마감으로 다룬다 — 안 그러면
   // 「마감」 목록에서 연 공고에 「바로 신청하러 가기」가 뜬다(독립 검사 5차).
@@ -890,7 +893,7 @@ export default function DetailPanel({
     now,
   });
   // 신청 자격 대조표 — 기계 대조(맞는 이유·조건 체크리스트)와 AI 판정 체크리스트를 한 표로(같은 조건은 한 줄).
-  const conditionRows = mergeConditionRows(match.checks, verdict?.checklist);
+  const conditionRows = mergeConditionRows(shown, verdict?.checklist);
   const infoBlocks = (
     <>
       <SupportTable

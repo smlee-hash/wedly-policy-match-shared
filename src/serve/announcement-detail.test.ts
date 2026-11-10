@@ -96,6 +96,15 @@ describe("toAnnouncementDetail — 응답 모양", () => {
     ]);
   });
 
+  it("규칙 구조(ruleStructure)는 읽은 행에 칸이 있을 때만 싣는다 — 비었으면 null(NO.585 후속)", () => {
+    expect(ANNOUNCEMENT_DETAIL_SELECT.ruleStructure).toBe(true);
+    const rule = { conditions: [], humanCheck: [] };
+    expect(toAnnouncementDetail(row({ ruleStructure: rule })).ruleStructure).toBe(rule);
+    const empty = toAnnouncementDetail(row({ ruleStructure: null }));
+    expect("ruleStructure" in empty && empty.ruleStructure === null).toBe(true);
+    expect("ruleStructure" in toAnnouncementDetail(row())).toBe(false);
+  });
+
   it("원 응답에서 신청방법·문의처·접수사이트를 뽑고 HTML 태그·문자표는 글자로 푼다", () => {
     const d = toAnnouncementDetail(row({
       raw: { reqstMthPapersCn: "<p>온라인&nbsp;신청</p>", refrncNm: "1234", rceptEngnHmpgUrl: "https://x.kr" },

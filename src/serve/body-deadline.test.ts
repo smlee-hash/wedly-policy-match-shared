@@ -91,6 +91,60 @@ describe("extractDeadlineFromText — 표기별 접수기간·마감", () => {
   });
 });
 
+/**
+ * ★연도 없는 날짜는 글을 올린 날의 해로 읽는다(NO.585 후속, 2026-11-10 운영 실측). 지금 해로 읽으면
+ * 2013-07-15 에 올라온 이노비즈 「HIT500 … 오는 7월 31일까지 모집」이 2027-07-31 마감이 되어 「지원 가능」에 남았다.
+ */
+describe("extractDeadlineFromText — postedAt(게시일) 기준 연도", () => {
+  const LATE = new Date("2026-11-10T00:00:00.000Z");
+
+  it("2013년 글의 「7월 31일까지」는 2013-07-31 — 지금 기준 2년보다 오래돼 null", () => {
+    const posted = new Date("2013-07-14T15:00:00.000Z");
+    expect(extractDeadlineFromText("3차 참여기업을 오는 7월 31일까지 모집한다", LATE, { postedAt: posted })).toBeNull();
+  });
+
+  it("작년 12월 글의 「1월 15일까지」는 올해 1월 15일(지난 마감)", () => {
+    const posted = new Date("2025-12-19T15:00:00.000Z");
+    const r = extractDeadlineFromText("신청마감 1월 15일까지", LATE, { postedAt: posted });
+    expect(iso(r?.applyEnd)).toBe("2026-01-15T14:59:59.000Z");
+  });
+
+  it("올해 2월 글의 「1월 31일까지」는 내년으로 넘기지 않는다", () => {
+    const posted = new Date("2026-02-09T15:00:00.000Z");
+    const r = extractDeadlineFromText("접수마감 1월 31일까지", LATE, { postedAt: posted });
+    expect(iso(r?.applyEnd)).toBe("2026-01-31T14:59:59.000Z");
+  });
+
+  it("접수기간 연도 생략 창도 게시일의 해 — 끝이 시작보다 앞이면 그다음 해", () => {
+    const posted = new Date("2024-11-20T15:00:00.000Z");
+    const r = extractDeadlineFromText("접수기간: 12.1 ~ 1.15", LATE, { postedAt: posted });
+    expect(iso(r?.applyStart)).toBe("2024-11-30T15:00:00.000Z");
+    expect(iso(r?.applyEnd)).toBe("2025-01-15T14:59:59.000Z");
+  });
+
+  it("열린 기간의 연도 생략 시작일도 게시일의 해", () => {
+    const posted = new Date("2025-03-01T15:00:00.000Z");
+    const r = extractDeadlineFromText("접수기간: 3.2 ~ 예산 소진 시까지", LATE, { postedAt: posted });
+    expect(iso(r?.applyStart)).toBe("2025-03-01T15:00:00.000Z");
+    expect(r?.applyEnd).toBeNull();
+  });
+
+  it("연도가 적힌 날짜는 게시일과 무관하게 그대로", () => {
+    const posted = new Date("2013-07-14T15:00:00.000Z");
+    const r = extractDeadlineFromText("마감 2026.12.31", LATE, { postedAt: posted });
+    expect(iso(r?.applyEnd)).toBe("2026-12-31T14:59:59.000Z");
+  });
+
+  it("postedAt 이 없거나 잘못된 날짜면 지금처럼 now 기준 — 12월에 읽은 「1월 15일」은 다음 해", () => {
+    const dec = new Date("2026-12-10T00:00:00.000Z");
+    expect(iso(extractDeadlineFromText("신청마감 1월 15일", dec)?.applyEnd)).toBe("2027-01-15T14:59:59.000Z");
+    expect(iso(extractDeadlineFromText("신청마감 1월 15일", dec, { postedAt: null })?.applyEnd)).toBe("2027-01-15T14:59:59.000Z");
+    expect(iso(extractDeadlineFromText("신청마감 1월 15일", dec, { postedAt: new Date("x") })?.applyEnd)).toBe(
+      "2027-01-15T14:59:59.000Z",
+    );
+  });
+});
+
 describe("extractDeadlineFromText — 무효는 null", () => {
   it("시작이 끝보다 뒤면 null", () => {
     expect(extractDeadlineFromText("접수기간: 2026.10.01 ~ 2026.09.01", NOW)).toBeNull();

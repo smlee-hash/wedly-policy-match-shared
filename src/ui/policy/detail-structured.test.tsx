@@ -392,8 +392,8 @@ describe("DetailPanel — 첫 탭만 바뀌고 나머지는 남아 있다", () =
     ]) {
       expect(패널, `DetailPanel 이 ${부품} 을 안 그린다`).toContain(부품);
     }
-    // 대조표는 기계 대조와 AI 체크리스트를 하나로 합쳐 받는다
-    expect(패널).toContain("mergeConditionRows(match.checks, verdict?.checklist)");
+    // 대조표는 기계 대조(목록 줄과 같은 보이는 줄 — engine/visible-checks)와 AI 체크리스트를 하나로 합쳐 받는다
+    expect(패널).toContain("mergeConditionRows(shown, verdict?.checklist)");
   });
 
   it("옛 「조건 체크리스트」 구역과 AI 체크리스트 목록은 없어졌다(같은 조건이 두 번 나오지 않게)", () => {
