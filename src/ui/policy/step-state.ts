@@ -69,6 +69,12 @@ function isProfileValue(v: unknown): boolean {
   return Array.isArray(v) && v.every((x) => typeof x === "string");
 }
 
+/** 기관별 보증·대출 기록(loanUses) — 글자·숫자·참거짓만 든 객체의 목록이어야 한다(NO.714). */
+function isLoanUsesValue(v: unknown): boolean {
+  return Array.isArray(v) && v.every((x) => !!x && typeof x === "object" && !Array.isArray(x)
+    && Object.values(x).every((y) => typeof y !== "object" && isProfileValue(y)));
+}
+
 /** 저장해 둔 회사 정보 읽기. 없거나·깨졌거나·읽다가 막히면 null (그때는 회사 정보 단계로 돌아간다). */
 export function readStoredProfile(storage: ProfileStorage | null): BusinessProfile | null {
   if (!storage) return null;
@@ -77,7 +83,7 @@ export function readStoredProfile(storage: ProfileStorage | null): BusinessProfi
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
-    if (!Object.values(parsed).every(isProfileValue)) return null;
+    if (!Object.entries(parsed).every(([k, v]) => (k === "loanUses" ? isLoanUsesValue(v) : isProfileValue(v)))) return null;
     return parsed as BusinessProfile;
   } catch {
     return null;

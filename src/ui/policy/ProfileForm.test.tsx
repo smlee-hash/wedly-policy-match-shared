@@ -660,6 +660,8 @@ describe("ProfileForm — 기존 고객의 판정 조건을 빠짐없이 채운�
       isCorporation: true,
       businessAddress: "경기 화성시",
       certTypes: ["벤처"],
+      loanUses: [{ agency: "신용보증기금", name: "신용보증기금", status: "in-use", source: "기업상태표" }],
+      loanUsesComplete: true,
     }, "첫회사");
 
     expect(눌린단추들(화면.tree, "scale")).toEqual(["소상공인"]);
@@ -682,10 +684,68 @@ describe("ProfileForm — 기존 고객의 판정 조건을 빠짐없이 채운�
     for (const key of [
       "companyScale", "hasCert", "hasPatent", "creditScore", "hasExistingLoan",
       "certTypes", "patentCount", "existingLoanBalanceManwon", "creditScoreNice", "creditScoreKcb",
-      "isCorporation", "businessAddress", "bizno", "region", "regionSigungu",
+      "isCorporation", "businessAddress", "bizno", "region", "regionSigungu", "loanUses", "loanUsesComplete",
     ]) {
       expect(key in p, `${key}가 앞 고객에서 남았다`).toBe(false);
     }
+  });
+});
+
+// NO.714 — 목록 줄은 서버가 저장된 기관별 보증·대출 기록으로 판정한다. 상세 「신청 자격 대조」는 화면이 넘긴 진단 입력으로
+// 다시 대조하므로, 불러온 고객의 기록을 진단 입력에 같은 규칙(같은 회사·대출 「없음」이 아닐 때만)으로 실어야 둘이 같다.
+describe("ProfileForm — 불러온 고객의 기관별 보증·대출 기록(NO.714)", () => {
+  const 재단보증 = [{ agency: "지역신용보증재단" as const, name: "경기신용보증재단", sido: "경기", status: "in-use" as const, source: "기업상태표" }];
+  const 고객 = {
+    companyName: "보증회사",
+    bizno: "123-81-45678",
+    existingLoanBalanceManwon: 30000,
+    loanUses: 재단보증,
+    loanUsesComplete: true,
+  };
+
+  it("불러온 기록을 진단 입력에 그대로 싣는다", async () => {
+    const { 받은, 화면 } = 진단받기();
+    await 고객불러오기(화면, 고객, "보증회사");
+    const p = 진단하기(화면, 받은);
+    expect(p.loanUses).toEqual(재단보증);
+    expect(p.loanUsesComplete).toBe(true);
+  });
+
+  it("완결 표시가 없으면 기록만 싣는다", async () => {
+    const { 받은, 화면 } = 진단받기();
+    await 고객불러오기(화면, { ...고객, loanUsesComplete: undefined }, "보증회사");
+    const p = 진단하기(화면, 받은);
+    expect(p.loanUses).toEqual(재단보증);
+    expect("loanUsesComplete" in p).toBe(false);
+  });
+
+  it("대출 칸을 0(없음)으로 고치면 기록을 싣지 않는다 — 서버도 「없음」이면 싣지 않는다", async () => {
+    const { 받은, 화면 } = 진단받기();
+    await 고객불러오기(화면, 고객, "보증회사");
+    칸적기(화면, "loan", "0");
+    const p = 진단하기(화면, 받은);
+    expect("loanUses" in p).toBe(false);
+    expect("loanUsesComplete" in p).toBe(false);
+  });
+
+  it("대출 칸을 비우면(모름) 기록을 그대로 싣는다", async () => {
+    const { 받은, 화면 } = 진단받기();
+    await 고객불러오기(화면, 고객, "보증회사");
+    칸적기(화면, "loan", "");
+    expect(진단하기(화면, 받은).loanUses).toEqual(재단보증);
+  });
+
+  it("사업자번호를 다른 회사로 고치면 기록을 싣지 않는다", async () => {
+    const { 받은, 화면 } = 진단받기();
+    await 고객불러오기(화면, 고객, "보증회사");
+    칸적기(화면, "bizno", "220-81-12345");
+    expect("loanUses" in 진단하기(화면, 받은)).toBe(false);
+  });
+
+  it("사업자번호 없이 불러온 고객은 기록을 싣지 않는다 — 서버가 회사를 못 찾으면 기록을 쓸 수 없다", async () => {
+    const { 받은, 화면 } = 진단받기();
+    await 고객불러오기(화면, { ...고객, bizno: undefined }, "보증회사");
+    expect("loanUses" in 진단하기(화면, 받은)).toBe(false);
   });
 });
 
