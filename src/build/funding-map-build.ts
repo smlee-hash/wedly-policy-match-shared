@@ -526,7 +526,7 @@ function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): Buil
   const unclassified = guessed === null;
   const group: FundingGroup = guessed ?? "grant";
 
-  const conditions = rulesToConditions(readTargetRules(p.targetRules), p.targetText ?? "");
+  const conditions = rulesToConditions(readTargetRules(p.targetRules), p.targetText ?? "", p.name ?? "", p.institution ?? "");
   const checks = conditions.map((c) => checkCondition(c, profile, now));
   const fit = fitsOf(displayChecks(checks, profile, now));
   // 상품에는 AI 의 「사람 확인」 목록이 없다 — 기계로 못 재는 조건(대표 나이 등)이 그 자리다.
