@@ -32,6 +32,11 @@ const REGION_ALIAS_PATTERN = Object.values(REGION_ALIASES)
 const REGIONAL_FOUNDATION = new RegExp(`(${REGION_ALIAS_PATTERN})\\s*(?:신용보증재단|신보)`);
 const KODIT_SHORT = /(?:^|[^가-힣])신보(?!증)/; // 「기술혁신보증」의 「신보」 제외
 const KIBO_SHORT = /(?:^|[^가-힣])기보(?!증)/;
+// 문장 속 기관을 전부 찾고(guarantorsIn)·지울(withoutGuarantors) 전역 판.
+const REGIONAL_FOUNDATION_ALL = new RegExp(REGIONAL_FOUNDATION.source, "g");
+const KODIT_SHORT_ALL = new RegExp(KODIT_SHORT.source, "g");
+const KIBO_SHORT_ALL = new RegExp(KIBO_SHORT.source, "g");
+const FOUNDATION_WORD = /(?:신용\s*)?(?:보증\s*)?재단/g;
 
 /** 글에 든 지역 재단 이름 → 「경기신용보증재단」. 없으면 null. */
 function regionalFoundationIn(text: string): string | null {
@@ -48,6 +53,32 @@ function guarantorOf(title: string, agency: string): string {
   if (text.includes("신용보증기금") || KODIT_SHORT.test(text)) return "신용보증기금";
   if (text.includes("기술보증기금") || KIBO_SHORT.test(text)) return "기술보증기금";
   return "지역신용보증재단";
+}
+
+/** 문장이 말하는 보증 기관 전부 — 「신보·재단 보증」이면 둘 다. 없으면 빈 목록. */
+export function guarantorsIn(text: string): string[] {
+  const found = new Set<string>();
+  for (const m of text.matchAll(REGIONAL_FOUNDATION_ALL)) {
+    const sido = canonicalRegion(m[1]);
+    if (sido) found.add(`${sido}신용보증재단`);
+  }
+  // 시도가 붙은 재단을 지운 나머지의 「재단」은 어느 시도인지 모르는 재단이다.
+  const rest = text.replace(REGIONAL_FOUNDATION_ALL, " ");
+  if (/재단/.test(rest)) found.add("지역신용보증재단");
+  if (rest.includes("신용보증기금") || KODIT_SHORT.test(rest)) found.add("신용보증기금");
+  if (rest.includes("기술보증기금") || KIBO_SHORT.test(rest)) found.add("기술보증기금");
+  return [...found];
+}
+
+/** guarantorsIn 이 읽는 기관 이름을 모두 공백으로 바꾼 글 — 다시 guarantorsIn 에 넣으면 빈 목록이다. */
+export function withoutGuarantors(text: string): string {
+  return text
+    .replace(REGIONAL_FOUNDATION_ALL, " ")
+    .replace(/신용보증기금/g, " ")
+    .replace(/기술보증기금/g, " ")
+    .replace(FOUNDATION_WORD, " ")
+    .replace(KODIT_SHORT_ALL, " ")
+    .replace(KIBO_SHORT_ALL, " ");
 }
 
 /** 제목이 전환보증·대환을 말하면 그 갈래. 아니면 null. */
