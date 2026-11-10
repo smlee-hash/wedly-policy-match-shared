@@ -9,6 +9,7 @@
  *    판정 엔진이 기계대조를 조용히 끄고 「확인 필요」로만 넘긴다.
  * 프로필에 없는 조건(대표 나이)은 key "other" + machineReadable:false 로 남겨 사람이 확인하게 한다.
  */
+import { loanProgramConditions } from "../../engine/loan-program";
 import type { StructuredCondition } from "../../engine/structure-types";
 import type { ProductTargetRules } from "./types";
 
@@ -34,8 +35,15 @@ function num(v: number | undefined): number | null {
  * 규칙 → 조건. 화면·판정 순서를 코드가 정한다(지역 → 업종/규모 → 업력 → 신용 → 매출/직원 → 형태).
  * @param rules 어댑터가 원천에서 읽어 적은 기계 대조용 규칙
  * @param targetText 사람이 읽는 대상 원문 — 키별 한국어를 못 지을 때의 대타
+ * @param name 상품 이름 — 전환보증·대환이면 기존 보증·대출 조건을 끝에 붙인다(규칙이 이미 정했으면 안 붙인다)
+ * @param institution 상품 기관 — 전환보증이 원하는 보증 기관을 고를 때만 본다
  */
-export function rulesToConditions(rules: ProductTargetRules, targetText: string): StructuredCondition[] {
+export function rulesToConditions(
+  rules: ProductTargetRules,
+  targetText: string,
+  name = "",
+  institution = "",
+): StructuredCondition[] {
   const out: StructuredCondition[] = [];
   const fallback = targetText.trim().slice(0, 60);
   const add = (
@@ -96,5 +104,6 @@ export function rulesToConditions(rules: ProductTargetRules, targetText: string)
   const humanCheck = cleanList(rules.humanCheck);
   if (humanCheck) for (const item of humanCheck) add("other", "eq", true, item, false);
 
+  out.push(...loanProgramConditions(name, institution, out));
   return out;
 }

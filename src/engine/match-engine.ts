@@ -13,6 +13,20 @@ import {
   opFitsKey,
 } from "./structure-types";
 
+/** 보증·대출을 낸 기관 종류 — 전환보증·대환 조건이 어느 기관 것을 요구하는지 가르는 기준. */
+export const LOAN_AGENCIES = ["지역신용보증재단", "신용보증기금", "기술보증기금", "소상공인시장진흥공단", "중소벤처기업진흥공단", "은행", "그 밖"] as const;
+export type LoanAgency = (typeof LOAN_AGENCIES)[number];
+
+/** 고객의 기관별 보증·대출 한 건. */
+export interface LoanUse {
+  agency: LoanAgency;
+  name: string;               // 기관 이름 그대로(예: 「경기신용보증재단」)
+  sido?: string;              // 지역 재단의 시도(표준형). 모르면 비운다
+  status: "in-use" | "unknown"; // unknown = 상환 완료·해지·확인 필요처럼 지금 쓰는지 모름
+  balanceManwon?: number;
+  source: string;             // 기업상태표·고객 정보·서류·상담 메모
+}
+
 /** 진단 입력 — 무상지원금 표 칸과 대응(free-subsidy/columns.ts). 빈 값 = 모름(unknown 처리). */
 export interface BusinessProfile {
   companyName?: string; bizno?: string;
@@ -40,6 +54,9 @@ export interface BusinessProfile {
   creditScoreNice?: number;   // NICE 점수(300~1000)
   creditScoreKcb?: number;    // KCB 점수(300~1000)
   isCorporation?: boolean;    // 법인 여부 — 사업자번호로 못 가릴 때만 쓴다(corporationOf)
+  loanUses?: LoanUse[];       // 기관별 보증·대출 기록 — 전환보증·대환 조건이 읽는다
+  // 기업상태표 정책자금 칸의 모든 조각을 기관으로 알아본 「이용 중」 기록일 때만 true — 「이 기관 보증 없음」(불가)의 근거
+  loanUsesComplete?: boolean;
 }
 
 /* ───────── 법인/개인 판정 ─────────
@@ -102,6 +119,15 @@ export function canonicalRegion(value: string | undefined | null): string | null
   if (!t) return null;
   for (const [alias, canon] of ALIAS_ENTRIES) if (t.startsWith(alias)) return canon;
   return null;
+}
+
+const FOUNDATION_SUFFIX = "신용보증재단";
+
+/** 「경기신용보증재단」 → "경기". 이름이 「신용보증재단」으로 끝날 때만 읽는다(「지역신용보증재단」·기관 이름은 null).
+ *  source-region.ts 는 이 파일을 부르므로 거기 사전을 쓰지 않는다(순환). */
+export function foundationSido(name: string | undefined | null): string | null {
+  const t = (name ?? "").replace(/\s/g, "");
+  return t.endsWith(FOUNDATION_SUFFIX) ? canonicalRegion(t.slice(0, -FOUNDATION_SUFFIX.length)) : null;
 }
 
 /** 글자 안에 든 표준 시도를 **전부** 찾는다 — 「대구경북」처럼 붙여 쓴 복수 시도를
@@ -199,6 +225,21 @@ function sigunguBlocksFit(c: StructuredCondition, p: BusinessProfile): boolean {
   const regionText = p.region ?? "";
   if (names.some((n) => profileNamesSigungu(regionText, n))) return false;
   return true;
+}
+
+const isLoanAgency = (w: string) => (LOAN_AGENCIES as readonly string[]).includes(w);
+
+/** 원하는 값 w 의 기관 종류가 기록 u 와 같은가. 기관 이름 밖의 값은 특정 재단 이름이라 지역 재단 기록이 그 종류다. */
+function loanUseKindFits(w: string, u: LoanUse): boolean {
+  return isLoanAgency(w) ? u.agency === w : u.agency === "지역신용보증재단";
+}
+
+/** 종류에 더해, 특정 재단 이름이면 시도까지 같아야 한다 — 기록의 시도를 모르면 맞지 않는다. */
+function loanUseFits(w: string, u: LoanUse): boolean {
+  if (!loanUseKindFits(w, u)) return false;
+  if (isLoanAgency(w)) return true;
+  const sido = u.sido ?? foundationSido(u.name);
+  return sido !== null && sido === foundationSido(w);
 }
 
 export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: Date): ConditionCheck {
@@ -397,9 +438,35 @@ export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: 
     }
     case "hasExistingLoan": {
       if (p.hasExistingLoan == null) return unknown("기존 대출 유무 미입력");
-      return p.hasExistingLoan === (c.value as boolean)
-        ? pass()
-        : fail(c.value ? "기존 대출이 있어야 함(대환)" : "기존 대출 없는 사업자만");
+      if (p.hasExistingLoan !== (c.value as boolean)) {
+        return fail(c.value ? "기존 대출이 있어야 함(대환)" : "기존 대출 없는 사업자만");
+      }
+      // 「없어야」 조건의 맞음은 쓸 기관이 없다 — 대환(true)만 이용 중 기록을 근거로 붙인다.
+      const using = c.value === true ? (p.loanUses ?? []).filter((u) => u.status === "in-use") : [];
+      if (using.length === 0) return pass();
+      const names = using.slice(0, 2).map((u) => u.name).join("·");
+      return { condition: c, verdict: "pass", note: `${names} 대출 이용 중(${using[0].source}) → 대환 대상` };
+    }
+    case "guaranteeInUse": {
+      const wants = c.value as string[];
+      const uses = p.loanUses ?? [];
+      // 이용 중 기록은 출처가 있는 직접 증거라 「대출 없음」 표시보다 먼저 본다.
+      const hit = uses.find((u) => u.status === "in-use" && wants.some((w) => loanUseFits(w, u)));
+      if (hit) return { condition: c, verdict: "pass", note: `${hit.name} 보증 이용 중(${hit.source}) → 전환보증 대상` };
+      if (p.hasExistingLoan === false) return fail("기존 보증·대출 없음");
+      // 위에서 안 맞은 이용 중 재단 기록은 시도를 모르거나 다르다 — 지우지 않고 확인 필요로 둔다.
+      if (!wants.every(isLoanAgency) && uses.some((u) => u.status === "in-use" && u.agency === "지역신용보증재단")) {
+        return unknown("보증 재단 지역 확인");
+      }
+      if (uses.some((u) => u.status === "unknown" && wants.some((w) => loanUseKindFits(w, u)))) {
+        return unknown("기존 보증 이용 여부");
+      }
+      // 불가는 정책자금 칸을 빠짐없이 기관으로 읽은 경우만 — 못 읽은 조각이 있으면 그 안에 있을 수 있다.
+      if (p.loanUsesComplete === true && uses.length > 0) {
+        const label = wants[0] === "지역신용보증재단" ? "지역 신용보증재단" : wants[0];
+        return fail(`${label} 보증 없음(${uses[0].source}: ${uses.map((u) => u.name).join("·")})`);
+      }
+      return unknown("기존 보증 이용 여부");
     }
     case "isCorporation": {
       const mine = corporationOf(p);
@@ -552,6 +619,8 @@ const KEY_FILLER: Record<string, readonly string[]> = {
   revenueMinKrw: ["매출", "매출액", "연매출", "연간"],
   creditScoreMin: ["신용", "신용점수", "신용평점", "점수", "평점"],
   creditScoreMax: ["신용", "신용점수", "신용평점", "점수", "평점"],
+  guaranteeInUse: ["지역", "신용보증재단", "보증", "보증부", "대출", "이용", "중", "전환보증"],
+  hasExistingLoan: ["기존", "대출", "이용", "중", "대환"],
 };
 /** 숫자 조건 — 원문의 숫자가 하나이고, 단위를 따져 저장값과 같고, 비교 말이 저장된 방향과 같아야 한다(20차 리뷰). */
 const NUMERIC_MAX_KEYS = new Set(["businessAgeMaxYears", "revenueMaxKrw", "employeeMax", "creditScoreMax"]);
@@ -1059,6 +1128,7 @@ function valueFitsKey(key: string, value: unknown): boolean {
     case "targetSector":
     case "targetOrg":
     case "companyScale":
+    case "guaranteeInUse":
       return Array.isArray(value) && value.every((v) => typeof v === "string");
     case "businessAgeMaxYears":
     case "businessAgeMinYears":
@@ -1198,6 +1268,28 @@ const ADDRESS_MAX_CHARS = 30;
 const COUNT_MAX = 100_000;
 /** 기존 대출 잔액(만원) 상한 — 10조원. 넘는 값은 단위를 잘못 적은 것으로 본다. */
 const LOAN_BALANCE_MAX_MANWON = 10_000_000_000;
+const LOAN_USES_MAX = 20;
+const LOAN_NAME_MAX_CHARS = 40;
+const LOAN_SOURCE_MAX_CHARS = 20;
+
+/** 보증·대출 기록 한 건 — 기관·이름·상태·출처 중 하나라도 못 읽으면 건 전체를 버린다(null). 잔액·시도만 틀리면 그 칸만 뺀다. */
+function loanUseOf(raw: unknown): LoanUse | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const agency = LOAN_AGENCIES.find((a) => a === r.agency);
+  const name = textOf(r.name);
+  const source = textOf(r.source);
+  const status = r.status;
+  if (!agency || !name || name.length > LOAN_NAME_MAX_CHARS || !source || source.length > LOAN_SOURCE_MAX_CHARS) return null;
+  if (status !== "in-use" && status !== "unknown") return null;
+  const u: LoanUse = { agency, name, status, source };
+  const balance = numberOf(r.balanceManwon);
+  if (balance !== undefined && balance <= LOAN_BALANCE_MAX_MANWON) u.balanceManwon = balance;
+  // 재단 이름이 시도를 말하면 받은 시도 칸보다 이름을 믿는다(둘이 어긋나면 이름 쪽).
+  const sido = agency === "지역신용보증재단" ? foundationSido(name) ?? canonicalRegion(textOf(r.sido)) : null;
+  if (sido !== null) u.sido = sido;
+  return u;
+}
 
 export function parseBusinessProfile(raw: unknown): BusinessProfile {
   if (!raw || typeof raw !== "object") return {};
@@ -1254,6 +1346,16 @@ export function parseBusinessProfile(raw: unknown): BusinessProfile {
   for (const k of ["creditScoreNice", "creditScoreKcb"] as const) {
     const score = numberOf(o[k]);
     if (score !== undefined && score >= 300 && score <= 1000) p[k] = score;
+  }
+  // ── 기관별 보증·대출 기록. 하나라도 버렸거나 20개를 넘겨 다 못 봤으면 「완전」 표시를 받지 않는다 — 불가를 내는 근거라서.
+  if (Array.isArray(o.loanUses)) {
+    const uses = o.loanUses.slice(0, LOAN_USES_MAX).map(loanUseOf);
+    const kept = uses.filter((u): u is LoanUse => u !== null);
+    if (kept.length > 0) {
+      p.loanUses = kept;
+      const dropped = kept.length < o.loanUses.length;
+      if (o.loanUsesComplete === true && !dropped) p.loanUsesComplete = true;
+    }
   }
   return p;
 }

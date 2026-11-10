@@ -15,6 +15,7 @@ export const CONDITION_KEYS = [
   "creditScoreMin", "creditScoreMax",             // 개인 신용점수(NICE/KCB 300~1000) 하한·상한
   "hasExistingLoan",                              // 기존 대출 유무 (대환 상품은 true 를 요구)
   "isCorporation",                                // 법인 여부 (사업자번호 가운데 두 자리로 판정)
+  "guaranteeInUse",                               // 기존 보증 이용(전환보증은 지역 신용보증재단 보증을 요구)
 ] as const;
 export type ConditionKey = (typeof CONDITION_KEYS)[number];
 export type ConditionOp = "in" | "lte" | "gte" | "eq";
@@ -42,6 +43,7 @@ export const EXPECTED_OP: Record<ConditionKey, ConditionOp> = {
   creditScoreMax: "lte",
   hasExistingLoan: "eq",
   isCorporation: "eq",
+  guaranteeInUse: "in",
 };
 
 /** 기대 op. 사전에 없는 키(other 등)는 기대치가 없다 → null. */
@@ -79,6 +81,7 @@ export const CONDITION_LABEL: Record<ConditionKey, string> = {
   creditScoreMax: "신용점수 상한",
   hasExistingLoan: "기존 대출",
   isCorporation: "법인 여부",
+  guaranteeInUse: "기존 보증",
 };
 
 /** 사전에 없는 키(other 등)에 붙일 라벨. */

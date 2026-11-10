@@ -526,7 +526,7 @@ function itemOfProduct(p: ProductRow, profile: BusinessProfile, now: Date): Buil
   const unclassified = guessed === null;
   const group: FundingGroup = guessed ?? "grant";
 
-  const conditions = rulesToConditions(readTargetRules(p.targetRules), p.targetText ?? "");
+  const conditions = rulesToConditions(readTargetRules(p.targetRules), p.targetText ?? "", p.name ?? "", p.institution ?? "");
   const checks = conditions.map((c) => checkCondition(c, profile, now));
   const fit = fitsOf(displayChecks(checks, profile, now));
   // 상품에는 AI 의 「사람 확인」 목록이 없다 — 기계로 못 재는 조건(대표 나이 등)이 그 자리다.
@@ -643,6 +643,7 @@ function isProfileEmpty(p: BusinessProfile): boolean {
  *  · employeeMax·employeeMin → `p.employeeCount`(직원 수)
  *  · creditScoreMin·creditScoreMax → `p.creditScore`(신용점수)
  *  · hasExistingLoan → `p.hasExistingLoan`(기존 대출 유무)
+ *  · guaranteeInUse → `p.hasExistingLoan`(기존 대출 유무 — 비면 보증 기록도 비어 있다)
  *
  * ★뒤 다섯은 코덱스 3차 #B2(2026-09-04)에서 더했다 — 예전엔 「`profileGapsOf` 가 안 세니 짝지을
  *  이름이 없다」며 뺐지만, 그것은 `profileGapsOf` 쪽 누락이었다. 채우면 판정이 실제로 갈린다:
@@ -665,6 +666,7 @@ const GAP_LABEL_BY_CONDITION_KEY: Record<string, string> = {
   creditScoreMin: "신용점수",
   creditScoreMax: "신용점수",
   hasExistingLoan: "기존 대출 유무",
+  guaranteeInUse: "기존 대출 유무",
   companyScale: "기업 규모",
   noTaxDelinquency: "체납 여부",
   certRequired: "인증 보유",
