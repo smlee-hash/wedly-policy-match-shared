@@ -643,6 +643,7 @@ function isProfileEmpty(p: BusinessProfile): boolean {
  *  · employeeMax·employeeMin → `p.employeeCount`(직원 수)
  *  · creditScoreMin·creditScoreMax → `p.creditScore`(신용점수)
  *  · hasExistingLoan → `p.hasExistingLoan`(기존 대출 유무)
+ *  · guaranteeInUse → `p.hasExistingLoan`(기존 대출 유무 — 비면 보증 기록도 비어 있다)
  *
  * ★뒤 다섯은 코덱스 3차 #B2(2026-09-04)에서 더했다 — 예전엔 「`profileGapsOf` 가 안 세니 짝지을
  *  이름이 없다」며 뺐지만, 그것은 `profileGapsOf` 쪽 누락이었다. 채우면 판정이 실제로 갈린다:
@@ -665,6 +666,7 @@ const GAP_LABEL_BY_CONDITION_KEY: Record<string, string> = {
   creditScoreMin: "신용점수",
   creditScoreMax: "신용점수",
   hasExistingLoan: "기존 대출 유무",
+  guaranteeInUse: "기존 대출 유무",
   companyScale: "기업 규모",
   noTaxDelinquency: "체납 여부",
   certRequired: "인증 보유",
