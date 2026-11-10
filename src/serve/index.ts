@@ -24,7 +24,7 @@ export { meaningfulKeywords, minKeywordScore } from "./keyword-filter";
 export { mapCategoryToSources } from "./domain-map";
 export type { ConsultingDomain, SectionKey, SourceMapping } from "./domain-map";
 export { extractDeadlineFromText } from "./body-deadline";
-export type { BodyDeadline } from "./body-deadline";
+export type { BodyDeadline, ExtractDeadlineOptions } from "./body-deadline";
 
 export {
   CURRENT_STRUCTURE_VERSION,

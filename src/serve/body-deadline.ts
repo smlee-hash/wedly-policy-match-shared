@@ -24,8 +24,19 @@ const TILDE = /[~～〜∼]/;
 const OPEN_ENDED = /예산\s*소진|상시|선착순/;
 
 type FoundDate = { year: number | null; month: number; day: number; index: number };
-let nowForYearWrap = Date.now();
-const NOW_FOR_YEAR_WRAP = () => nowForYearWrap;
+
+export interface ExtractDeadlineOptions {
+  /**
+   * 글을 올린 날(게시판 목록의 등록일). 있으면 연도 없는 날짜(「7월 31일까지」)에 **이 날의 해**를 붙이고,
+   * 해 넘김(「1월 15일」 → 다음 해)도 이 날을 기준으로 판단한다. 없으면 now 를 쓴다.
+   * ★NO.585 후속(2026-11-10 운영 실측): now 의 해를 붙이면 2013년 글의 「7월 31일까지」가 2027-07-31 마감이 되어
+   * 몇 년 전 글이 「지원 가능」에 남았다.
+   */
+  postedAt?: Date | null;
+}
+
+/** 연도 없는 날짜를 읽을 기준 — 붙일 해와 해 넘김 문턱(이 시각 30일 전보다 앞이면 다음 해). */
+type YearBasis = { year: number; wrapBefore: number };
 
 function clip(s: string): string {
   const t = s.replace(/\s+/g, " ").trim();
@@ -56,13 +67,13 @@ function toStart(d: FoundDate | undefined, fallbackYear: number): Date | null {
   return startOfKstDay(d.year ?? fallbackYear, d.month, d.day);
 }
 
-function toEnd(d: FoundDate, fallbackYear: number, start: Date | null): Date | null {
+function toEnd(d: FoundDate, fallbackYear: number, start: Date | null, wrapBefore: number): Date | null {
   const year = d.year ?? fallbackYear;
   let end = endOfKstDay(year, d.month, d.day);
   if (end == null) return null;
   if (d.year == null && start != null && end.getTime() < start.getTime()) {
     end = endOfKstDay(year + 1, d.month, d.day);
-  } else if (d.year == null && start == null && end.getTime() < NOW_FOR_YEAR_WRAP() - 30 * 86_400_000) {
+  } else if (d.year == null && start == null && end.getTime() < wrapBefore) {
     // 「신청마감 1월 15일」을 12월에 읽으면 올해가 아니라 다음 해다(적대 리뷰 중간).
     end = endOfKstDay(year + 1, d.month, d.day);
   }
@@ -86,8 +97,8 @@ function validate(r: BodyDeadline, now: Date): BodyDeadline | null {
   return r;
 }
 
-function parsePeriodWindow(window: string, now: Date, evidence: string): BodyDeadline | null {
-  const nowYear = kstYearOf(now);
+function parsePeriodWindow(window: string, now: Date, basis: YearBasis, evidence: string): BodyDeadline | null {
+  const baseYear = basis.year;
   const tildeAt = window.search(TILDE);
   if (tildeAt < 0) {
     if (OPEN_ENDED.test(window) && findDates(window).length === 0) {
@@ -102,13 +113,13 @@ function parsePeriodWindow(window: string, now: Date, evidence: string): BodyDea
   const startRaw = leftDates[leftDates.length - 1];
   const endRaw = rightDates[0];
   if (endRaw == null && OPEN_ENDED.test(right)) {
-    const start = toStart(startRaw, startRaw?.year ?? nowYear);
+    const start = toStart(startRaw, startRaw?.year ?? baseYear);
     return { applyStart: start, applyEnd: null, evidence };
   }
   if (endRaw == null) return null;
-  const contextYear = startRaw?.year ?? endRaw.year ?? nowYear;
+  const contextYear = startRaw?.year ?? endRaw.year ?? baseYear;
   const start = toStart(startRaw, contextYear);
-  const end = toEnd(endRaw, start != null ? kstYearOf(start) : contextYear, start);
+  const end = toEnd(endRaw, start != null ? kstYearOf(start) : contextYear, start, basis.wrapBefore);
   if (end == null) return null;
   return validate({ applyStart: start, applyEnd: end, evidence }, now);
 }
@@ -126,9 +137,9 @@ function closestDate(dates: FoundDate[], keywordIndexInWindow: number): FoundDat
   return best;
 }
 
-function fromKeyword(text: string, now: Date): BodyDeadline | null {
+function fromKeyword(text: string, now: Date, basis: YearBasis): BodyDeadline | null {
   let openEnded: BodyDeadline | null = null;
-  const nowYear = kstYearOf(now);
+  const baseYear = basis.year;
   for (const m of text.matchAll(KEYWORD)) {
     const idx = m.index ?? 0;
     const from = Math.max(0, idx - 40);
@@ -140,7 +151,7 @@ function fromKeyword(text: string, now: Date): BodyDeadline | null {
     if (OPEN_ENDED.test(window)) { openEnded = { applyStart: null, applyEnd: null, evidence }; continue; }
     if (dates.length > 0) {
       const picked = closestDate(dates, idx - from);
-      const end = toEnd(picked, picked.year ?? nowYear, null);
+      const end = toEnd(picked, picked.year ?? baseYear, null, basis.wrapBefore);
       if (end != null) {
         const v = validate({ applyStart: null, applyEnd: end, evidence }, now);
         if (v) return v;
@@ -153,10 +164,12 @@ function fromKeyword(text: string, now: Date): BodyDeadline | null {
   return openEnded;
 }
 
-export function extractDeadlineFromText(text: string, now?: Date): BodyDeadline | null {
+export function extractDeadlineFromText(text: string, now?: Date, opts: ExtractDeadlineOptions = {}): BodyDeadline | null {
   if (!text.trim()) return null;
   const at = now ?? new Date();
-  nowForYearWrap = at.getTime();
+  // 붙일 해·해 넘김은 게시일 기준, 너무 오래됐거나 먼 마감 거르기(validate)는 지금 기준이다.
+  const posted = opts.postedAt != null && Number.isFinite(opts.postedAt.getTime()) ? opts.postedAt : at;
+  const basis: YearBasis = { year: kstYearOf(posted), wrapBefore: posted.getTime() - 30 * 86_400_000 };
   // 라벨이 여럿이면(「기존 접수기간 … / 연장 접수기간 …」) 가장 늦은 마감을 택한다(적대 리뷰 높음).
   // 창 안에 열린 표현(상시·예산 소진·선착순)이 있으면 그 창은 마감으로 읽지 않는다.
   let best: BodyDeadline | null = null;
@@ -167,15 +180,15 @@ export function extractDeadlineFromText(text: string, now?: Date): BodyDeadline 
     if (OPEN_ENDED.test(window)) {
       // 열린 기간이라도 시작일은 살린다(「2026.09.01 ~ 예산 소진 시까지」 → 개시형).
       const first = findDates(window)[0];
-      const start = first ? toStart(first, first.year ?? kstYearOf(at)) : null;
+      const start = first ? toStart(first, first.year ?? basis.year) : null;
       if (!best) best = { applyStart: start, applyEnd: null, evidence: clip(text.slice(startIdx, after + 120)) };
       continue;
     }
     const evidence = clip(text.slice(startIdx, after + 120));
-    const parsed = parsePeriodWindow(window, at, evidence);
+    const parsed = parsePeriodWindow(window, at, basis, evidence);
     if (!parsed) continue;
     if (!best || !best.applyEnd || (parsed.applyEnd && parsed.applyEnd.getTime() > best.applyEnd.getTime())) best = parsed;
   }
   if (best) return best;
-  return fromKeyword(text, at);
+  return fromKeyword(text, at, basis);
 }
