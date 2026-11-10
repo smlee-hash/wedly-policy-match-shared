@@ -32,7 +32,7 @@ import {
   checkCondition,
   type BusinessProfile,
 } from "../engine/match-engine";
-import { visibleConditionChecks } from "../engine/visible-checks";
+import { matchStructureOf, visibleConditionChecks } from "../engine/visible-checks";
 import type { StructuredCondition } from "../engine/structure-types";
 import { scoreOf, type FitVerdict } from "../engine/recommend-score";
 import { displayChecks, GENERIC_TO_CHECK, reviewEligibility, SCOPE_UNKNOWN_TO_CHECK, STEP_LABELS, unverifiedStep, type EligibilityReview } from "../engine/eligibility-review";
@@ -365,11 +365,9 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
   const unclassified = guessed === null;
   const group: FundingGroup = guessed ?? "grant";
 
-  // ★적대 리뷰(2026-08-29 중요4)와 같은 줄: `structure ?? ruleStructure` 는 실패 스텁을 골라잡는다 —
-  //   상태로 판별한다. 추천 통로(recommend/route.ts)와 한 글자도 다르면 두 화면의 판정이 갈린다.
-  const aiUsable = r.structureStatus === "done" || r.structureStatus === "needs_review";
-  // 지역 보태기·대조·보이는 줄은 공고 상세 표와 같은 함수 하나로(NO.585 후속) — 둘이 갈리면 같은 공고가 목록과 상세에서 다르게 보인다.
-  const { structure, match: m, shown } = visibleConditionChecks(aiUsable ? r.structure : r.ruleStructure, r, profile, now);
+  // 구조 고르기(matchStructureOf)·지역 보태기·대조·보이는 줄은 공고 상세 표와 같은 함수로(NO.585 후속)
+  //   — 둘이 갈리면 같은 공고가 목록과 상세에서 다르게 보인다. 추천 통로(recommend/route.ts)와도 한 글자도 다르면 안 된다.
+  const { structure, match: m, shown } = visibleConditionChecks(matchStructureOf(r), r, profile, now);
   // 추천 판정·단계(NO.585) — 지역·업종·혜택 아닌 글은 안 맞음, 고객 정보로 못 가린 것만 「확인할 것」.
   const review = reviewEligibility({
     kind: "announcement",

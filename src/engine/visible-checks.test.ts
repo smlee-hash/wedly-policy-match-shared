@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { BusinessProfile } from "./match-engine";
-import { visibleConditionChecks } from "./visible-checks";
+import { matchStructureOf, readByAi, visibleConditionChecks } from "./visible-checks";
 
 /**
  * 목록 줄과 공고 상세 「신청 자격 대조」 표가 **같은 조건 줄**을 보이는가(NO.585 후속, 2026-11-10 운영 실측).
@@ -86,18 +86,50 @@ describe("visibleConditionChecks — 목록 줄과 상세 표가 같은 조건 �
   });
 });
 
+describe("matchStructureOf — 목록과 상세가 같은 저장 구조로 대조한다", () => {
+  const ai = { conditions: [{ op: "eq", key: "noTaxDelinquency", value: true, rawText: "AI", machineReadable: true }] };
+  const rule = { conditions: [{ op: "in", key: "region", value: ["경기"], rawText: "규칙", machineReadable: true }] };
+
+  it("AI 가 읽은 공고(done·needs_review)는 AI 구조", () => {
+    expect(matchStructureOf({ structureStatus: "done", structure: ai, ruleStructure: rule })).toBe(ai);
+    expect(matchStructureOf({ structureStatus: "needs_review", structure: ai, ruleStructure: rule })).toBe(ai);
+    expect(readByAi({ structureStatus: "done" })).toBe(true);
+  });
+
+  it("못 읽었거나 읽는 중이면 규칙 구조 — 실패 스텁(structure)을 고르지 않는다", () => {
+    for (const status of ["pending", "working", "failed"]) {
+      expect(matchStructureOf({ structureStatus: status, structure: { failed: true }, ruleStructure: rule })).toBe(rule);
+      expect(readByAi({ structureStatus: status })).toBe(false);
+    }
+  });
+
+  it("규칙 구조가 비어(null) 있으면 null 그대로 — 목록과 같다", () => {
+    expect(matchStructureOf({ structureStatus: "failed", structure: { failed: true }, ruleStructure: null })).toBeNull();
+  });
+
+  it("상세 응답에 칸이 아예 없으면(칸을 보태기 전 서버) 예전처럼 structure", () => {
+    expect(matchStructureOf({ structureStatus: "pending", structure: ai })).toBe(ai);
+  });
+
+  it("실패 공고의 상세 대조표가 목록 줄과 같은 줄을 보인다", () => {
+    const row = { ...SOJT_ROW, structureStatus: "failed", structure: null, ruleStructure: SOJT_STRUCTURE };
+    const list = visibleConditionChecks(matchStructureOf(row), row, GG_MAKER, NOW).shown.map((c) => c.verdict);
+    expect(list).toEqual(["pass", "unknown", "fail", "unknown", "pass"]);
+  });
+});
+
 describe("배선 — 목록과 상세가 같은 함수를 부른다", () => {
   const read = (rel: string) => readFileSync(new URL(rel, import.meta.url), "utf8");
 
   it("목록(funding-map-build)은 visibleConditionChecks 의 shown 으로 줄을 만든다", () => {
     const src = read("../build/funding-map-build.ts");
-    expect(src).toMatch(/visibleConditionChecks\(/);
+    expect(src).toMatch(/visibleConditionChecks\(matchStructureOf\(r\),/);
     expect(src).toMatch(/fitsOf\(shown\)/);
   });
 
   it("상세(DetailPanel)는 visibleConditionChecks 의 shown 으로 대조표를 만든다 — match.checks 를 바로 쓰지 않는다", () => {
     const src = read("../ui/policy/DetailPanel.tsx");
-    expect(src).toMatch(/visibleConditionChecks\(/);
+    expect(src).toMatch(/visibleConditionChecks\(matchStructureOf\(detail\),/);
     expect(src).toMatch(/mergeConditionRows\(shown,/);
     expect(src).not.toMatch(/mergeConditionRows\(match\.checks/);
   });
