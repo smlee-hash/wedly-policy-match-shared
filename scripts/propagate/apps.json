@@ -6,12 +6,15 @@
     "install": true,
     "postSteps": [
       "node scripts/design-system/cli.mjs generate",
+      "npm run design:catalog:build",
       "npm run design:check"
     ],
     "commitPaths": [
       "package.json",
       "package-lock.json",
-      "src/lib/design-system/registry.generated.json"
+      "src/lib/design-system/registry.generated.json",
+      "public/design-system-demos/sandbox.js",
+      "public/design-system-demos/sandbox.css"
     ]
   },
   {

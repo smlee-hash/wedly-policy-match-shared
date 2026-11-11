@@ -21,12 +21,25 @@
 //  `npm install --package-lock-only` 가 잠금 파일에 새 꾸러미 항목을 만든다. 그러면 이 대조기가
 //  「모르는 항목」으로 **안전하게 실패**한다 — 봇이 멋대로 남의 꾸러미를 앱에 들이지 않는다는 뜻이고,
 //  그때는 사람이 한 번 보고 손으로 핀을 올린 뒤 이 규칙을 넓힐지 정한다.
+//
+// ★예외 하나 — ERP 부품 예제 묶음(sandbox.js·sandbox.css, 2026-11-11 NO.714):
+//  ERP 의 design:check 가 이 묶음을 공용 꾸러미 원본에서 다시 묶어 대조하므로 핀을 올리면 묶음도 새로 만들어야 한다
+//  (빠지면 10/31~11/11 내내 봇이 멈췄고, 사람이 손으로 핀을 올리다 묶음을 빠뜨려 Railway 배포가 실패했다 — ERP PR #288).
+//  압축 번들이라 「기준 + 핀 한 줄」로 대조할 수 없다. 대신 Railway 운영 조립(scripts/railway-build.mjs)이
+//  **기준 package.json 의 build 첫 단계 design:check** 로 원본에서 다시 묶어 한 바이트라도 다르면 배포를 멈춘다.
+//  그래서 이 대조기는 ① 그 관문이 기준 build 맨 앞에 있는가(산출물 package.json 은 ①번 규칙이 기준과 같게 묶는다)
+//  ② 기준에 이미 있던 두 파일인가 ③ 보통 파일·크기·UTF-8 인가만 본다. 남는 경계: 테스트 서버 조립(build:qa)은
+//  design:check 를 돌지 않는다 — 다만 테스트 서버는 사람이 고른 가지만 올리므로 봇 커밋이 저절로 가지 않는다.
 import { lstatSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 
 const NAME = "@wedly/policy-match-shared";
 const REPO = "smlee-hash/wedly-policy-match-shared";
 const MAX_REGISTRY_BYTES = 5 * 1024 * 1024; // 5MB — ERP 등록부 실측 수십 KB
+const MAX_BUNDLE_BYTES = 8 * 1024 * 1024; // 8MB — ERP 예제 묶음 실측 sandbox.js 1.5MB·sandbox.css 0.3MB
+const CATALOG_BUNDLES = new Set(["public/design-system-demos/sandbox.js", "public/design-system-demos/sandbox.css"]);
+/** Railway 운영 조립이 첫 단계로 요구하는 글자 그대로(ERP scripts/railway-build-steps.mjs) */
+const CATALOG_GATE = "npm run design:check";
 const MAX_DIFF_LINES = 20; // 오류문이 로그를 뒤덮지 않게
 
 const [baseDir, artifactDir, sha, ...commitPaths] = process.argv.slice(2);
@@ -224,6 +237,66 @@ function checkRegistryJson(rel) {
   }
 }
 
+/** ⑤-1 예제 묶음을 원본과 대조할 배포 관문이 기준에 있는가 — 묶음이 둘이어도 한 번만 본다 */
+let catalogGateChecked = false;
+function checkCatalogGate() {
+  if (catalogGateChecked) return;
+  catalogGateChecked = true;
+  const base = readJson(join(baseDir, "package.json"), "기준 package.json");
+  if (!base) return; // readJson 이 이미 적었다
+  // build·design:check 의 글자는 비공개 앱의 내용이라 적지 않는다 — 무엇이 빠졌는지만 적는다.
+  const build = base.scripts?.build;
+  if (typeof build !== "string" || !build.startsWith(`${CATALOG_GATE} && `)) {
+    problems.push(
+      `기준 package.json 의 build 가 「${CATALOG_GATE} && 」로 시작하지 않습니다 — 예제 묶음을 원본과 대조할 배포 관문이 없어 들이지 않습니다`,
+    );
+  }
+  const gate = base.scripts?.["design:check"];
+  if (typeof gate !== "string" || !gate.trim()) {
+    problems.push("기준 package.json 에 design:check 스크립트가 없습니다 — 예제 묶음을 원본과 대조할 배포 관문이 없어 들이지 않습니다");
+  }
+}
+
+/** ⑤-2 ERP 부품 예제 묶음 — 기준에 있던 파일이고, 보통 파일·크기·UTF-8 이면 된다(내용 대조는 배포 관문이 한다) */
+function checkCatalogBundle(rel) {
+  checkCatalogGate();
+  let baseFile = false;
+  try {
+    baseFile = lstatSync(join(baseDir, rel)).isFile();
+  } catch {
+    baseFile = false;
+  }
+  if (!baseFile) {
+    problems.push(`기준에 없는 예제 묶음은 들이지 않습니다: ${rel} — 봇은 이미 있던 묶음만 다시 만듭니다`);
+    return;
+  }
+  const path = join(artifactDir, rel);
+  let size;
+  try {
+    const st = lstatSync(path);
+    if (!st.isFile()) throw new Error("보통 파일이 아님(링크·폴더는 읽지 않습니다)");
+    size = st.size;
+  } catch (err) {
+    problems.push(`산출물 ${rel} 를 읽지 못함: ${String(err?.message ?? err).split("\n")[0]}`);
+    return;
+  }
+  // 크기는 읽기 **전에** 본다 — 터무니없이 큰 파일을 통째로 메모리에 올리지 않게.
+  if (size === 0) {
+    problems.push(`산출물 ${rel} 가 비었습니다`);
+    return;
+  }
+  if (size > MAX_BUNDLE_BYTES) {
+    problems.push(`산출물 ${rel} 가 너무 큽니다: ${size} 바이트(상한 ${MAX_BUNDLE_BYTES})`);
+    return;
+  }
+  try {
+    new TextDecoder("utf-8", { fatal: true }).decode(readFileSync(path));
+  } catch {
+    // 묶음은 비공개 앱 코드라 한 글자도 적지 않는다(H2) — 이름·길이만.
+    problems.push(`산출물 ${rel} 가 UTF-8 글자가 아닙니다(내용은 표시하지 않음) — ${size}바이트`);
+  }
+}
+
 // ④ 목록 밖 파일 거부 · 목록에 있는데 없는 파일도 거부
 let present = [];
 try {
@@ -244,6 +317,7 @@ for (const rel of commitPaths) {
   if (rel === "package.json") checkPackageJson(rel);
   else if (rel === "package-lock.json") checkLockJson(rel);
   else if (rel.endsWith("registry.generated.json")) checkRegistryJson(rel);
+  else if (CATALOG_BUNDLES.has(rel)) checkCatalogBundle(rel);
   else problems.push(`검증 규칙이 없는 파일입니다: ${rel} — 규칙을 먼저 정한 뒤 커밋 대상에 넣으세요`);
 }
 
