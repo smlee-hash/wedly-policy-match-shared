@@ -148,7 +148,88 @@ describe("상품 — rulesToConditions 가 이름·기관으로 붙인다", () =
 
   it("이름을 안 주거나 해당 없는 이름이면 종전과 같다", () => {
     expect(rulesToConditions({}, "아무나")).toEqual([]);
-    expect(rulesToConditions({}, "외화대출 보유기업", "원화전환대출", "중소기업은행")).toEqual([]);
+    expect(rulesToConditions({}, "중소기업", "원화전환대출", "중소기업은행")).toEqual([]);
+  });
+});
+
+describe("상품 대상 글 — 기존 대출·보증을 요구하는 문장", () => {
+  // 대상 글은 운영 자료(2026-11-11 읽기 전용 조회)에서 그대로 옮겼다.
+  const HANA = "기업대출 이용하는 개인사업자 중 기존 상품의 연장 · 대환이 불가하거나, 연체일수가 90일 이하인 자";
+  const CHANGWON =
+    "다음 각 호의 요건을 모두 만족하는 소상공인 1. 관내 내 사업자 등록 후 영업 중인 소상공인 2. 경남신용보증재단 보증부대출을 이용 중인 소상공인 3. 다음 각 호의 어느 하나에 해당하는 소상공인(경남신용보증재단 상담일 기준) ⓐ 저신용 : 대표자의 개인신용평점이 839점 이하인 업체 ⓓ 신용하락 : 신용평점 하락으로 대환대출 대상 건의 대출 당시보다 신용평점구간이 1구간 이상 하락한 업체";
+  const GYEONGGI_FUND =
+    "-재창업자금 : 경기도 소상공인 재창업지원사업을 수료한 자 -대환자금 : 기존 소상공인지원자금(소상공인대환자금, 점포임차보증금자금 제외)과 그 외 일반대출을 이용 중인 도내 소상공인 -e커머스 피해기업자금 : 티몬, 위메프 등에 입점하여 신청일 기준 해당 플랫폼의 판매대금 중 미정산내역을 보유한 소상공인";
+  const THRESHOLD =
+    "접수일 현재 강원특별자치도내에 사업자 등록을 완료하고 영업중인 중소기업, 소상공인 중 NICE 신용평가점수 865점 이하인 개인사업자 (대환자금의 경우 보증신청 접수일 현재 보증 신청인 명의로 대출일로부터 3개월이 경과한 신용대출을 보유하고 정상적으로 상환 중인 기업)";
+  const SEOUL =
+    "1) 중저신용자 - 시행규칙 별표1에 해당하는 서울 소재 중소기업 및 소상공인 중 신용평점 839점 이하인 기업 2) 이자비용절감대환 - 시행규칙 별표1에 해당하는 서울 소재 중소기업 및 소상공인 중 10% 이상 고금리 대출중인 채무 보유자 중 대출일로부터 2개월 경과한 기업";
+  const fromTarget = (rawText: string): StructuredCondition => ({
+    key: "hasExistingLoan", op: "eq", value: true, rawText, machineReadable: true,
+  });
+  const loanAndGuarantee = (out: StructuredCondition[]) =>
+    out.filter((c) => c.key === "hasExistingLoan" || c.key === "guaranteeInUse");
+
+  it("「기업대출 이용하는 개인사업자」 → 기존 대출 조건, 원문 조각을 그대로", () => {
+    const out = rulesToConditions({ isCorporation: false }, HANA, "개인사업자 장기분할상환", "주식회사 하나은행");
+    expect(loanAndGuarantee(out)).toEqual([fromTarget("기업대출 이용하는 개인사업자")]);
+  });
+
+  it("「경남신용보증재단 보증부대출을 이용 중인 소상공인」 → 경남 재단 기존 보증 조건", () => {
+    const out = rulesToConditions({ humanCheck: [CHANGWON.slice(0, 80)] }, CHANGWON, "창원시 희망더드림 특별자금", "서민금융진흥원");
+    expect(loanAndGuarantee(out)).toEqual([
+      {
+        key: "guaranteeInUse",
+        op: "in",
+        value: ["경남신용보증재단"],
+        rawText: "경남신용보증재단 보증부대출을 이용 중인 소상공인",
+        machineReadable: true,
+      },
+    ]);
+  });
+
+  it("이름이 전환인 상품 — 「외화대출 보유기업」 → 기존 대출 조건", () => {
+    const out = rulesToConditions({}, "당행 및 타행 외화대출 보유기업", "원화전환대출", "중소기업은행");
+    expect(out).toEqual([fromTarget("당행 및 타행 외화대출 보유기업")]);
+  });
+
+  it("이름이 갈아타기인 상품 — 괄호 속 「대출 보유고객」 → 기존 대출 조건", () => {
+    const text = "연소득금액 10백만원 이상인 고객(개인사업자 대출이동제 대상 대출 보유고객)";
+    expect(rulesToConditions({}, text, "WA사장님신용대출(갈아타기)", "광주은행")).toEqual([
+      fromTarget("개인사업자 대출이동제 대상 대출 보유고객"),
+    ]);
+  });
+
+  it("대환이 여러 쓰임 가운데 한 갈래뿐이면 붙이지 않는다", () => {
+    const fund = "경기도 중소기업 육성자금(소상공인 지원_점포임차자금, 경영개선, (재)창업 등)";
+    expect(loanAndGuarantee(rulesToConditions({}, GYEONGGI_FUND, fund, "서민금융진흥원"))).toEqual([]);
+    expect(loanAndGuarantee(rulesToConditions({}, THRESHOLD, "문턱없애기Ⅱ 협약보증", "서민금융진흥원"))).toEqual([]);
+    expect(loanAndGuarantee(rulesToConditions({}, SEOUL, "서울시 중소기업 육성자금 지원(운전_포용금융자금)", ""))).toEqual([]);
+    expect(rulesToConditions({}, "일반자금대출(운전,시설,대환 대출)", "사업자신용대출(신한)", "신한저축은행")).toEqual([]);
+  });
+
+  it("대환·전환을 말하지 않는 상품은 대상 글이 대출을 요구해도 종전과 같다", () => {
+    expect(rulesToConditions({}, "수협은행 부동산 담보대출을 보유한 개인사업자", "더해드림론", "수협은행")).toEqual([]);
+  });
+
+  it("연체 대출·대출이 없는 사람을 받는 문장은 요구가 아니다", () => {
+    expect(rulesToConditions({}, "당행 연체대출금을 보유 중인 고객은 대환 불가", "사장님대출", "")).toEqual([]);
+    expect(rulesToConditions({}, "기존 대출을 보유하지 않은 사업자의 대환 상담", "상담", "")).toEqual([]);
+    expect(rulesToConditions({}, "재단 보증을 이용 중이 아닌 기업, 대환 불가", "새출발", "")).toEqual([]);
+  });
+
+  it("판정 — 기존 대출 있으면 맞음, 없음이 확인되면 불가, 비면 확인 필요 / 경남 재단 보증이면 맞음", () => {
+    const [hana] = loanAndGuarantee(rulesToConditions({}, HANA, "개인사업자 장기분할상환", "주식회사 하나은행"));
+    expect(checkCondition(hana, { hasExistingLoan: true }, NOW).verdict).toBe("pass");
+    expect(checkCondition(hana, { hasExistingLoan: false }, NOW).verdict).toBe("fail");
+    expect(checkCondition(hana, {}, NOW).verdict).toBe("unknown");
+    const [changwon] = loanAndGuarantee(rulesToConditions({}, CHANGWON, "창원시 희망더드림 특별자금", ""));
+    const gyeongnam: LoanUse = { ...GYEONGGI, name: "경남신용보증재단", sido: "경남" };
+    expect(checkCondition(changwon, { loanUses: [gyeongnam] }, NOW)).toMatchObject({
+      verdict: "pass",
+      note: "경남신용보증재단 보증 이용 중(기업상태표) → 전환보증 대상",
+    });
+    expect(checkCondition(changwon, { hasExistingLoan: false }, NOW).verdict).toBe("fail");
+    expect(checkCondition(changwon, { loanUses: [GYEONGGI] }, NOW).verdict).not.toBe("pass");
   });
 });
 
