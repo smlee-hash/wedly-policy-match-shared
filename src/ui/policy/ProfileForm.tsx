@@ -483,6 +483,8 @@ export default function ProfileForm({
   const [docFileCount, setDocFileCount] = useState(0); // 칸을 채워 준 서류 수(아래 「N개」)
   const [customerKey, setCustomerKey] = useState(""); // 고객을 불러온 상태의 검색어 — 서류를 그 고객에 붙이는 열쇠
   const loadedBiznoRef = useRef(""); // 불러온 고객의 사업자번호(숫자만) — 이 번호에서 벗어나면 다른 회사라 열쇠를 비운다
+  // 불러온 고객의 기관별 보증·대출 기록 — 화면 칸이 없어 진단 때 그대로 싣는다(runDiagnose, NO.714).
+  const loadedLoanUsesRef = useRef<Pick<BusinessProfile, "loanUses" | "loanUsesComplete">>({});
   const applyDocumentsRef = useRef<(r: DocumentPrefillResult) => void>(() => {});
   /**
    * 사업자번호 칸에 값을 넣는 **단 하나의 길** — 직접 입력·서류 적용·고르는 상자가 모두 여기로 온다.
@@ -625,6 +627,7 @@ export default function ProfileForm({
     setDocFileCount(0);
     setCustomerKey("");
     loadedBiznoRef.current = "";
+    loadedLoanUsesRef.current = {};
     doc.reset(); // 올리는 중이던 앞 고객 서류는 끊고, 늦게 오는 답은 버린다
   };
 
@@ -734,6 +737,9 @@ export default function ProfileForm({
     clearFields(); // 앞 고객 값이 남아 섞이지 않게 먼저 비운다
     setCustomerKey(key); // 이제부터 올리는 서류는 이 고객 자료에 붙는다(ERP·컨설턴트 앱)
     loadedBiznoRef.current = d.bizno ? maskBizno(d.bizno).replace(/\D/g, "") : ""; // 칸에 들어가는 모양(최대 10자리)과 같게 맞춘다
+    if (Array.isArray(d.loanUses)) {
+      loadedLoanUsesRef.current = d.loanUsesComplete === true ? { loanUses: d.loanUses, loanUsesComplete: true } : { loanUses: d.loanUses };
+    }
     if (d.companyName) setCompanyName(d.companyName);
     // 법인 여부 — 사업자번호가 가르면 그것이 이긴다(엔진의 corporationOf 와 같은 순서).
     let corp: Tri = "";
@@ -787,7 +793,11 @@ export default function ProfileForm({
 
   /** 진단·자금 지도에 넘기기 직전에 deriveProfileFlags 를 거친다 — 엔진이 읽는 칸(hasCert·hasPatent·creditScore·region …)이 채워진다. */
   const runDiagnose = async () => {
-    const ok = await onDiagnose(deriveProfileFlags(buildProfile()));
+    const p = deriveProfileFlags(buildProfile());
+    // 목록 줄은 서버가 저장된 보증·대출 기록으로 판정한다. 상세 대조도 같은 기록을 쓰게, 서버와 같은 규칙
+    // (불러온 그 회사 번호 그대로 · 대출 「없음」이 아님)일 때만 싣는다(NO.714).
+    const sameCompany = loadedBiznoRef.current.length === 10 && biznoDigits === loadedBiznoRef.current;
+    const ok = await onDiagnose(sameCompany && p.hasExistingLoan !== false ? { ...p, ...loadedLoanUsesRef.current } : p);
     // 쌓이는 좁은 화면에서만 접는다 — 넓은 화면은 패널이 왼쪽에 서 있어 접을 이유가 없다.
     // 창이 없는 곳(서버 그리기·시험)은 예전처럼 접는다. 「조건 수정」으로 다시 편다.
     // 넓은 폼(wide)은 성공하면 화면이 결과 단계로 넘어가므로 접지 않는다 — 돌아오면 펼친 채 그대로다.

@@ -112,6 +112,23 @@ describe("회사 정보 저장 — sessionStorage 키 wedly-policy-match:profile
     }
   });
 
+  it("기관별 보증·대출 기록(loanUses)도 그대로 읽는다 — 새로 고침 뒤 상세 대조가 목록과 같게(NO.714)", () => {
+    const s = 가짜저장소();
+    const 기록 = {
+      ...프로필,
+      loanUses: [{ agency: "지역신용보증재단" as const, name: "경기신용보증재단", sido: "경기", status: "in-use" as const, source: "기업상태표" }],
+      loanUsesComplete: true,
+    };
+    writeStoredProfile(s, 기록);
+    expect(readStoredProfile(s)).toEqual(기록);
+  });
+
+  it("기록 모양이 깨졌거나 다른 칸에 객체 목록이 오면 null", () => {
+    for (const 깨진 of ['{"loanUses":[1]}', '{"loanUses":[{"name":{"안":1}}]}', '{"loanUses":["글"]}', '{"certTypes":[{"a":"b"}]}', '{"loanUses":{"a":"b"}}']) {
+      expect(readStoredProfile(가짜저장소({ [PROFILE_STORAGE_KEY]: 깨진 })), `깨진 값 ${깨진}`).toBeNull();
+    }
+  });
+
   it("저장소 접근이 막혀도(읽기·쓰기·지우기) 터지지 않는다", () => {
     expect(readStoredProfile(null)).toBeNull();
     expect(readStoredProfile(가짜저장소({ [PROFILE_STORAGE_KEY]: JSON.stringify(프로필) }, ["get"]))).toBeNull();
