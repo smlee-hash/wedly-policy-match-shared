@@ -1,4 +1,14 @@
 {
+  "scripts/propagate/__tests__/workflow.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/build/funding-map-build.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 9
+    }
+  },
   "src/collect/attachment-text.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
@@ -17,6 +27,11 @@
       "count": 1
     }
   },
+  "src/collect/board/attachment-list.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 5
+    }
+  },
   "src/collect/board/attachment-url.ts": {
     "no-control-regex": {
       "count": 1
@@ -28,9 +43,15 @@
     },
     "no-useless-escape": {
       "count": 5
+    },
+    "wedly/no-weak-assertion": {
+      "count": 2
     }
   },
   "src/collect/board/detail-fill.ts": {
+    "no-console": {
+      "count": 1
+    },
     "no-useless-escape": {
       "count": 1
     }
@@ -38,6 +59,21 @@
   "src/collect/board/engine.test.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
+    }
+  },
+  "src/collect/board/extra-ca.ts": {
+    "wedly/no-double-cast": {
+      "count": 1
+    }
+  },
+  "src/collect/board/layers/heuristic.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/collect/board/layers/heuristic.ts": {
+    "wedly/no-double-cast": {
+      "count": 2
     }
   },
   "src/collect/board/layers/render.ts": {
@@ -53,11 +89,22 @@
   "src/collect/board/layers/selfheal.test.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
+    },
+    "wedly/no-weak-assertion": {
+      "count": 1
     }
   },
   "src/collect/board/proxy.test.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 6
+    },
+    "wedly/no-weak-assertion": {
+      "count": 2
+    }
+  },
+  "src/collect/board/proxy.ts": {
+    "wedly/no-double-cast": {
+      "count": 3
     }
   },
   "src/collect/board/registry.test.ts": {
@@ -65,13 +112,28 @@
       "count": 7
     }
   },
+  "src/collect/board/sources/aca.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
   "src/collect/board/sources/ansan.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
     }
   },
+  "src/collect/board/sources/bepa.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
   "src/collect/board/sources/bepa.ts": {
     "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "src/collect/board/sources/bssinbo.test.ts": {
+    "wedly/no-weak-assertion": {
       "count": 1
     }
   },
@@ -90,8 +152,18 @@
       "count": 1
     }
   },
+  "src/collect/board/sources/cbtp.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
   "src/collect/board/sources/cbtp.ts": {
     "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "src/collect/board/sources/cistep.test.ts": {
+    "wedly/no-weak-assertion": {
       "count": 1
     }
   },
@@ -102,6 +174,16 @@
   },
   "src/collect/board/sources/cnsinbo.ts": {
     "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "src/collect/board/sources/cwip.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/collect/board/sources/dapa.test.ts": {
+    "wedly/no-weak-assertion": {
       "count": 1
     }
   },
@@ -121,6 +203,16 @@
     },
     "no-useless-escape": {
       "count": 2
+    }
+  },
+  "src/collect/board/sources/exportvoucher.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/collect/board/sources/gbia.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
     }
   },
   "src/collect/board/sources/gbia.ts": {
@@ -163,6 +255,11 @@
       "count": 1
     }
   },
+  "src/collect/board/sources/gwtp.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
   "src/collect/board/sources/gwtp.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
@@ -170,6 +267,11 @@
   },
   "src/collect/board/sources/hanam.ts": {
     "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "src/collect/board/sources/hespa.test.ts": {
+    "wedly/no-weak-assertion": {
       "count": 1
     }
   },
@@ -198,6 +300,16 @@
       "count": 4
     }
   },
+  "src/collect/board/sources/jbio.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/collect/board/sources/jbsinbo.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
   "src/collect/board/sources/jbsinbo.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 2
@@ -218,8 +330,18 @@
       "count": 1
     }
   },
+  "src/collect/board/sources/jica.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 2
+    }
+  },
   "src/collect/board/sources/jnsinbo.ts": {
     "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "src/collect/board/sources/kbiz.test.ts": {
+    "wedly/no-weak-assertion": {
       "count": 1
     }
   },
@@ -258,13 +380,38 @@
       "count": 1
     }
   },
+  "src/collect/board/sources/kimst.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/collect/board/sources/kiria.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/collect/board/sources/kita.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 3
+    }
+  },
   "src/collect/board/sources/kita.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
     }
   },
+  "src/collect/board/sources/knrec.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
   "src/collect/board/sources/kocca.ts": {
     "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "src/collect/board/sources/koreaexim.test.ts": {
+    "wedly/no-weak-assertion": {
       "count": 1
     }
   },
@@ -283,14 +430,25 @@
       "count": 1
     }
   },
+  "src/collect/board/sources/kotra.ts": {
+    "wedly/no-double-cast": {
+      "count": 1
+    }
+  },
   "src/collect/board/sources/mainbiz.test.ts": {
     "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    },
+    "wedly/no-weak-assertion": {
       "count": 1
     }
   },
   "src/collect/board/sources/mainbiz.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 2
+    },
+    "wedly/no-double-cast": {
+      "count": 1
     }
   },
   "src/collect/board/sources/ministries.ts": {
@@ -301,6 +459,9 @@
   "src/collect/board/sources/mof.test.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 2
+    },
+    "wedly/no-weak-assertion": {
+      "count": 1
     }
   },
   "src/collect/board/sources/mof.ts": {
@@ -310,6 +471,11 @@
   },
   "src/collect/board/sources/molit.ts": {
     "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "src/collect/board/sources/motie.test.ts": {
+    "wedly/no-weak-assertion": {
       "count": 1
     }
   },
@@ -333,6 +499,16 @@
       "count": 1
     }
   },
+  "src/collect/board/sources/pipa.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/collect/board/sources/pomia.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
   "src/collect/board/sources/pomia.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
@@ -343,14 +519,29 @@
       "count": 1
     }
   },
+  "src/collect/board/sources/riia.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
   "src/collect/board/sources/sba.ts": {
     "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "src/collect/board/sources/seoulsinbo.test.ts": {
+    "wedly/no-weak-assertion": {
       "count": 1
     }
   },
   "src/collect/board/sources/sese.ts": {
     "no-useless-escape": {
       "count": 2
+    }
+  },
+  "src/collect/board/sources/sida.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
     }
   },
   "src/collect/board/sources/sjsinbo.ts": {
@@ -365,6 +556,11 @@
   },
   "src/collect/board/sources/smtech.ts": {
     "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "src/collect/board/sources/snip.test.ts": {
+    "wedly/no-weak-assertion": {
       "count": 1
     }
   },
@@ -388,9 +584,24 @@
       "count": 1
     }
   },
+  "src/collect/board/sources/tp-gyeongbuk.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/collect/board/sources/tp-gyeongnam.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
   "src/collect/board/sources/uesc.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
+    }
+  },
+  "src/collect/board/sources/ulsan.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 2
     }
   },
   "src/collect/board/sources/ulsan.ts": {
@@ -403,14 +614,54 @@
       "count": 1
     }
   },
+  "src/collect/board/sources/wfi.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/collect/hwp-text.ts": {
+    "wedly/no-double-cast": {
+      "count": 1
+    }
+  },
+  "src/collect/products/sources/finlife-soho.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/collect/products/sources/gcgf.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/collect/products/sources/kakaobank-soho.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
   "src/collect/products/sources/kibo.test.ts": {
     "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "src/collect/products/sources/kosmes.test.ts": {
+    "wedly/no-weak-assertion": {
       "count": 1
     }
   },
   "src/collect/products/sources/ksure.test.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
+    }
+  },
+  "src/collect/products/sources/manual.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/collect/products/sources/seoulshinbo.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 2
     }
   },
   "src/collect/products/sources/tips.ts": {
@@ -423,6 +674,11 @@
       "count": 1
     }
   },
+  "src/collect/sources/work24.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 6
+    }
+  },
   "src/collect/sources/work24.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
@@ -431,8 +687,48 @@
       "count": 1
     }
   },
+  "src/documents/index.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 2
+    }
+  },
   "src/documents/index.ts": {
     "no-control-regex": {
+      "count": 1
+    }
+  },
+  "src/documents/parse-biz-registration.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/documents/parse-employment.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/documents/parse-financial.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/documents/review-af1.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 3
+    }
+  },
+  "src/engine/eligibility-review.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/engine/feedback-diff.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/engine/match-engine.test.ts": {
+    "wedly/no-weak-assertion": {
       "count": 1
     }
   },
@@ -444,11 +740,31 @@
       "count": 5
     }
   },
+  "src/engine/rule-extract.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 3
+    }
+  },
   "src/engine/rule-extract.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
     },
     "no-irregular-whitespace": {
+      "count": 1
+    }
+  },
+  "src/engine/sector.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 2
+    }
+  },
+  "src/engine/sigungu.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/engine/structure-types.test.ts": {
+    "wedly/no-weak-assertion": {
       "count": 1
     }
   },
@@ -467,6 +783,31 @@
       "count": 1
     }
   },
+  "src/exports-map.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 3
+    }
+  },
+  "src/funding/funding-map.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 2
+    }
+  },
+  "src/funding/funding-search.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/funding/products/sources/manual.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/readme-imports.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 3
+    }
+  },
   "src/serve/attachment-download.test.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 4
@@ -482,14 +823,37 @@
       "count": 1
     }
   },
+  "src/serve/domain-map.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 2
+    }
+  },
   "src/serve/verdict.test.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 4
     }
   },
+  "src/ui/FundingRecommendPanel.test.tsx": {
+    "wedly/no-weak-assertion": {
+      "count": 4
+    }
+  },
+  "src/ui/customSelect-listbox-render.test.tsx": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
+  "src/ui/customSelect-render.test.tsx": {
+    "wedly/no-weak-assertion": {
+      "count": 1
+    }
+  },
   "src/ui/funding-map-render.test.tsx": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
+    },
+    "wedly/no-weak-assertion": {
+      "count": 10
     }
   },
   "src/ui/policy/DetailPanel.tsx": {
@@ -498,11 +862,32 @@
     },
     "react-hooks/exhaustive-deps": {
       "count": 1
+    },
+    "wedly/require-disable-reason": {
+      "count": 1
     }
   },
   "src/ui/policy/ProfileForm.test.tsx": {
     "@typescript-eslint/no-unused-vars": {
       "count": 2
+    },
+    "wedly/no-weak-assertion": {
+      "count": 4
+    }
+  },
+  "src/ui/policy/SourceDirectoryPanel.test.tsx": {
+    "wedly/no-weak-assertion": {
+      "count": 2
+    }
+  },
+  "src/ui/policy/profile-form-layout.test.tsx": {
+    "wedly/no-weak-assertion": {
+      "count": 4
+    }
+  },
+  "src/ui/policy/readable-contrast.test.ts": {
+    "wedly/no-weak-assertion": {
+      "count": 1
     }
   },
   "src/ui/policy/result-one-list.test.tsx": {
@@ -515,6 +900,11 @@
       "count": 2
     }
   },
+  "src/ui/policy/review-1007.test.tsx": {
+    "wedly/no-weak-assertion": {
+      "count": 6
+    }
+  },
   "src/ui/policy/review-bf4.test.tsx": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
@@ -523,6 +913,9 @@
   "src/ui/policy/two-step.test.tsx": {
     "@typescript-eslint/no-unused-vars": {
       "count": 2
+    },
+    "wedly/no-weak-assertion": {
+      "count": 4
     }
   }
 }
