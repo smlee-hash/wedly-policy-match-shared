@@ -35,7 +35,8 @@ function num(v: number | undefined): number | null {
  * 규칙 → 조건. 화면·판정 순서를 코드가 정한다(지역 → 업종/규모 → 업력 → 신용 → 매출/직원 → 형태).
  * @param rules 어댑터가 원천에서 읽어 적은 기계 대조용 규칙
  * @param targetText 사람이 읽는 대상 원문 — 키별 한국어를 못 지을 때의 대타
- * @param name 상품 이름 — 전환보증·대환이면 기존 보증·대출 조건을 끝에 붙인다(규칙이 이미 정했으면 안 붙인다)
+ * @param name 상품 이름 — 전환보증·대환이면 기존 보증·대출 조건을 끝에 붙인다(규칙이 이미 정했으면 안 붙인다).
+ *   이름·대상 글에 대환·전환이 든 상품은 대상 글이 요구하는 기존 대출·보증도 붙인다
  * @param institution 상품 기관 — 전환보증이 원하는 보증 기관을 고를 때만 본다
  */
 export function rulesToConditions(
@@ -104,6 +105,6 @@ export function rulesToConditions(
   const humanCheck = cleanList(rules.humanCheck);
   if (humanCheck) for (const item of humanCheck) add("other", "eq", true, item, false);
 
-  out.push(...loanProgramConditions(name, institution, out));
+  out.push(...loanProgramConditions(name, institution, out, targetText));
   return out;
 }
