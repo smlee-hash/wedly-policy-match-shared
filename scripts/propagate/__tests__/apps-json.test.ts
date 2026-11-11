@@ -56,11 +56,17 @@ describe("scripts/propagate/apps.json", () => {
     // ★두 번째 단계는 `npm run design:check` 여야 한다 — Railway 가 ERP `build` 첫 단계로 돌리는 바로 그 명령이다.
     //  ERP 의 `design:check` 는 `cli.mjs check` **와** `debt.mjs check` 두 가지다(2026-09-08 실측).
     //  봇이 `cli.mjs check` 만 돌리면 「봇은 초록인데 Railway 배포가 빨간」 상태가 만들어진다.
+    //  ★가운데 `design:catalog:build` 는 부품 예제 묶음(sandbox.js·sandbox.css)을 새 핀으로 다시 묶는다.
+    //  ERP 의 design:check 가 그 묶음을 원본과 대조하므로, 빠지면 봇이 매번 멈추고(2026-10-31~11-11)
+    //  사람이 손으로 핀을 올리다 묶음을 빠뜨려 Railway 배포가 실패한다(2026-11-11 PR #288).
     expect(byId.erp.postSteps).toEqual([
       "node scripts/design-system/cli.mjs generate",
+      "npm run design:catalog:build",
       "npm run design:check",
     ]);
     expect(byId.erp.commitPaths).toContain("src/lib/design-system/registry.generated.json");
+    expect(byId.erp.commitPaths).toContain("public/design-system-demos/sandbox.js");
+    expect(byId.erp.commitPaths).toContain("public/design-system-demos/sandbox.css");
     expect(byId.illua.install).toBe(false);
     expect(byId.illua.postSteps).toEqual([]);
     expect(byId.lab.install).toBe(false);

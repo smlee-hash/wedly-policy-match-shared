@@ -408,22 +408,50 @@ function listFiles(dir: string, prefix = ""): string[] {
 }
 
 /**
- * ERP 의 `design:check` script 흉내 — **두 명령의 묶음**이다(실제 ERP package.json, 2026-09-08 실측:
- * `node scripts/design-system/cli.mjs check && node scripts/design-system/debt.mjs check`).
- * 봇은 `npm run design:check` 로 이 묶음을 통째로 돌리므로, 가짜 앱도 같은 모양이어야
- * 「Railway 와 같은 명령을 돌린다」를 시험이 실제로 잰다.
+ * ERP 의 `design:check` script 흉내 — 등록부 검사·빚 검사·**부품 예제 묶음 대조**의 묶음이다.
+ * 실제 ERP(2026-11-11 실측)는 `node scripts/design-system/release-gate.mjs` 한 줄이고, 그 안에서
+ * 등록부를 다시 만들어 대조하고 `build-catalog-demos.mjs --check` 로 `public/design-system-demos/sandbox.js`
+ * ·`sandbox.css` 를 원본에서 다시 묶어 대조한다. 봇은 `npm run design:check` 로 이 관문을 통째로 돌리므로,
+ * 가짜 앱도 세 검사를 다 해야 「Railway 와 같은 명령을 돌린다」를 시험이 실제로 잰다.
+ *
+ * ★2026-10-31~11-11 봇이 ERP 에서 매번 「sandbox.js 이(가) 소스와 다릅니다」로 멈췄다 — 옛 흉내에는
+ *  묶음 대조가 없어 시험이 그 실패를 못 잡았다. 예제 묶음은 공용 꾸러미의 `src` 를 함께 묶는다.
  */
 function seedErpScripts(work: string) {
   const pkgPath = join(work, "package.json");
   const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as Record<string, unknown>;
   pkg.scripts = {
     ...((pkg.scripts as Record<string, string> | undefined) ?? {}),
-    "design:check": "node scripts/design-system/cli.mjs check && node scripts/design-system/debt.mjs check",
+    build: "npm run design:check && next build",
+    "design:check":
+      "node scripts/design-system/cli.mjs check && node scripts/design-system/debt.mjs check" +
+      " && node scripts/design-system/build-catalog-demos.mjs --check",
+    "design:catalog:build": "node scripts/design-system/build-catalog-demos.mjs",
   };
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
   mkdirSync(join(work, "scripts/design-system"), { recursive: true });
   // 빚(debt) 검사는 이 시험의 관심사가 아니다 — 있기만 하면 된다(묶음의 뒷 절반이 실제로 돈다는 증거).
   writeFileSync(join(work, "scripts/design-system/debt.mjs"), "// 빚 검사 흉내 — 늘 통과\n");
+  // 예제 묶음 흉내: 묶음 안에 지금 핀이 들어간다(실제 묶음은 공용 꾸러미 소스를 함께 묶는다).
+  writeFileSync(
+    join(work, "scripts/design-system/build-catalog-demos.mjs"),
+    `import { readFileSync, writeFileSync } from "node:fs";
+const pin = JSON.parse(readFileSync("package.json", "utf8")).dependencies["@wedly/policy-match-shared"];
+const want = { "sandbox.js": "var demo=" + JSON.stringify(pin) + ";\\n", "sandbox.css": "/* " + pin + " */\\n" };
+for (const [name, body] of Object.entries(want)) {
+  const file = "public/design-system-demos/" + name;
+  if (process.argv[2] === "--check") {
+    if (readFileSync(file, "utf8") !== body) {
+      console.error(file + " 이(가) 소스와 다릅니다. 다시 생성하세요.");
+      process.exit(1);
+    }
+  } else writeFileSync(file, body);
+}
+`,
+  );
+  mkdirSync(join(work, "public/design-system-demos"), { recursive: true });
+  writeFileSync(join(work, "public/design-system-demos/sandbox.js"), 'var demo="old";\n');
+  writeFileSync(join(work, "public/design-system-demos/sandbox.css"), "/* old */\n");
 }
 
 /** ERP 흉내: 설계 등록부 + 가짜 cli.mjs(generate 는 현재 핀을 적고, check 는 그것이 핀과 같은지 본다) */
@@ -563,6 +591,11 @@ describe("propagate.sh", () => {
     expect(r.prepare?.npmLog).toMatch(/^npm run design:check$/m);
     expect(sh("git show main:src/lib/design-system/registry.generated.json", app.bare)).toContain(pkg.c3);
     expect(sh("git show --stat --format= main", app.bare)).toMatch(/registry\.generated\.json/);
+    // 예제 묶음도 새 핀으로 다시 묶어 함께 싣는다 — 빠지면 Railway 의 design:check 가 배포를 멈춘다
+    // (2026-10-31~11-11 봇 실패 6번·손 핀 PR #288 의 배포 실패가 이 자리였다).
+    expect(r.prepare?.npmLog).toMatch(/^npm run design:catalog:build$/m);
+    expect(sh("git show main:public/design-system-demos/sandbox.js", app.bare)).toContain(pkg.c3);
+    expect(sh("git show main:public/design-system-demos/sandbox.css", app.bare)).toContain(pkg.c3);
   }, 60_000);
 
   it("push 단계는 npm 을 한 번도 부르지 않는다 — 토큰 옆에서 앱 코드가 돌지 않는다는 증거", () => {
@@ -597,6 +630,8 @@ describe("propagate.sh", () => {
       "meta.json",
       "package-lock.json",
       "package.json",
+      "public/design-system-demos/sandbox.css",
+      "public/design-system-demos/sandbox.js",
       "src/lib/design-system/registry.generated.json",
     ]);
     const meta = JSON.parse(readFileSync(join(outDir, "meta.json"), "utf8")) as Record<string, string>;

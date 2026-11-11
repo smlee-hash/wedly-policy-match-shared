@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,7 +28,15 @@ const OLD = "e7d0ed8fe9428b1c720f2f5675cd29a39e99e9b1";
 const NEW = "b404b4b1f44d0ffb8213fff771a0bec090ca6257";
 const SPEC = (sha: string) => `github:${REPO}#${sha}`;
 const RESOLVED = (sha: string) => `git+ssh://git@github.com/${REPO}.git#${sha}`;
-const ERP_PATHS = ["package.json", "package-lock.json", "src/lib/design-system/registry.generated.json"];
+const SANDBOX_JS = "public/design-system-demos/sandbox.js";
+const SANDBOX_CSS = "public/design-system-demos/sandbox.css";
+const ERP_PATHS = [
+  "package.json",
+  "package-lock.json",
+  "src/lib/design-system/registry.generated.json",
+  SANDBOX_JS,
+  SANDBOX_CSS,
+];
 
 type Json = Record<string, unknown>;
 
@@ -53,7 +61,7 @@ function baseLock(): Json {
   };
 }
 
-function write(dir: string, rel: string, body: string) {
+function write(dir: string, rel: string, body: string | Buffer) {
   mkdirSync(dirname(join(dir, rel)), { recursive: true });
   writeFileSync(join(dir, rel), body);
 }
@@ -64,6 +72,8 @@ interface ArtifactOpts {
   pkg?: (p: Json) => void;
   lock?: (l: Json) => void;
   registry?: string;
+  /** 산출물 예제 묶음(sandbox.js) 내용 — 문자열이나 바이트 */
+  bundle?: string | Buffer;
   extraFiles?: Record<string, string>;
   paths?: string[];
 }
@@ -78,6 +88,9 @@ function fixture(tmp: string, opts: ArtifactOpts = {}) {
   write(base, "package.json", j(basePkg()));
   write(base, "package-lock.json", j(baseLock()));
   write(base, "src/lib/design-system/registry.generated.json", j({ pin: SPEC(OLD) }));
+  // 예제 묶음은 압축된 번들이라 「핀 한 줄」로 대조할 수 없다 — 내용이 통째로 바뀐 것이 정상이다
+  write(base, SANDBOX_JS, `var demo=${JSON.stringify(SPEC(OLD))};\n`);
+  write(base, SANDBOX_CSS, `/* ${OLD} */\n`);
 
   // 봇이 정상적으로 만들었을 산출물(= 핀 한 줄만 새 SHA)
   const pkg = basePkg();
@@ -91,6 +104,8 @@ function fixture(tmp: string, opts: ArtifactOpts = {}) {
   write(art, "package.json", j(pkg));
   write(art, "package-lock.json", j(lock));
   write(art, "src/lib/design-system/registry.generated.json", opts.registry ?? j({ pin: SPEC(NEW) }));
+  write(art, SANDBOX_JS, opts.bundle ?? `var demo=${JSON.stringify(SPEC(NEW))};\n`);
+  write(art, SANDBOX_CSS, `/* ${NEW} */\n`);
   write(art, "meta.json", j({ app: "erp", result: "prepared" }));
   for (const [rel, body] of Object.entries(opts.extraFiles ?? {})) write(art, rel, body);
 
@@ -274,6 +289,66 @@ describe("verify-artifact.mjs", () => {
     // 등록부는 「JSON 으로 읽히는가」만 보는 갈래라 읽기 경로가 따로다 — 거기도 같은 규칙이어야 한다
     const registry = fixture(tmp, { registry: BROKEN });
     expectNoLeak(run(registry), "산출물 registry.generated.json");
+  });
+
+  // ── 2026-11-11 ERP 부품 예제 묶음(sandbox.js·sandbox.css) ──
+  // 압축 번들이라 「기준 + 핀 한 줄」로 대조할 수 없다. 대신 ERP 배포 조립의 첫 단계(design:check)가
+  // 원본에서 다시 묶어 대조하고 다르면 배포를 멈춘다. 그래서 이 대조기는 「그 관문이 기준에 있는가」와
+  // 「모양(기존 파일·보통 파일·크기·UTF-8)」만 본다.
+
+  it("예제 묶음은 내용이 통째로 바뀌어도 0 — 압축 번들은 핀 한 줄로 대조할 수 없다", () => {
+    const r = run(fixture(tmp, { bundle: "var a=1,b=2;!function(){}();\n" }));
+    expect(r.code, r.err).toBe(0);
+  });
+
+  it("기준에 없던 예제 묶음은 1 — 봇이 새 공개 파일을 들이지 못한다", () => {
+    const f = fixture(tmp);
+    rmSync(join(f.base, SANDBOX_JS));
+    const r = run(f);
+    expect(r.code).toBe(1);
+    expect(r.err).toMatch(/기준에 없는 예제 묶음/);
+  });
+
+  it("기준 build 가 design:check 로 시작하지 않으면 1 — 묶음을 원본과 대조할 관문이 없다", () => {
+    for (const build of ["next build", "npm run lint && npm run design:check && next build", ""]) {
+      const f = fixture(tmp, { pkg: (p) => ((p.scripts as Json).build = build) });
+      write(f.base, "package.json", j({ ...basePkg(), scripts: { ...(basePkg().scripts as Json), build } }));
+      const r = run(f);
+      expect(r.code, `build=${JSON.stringify(build)}`).toBe(1);
+      expect(r.err).toMatch(/design:check/);
+    }
+    const noGate = fixture(tmp, { pkg: (p) => delete (p.scripts as Json)["design:check"] });
+    const pkgNoGate = basePkg();
+    delete (pkgNoGate.scripts as Json)["design:check"];
+    write(noGate.base, "package.json", j(pkgNoGate));
+    const r = run(noGate);
+    expect(r.code).toBe(1);
+    expect(r.err).toMatch(/design:check/);
+  });
+
+  it("예제 묶음이 상한(8MB)보다 크면 1", () => {
+    const r = run(fixture(tmp, { bundle: "x".repeat(8 * 1024 * 1024 + 1) }));
+    expect(r.code).toBe(1);
+    expect(r.err).toMatch(/너무 큽니다/);
+  });
+
+  it("예제 묶음이 비었거나 UTF-8 이 아니면 1 — 내용은 찍지 않는다", () => {
+    const empty = run(fixture(tmp, { bundle: "" }));
+    expect(empty.code).toBe(1);
+    expect(empty.err).toMatch(/비었습니다/);
+
+    const binary = run(fixture(tmp, { bundle: Buffer.from([0x50, 0x52, 0x49, 0x56, 0xff, 0xfe, 0x00]) }));
+    expect(binary.code).toBe(1);
+    expect(binary.err).toMatch(/UTF-8/);
+    expect(binary.err).not.toContain("PRIV");
+  });
+
+  it("예제 묶음이 아닌 공개 파일(sandbox.html)은 1 — 규칙은 두 파일 이름에만 걸린다", () => {
+    const f = fixture(tmp, { extraFiles: { "public/design-system-demos/sandbox.html": "<script></script>\n" } });
+    write(f.base, "public/design-system-demos/sandbox.html", "<html></html>\n");
+    const r = run({ ...f, paths: [...f.paths, "public/design-system-demos/sandbox.html"] });
+    expect(r.code).toBe(1);
+    expect(r.err).toMatch(/검증 규칙이 없는 파일/);
   });
 
   it("인자가 모자라거나 SHA 형식이 아니면 2(사용법 오류)", () => {

@@ -187,7 +187,7 @@ const profile = deriveProfileFlags({ ...saved, ...result.fields });
 
 | 앱 | 저장소 | 봇이 고치는 것 |
 |---|---|---|
-| ERP | `wedly-erp` | `package.json`·`package-lock.json` + `npm ci` 뒤 설계 등록부 `src/lib/design-system/registry.generated.json` 재생성 → **`npm run design:check`**(Railway 가 ERP `build` 첫 단계로 돌리는 바로 그 명령) |
+| ERP | `wedly-erp` | `package.json`·`package-lock.json` + `npm ci` 뒤 설계 등록부 `src/lib/design-system/registry.generated.json`·부품 예제 묶음 `public/design-system-demos/sandbox.js`·`sandbox.css` 재생성 → **`npm run design:check`**(Railway 가 ERP `build` 첫 단계로 돌리는 바로 그 명령 — 예제 묶음을 원본에서 다시 묶어 대조한다) |
 | 일루아 | `wedly-illua-collab` | `package.json`·`package-lock.json` |
 | 랩 | `wedly-policy-lab` | `package.json`·`package-lock.json` |
 
