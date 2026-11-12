@@ -251,7 +251,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@wedly/eslint-plugin": "github:smlee-hash/wedly-eslint-plugin#a76f722a168c87508439dcc345999e87444426aa",
+    "@wedly/eslint-plugin": "github:smlee-hash/wedly-eslint-plugin#734991d2253cd0d8de5d8bab5d205cc05b74335d",
     "@wedly/ui-shared": "github:smlee-hash/wedly-ui-shared#12591848533bdd420b836b9afe5f41056b14cd87",
     "clsx": "^2.1.1",
     "eslint": "9.39.4",
