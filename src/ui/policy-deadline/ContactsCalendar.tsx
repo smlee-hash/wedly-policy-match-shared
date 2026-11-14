@@ -193,7 +193,7 @@ export function CalendarView({
     <div className={sectionCardClass("sm", "p-3 sm:p-4")}>
       <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
         <button type="button" className={NAV} aria-label="이전 달" onClick={() => onMonth(-1)}><ChevronLeft size={16} aria-hidden /></button>
-        <h3 className="text-wedly-section font-semibold text-wedly-navy">{model.year}년 {model.month}월</h3>
+        <h3 className="text-wedly-sub font-semibold text-wedly-navy">{model.year}년 {model.month}월</h3>
         <button type="button" className={NAV} aria-label="다음 달" onClick={() => onMonth(1)}><ChevronRight size={16} aria-hidden /></button>
         <span className="text-wedly-hint text-wedly-t2">{monthHint(model)}</span>
         <span className="inline-flex flex-wrap gap-x-2.5 gap-y-1 text-wedly-hint text-wedly-t2 sm:ml-auto" aria-label="색 설명">

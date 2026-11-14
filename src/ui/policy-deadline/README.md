@@ -117,7 +117,7 @@ import { AnnouncementBoard, DEADLINE_ENDPOINTS } from "@wedly/policy-match-share
 
 <AnnouncementBoard
   endpoints={DEADLINE_ENDPOINTS}
-  defaultDays="14"
+  defaultDays={14}
   scope={scope}
   onScopeChange={setScope}
   canSeeAll={isAdmin}
