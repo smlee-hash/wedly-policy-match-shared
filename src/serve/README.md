@@ -131,6 +131,57 @@ readAnnouncementDetailRow(q, id)   // 없으면 404
 - ★로그인 확인을 코어 앞에 두어야 「로그인 없으면 DB 도 안 본다」가 유지된다 —
   ERP 라우트 시험이 그것을 재고 있으니 그 시험을 지우지 마라.
 
+## 정책별 고객사 통로 (`serve/policy-deadline/*`)
+
+정책별 고객사·연락 예정 화면이 부르는 두 통로다 — ERP 와 컨설턴트 앱이 `GET`·`POST` 껍데기만 만들고 본문은 같은 코드를 부른다.
+이 통로는 위 `ServeQuery` 를 쓰지 않는다. 읽기는 `ReadSource`(`deadlineReadSource(prisma)` 가 만든다), 진행은 `ProgressDeps` 를 앱이 넘긴다.
+화면 쪽 쓰는 법은 `src/ui/policy-deadline/README.md`.
+
+### 읽기 `GET /api/policy-track/deadline` — `handleDeadlineGet(params, scopeOf, { now, src, allowExport })`
+
+로그인 확인은 앱이 이 함수 앞에서 한다(`401` 은 앱 몫). 이 함수는 `{ status, body }` 를 돌려주고 라우트는 `NextResponse.json(body, { status })` 만 한다.
+`scopeOf(요청한 범위)` 가 `DeadlineScope`(`all`·`reader`·`keys`)를 돌려주고, 막을 때는 `DeadlineReadError` 를 던진다.
+업체 보기(`view=company`)는 요청한 범위를 보지 않는다 — `scopeOf(null)` 로 부른다.
+
+| 결과 | HTTP | 본문 |
+|---|---|---|
+| 읽기 성공 | 200 | `{ success: true, data }` |
+| `days` 가 `7｜14｜30｜all` 이 아님 | 400 `BAD_REQUEST` | "days 는 7·14·30·all 중 하나입니다." |
+| 거르기 값이 `0`·`1` 이 아님 | 400 `BAD_REQUEST` | "거르기 값은 0 또는 1 입니다." |
+| `view` 가 모르는 값 | 400 `BAD_REQUEST` | "view 값이 올바르지 않습니다." |
+| `scope` 가 `mine｜all` 이 아님 | 400 `BAD_REQUEST` | "보기 범위가 올바르지 않습니다." |
+| 묶음 보기인데 공고 열쇠가 비었거나 300자 초과 | 400 `BAD_REQUEST` | "공고를 골라 주세요." |
+| 업체 보기인데 업체 열쇠가 올바르지 않음 | 400 `BAD_REQUEST` | "업체를 골라 주세요." |
+| 분류 값이 100자 초과 | 400 `BAD_REQUEST` | "분류 값이 너무 깁니다." |
+| 엑셀 줄(`view=export`)인데 `allowExport` 가 거짓 | 403 `FORBIDDEN` | "엑셀 내려받기를 쓸 수 없습니다." |
+| `scopeOf` 가 막음 | 던진 `DeadlineReadError` 의 status·code·message 그대로(ERP: 403 "관리자만 전체를 봅니다.") | |
+| 묶음 보기인데 그 공고가 없음 | 404 `NOT_FOUND` | "공고를 찾지 못했습니다." |
+| 업체 보기인데 그 업체가 없거나 범위 밖 | 404 `NOT_FOUND` | "업체를 찾지 못했습니다." |
+| 그 밖의 예외 | 500 `INTERNAL` | "공고 대조 결과를 읽지 못했습니다. 잠시 후 다시 시도해 주세요." |
+
+- 앞의 400 은 **범위를 정하기 전에** 나온다 — 그래서 `scopeOf` 가 부르는 곳(DB)에 닿지 않는다.
+  엑셀 403 도 질의를 읽은 뒤·`scopeOf` 앞에서 나온다.
+- 500 의 일지에는 오류 이름만 적는다(메시지·질의 값은 적지 않는다).
+
+### 진행 `POST /api/policy-track/deadline/progress` — `readProgressBody(json)` → `startDeadlineProgress(input, now, deps)`
+
+본문 해석과 진행이 던지는 `DeadlineProgressError` 는 status·code·message 그대로 응답한다. 앱은 본문 읽기와 진행 호출을 **같은 `try` 안에** 둔다.
+
+| 결과 | HTTP | 본문 |
+|---|---|---|
+| 새로 만듦(`created: true`) | 201 | `{ success: true, data }` |
+| 이미 진행돼 있어 그 줄을 돌려줌(`created: false`) | 200 | `{ success: true, data }` |
+| 본문이 맞지 않음(`customerKey`·`bucketKey`) | 400 `BAD_REQUEST` | "업체와 공고를 골라 주세요." |
+| `isAssigned` 가 거짓(없는 업체도 같은 403) | 403 `FORBIDDEN` | "이 업체 담당자만 누를 수 있습니다." |
+| 담당 확인을 통과했는데 업체가 없음 | 404 `NOT_FOUND` | "업체를 찾지 못했습니다." |
+| 그 업체에 맞는 판정 줄이 없음 | 404 `NOT_FOUND` | "이 업체에 맞는 공고가 아닙니다." |
+| 공고 묶음을 못 읽음 | 404 `NOT_FOUND` | "공고를 찾지 못했습니다." |
+
+앱이 넘기는 것(`ProgressDeps`): `readCompany` · `isAssigned(actor, company|null)`(담당 확인) · `isSamePolicyName`(정책 이름 같음 판정) ·
+`hasMatch` · `readBucket` · `readProgress` · `findTracks` · `createTrack`·`insertProgress`(같은 값이 이미 있으면 `code === "P2002"` 인 오류를 던진다) ·
+`appendHistory`(실패해도 진행은 성공이다). 새 정책을 만들었을 때만 분야 히스토리에 「(정책별 고객사에서 시작)」
+(슬랙이면 「(정책별 고객사 · 슬랙에서 시작)」)가 한 줄 남는다.
+
 ## 앱이 만드는 `ServeQuery` (요약)
 
 `Prisma.sql`/`Prisma.join`/`Prisma.raw`/`$queryRaw` 는 그대로 꽂고 나머지는 한 줄로 감싼다.

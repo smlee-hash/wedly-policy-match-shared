@@ -1,6 +1,6 @@
 {
   "name": "@wedly/policy-match-shared",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "WEDLY 정책매칭·자금 조달 지도 공용 보관함 — 판정 엔진·자금 규칙·지도 조립·화면 부품을 ERP·일루아가 같은 커밋으로 함께 쓴다",
   "private": true,
   "type": "module",
@@ -222,6 +222,62 @@
     "./ui/policy/ask-instructor-text": {
       "types": "./src/ui/policy/ask-instructor-text.ts",
       "default": "./src/ui/policy/ask-instructor-text.ts"
+    },
+    "./ui/policy-deadline": {
+      "types": "./src/ui/policy-deadline/index.ts",
+      "default": "./src/ui/policy-deadline/index.ts"
+    },
+    "./ui/policy-deadline/PolicyCompaniesScreen": {
+      "types": "./src/ui/policy-deadline/PolicyCompaniesScreen.tsx",
+      "default": "./src/ui/policy-deadline/PolicyCompaniesScreen.tsx"
+    },
+    "./ui/policy-deadline/AnnouncementBoard": {
+      "types": "./src/ui/policy-deadline/AnnouncementBoard.tsx",
+      "default": "./src/ui/policy-deadline/AnnouncementBoard.tsx"
+    },
+    "./ui/policy-deadline/ContactsBoard": {
+      "types": "./src/ui/policy-deadline/ContactsBoard.tsx",
+      "default": "./src/ui/policy-deadline/ContactsBoard.tsx"
+    },
+    "./ui/policy-deadline/ContactsCalendar": {
+      "types": "./src/ui/policy-deadline/ContactsCalendar.tsx",
+      "default": "./src/ui/policy-deadline/ContactsCalendar.tsx"
+    },
+    "./ui/policy-deadline/SummaryCards": {
+      "types": "./src/ui/policy-deadline/SummaryCards.tsx",
+      "default": "./src/ui/policy-deadline/SummaryCards.tsx"
+    },
+    "./ui/policy-deadline/Scorecard": {
+      "types": "./src/ui/policy-deadline/Scorecard.tsx",
+      "default": "./src/ui/policy-deadline/Scorecard.tsx"
+    },
+    "./ui/policy-deadline/DeadlineBits": {
+      "types": "./src/ui/policy-deadline/DeadlineBits.tsx",
+      "default": "./src/ui/policy-deadline/DeadlineBits.tsx"
+    },
+    "./ui/policy-deadline/DeadlineTables": {
+      "types": "./src/ui/policy-deadline/DeadlineTables.tsx",
+      "default": "./src/ui/policy-deadline/DeadlineTables.tsx"
+    },
+    "./ui/policy-deadline/classes": {
+      "types": "./src/ui/policy-deadline/classes.ts",
+      "default": "./src/ui/policy-deadline/classes.ts"
+    },
+    "./ui/policy-deadline/endpoints": {
+      "types": "./src/ui/policy-deadline/endpoints.ts",
+      "default": "./src/ui/policy-deadline/endpoints.ts"
+    },
+    "./ui/policy-deadline/deadline-api": {
+      "types": "./src/ui/policy-deadline/deadline-api.ts",
+      "default": "./src/ui/policy-deadline/deadline-api.ts"
+    },
+    "./ui/policy-deadline/deadline-view": {
+      "types": "./src/ui/policy-deadline/deadline-view.ts",
+      "default": "./src/ui/policy-deadline/deadline-view.ts"
+    },
+    "./ui/policy-deadline/screen-state": {
+      "types": "./src/ui/policy-deadline/screen-state.ts",
+      "default": "./src/ui/policy-deadline/screen-state.ts"
     }
   },
   "files": [
