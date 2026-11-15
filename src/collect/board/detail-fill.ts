@@ -2,6 +2,7 @@ import { buildRuleStructure } from "../rule-structure";
 import { classifyWedlyCategory } from "../../engine/wedly-category";
 import { attachmentKindOf, dedupKeyOf, parseApplyPeriod, type PolicyAttachment } from "../../engine/types";
 import { asPolicyAttachments } from "../attachment-text";
+import { sliceUtf16 } from "../attachment-render";
 import { fundingFieldsOf } from "../funding-fields";
 import type { CollectDeps, PolicyAnnouncementUpdate } from "../types";
 import { fetchBoardDetail } from "./engine";
@@ -522,7 +523,8 @@ export async function readBoardDetail(
      */
     if (!contentHtml.trim()) return { kind: "fail", reason: "상세 조달이 빈 글을 돌려줌" };
     const raw = parseHtml(contentHtml).text.trim();
-    text = raw.length > 20_000 ? `${raw.slice(0, 20_000)}\n[상세 잘림]` : raw;
+    // 자르는 자리는 서로게이트 짝을 지킨다 — fetchBoardDetail 과 같은 이유(NO.486).
+    text = raw.length > 20_000 ? `${sliceUtf16(raw, 20_000)}\n[상세 잘림]` : raw;
     harvestHtml = contentHtml;
     pageHtml = contentHtml;
   } else {
@@ -545,8 +547,11 @@ export async function readBoardDetail(
        *  범위 선택자를 쓰는 게시판이 60곳인데 그중 42곳은 본문 선택자도 있다 —
        *  「첨부가 없으면 상자 자체가 사라지는」 사이트라면 첨부 없는 공고가 본문을 잘 받아 놓고도
        *  버려져 7일마다 헛돈다. 실물로 「첨부가 없어도 상자는 있다」를 확인한 곳만 켠다.
+       * 상자가 없어도 원문 첨부 칸이 빈 글이면(`attachmentsScopeAbsentOk`) 실패가 아니라 첨부 0건이다(NO.486 충북TP).
        */
-      if (!scoped && cfg.attachmentsScopeRequired) return { kind: "fail", reason: "첨부 영역 선택자 미적중" };
+      if (!scoped && cfg.attachmentsScopeRequired && !cfg.attachmentsScopeAbsentOk?.(html)) {
+        return { kind: "fail", reason: "첨부 영역 선택자 미적중" };
+      }
       harvestHtml = scoped;
     }
   }

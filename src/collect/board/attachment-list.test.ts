@@ -618,7 +618,6 @@ describe("fillBoardDetail — 새 첨부 갈고리", () => {
 
 const UNSUPPORTED_IDS = [
   "semas",
-  "snip",
   "gjsinbo",
   "icsinbo",
   "cnsinbo",
@@ -670,7 +669,7 @@ describe("첨부 목록 출처 목록", () => {
     expect(blocked).toEqual([]);
   });
 
-  it("지원 안 하는 게시판 19곳은 각각 사유가 있다", () => {
+  it("지원 안 하는 게시판 18곳은 각각 사유가 있다", () => {
     expect(Object.keys(ATTACHMENT_LIST_UNSUPPORTED).sort()).toEqual([...UNSUPPORTED_IDS].sort());
     for (const id of UNSUPPORTED_IDS) {
       expect(ATTACHMENT_LIST_UNSUPPORTED[id]?.trim()).toBeTruthy();

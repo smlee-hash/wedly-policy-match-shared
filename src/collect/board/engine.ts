@@ -9,6 +9,7 @@ import { extractFromRss, extractFromJson } from "./layers/feed";
 import { selfHeal, type HealedRule } from "./layers/selfheal";
 import type { PageCapInfo } from "./page-cap";
 import { withDeadline } from "../with-deadline";
+import { sliceUtf16 } from "../attachment-render";
 
 /** 장부 쓰기가 풀 고갈로 멈추면 회차 전체를 붙잡지 않는다. 넘긴 약속은 withDeadline 이 삼킨다. */
 export const PAGE_CAP_WRITE_TIMEOUT_MS = 5_000;
@@ -626,6 +627,7 @@ export async function fetchBoardDetail(
   if (!cfg.detailContentSelector) return "";
   const els = parseHtml(html).querySelectorAll(cfg.detailContentSelector);
   const text = els.map((el) => el.text.trim()).join("\n\n");
-  if (text.length > 20_000) return `${text.slice(0, 20_000)}\n[상세 잘림]`;
+  // 이모지 한가운데서 자르면 짝 없는 서로게이트가 남아 저장(Prisma)이 「lone leading surrogate」로 거절한다(NO.486).
+  if (text.length > 20_000) return `${sliceUtf16(text, 20_000)}\n[상세 잘림]`;
   return text;
 }

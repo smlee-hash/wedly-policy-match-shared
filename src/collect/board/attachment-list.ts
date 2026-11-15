@@ -36,7 +36,6 @@ export const NO_ATTACHMENT_SOURCES = ["bojo24", "work24"] as const;
  */
 export const ATTACHMENT_LIST_UNSUPPORTED: Record<string, string> = {
   semas: "상세가 스크립트로 그리는 화면(SPA)이라 서버에서 첨부 목록을 못 읽음",
-  snip: "상세 조달이 빈 글을 돌려줌",
   gjsinbo: "상세 본문부터 못 읽음",
   jcgf: "상세 본문부터 못 읽음",
   gipa: "상세 본문부터 못 읽음",

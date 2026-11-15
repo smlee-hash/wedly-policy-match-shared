@@ -31,7 +31,8 @@ vi.mock("./proxy", async (importOriginal) => {
   };
 });
 
-import { fillBoardDetail, harvestBoardAttachments, mainbizAttachmentName } from "./detail-fill";
+import { fillBoardDetail, harvestBoardAttachments, mainbizAttachmentName, readBoardDetail } from "./detail-fill";
+import { fetchBoardDetail } from "./engine";
 import { parseHtml } from "./html";
 import { safeAttachmentUrl } from "../attachment-text";
 import { dedupKeyOf } from "../../engine/types";
@@ -959,5 +960,36 @@ describe("detailApplyPeriod — 상세 기간 칸을 접수기간으로 읽는�
     );
     expect(mainbizAttachmentName("/lib/file_down_new.asp?filename=", "https://www.mainbiz.or.kr/")).toBeNull();
     expect(mainbizAttachmentName("/files/a.hwp", "https://www.mainbiz.or.kr/")).toBeNull();
+  });
+});
+
+/**
+ * ★상세 본문을 2만 자에서 자를 때 이모지 한가운데를 남기지 않는다(NO.486).
+ * 짝 없는 서로게이트가 남으면 저장(Prisma)이 「lone leading surrogate in hex escape」로 거절해
+ * 그 공고가 정리 실패에 굳는다. 2만 번째 글자 자리에 이모지 앞 반쪽이 오게 만든다.
+ */
+describe("상세 본문 2만 자 자르기 — 서로게이트 짝을 지킨다", () => {
+  const body = `${"가".repeat(19_999)}😀끝`;
+  const url = "https://itp.or.kr/intro.asp?tmid=13&seq=1";
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("쪽을 읽는 길(fetchBoardDetail)은 이모지 앞에서 자른다", async () => {
+    expect(body.slice(0, 20_000).isWellFormed()).toBe(false);
+    const text = await fetchBoardDetail(itpConfig, url, {
+      fetchText: async () => `<div class="editor">${body}</div>`,
+    });
+    expect(text.isWellFormed()).toBe(true);
+    expect(text).toBe(`${"가".repeat(19_999)}\n[상세 잘림]`);
+  });
+
+  it("상세를 직접 조달하는 길(detailFetch)도 같다", async () => {
+    const read = await readBoardDetail({ ...itpConfig, detailFetch: async () => `<div>${body}</div>` }, url);
+    expect(read.kind).toBe("ok");
+    const text = read.kind === "ok" ? read.text : "";
+    expect(text.isWellFormed()).toBe(true);
+    expect(text).toBe(`${"가".repeat(19_999)}\n[상세 잘림]`);
   });
 });

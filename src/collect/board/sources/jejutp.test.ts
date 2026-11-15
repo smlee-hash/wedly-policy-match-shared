@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { isJejutpDropTitle, jejutpConfig, parseJejutpList } from "./jejutp";
 
 /**
@@ -11,10 +11,13 @@ import { isJejutpDropTitle, jejutpConfig, parseJejutpList } from "./jejutp";
  * · `jejutp-list.json`    = GET `/board/business/list?keyword=&page=0&size=30&businessDiv=`
  * · `jejutp-list-p2.json` = 같은 주소 `page=1`
  * · `jejutp-detail.json`  = GET `/board/business/detail/json/1cc3758db5e042d0a86aee8e4683a338`
+ * · `jejutp-detail-nofile.json` = GET `/board/business/detail/json/f27e816bcd5d4ba9bdaa0a0afc79fe60`
+ *   (2026-11-15 실측, 첨부 0건 `fileList: []`. 담당자 이름·전화·메일은 가렸다)
  */
 const p1 = readFileSync(join(__dirname, "../__fixtures__/jejutp-list.json"), "utf-8");
 const p2 = readFileSync(join(__dirname, "../__fixtures__/jejutp-list-p2.json"), "utf-8");
 const detailJson = readFileSync(join(__dirname, "../__fixtures__/jejutp-detail.json"), "utf-8");
+const noFileJson = readFileSync(join(__dirname, "../__fixtures__/jejutp-detail-nofile.json"), "utf-8");
 const rows = parseJejutpList(p1);
 
 describe("제주테크노파크 사업공고 목록 읽기 — 실사이트 고정본", () => {
@@ -172,12 +175,61 @@ describe("상세 — JSON 통로에서 첨부만 건져 온다", () => {
   it("상세 주소가 공고 열쇠 모양이 아니거나 응답이 깨졌으면 빈 문자열 — 수집이 안 죽는다", async () => {
     expect(await jejutpConfig.detailFetch!("https://www.jejutp.or.kr/board/business", async () => detailJson)).toBe("");
     expect(await jejutpConfig.detailFetch!(detailUrl, async () => "<html>415</html>")).toBe("");
-    expect(await jejutpConfig.detailFetch!(detailUrl, async () => JSON.stringify({ anno: { fileList: [] } }))).toBe("");
+    expect(await jejutpConfig.detailFetch!(detailUrl, async () => JSON.stringify({ anno: {} }))).toBe("");
   });
 
   it("파일 이름이 없는 첨부는 담지 않는다 — 확장자를 지어내면 형식 판정이 거짓말을 한다", async () => {
     const noName = JSON.stringify({ anno: { fileList: [{ fileId: "a".repeat(32), realFileName: "" }] } });
     expect(await jejutpConfig.detailFetch!(detailUrl, async () => noName)).toBe("");
+  });
+});
+
+/**
+ * ★첨부 없는 공고(`fileList: []`, 2026-11-15 실측 1쪽 29건 중 2건, NO.486).
+ * 빈 글자를 돌려주던 때는 엔진이 「상세 조달이 빈 글을 돌려줌」으로 실패에 굳혔다 — 원문이 첨부 0건이라 말하는 글이다.
+ */
+describe("상세 — 첨부 없는 공고는 실패가 아니라 첨부 0건", () => {
+  const url = "https://www.jejutp.or.kr/board/business/detail/f27e816bcd5d4ba9bdaa0a0afc79fe60";
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("고정본은 첨부 칸이 빈 배열이다 — 칸 이름이 바뀐 것과 구별된다", () => {
+    expect((JSON.parse(noFileJson) as { anno: { fileList: unknown } }).anno.fileList).toEqual([]);
+  });
+
+  it("글자도 링크도 없는 빈 상자를 돌려준다", async () => {
+    const html = await jejutpConfig.detailFetch!(url, async () => noFileJson);
+    expect(html.trim()).not.toBe("");
+    const { parseHtml } = await import("../html");
+    expect(parseHtml(html).text.trim()).toBe("");
+    expect(parseHtml(html).querySelectorAll("a")).toHaveLength(0);
+  });
+
+  it("엔진으로 읽으면 실패가 아니라 본문 0자·첨부 0건이다", async () => {
+    const bytes = new TextEncoder().encode(noFileJson);
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      body: {
+        getReader() {
+          let sent = false;
+          return {
+            read: async () => {
+              if (sent) return { done: true as const, value: undefined };
+              sent = true;
+              return { done: false as const, value: bytes };
+            },
+            cancel: async () => {},
+          };
+        },
+      },
+      arrayBuffer: async () => bytes.buffer,
+    })));
+    const { readBoardDetail } = await import("../detail-fill");
+    expect(await readBoardDetail(jejutpConfig, url)).toMatchObject({ kind: "ok", text: "", attachments: { list: [] } });
   });
 });
 
