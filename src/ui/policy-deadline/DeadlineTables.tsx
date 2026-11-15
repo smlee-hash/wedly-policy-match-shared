@@ -107,13 +107,17 @@ export function ContactAnnouncementTable({
   onProgress: (announcement: CompanyAnnouncementRow) => void;
 }) {
   const columns = conditionColumns(rows, true);
+  // 두 조건 칸이 다 나오면 % 칸이 표 폭의 44%를 가져가 760px 표에서는 공고명 칸이 6px 로 찌그러졌다(2026-11-15 좁은 화면 QA).
+  // 그래서 최소 폭을 늘린다 — 왼쪽 메뉴가 있는 넓은 화면(lg)은 표 896px·공고명 약 100px(ERP 1280 너비 표 폭 약 900px 안),
+  // 좁은 화면은 가로로 밀어 보며 공고명 약 180px. 마감 칸(딱지 56px + 날짜 11px 글자)은 140px 이면 한 줄에 들어간다.
+  const minWidth = columns.fit && columns.check ? "min-w-[1040px] lg:min-w-[896px]" : "min-w-[780px]";
   return (
     <div className="overflow-x-auto rounded-lg border border-wedly-bd bg-white">
-      <table className="w-full min-w-[760px] table-fixed border-collapse [&_tr:last-child>td]:border-b-0">
+      <table className={`w-full ${minWidth} table-fixed border-collapse [&_tr:last-child>td]:border-b-0`}>
         <colgroup>
           <col />
           <col className="w-[112px]" />
-          <col className="w-[160px]" />
+          <col className="w-[140px]" />
           {columns.fit && <col className="w-[20%]" />}
           {columns.check && <col className="w-[24%]" />}
           <col className={ACTION_COL} />
