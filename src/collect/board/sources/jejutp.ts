@@ -210,7 +210,7 @@ export const jejutpConfig: BoardConfig = {
   detailFetch: async (detailUrl, fetchText) => {
     const annoId = detailUrl.match(ANNO_ID)?.[1];
     if (!annoId) return "";
-    let files: Array<{ fileId?: string; realFileName?: string }> = [];
+    let files: Array<{ fileId?: string; realFileName?: string }> | null = null;
     try {
       const body = await fetchText(`${DETAIL_JSON}/${annoId}`, { method: "GET", headers: { ...JSON_HEADERS } });
       const d = JSON.parse(body) as { anno?: { fileList?: Array<{ fileId?: string; realFileName?: string }> } };
@@ -218,6 +218,14 @@ export const jejutpConfig: BoardConfig = {
     } catch {
       return "";
     }
+    // 첨부 칸이 없거나(칸 이름 변경) 응답이 깨졌으면 빈 글 — 엔진이 실패로 남겨 다음에 다시 읽는다.
+    if (!files) return "";
+    /**
+     * ★원문이 「첨부 0건」(`fileList: []`)이라 말하면 **빈 상자**를 돌려준다 — 글자도 링크도 없으니 본문·첨부가 비고
+     * 엔진은 실패가 아니라 「채울 것 없음」으로 끝낸다. 빈 글자를 돌려주던 때는 첨부 없는 공고가
+     * 「상세 조달이 빈 글을 돌려줌」으로 정리 실패에 굳었다(2026-11-15 실측 1쪽 29건 중 2건, NO.486).
+     */
+    if (files.length === 0) return `<div class="jejutp-files"></div>`;
     /**
      * ★링크에 **글자를 넣지 않는다.** 이 조각의 글자가 그대로 `targetText` 가 되는데,
      * 파일 이름으로라도 채우는 순간 위 ②의 함정에 그대로 빠진다. 그 대가로 첨부 이름은
