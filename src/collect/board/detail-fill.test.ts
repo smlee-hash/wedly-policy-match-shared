@@ -110,6 +110,55 @@ describe("fillBoardDetail", () => {
     );
   });
 
+  it("★원문에서 지워진 공고는 실패로 남기지 않고 마감한다 — 상태 칸 하나만 쓰고 title-only(NO.486 성남산업진흥원)", async () => {
+    // 지운 공고를 열면 본문 칸 없이 「게시된 공고문이 없거나 삭제되었습니다」 안내만 온다(2026-11-15 실측 3건).
+    // 예전엔 「상세 조달이 빈 글을 돌려줌」 실패로 남아 다시 열어도 같은 화면이라 영영 못 나왔다.
+    okFetch(readFileSync(join(__dirname, "__fixtures__", "snip-view-deleted.html"), "utf-8"));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const url = "https://www.snip.or.kr/?schM=view&snp=2026-0006";
+    for (const onlyIfEmpty of [false, true]) {
+      updateAnnouncement.mockClear();
+      warn.mockClear();
+      const res = await fillBoardDetail({ id: "ann-snip-gone", source: "snip", url, targetText: "", title: "지워진 공고" }, deps, { onlyIfEmpty });
+      expect(res).toBe("title-only");
+      expect(updateAnnouncement).toHaveBeenCalledTimes(1);
+      expect(updateAnnouncement).toHaveBeenCalledWith("ann-snip-gone", { status: "closed" });
+      expect(updateAnnouncementIfEmpty).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledWith(
+        "[policy-detail] 원문에서 지워진 공고라 마감 — 원문에서 지워진 공고(게시된 공고문이 없거나 삭제되었습니다)",
+        "snip",
+        url,
+      );
+    }
+    const logged = warn.mock.calls.flat().join(" ");
+    expect(logged).not.toContain("상세 조달이 빈 글");
+    expect(logged).not.toContain("상세 채움 실패");
+  });
+
+  it("지워진 공고를 마감하는 저장이 실패하면 예전처럼 error — 닫았다고 꾸미지 않는다", async () => {
+    okFetch(readFileSync(join(__dirname, "__fixtures__", "snip-view-deleted.html"), "utf-8"));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    updateAnnouncement.mockRejectedValueOnce(new Error("db down"));
+    const res = await fillBoardDetail({ id: "ann-snip-gone", source: "snip", url: "https://www.snip.or.kr/?schM=view&snp=2026-0006", targetText: "" }, deps);
+    expect(res).toBe("error");
+  });
+
+  it("detailFetch 의 다른 오류는 지워진 공고로 보지 않는다 — 예전처럼 상세 채움 실패", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const cfg = BOARD_SOURCES.find((c) => c.id === "snip")!;
+    const orig = cfg.detailFetch;
+    cfg.detailFetch = async () => { throw new Error("게시된 공고문이 없거나 삭제되었습니다"); };
+    try {
+      const res = await fillBoardDetail({ id: "ann-snip-x", source: "snip", url: "https://www.snip.or.kr/?schM=view&snp=2026-0006", targetText: "" }, deps);
+      expect(res).toBe("error");
+      expect(updateAnnouncement).not.toHaveBeenCalled();
+      expect(warn.mock.calls.flat().join(" ")).toContain("상세 채움 실패");
+    } finally {
+      cfg.detailFetch = orig;
+    }
+  });
+
   it("API 출처 행은 건드리지 않는다", async () => {
     const ok = await fillBoardDetail({
       id: "ann-1", source: "bizinfo", url: "https://www.bizinfo.go.kr/x", targetText: "",

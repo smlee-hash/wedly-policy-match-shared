@@ -250,6 +250,14 @@ describe("readAttachmentList — 실패·지원 안 함", () => {
     expect(calls).toEqual([]);
   });
 
+  it("원문에서 지워진 공고(성남산업진흥원 삭제 안내)는 실패 — 「첨부 없음」으로 굳히지 않는다(NO.486)", async () => {
+    const official = "https://www.snip.or.kr/SNIP/contents/Business1.do?schM=view&snp=2026-0006";
+    const { calls } = stubRoutes([{ url: official, text: readParent("snip-view-deleted.html") }]);
+    const got = await readAttachmentList({ source: "snip", url: "https://www.snip.or.kr/?schM=view&snp=2026-0006" });
+    expect(got).toEqual({ state: "error", reason: "원문에서 지워진 공고(게시된 공고문이 없거나 삭제되었습니다)" });
+    expect(calls.map((c) => c.url)).toEqual([official]);
+  });
+
   it("상세가 500 이면 실패(빈 목록을 「없음」으로 적지 않는다)", async () => {
     const { url } = boardRoutes("dgtp-1");
     stubRoutes([{ url, status: 500, text: "server error" }]);

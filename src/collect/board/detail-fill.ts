@@ -7,6 +7,7 @@ import { fundingFieldsOf } from "../funding-fields";
 import type { CollectDeps, PolicyAnnouncementUpdate } from "../types";
 import { fetchBoardDetail } from "./engine";
 import { encodeAttachmentHref } from "./attachment-url";
+import { BoardDetailGoneError } from "./detail-gone";
 import { absolutize, attributeOf, decodeHtmlEntities, normalizeDateText, parseHtml } from "./html";
 import { BOARD_SOURCES, fetchBoardText, DETAIL_FETCH_TIMEOUT_MS, DETAIL_FETCH_BODY_MAX_BYTES } from "./registry";
 import { isTruncatedTitle, upgradeTruncatedTitle } from "./title-upgrade";
@@ -481,6 +482,7 @@ function attachmentRequestsChanged(prevRaw: unknown, next: PolicyAttachmentReque
  * `title-only` — 본문도 첨부도 없지만 **제목만** 올라간 경우(2026-09-05 독립 검사 지적 1).
  * 예전엔 빈 본문 관문에서 먼저 돌아가 버려 승격이 영영 일어나지 않았다.
  * 세는 자리에서는 `empty` 와 같이 「본문 못 채움」으로 취급하되 로그에서는 구분한다.
+ * 원문에서 지워진 공고를 마감한 경우도 `title-only` 다 — 본문 없이 상태 칸 하나만 고치고 끝난다(NO.486).
  */
 export type BoardDetailFillResult = "filled" | "title-only" | "empty" | "error";
 
@@ -490,9 +492,12 @@ export type BoardDetailAttachments =
   | { unavailable: string }
   | { error: string };
 
-/** 상세 한 번 읽은 결과 — 상세 채움(`fillBoardDetail`)과 첨부 목록 다시 읽기(`readAttachmentList`)가 같이 쓴다. */
+/**
+ * 상세 한 번 읽은 결과 — 상세 채움(`fillBoardDetail`)과 첨부 목록 다시 읽기(`readAttachmentList`)가 같이 쓴다.
+ * `gone` — 사이트가 「지워진 공고」라고 알려 준 실패(`BoardDetailGoneError`). 상세 채움은 이것만 마감으로 바꾼다.
+ */
 export type BoardDetailRead =
-  | { kind: "fail"; reason: string }
+  | { kind: "fail"; reason: string; gone?: true }
   | { kind: "ok"; text: string; pageHtml: string; attachments: BoardDetailAttachments };
 
 /**
@@ -513,7 +518,14 @@ export async function readBoardDetail(
   /** 범위를 좁혀도 쪽 머리글의 값을 읽어야 하는 게시판이 있다 — 쪽 전체를 따로 들고 간다. */
   let pageHtml: string;
   if (cfg.detailFetch) {
-    const contentHtml = await cfg.detailFetch(url, boundFetch);
+    let contentHtml: string;
+    try {
+      contentHtml = await cfg.detailFetch(url, boundFetch);
+    } catch (e) {
+      // 사이트가 「지워진 공고」라고 알려 준 경우만 실패의 한 갈래로 돌려준다 — 그 밖의 요청 오류는 예전처럼 던진다.
+      if (e instanceof BoardDetailGoneError) return { kind: "fail", reason: e.message, gone: true };
+      throw e;
+    }
     /**
      * ★상세를 **직접 조달하는** 출처가 빈 글을 돌려주면 조용히 넘기지 않는다(2026-09-06 독립 리뷰 4번).
      * 아산 헬스케어스파는 본문·첨부가 `var r_data = {…}` 라는 스크립트 덩어리 안에만 있어서,
@@ -620,6 +632,17 @@ export async function fillBoardDetail(
     if (!cfg || !row.url) return "empty";
     const read = await readBoardDetail(cfg, row.url, { signal: opts.signal });
     if (read.kind === "fail") {
+      /**
+       * ★원문에서 지워진 공고는 실패로 남기지 않고 **마감**한다(NO.486 성남산업진흥원 3건, 2026-11-15 실측).
+       *  실패로 두면 다시 열어도 같은 「삭제」 화면이라 헛돌고, 목록에서 빠진 공고는 30일(`staleAfterDays`)이
+       *  지나야 닫혔다. 제목 거르개(`detailTitle.drop`)가 닫을 때와 같은 칸 하나만 쓴다 — 본문(`targetText`)을
+       *  안 쓰므로 「아직 빈 행」 울타리가 필요 없다. 목록에 다시 나오면 앱의 목록 저장이 상태를 다시 정한다.
+       */
+      if (read.gone) {
+        console.warn(`[policy-detail] 원문에서 지워진 공고라 마감 — ${read.reason}`, cfg.id, row.url);
+        await deps.updateAnnouncement(row.id, { status: "closed" });
+        return "title-only";
+      }
       // 글자는 예전 경고 두 개와 같다 — 시험이 글자 그대로 본다.
       console.warn(`[policy-detail] ${read.reason}`, cfg.id, row.url);
       return "error";

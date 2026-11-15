@@ -1,4 +1,5 @@
 import { attachmentKindOf } from "../../../engine/types";
+import { BoardDetailGoneError } from "../detail-gone";
 import { absolutize, decodeHtmlEntities, parseHtml } from "../html";
 import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
 
@@ -44,6 +45,8 @@ const FILE_DOWNLOAD_PATH = /^\/afile\/fileDownload\/[0-9A-Za-z]+$/;
 const IMAGE_PATH = /^\/data\/COMMON\/.+\.(?:png|jpe?g)$/i;
 const PLACEHOLDER = /사업\s*공고문\s*내용을\s*입력합니다\.?/g;
 const DETAIL_BODY_ID = "snip-detail-body";
+/** 지운(또는 없는) 공고를 열면 본문 칸 없이 이 안내만 띄우고 뒤로 가는 「오류」 화면이 온다(2026-11-15 실측 3건). */
+const SNIP_GONE_ALERT = /alert\(\s*["']게시된 공고문이 없거나 삭제되었습니다\.?["']\s*\)/;
 
 /**
  * 지원사업이 아닌 글. **버릴 것만** 지정한다 — 허용목록(KEEP)은 「~ 안내」형 지원사업을 죽인다(hsbiz).
@@ -276,7 +279,10 @@ export const snipConfig: BoardConfig = {
   customParse: parseSnipList,
   /**
    * 저장 주소 세 꼴을 정식 상세 주소(`Business1.do?schM=view&snp=…`)로 옮긴 뒤에만 요청한다.
-   * 본문은 `.board-view .view-content`. 이 칸이 없으면(없는 공고의 오류 화면) 빈 글이다.
+   * 본문은 `.board-view .view-content`. 이 칸이 없는 「오류」 화면은 두 가지다.
+   * 사이트가 「게시된 공고문이 없거나 삭제되었습니다」 안내를 띄우면 지워진 공고다 — `BoardDetailGoneError` 를 던져
+   * 상세 채움이 공고를 마감한다(2026-11-15 실측 3건, NO.486). 안내가 없는 오류 화면(점검 등)은 예전처럼 빈 글(=실패)이다.
+   * ⚠️ 주소를 잘못 옮겨도 같은 안내가 뜬다(없는 번호) — 옮기는 규칙은 `snipOfficialDetailUrl` 시험이 지킨다.
    * 칸이 있으면 비어 있어도 상자를 돌려준다 — 진짜 공고를 실패로 되풀이하지 않는다.
    * 자리 표시 문장 「사업 공고문 내용을 입력합니다」는 공고문이 아니라 지운다. 글자를 지어내지 않는다.
    *
@@ -288,9 +294,13 @@ export const snipConfig: BoardConfig = {
   detailFetch: async (detailUrl, fetchText) => {
     const official = snipOfficialDetailUrl(detailUrl);
     if (!official) return "";
-    const page = parseHtml(await fetchText(official));
+    const html = await fetchText(official);
+    const page = parseHtml(html);
     const view = page.querySelector(".board-view .view-content");
-    if (!view) return "";
+    if (!view) {
+      if (SNIP_GONE_ALERT.test(html)) throw new BoardDetailGoneError("원문에서 지워진 공고(게시된 공고문이 없거나 삭제되었습니다)");
+      return "";
+    }
     const fileId = (page.querySelector(".board-view .file-list input[name=fileId]")?.getAttribute("value") ?? "").trim();
     const files = FILE_ID.test(fileId)
       ? parseSnipFileList(await fetchText(`${BASE}${FILE_LIST_PATH}?fileId=${encodeURIComponent(fileId)}`))
