@@ -253,6 +253,8 @@ export interface BoardConfig {
   /**
    * 상세 본문을 직접 조달하는 출처(상세가 SPA 라 GET+선택자가 불가능하고 본문은 JSON API 로만 올 때).
    * 반환은 본문 HTML(없으면 ""). 요청은 반드시 인자로 받은 fetchText 로만 한다 — 허용 호스트 검사가 유지된다.
+   * 사이트가 「지워진 공고」라고 직접 알려 주면 `BoardDetailGoneError`(`board/detail-gone.ts`)를 던진다 —
+   * 상세 채움이 실패 대신 공고를 마감한다(NO.486 성남산업진흥원).
    */
   detailFetch?: (
     detailUrl: string,

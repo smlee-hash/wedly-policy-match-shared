@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { endOfKstDay, fetchBoardAll, type BoardDeps } from "../engine";
 import { parseHtml } from "../html";
+import { readBoardDetail } from "../detail-fill";
+import { BoardDetailGoneError } from "../detail-gone";
 import {
   isSnipDropTitle,
   parseSnipList,
@@ -30,6 +32,7 @@ const viewFilesHtml = fixture("snip-view-files.html");
 const viewImageHtml = fixture("snip-view-image.html");
 const viewOldHtml = fixture("snip-view-old.html");
 const viewMissingHtml = fixture("snip-view-missing.html");
+const viewDeletedHtml = fixture("snip-view-deleted.html");
 const fileListFiles = fixture("snip-filelist-files.json");
 const fileListOld = fixture("snip-filelist-old.json");
 
@@ -305,10 +308,47 @@ describe("상세 조달 — 개편 뒤 실사이트 고정본", () => {
     ]);
   });
 
-  it("없는 공고(오류 화면)는 빈 글 — 첨부 목록도 요청하지 않는다", async () => {
+  it("삭제 안내가 없는 오류 화면(점검 등)은 빈 글 — 첨부 목록도 요청하지 않는다", async () => {
+    expect(viewMissingHtml).not.toContain("삭제되었습니다");
     const { asked, fetchText } = routes({ [detailOf("2026-9999")]: viewMissingHtml });
     expect(await snipConfig.detailFetch!(detailOf("2026-9999"), fetchText)).toBe("");
     expect(asked).toHaveLength(1);
+  });
+
+  /**
+   * NO.486 — 원문에서 지워진 공고 3건(2026-0006·0015·0018)은 「게시된 공고문이 없거나 삭제되었습니다」 안내만 오는
+   * 「오류」 화면이다. 빈 글로 돌려주면 「상세 조달이 빈 글을 돌려줌」 실패로 남아 영영 못 나온다 — 지워진 공고로 가른다.
+   */
+  it("지워진 공고 화면은 BoardDetailGoneError 를 던진다 — 저장 주소 세 꼴 모두, 첨부 목록은 요청하지 않는다", async () => {
+    for (const stored of [legacyOf("2026-0006"), detailOf("2026-0006")]) {
+      const { asked, fetchText } = routes({ [detailOf("2026-0006")]: viewDeletedHtml });
+      await expect(snipConfig.detailFetch!(stored, fetchText)).rejects.toBeInstanceOf(BoardDetailGoneError);
+      expect(asked.map((a) => a.url)).toEqual([detailOf("2026-0006")]);
+    }
+    const portal = "https://portal.snip.or.kr:8443/portal/snip/MainMenu/businessManagement/application.page?portlet=2026-0006&portlet2=1&homeYn=Y";
+    const { fetchText } = routes({ [detailOf("2026-0006")]: viewDeletedHtml });
+    await expect(snipConfig.detailFetch!(portal, fetchText)).rejects.toThrow("원문에서 지워진 공고");
+  });
+
+  it("readBoardDetail 은 지워진 공고를 「gone」 실패로 돌려준다 — 「상세 조달이 빈 글」과 구분된다", async () => {
+    const { fetchText } = routes({ [detailOf("2026-0006")]: viewDeletedHtml, [detailOf("2026-9999")]: viewMissingHtml });
+    const cfg = { ...snipConfig, detailFetch: (u: string) => snipConfig.detailFetch!(u, fetchText) };
+    expect(await readBoardDetail(cfg, legacyOf("2026-0006"))).toEqual({
+      kind: "fail",
+      reason: "원문에서 지워진 공고(게시된 공고문이 없거나 삭제되었습니다)",
+      gone: true,
+    });
+    expect(await readBoardDetail(cfg, legacyOf("2026-9999"))).toEqual({ kind: "fail", reason: "상세 조달이 빈 글을 돌려줌" });
+  });
+
+  it("본문 칸이 있는 화면은 안내 글자가 본문에 있어도 지워진 공고로 보지 않는다", async () => {
+    const withText = viewImageHtml.replace(
+      '<div class="view-content">',
+      '<div class="view-content"><p>alert("게시된 공고문이 없거나 삭제되었습니다.")</p>',
+    );
+    expect(withText).not.toBe(viewImageHtml);
+    const html = await snipConfig.detailFetch!(detailOf(SNP_IMAGE), routes({ [detailOf(SNP_IMAGE)]: withText }).fetchText);
+    expect(html).toContain("삭제되었습니다");
   });
 
   it("본문 칸이 있지만 비었고 첨부도 없으면 빈 상자를 돌려준다 — 진짜 공고를 7일마다 실패로 돌리지 않는다", async () => {
