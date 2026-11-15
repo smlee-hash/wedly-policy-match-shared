@@ -9,6 +9,9 @@ import type { CompanyAnnouncementRow, CompanyMatchRow } from "../../serve/policy
 
 const TH = "bg-wedly-bg-gray px-2.5 py-2 text-left text-wedly-tablehead font-semibold text-wedly-t2";
 const TD = "border-b border-wedly-bd px-2.5 py-2 align-top text-wedly-sub";
+// 가로 밀기 상자 — relative 라야 안쪽 절대 위치 글자(「업무 현황」 머리 칸의 sr-only)가 이 상자를 기준으로 잡혀 상자 안에서 잘린다.
+// 없으면 문서 전체를 기준으로 표 오른쪽 끝 자리에 놓여 좁은 화면의 문서 폭을 늘렸다(2026-11-16 390px 운영 QA — 문서 폭 932px).
+const TABLE_BOX = "relative overflow-x-auto rounded-lg border border-wedly-bd bg-white";
 
 export type ConditionColumns = { fit: boolean; check: boolean };
 
@@ -50,7 +53,7 @@ export function CompanyTable({
 }) {
   const cols = companyColumns(columns, showConsultant);
   return (
-    <div className="overflow-x-auto rounded-lg border border-wedly-bd bg-white">
+    <div className={TABLE_BOX}>
       <table className="w-full min-w-[760px] table-fixed border-collapse [&_tr:last-child>td]:border-b-0">
         <colgroup>
           {cols.map((c) => <col key={c.head} className={c.width} />)}
@@ -118,7 +121,7 @@ export function ContactAnnouncementTable({
   // 좁은 화면은 가로로 밀어 보며 공고명 약 180px. 마감 칸(딱지 56px + 날짜 11px 글자)은 140px 이면 한 줄에 들어간다.
   const minWidth = columns.fit && columns.check ? "min-w-[1040px] lg:min-w-[896px]" : "min-w-[780px]";
   return (
-    <div className="overflow-x-auto rounded-lg border border-wedly-bd bg-white">
+    <div className={TABLE_BOX}>
       <table className={`w-full ${minWidth} table-fixed border-collapse [&_tr:last-child>td]:border-b-0`}>
         <colgroup>
           <col />

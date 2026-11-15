@@ -3,7 +3,7 @@
 // 2026-11-15 운영 QA(390px 화면): 두 조건 칸이 다 나온 공고 표가 760px 에서 고정 칸·% 칸에 754px 을 내줘 공고명이 한 글자씩 줄을 바꿨다.
 import { describe, expect, it, vi } from "vitest";
 import { CompanyTable, ContactAnnouncementTable } from "./DeadlineTables";
-import { byTag, headsOf, mountTree, type HostNode } from "./test-kit";
+import { byTag, find, findAll, headsOf, mountTree, type HostNode } from "./test-kit";
 
 vi.mock("react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react")>()),
@@ -70,5 +70,19 @@ describe("좁은 화면의 펼친 표", () => {
     );
     expect(colsOf(t).at(-2)).toBe("");
     for (const { px } of minWidthsOf(t)) expect(leftover(t, px)).toBeGreaterThanOrEqual(100);
+  });
+
+  // 2026-11-16 운영 QA(390px 화면): 「업무 현황」 머리 칸의 sr-only 글자(절대 위치)가 기준 상자 없이 문서 전체를 기준으로 자리를 잡아,
+  // 가로 밀기 상자에 잘리지 않고 문서 폭을 932px 로 늘렸다. 밀기 상자가 기준 상자(relative)여야 그 글자가 상자 안에서 잘린다.
+  it.each([
+    ["공고 표", () => <ContactAnnouncementTable rows={[announcement(BOTH)]} customerKey="cA" busyKey="" onProgress={() => {}} />],
+    ["업체 표", () => <CompanyTable rows={[company(BOTH)]} columns={{ fit: true, check: true }} busyKey="" bucketKey="b1" onProgress={() => {}} />],
+  ])("%s — 가로 밀기 상자가 기준 상자라 안쪽 절대 위치 글자(sr-only)가 문서를 넓히지 않는다", (_, render) => {
+    const tree = mountTree(render()).tree;
+    const box = find(tree, (n) => n.kids.some((k) => typeof k !== "string" && k.tag === "table"));
+    const cls = String(box?.props.className ?? "").split(/\s+/);
+    expect(cls).toContain("overflow-x-auto");
+    expect(cls).toContain("relative");
+    expect(findAll(tableOf(tree), (n) => String(n.props.className ?? "").split(/\s+/).includes("sr-only")).length).toBeGreaterThan(0);
   });
 });
