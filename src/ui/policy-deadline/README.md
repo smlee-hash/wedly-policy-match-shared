@@ -94,7 +94,7 @@ return NextResponse.json(body, { status });
 ## 목록만 따로 끼워 쓰기 (지원정책 매칭 「정책별 업체」 탭 등)
 
 `AnnouncementBoard`(정책별 고객사)·`ContactsBoard`(연락 예정 업체)는 화면 안쪽 부품이면서 `index.ts` 에서 따로 내보낸다.
-ERP 가 쓰던 속성을 **그대로** 받고, 새로 생긴 것은 `endpoints`(`AnnouncementBoard` 는 `features?` 도)뿐이다.
+ERP 가 쓰던 속성을 **그대로** 받고, 새로 생긴 것은 `endpoints`(`AnnouncementBoard` 는 `features?` 도)와 `canProgress?`(기본 켬 — 아래 표)다.
 
 | 이름 | `AnnouncementBoard` | `ContactsBoard` |
 |---|---|---|
