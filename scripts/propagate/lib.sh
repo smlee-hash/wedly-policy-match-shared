@@ -214,11 +214,17 @@ app_field() {
   ' "$APPS_JSON" "$APP_ID" "$1"
 }
 
-# apps.json 에서 이 앱의 정의를 읽어 REPO·INSTALL·POST_STEPS·COMMIT_PATHS 를 채운다.
+# apps.json 에서 이 앱의 정의를 읽어 REPO·INSTALL·FULL_HISTORY·POST_STEPS·COMMIT_PATHS 를 채운다.
 load_app() {
   [ -n "${APP_ID:-}" ] || usage "PROPAGATE_APP_ID 가 비었습니다"
   REPO="$(app_field repo)" || usage "apps.json 에 없는 앱이거나 apps.json 을 읽지 못했습니다: ${APP_ID} (쓸 수 있는 값은 apps.json 을 보세요)"
   INSTALL="$(app_field install)"
+  # 칸이 빠지면 app_field 는 "undefined" 를 찍는다 — 얕은 클론으로 조용히 넘기지 않고 멈춘다.
+  FULL_HISTORY="$(app_field fullHistory)"
+  case "$FULL_HISTORY" in
+    true|false) ;;
+    *) die "[$APP_ID] apps.json 의 fullHistory 는 true 나 false 여야 합니다" ;;
+  esac
 
   POST_STEPS=()
   while IFS= read -r LINE; do
@@ -419,14 +425,27 @@ assert_no_credentials() {
   [ ! -f "$dir/.git/credentials" ] || die "[$APP_ID] 클론에 .git/credentials 가 생겼습니다 — 밀지 않았습니다"
 }
 
-# 앱 저장소를 <dir> 에 새로 클론한다(main, depth 50).
+# 앱 저장소를 <dir> 에 새로 클론한다(main 한 갈래).
+#   clone_app <dir>       최근 50개 기록만(얕은 클론)
+#   clone_app <dir> full  전체 기록 — apps.json 의 fullHistory 가 true 인 앱의 clone 단계만 쓴다
+# ★전체 기록이 필요한 까닭(2026-11-15 실측): ERP 의 `design:check` 는 release-scope.json 의 기준 커밋
+#  (수백 개 앞)이 조상인지 보고 그 커밋의 파일까지 읽는다. 얕은 클론에는 그 커밋이 없어
+#  「Git 명령을 실행할 수 없습니다」로 멈췄고, 공용 꾸러미 새 판이 ERP 에만 안 올라갔다(88e714d·fa8dbc7).
+#  준비 단계는 토큰이 없어 나중에 더 받아 올 수 없으므로 클론 단계가 처음부터 다 받는다.
+# ★밀기 단계는 늘 얕게 받는다 — 기준 커밋 하나면 되고(모자라면 checkout_base 가 더 받는다),
+#  토큰을 쥔 시간을 짧게 둔다.
 clone_app() {
-  local dir="$1"
+  local dir="$1" label="depth 50"
+  local depth_args=(--depth 50)
+  if [ "${2:-}" = "full" ]; then
+    label="전체 기록"
+    depth_args=()
+  fi
   STDERR_FILE="$(mktemp "${TMPDIR:-/tmp}/propagate-stderr.XXXXXX")"
   prepare_clone_url
   rm -rf "$dir"
-  echo "propagate[$APP_ID]: ${REPO} 클론 (main, depth 50)"
-  git_masked clone -q --depth 50 --single-branch --branch main "$CLONE_URL" "$dir" \
+  echo "propagate[$APP_ID]: ${REPO} 클론 (main, ${label})"
+  git_masked clone -q ${depth_args[@]+"${depth_args[@]}"} --single-branch --branch main "$CLONE_URL" "$dir" \
     || die "[$APP_ID] 클론 실패 — 위 오류를 보세요(주소·토큰은 가려서 찍습니다)"
   assert_no_credentials "$dir"
 }

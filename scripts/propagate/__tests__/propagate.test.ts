@@ -265,6 +265,25 @@ function humanPush(tmp: string, bare: string, edit: (dir: string) => void, messa
 }
 
 /**
+ * 앱 저장소에 사람 커밋을 `count` 개 쌓는다 — 봇의 얕은 클론(--depth 50) 경계를 넘기려는 것이다.
+ * `first` 가 있으면 첫 커밋에서 그 편집을 함께 싣는다(그 뒤 커밋은 README 만 바꾼다).
+ */
+function pushHistory(tmp: string, bare: string, count: number, first?: (dir: string) => void) {
+  const dir = join(tmp, `history-${Math.random().toString(36).slice(2)}`);
+  sh(`git clone -q "${bare}" "${dir}"`, tmp);
+  sh("git config user.email h@t && git config user.name 사람", dir);
+  if (first) {
+    first(dir);
+    sh('git add -A && git commit -qm "첫 사람 커밋"', dir);
+  }
+  for (let i = 0; i < count; i += 1) {
+    writeFileSync(join(dir, "README.md"), `app ${i}\n`);
+    sh(`git commit -qam "사람 ${i}"`, dir);
+  }
+  sh("git push -q origin HEAD:main", dir);
+}
+
+/**
  * 가짜 npm: `pkg set` 은 package.json 을 실제로 고치고, `install` 은 잠금 파일을 새 SHA 로 고친다.
  * `ci` 는 설치 잠금(node_modules/.package-lock.json)을 쓴다. `run` 은 **진짜 npm 과 같은 뜻으로**
  * package.json 의 `scripts` 를 읽어 그 문자열을 셸로 돌린다(`A && B` 묶음도 그대로).
@@ -596,6 +615,71 @@ describe("propagate.sh", () => {
     expect(r.prepare?.npmLog).toMatch(/^npm run design:catalog:build$/m);
     expect(sh("git show main:public/design-system-demos/sandbox.js", app.bare)).toContain(pkg.c3);
     expect(sh("git show main:public/design-system-demos/sandbox.css", app.bare)).toContain(pkg.c3);
+  }, 60_000);
+
+  it("ERP 는 전체 기록으로 클론한다 — 배포 범위 기준 커밋이 50개보다 오래돼도 준비가 통과한다", () => {
+    // ★막는 사고(2026-11-15 실측): 봇이 앱을 최근 50개 기록(--depth 50)만 받아 왔다. ERP 의
+    //  `design:check` 는 `docs/design-system/release-scope.json` 의 기준 커밋(2026-10-30, main 에서
+    //  168개 앞)이 조상인지 보고 그 커밋의 파일까지 읽는다 → 받은 범위 밖이라 「Git 명령을 실행할 수
+    //  없습니다」로 멈췄고, 공용 꾸러미 새 판이 ERP 에만 안 올라갔다(88e714d·fa8dbc7 두 번).
+    //  준비 단계는 토큰이 없어 나중에 더 받아 올 수도 없다 — 그래서 클론 단계가 처음부터 다 받는다.
+    // ★주소를 `file://` 로 준다: 로컬 경로 클론은 git 이 `--depth` 를 무시해서(늘 전체) 이 사고를 못 잰다.
+    const app = fakeApp(tmp, "erp", pkg.c1, (w) => seedErpDesignSystem(w));
+    const baseline = sh("git rev-parse main", app.bare);
+    pushHistory(tmp, app.bare, 60, (human) => {
+      mkdirSync(join(human, "docs/design-system"), { recursive: true });
+      writeFileSync(join(human, "docs/design-system/release-scope.json"), JSON.stringify({ baselineCommit: baseline }) + "\n");
+      // ERP release-scope.mjs 흉내 — 기준 커밋이 조상인지 보고(merge-base) 그 커밋의 파일을 읽는다(cat-file).
+      writeFileSync(
+        join(human, "scripts/design-system/release-scope.mjs"),
+        `import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+const { baselineCommit } = JSON.parse(readFileSync("docs/design-system/release-scope.json", "utf8"));
+try {
+  execFileSync("git", ["merge-base", "--is-ancestor", baselineCommit, "HEAD"], { stdio: "pipe" });
+  execFileSync("git", ["cat-file", "-e", baselineCommit + ":package.json"], { stdio: "pipe" });
+} catch {
+  console.error("배포를 막습니다. Git 명령을 실행할 수 없습니다.");
+  process.exit(1);
+}
+`,
+      );
+      const humanPkgPath = join(human, "package.json");
+      const humanPkg = JSON.parse(readFileSync(humanPkgPath, "utf8")) as { scripts: Record<string, string> };
+      humanPkg.scripts["design:check"] += " && node scripts/design-system/release-scope.mjs";
+      writeFileSync(humanPkgPath, JSON.stringify(humanPkg, null, 2) + "\n");
+    });
+
+    const r = runAll(tmp, {
+      PROPAGATE_APP_ID: "erp",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: `file://${app.bare}`,
+    });
+    expect(r.clone.code, r.clone.stderr).toBe(0);
+    expect(sh("git rev-parse --is-shallow-repository", join(tmp, "work", "erp"))).toBe("false");
+    expect(r.prepare?.code, r.prepare?.stderr).toBe(0);
+    expect(r.prepare?.out).toContain("result=prepared");
+    expect(r.push?.code, r.push?.stderr).toBe(0);
+    expect(r.push?.out).toContain("result=updated");
+    expect(sh("git show main:package.json", app.bare)).toContain(SPEC(pkg.c3));
+    // 밀기 단계(토큰을 쥔 자리)는 기준 커밋 하나만 있으면 되므로 여전히 얕게 받는다
+    expect(sh("git rev-parse --is-shallow-repository", join(tmp, "work", "push-erp"))).toBe("true");
+  }, 120_000);
+
+  it("전체 기록이 필요 없는 앱(lab)은 클론도 밀기도 여전히 얕게 받는다", () => {
+    const app = fakeApp(tmp, "lab", pkg.c1);
+    pushHistory(tmp, app.bare, 60);
+    const env = {
+      PROPAGATE_APP_ID: "lab",
+      PROPAGATE_SHA: pkg.c3,
+      PROPAGATE_PACKAGE_DIR: pkg.dir,
+      PROPAGATE_CLONE_URL: `file://${app.bare}`,
+    };
+    const r = runAll(tmp, env);
+    expect(r.push?.code, r.push?.stderr).toBe(0);
+    expect(sh("git rev-parse --is-shallow-repository", join(tmp, "work", "lab"))).toBe("true");
+    expect(sh("git rev-parse --is-shallow-repository", join(tmp, "work", "push-lab"))).toBe("true");
   }, 60_000);
 
   it("push 단계는 npm 을 한 번도 부르지 않는다 — 토큰 옆에서 앱 코드가 돌지 않는다는 증거", () => {
