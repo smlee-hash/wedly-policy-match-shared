@@ -8,32 +8,33 @@ import type { BoardConfig, BoardRow, PolicyAttachmentRequest } from "../types";
  * 왜 연결했나(2026-09-02 실측): 최신 5건을 기업마당·보조금24 포함 우리 DB 와 제목으로
  * 대조했더니 진짜 겹침은 0건(오탐 1) — 통합 수집원으로는 안 들어온다.
  *
- * 구조: `table.board-list > tbody > tr` 10건. **접수기간을 목록에서 준다**
- * (`td.term` = `2026-08-31~2026-09-17`) — 등록일만 주는 게시판보다 마감 정리가 정확하다.
+ * 구조: `table.board-list > tbody > tr` 10건. **접수기간을 목록에서 준다**(`td.term`).
  * 쪽넘김은 `?page=n` GET. `pageIndex`·`pageNo`·`currentPage` 는 안 먹는다(실측).
- * 총 3,627건. 마감일을 주므로 깊이 파도 끝난 공고가 「모집중」으로 안 섞인다 — `maxPages: 10`.
+ * 마감일을 주므로 깊이 파도 끝난 공고가 「모집중」으로 안 섞인다 — `maxPages: 10`.
  *
- * ⚠️ 상세 링크가 다른 호스트다 — `https://portal.snip.or.kr:8443/portal/snip/...`.
- *    `allowedHosts` 에 포트를 포함한 `portal.snip.or.kr:8443` 을 반드시 적는다
- *    (`allowedHostsOf` 는 `new URL().host` 로 대조하므로 포트가 열쇠에 들어간다).
- *
- * 목록에 저장되는 주소는 사업신청 껍데기(`application.page`)다. 익명으로 열리는 본문은
- * `/user/snip/busin/businDetail.face`(실측 HTTP 200). 껍데기·비밀번호 iframe 은 요청하지 않는다.
+ * ⚠️ 2026-09 말 사이트 개편(2026-11-15 실측, NO.486).
+ *    · 상세 링크가 포털(`portal.snip.or.kr:8443`)에서 **상대 주소** `?schM=view&snp=…` 로 바뀌었다.
+ *      목록 주소에 붙여야 한다 — 사이트 뿌리에 붙이면 166바이트 넘김 화면만 와서 상세가 102건 빈 글로 실패했다.
+ *    · 접수기간 칸이 `시작~끝` 에서 **마감일만**(`~2026-11-20`) 주는 꼴로 바뀌었다 — 시작일로 적으면 안 된다.
+ *    · 옛 포털 공고 번호(portlet)가 새 사이트 snp 와 같다(2026-0253 실측). 포털은 닫혔다.
  */
 const BASE = "https://www.snip.or.kr";
 const LIST = "/SNIP/contents/Business1.do";
+const LIST_URL = `${BASE}${LIST}`;
 const YMD = /(20\d{2})[.\-/](\d{1,2})[.\-/](\d{1,2})/g;
 
+/** 개편 전 저장 주소. 옛 줄을 다시 읽을 때 snp 로 옮긴다. */
 const PORTAL_ORIGIN = "https://portal.snip.or.kr:8443";
 const STORED_DETAIL_PATH = "/portal/snip/MainMenu/businessManagement/application.page";
-const OFFICIAL_DETAIL_PATH = "/user/snip/busin/businDetail.face";
-/** 사이트 원문 철자가 attatch 이다. */
-const FILE_DOWNLOAD_PATH = "/user/snip/attatchFileDownload.face";
-const IMAGE_PATH = /^\/gwCustSnip\/.+\.(?:png|jpe?g)$/i;
 const PORTLET = /^20\d{2}-\d+$/;
 const PORTLET2 = /^[1-9]\d*$/;
-const HEX = /^[0-9A-Fa-f]{32,128}$/;
-const FILE_DOWN_CALL = /\bfn_fileDown\(\s*(['"])([0-9A-Fa-f]{32,128})\1\s*\)/;
+
+/** 새 글은 32자리 16진수, 개편 전 글은 `YYYY-NNNN`(실측). */
+const SNP = /^(?:[0-9A-Fa-f]{32}|20\d{2}-\d+)$/;
+const FILE_ID = /^[0-9A-Za-z_-]{1,100}$/;
+const FILE_LIST_PATH = "/afile/fileList.do";
+const FILE_DOWNLOAD_PATH = /^\/afile\/fileDownload\/[0-9A-Za-z]+$/;
+const IMAGE_PATH = /^\/data\/COMMON\/.+\.(?:png|jpe?g)$/i;
 const PLACEHOLDER = /사업\s*공고문\s*내용을\s*입력합니다\.?/g;
 const DETAIL_BODY_ID = "snip-detail-body";
 
@@ -48,14 +49,57 @@ export function isSnipDropTitle(title: string): boolean {
   return DROP.test(title);
 }
 
+const canonicalOf = (snp: string) => `${LIST_URL}?schM=view&snp=${snp}`;
+/**
+ * 개편 뒤 2026-11 배포까지 저장된 주소 꼴(상대 주소를 뿌리에 붙인 값).
+ * 중복 판정 열쇠(sourceId)로 그대로 쓴다 — 바꾸면 이미 쌓인 공고가 두 줄이 된다.
+ */
+const legacyKeyOf = (snp: string) => `${BASE}/?schM=view&snp=${snp}`;
+
+function snpOf(url: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "https:") return null;
+  if (u.username || u.password) return null;
+  if (u.origin === BASE) {
+    if (u.pathname !== LIST && u.pathname !== "/") return null;
+    if (u.searchParams.get("schM") !== "view") return null;
+    const snp = u.searchParams.get("snp") ?? "";
+    return SNP.test(snp) ? snp : null;
+  }
+  if (u.origin === PORTAL_ORIGIN && u.pathname === STORED_DETAIL_PATH) {
+    const portlet = u.searchParams.get("portlet") ?? "";
+    const portlet2 = u.searchParams.get("portlet2") ?? "";
+    return PORTLET.test(portlet) && PORTLET2.test(portlet2) ? portlet : null;
+  }
+  return null;
+}
+
+/**
+ * 저장된 세 꼴(정식 주소·개편 뒤 뿌리 꼴·옛 포털 꼴)을 공개 상세 정식 주소로 옮긴다.
+ * 틀리면 요청 전에 null.
+ */
+export function snipOfficialDetailUrl(storedUrl: string): string | null {
+  const snp = snpOf(storedUrl);
+  return snp ? canonicalOf(snp) : null;
+}
+
 export function parseSnipList(html: string): BoardRow[] {
   const out: BoardRow[] = [];
   const seen = new Set<string>();
   for (const tr of parseHtml(html).querySelectorAll("table.board-list > tbody > tr")) {
     const a = tr.querySelector("td.subject a");
-    const href = (a?.getAttribute("href") ?? "").trim();
+    const href = decodeHtmlEntities(a?.getAttribute("href") ?? "").trim();
     if (!href || href === "#") continue;
-    const detailUrl = absolutize(href, `${BASE}/`);
+    // 상대 주소 `?schM=view&snp=…` 는 목록 주소에 붙는다. 개편 전 고정본은 포털 절대 주소라 그대로다.
+    const abs = absolutize(href, LIST_URL);
+    const isView = abs.startsWith(`${BASE}/`);
+    const snp = isView ? snpOf(abs) : null;
+    const detailUrl = snp ? canonicalOf(snp) : abs;
     if (seen.has(detailUrl)) continue;
     const title = (a?.text ?? "").replace(/\s+/g, " ").trim();
     if (!title || DROP.test(title)) continue;
@@ -64,18 +108,25 @@ export function parseSnipList(html: string): BoardRow[] {
      * 접수기간은 **`td.term` 칸을 직접** 집는다.
      * ⚠️ 행 전체 글자(`tr.text`)에서 찾으면 안 된다 — 칸이 띄어쓰기 없이 이어 붙어
      *    조회수 「142」 + 작성일 「2026-08-31」이 「1422026-08-31」이 된다(hsbiz 실측 함정).
-     * ⚠️ `td.data`(작성일)로 떨어지면 안 된다 — 세 번째 행은 접수기간 08-28~09-04,
-     *    작성일은 08-27 이라 끝이 하루 앞당겨진다.
+     * ⚠️ `td.data`(작성일)로 떨어지면 안 된다 — 작성일은 접수 시작보다 하루 이를 수 있다.
+     * ⚠️ 날짜가 하나면 앞의 `~` 를 본다 — `~2026-11-20` 은 마감일이다(개편 뒤 꼴).
      */
     const term = (tr.querySelector("td.term")?.text ?? "").replace(/\s+/g, " ").trim();
     const days = [...term.matchAll(YMD)].map(
       (m) => `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`,
     );
     const dateText =
-      days.length >= 2 ? `${days[0]} ~ ${days[1]}` : days.length === 1 ? `${days[0]} ~` : "";
+      days.length >= 2
+        ? `${days[0]} ~ ${days[1]}`
+        : days.length === 1
+          ? term.startsWith("~")
+            ? `~ ${days[0]}`
+            : `${days[0]} ~`
+          : "";
     out.push({
       title,
       detailUrl,
+      ...(snp ? { sourceId: legacyKeyOf(snp) } : {}),
       dateText,
       category: "",
       agency: "성남산업진흥원",
@@ -88,74 +139,30 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-/**
- * 목록에 저장된 사업신청 주소만 공개 상세 주소로 옮긴다.
- * 틀리면 요청 전에 null — 껍데기 `application.page` 를 그대로 열지 않는다.
- */
-export function snipOfficialDetailUrl(storedUrl: string): string | null {
+/** 같은 사이트(https, 포트 없음)의 주소만 받는다. 쿼리·조각·`..`·자격 정보가 있으면 null. */
+function sameSiteUrl(raw: string): URL | null {
+  const s = decodeHtmlEntities(raw).trim();
+  if (!s || s.includes("..") || /^\s*(?:javascript|data):/i.test(s)) return null;
   let u: URL;
   try {
-    u = new URL(storedUrl);
+    u = new URL(s, `${BASE}/`);
   } catch {
     return null;
   }
-  if (u.protocol !== "https:") return null;
   if (u.username || u.password) return null;
-  if (u.origin !== PORTAL_ORIGIN) return null;
-  if (u.pathname !== STORED_DETAIL_PATH) return null;
-  const portlet = u.searchParams.get("portlet") ?? "";
-  const portlet2 = u.searchParams.get("portlet2") ?? "";
-  if (!PORTLET.test(portlet) || !PORTLET2.test(portlet2)) return null;
-  return (
-    `${PORTAL_ORIGIN}${OFFICIAL_DETAIL_PATH}` +
-    `?pjtAnncSn=${encodeURIComponent(portlet)}&pjtCd=${encodeURIComponent(portlet2)}&stateChk=N`
-  );
+  if (u.origin !== BASE) return null;
+  if (u.search || u.hash) return null;
+  return u;
 }
 
 function officialImageUrl(src: string): string | null {
-  const raw = decodeHtmlEntities(src).trim();
-  if (!raw || /^\s*javascript:/i.test(raw) || raw.includes("..")) return null;
-  let u: URL;
-  try {
-    u = new URL(raw, `${PORTAL_ORIGIN}/`);
-  } catch {
-    return null;
-  }
-  if (u.username || u.password) return null;
-  if (u.origin !== PORTAL_ORIGIN) return null;
-  if (u.search || u.hash) return null;
-  if (!IMAGE_PATH.test(u.pathname)) return null;
-  return `${PORTAL_ORIGIN}${u.pathname}`;
+  const u = sameSiteUrl(src);
+  return u && IMAGE_PATH.test(u.pathname) ? `${BASE}${u.pathname}` : null;
 }
 
-function officialDownloadUrl(hex: string): string | null {
-  if (!HEX.test(hex)) return null;
-  return `${PORTAL_ORIGIN}${FILE_DOWNLOAD_PATH}?comAtchFileId=${encodeURIComponent(hex)}&dataType=biz`;
-}
-
-function officialDownloadUrlOf(href: string): string | null {
-  const raw = decodeHtmlEntities(href).trim();
-  if (!raw || /^\s*javascript:/i.test(raw)) return null;
-  let u: URL;
-  try {
-    u = new URL(raw);
-  } catch {
-    return null;
-  }
-  if (u.username || u.password) return null;
-  if (u.origin !== PORTAL_ORIGIN) return null;
-  if (u.pathname !== FILE_DOWNLOAD_PATH) return null;
-  if (u.hash) return null;
-  const hex = u.searchParams.get("comAtchFileId") ?? "";
-  const dataType = u.searchParams.get("dataType") ?? "";
-  if (!HEX.test(hex) || dataType !== "biz") return null;
-  const keys = [...u.searchParams.keys()];
-  if (keys.length !== 2 || !keys.includes("comAtchFileId") || !keys.includes("dataType")) return null;
-  return officialDownloadUrl(hex);
-}
-
-function fileDownHex(call: string): string {
-  return call.match(FILE_DOWN_CALL)?.[2] ?? "";
+function officialDownloadUrl(path: string): string | null {
+  const u = sameSiteUrl(path);
+  return u && FILE_DOWNLOAD_PATH.test(u.pathname) ? `${BASE}${u.pathname}` : null;
 }
 
 function imageNameOf(img: { getAttribute(name: string): string | undefined | null }, url: string): string {
@@ -169,70 +176,37 @@ function imageNameOf(img: { getAttribute(name: string): string | undefined | nul
   }
 }
 
-function summernoteMarkup(pageHtml: string): string {
-  const ta = parseHtml(pageHtml).querySelector("textarea#summernote[name=content]");
-  if (!ta) return "";
-  return decodeHtmlEntities((ta.innerHTML ?? "").trim());
-}
+type SnipFile = { name: string; url: string };
 
-function collectSnipImages(html: string): { name: string; url: string }[] {
-  const root = parseHtml(html);
-  const chunks: string[] = [];
-  const body = root.querySelector(`#${DETAIL_BODY_ID}`);
-  if (body) chunks.push(body.innerHTML ?? "");
-  const ta = root.querySelector("textarea#summernote[name=content]");
-  if (ta) chunks.push(decodeHtmlEntities((ta.innerHTML ?? "").trim()));
-  const seen = new Set<string>();
-  const out: { name: string; url: string }[] = [];
-  for (const chunk of chunks) {
-    const doc = parseHtml(`<div>${chunk}</div>`);
-    for (const img of doc.querySelectorAll("img")) {
-      const url = officialImageUrl(img.getAttribute("src") ?? "");
-      if (!url || seen.has(url)) continue;
-      const name = imageNameOf(img, url);
-      if (!name) continue;
-      seen.add(url);
-      out.push({ name, url });
-    }
+/**
+ * 첨부 목록 응답(JSON 배열). 배열이 아니면 던진다 — 점검 화면·오류를 「첨부 없음」으로 굳히지 않고
+ * 다음 수집에서 다시 읽게 한다. 이상한 줄(바깥 주소·지우기 주소·이름 없음·같은 주소)은 버린다.
+ */
+function parseSnipFileList(text: string): SnipFile[] {
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error("성남산업진흥원 첨부 목록 응답이 JSON 이 아님");
   }
-  return out;
-}
-
-function collectSnipFiles(html: string): { name: string; url: string }[] {
-  const root = parseHtml(html);
+  if (!Array.isArray(data)) throw new Error("성남산업진흥원 첨부 목록 응답이 배열이 아님");
   const seen = new Set<string>();
-  const out: { name: string; url: string }[] = [];
-  const push = (name: string, url: string) => {
-    const n = name.replace(/\s+/g, " ").trim();
-    if (!n || seen.has(url)) return;
+  const out: SnipFile[] = [];
+  for (const item of data) {
+    if (!item || typeof item !== "object") continue;
+    const { fileName, downloadPath } = item as { fileName?: unknown; downloadPath?: unknown };
+    if (typeof fileName !== "string" || typeof downloadPath !== "string") continue;
+    const name = fileName.replace(/\s+/g, " ").trim();
+    if (!name) continue;
+    const url = officialDownloadUrl(downloadPath);
+    if (!url || seen.has(url)) continue;
     seen.add(url);
-    out.push({ name: n, url });
-  };
-  for (const a of root.querySelectorAll("a")) {
-    const url = officialDownloadUrlOf(a.getAttribute("href") ?? "");
-    if (!url) continue;
-    push(a.getAttribute("data-snip-name") ?? a.text ?? "", url);
-  }
-  for (const tit of root.querySelectorAll(".titArea4 p.tit")) {
-    let pending = "";
-    for (const a of tit.querySelectorAll("a")) {
-      const call = a.getAttribute("onclick") ?? "";
-      const hex = fileDownHex(call);
-      if (hex) {
-        const url = officialDownloadUrl(hex);
-        if (url && pending) push(pending, url);
-        pending = "";
-        continue;
-      }
-      if (/\bfn_Preview\s*\(/.test(call)) continue;
-      const label = (a.text ?? "").replace(/\s+/g, " ").trim();
-      if (label && label !== "다운로드" && label !== "바로보기") pending = label;
-    }
+    out.push({ name, url });
   }
   return out;
 }
 
-function fileListHtml(files: { name: string; url: string }[]): string {
+function fileListHtml(files: SnipFile[]): string {
   if (!files.length) return "";
   const items = files
     .map((f) => `<li><a href="${escapeHtml(f.url)}" data-snip-name="${escapeHtml(f.name)}"></a></li>`)
@@ -240,23 +214,32 @@ function fileListHtml(files: { name: string; url: string }[]): string {
   return `<ul class="snip-files">${items}</ul>`;
 }
 
-function buildSnipDetailHtml(pageHtml: string): string {
-  const markup = summernoteMarkup(pageHtml).replace(PLACEHOLDER, "").trim();
-  const files = collectSnipFiles(pageHtml);
-  const body = parseHtml(`<div>${markup}</div>`);
-  body.querySelectorAll("script,style,iframe,form").forEach(el => el.remove());
-  const inner = body.querySelector("div")?.innerHTML ?? "";
-  if (!inner.trim() && files.length === 0) return "";
+/** 본문 칸만 남긴다. 버튼·이전글·첨부 이름은 본문 글자에 섞지 않는다(첨부는 글자 없는 목록으로). */
+function buildSnipDetailHtml(viewInner: string, files: SnipFile[]): string {
+  const body = parseHtml(`<div>${viewInner.replace(PLACEHOLDER, "")}</div>`);
+  body.querySelectorAll("script,style,noscript,iframe,form,object,embed").forEach((el) => el.remove());
+  const inner = (body.querySelector("div")?.innerHTML ?? "").trim();
   return `<div id="${DETAIL_BODY_ID}">${inner}</div>${fileListHtml(files)}`;
 }
 
 export function snipDetailAttachments(html: string): PolicyAttachmentRequest[] {
+  const root = parseHtml(html);
   const seen = new Set<string>();
   const out: PolicyAttachmentRequest[] = [];
-  for (const item of [...collectSnipImages(html), ...collectSnipFiles(html)]) {
-    if (seen.has(item.url)) continue;
-    seen.add(item.url);
-    out.push({ name: item.name, url: item.url, kind: attachmentKindOf(item.name, item.url) });
+  const push = (name: string, url: string) => {
+    const n = name.replace(/\s+/g, " ").trim();
+    if (!n || seen.has(url)) return;
+    seen.add(url);
+    out.push({ name: n, url, kind: attachmentKindOf(n, url) });
+  };
+  const body = root.querySelector(`#${DETAIL_BODY_ID}`);
+  for (const img of body?.querySelectorAll("img") ?? []) {
+    const url = officialImageUrl(img.getAttribute("src") ?? "");
+    if (url) push(imageNameOf(img, url), url);
+  }
+  for (const a of root.querySelectorAll("ul.snip-files a")) {
+    const url = officialDownloadUrl(a.getAttribute("href") ?? "");
+    if (url) push(decodeHtmlEntities(a.getAttribute("data-snip-name") ?? ""), url);
   }
   return out;
 }
@@ -267,10 +250,14 @@ export const snipConfig: BoardConfig = {
   agency: "성남산업진흥원",
   region: "경기",
   baseUrl: `${BASE}/`,
+  /**
+   * 개편 전에 저장된 첨부 주소가 포털(`portal.snip.or.kr:8443`)이다. 내려받기 허용은 남긴다
+   * (`allowedHostsOf` 는 `new URL().host` 로 대조하므로 포트가 열쇠에 들어간다).
+   */
   allowedHosts: ["portal.snip.or.kr:8443"],
   charset: "utf-8",
   list: {
-    url: (p) => `${BASE}${LIST}?page=${p}`,
+    url: (p) => `${LIST_URL}?page=${p}`,
     maxPages: 10,
     rowSelector: "table.board-list > tbody > tr",
     fields: {
@@ -281,24 +268,27 @@ export const snipConfig: BoardConfig = {
   },
   customParse: parseSnipList,
   /**
-   * 목록 저장 주소는 로그인 껍데기(`application.page`)다. 익명 공개 본문은
-   * `businDetail.face`(실측 HTTP 200). `detailFetch` 가 저장 주소를 검사한 뒤에만
-   * 그 공개 주소로 옮긴다 — 껍데기·비밀번호 iframe 은 요청하지 않는다.
+   * 저장 주소 세 꼴을 정식 상세 주소(`Business1.do?schM=view&snp=…`)로 옮긴 뒤에만 요청한다.
+   * 본문은 `.board-view .view-content`. 이 칸이 없으면(없는 공고의 오류 화면) 빈 글이다.
+   * 칸이 있으면 비어 있어도 상자를 돌려준다 — 진짜 공고를 실패로 되풀이하지 않는다.
+   * 자리 표시 문장 「사업 공고문 내용을 입력합니다」는 공고문이 아니라 지운다. 글자를 지어내지 않는다.
    *
-   * 본문은 `textarea#summernote[name=content]` 안의 HTML 이다. 자리 표시 문장
-   * 「사업 공고문 내용을 입력합니다」는 공고문이 아니다. 그림만 있는 공고는 같은 호스트
-   * `/gwCustSnip/…png|jpeg` 를 원문으로 남기고, 파일명·안내문을 본문에 넣지 않는다.
-   * 본문을 비워 두어 첨부 내용 수집도 이어진다. 글자를 지어내지 않는다. 접수기간은 목록 값을 그대로 쓴다.
-   *
-   * 첨부는 `.titArea4 p.tit` 의 이름 다음 `fn_fileDown('HEX')` 만
-   * `/user/snip/attatchFileDownload.face?comAtchFileId=HEX&dataType=biz` 로 바꾼다.
-   * 미리보기·임의 스크립트 주소는 쓰지 않는다.
+   * 첨부는 `.file-list input[name=fileId]` 값으로 `GET /afile/fileList.do?fileId=…`(JSON 배열)를 읽고
+   * `downloadPath`(`/afile/fileDownload/<코드>`, 익명 200 실측)만 쓴다. fileId 가 비었거나 이상하면 요청하지 않는다.
+   * 그림만 있는 공고는 본문의 같은 사이트 `/data/COMMON/…png|jpg` 를 원문 첨부로 남긴다.
    */
   detailContentSelector: `#${DETAIL_BODY_ID}`,
   detailFetch: async (detailUrl, fetchText) => {
     const official = snipOfficialDetailUrl(detailUrl);
     if (!official) return "";
-    return buildSnipDetailHtml(await fetchText(official));
+    const page = parseHtml(await fetchText(official));
+    const view = page.querySelector(".board-view .view-content");
+    if (!view) return "";
+    const fileId = (page.querySelector(".board-view .file-list input[name=fileId]")?.getAttribute("value") ?? "").trim();
+    const files = FILE_ID.test(fileId)
+      ? parseSnipFileList(await fetchText(`${BASE}${FILE_LIST_PATH}?fileId=${encodeURIComponent(fileId)}`))
+      : [];
+    return buildSnipDetailHtml(view.innerHTML ?? "", files);
   },
   detailAttachments: ({ html, pageHtml }) => snipDetailAttachments(html || pageHtml),
   expectMinRows: 2,
