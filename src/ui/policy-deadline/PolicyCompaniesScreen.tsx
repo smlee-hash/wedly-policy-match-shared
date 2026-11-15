@@ -45,6 +45,11 @@ export interface PolicyCompaniesScreenProps {
   now?: Date;
   /** 값이 바뀌면 지금 탭과 요약 카드를 다시 읽는다(업체 상세창에서 저장한 뒤 앱이 올린다). */
   revision?: number;
+  /**
+   * 두 탭의 펼친 표에 「업무 현황에 추가」 단추를 그린다. 기본 true — 업무 현황(정책 진행)을 만들 권한이 없는 사람에게는 앱이 끈다
+   * (눌러도 권한 오류만 난다). 이미 넣은 공고의 「업무 현황에 있음」은 꺼도 그대로 보인다.
+   */
+  canProgress?: boolean;
 }
 
 const TABS: { value: SummaryTab; label: string }[] = [
@@ -74,6 +79,7 @@ export default function PolicyCompaniesScreen({
   onViewProgress,
   now,
   revision = 0,
+  canProgress = true,
 }: PolicyCompaniesScreenProps) {
   const [state, setState] = useState<ScreenState>(DEFAULT_SCREEN_STATE);
   // 주소를 읽어 상태에 옮긴 뒤에 요약과 두 목록을 부른다 — 기본 값으로 먼저 불렀다 끊으면 서버가 그 요약을 끝까지 센다.
@@ -196,6 +202,7 @@ export default function PolicyCompaniesScreen({
             endpoints={endpoints}
             features={features}
             showConsultant={showConsultant}
+            canProgress={canProgress}
           />
         )}
         {urlApplied && state.tab === "contacts" && (
@@ -211,6 +218,7 @@ export default function PolicyCompaniesScreen({
             view={state.view}
             showConsultant={showConsultant}
             now={now}
+            canProgress={canProgress}
           />
         )}
       </div>
