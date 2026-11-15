@@ -34,6 +34,7 @@ export function CompanyTable({
   busyKey,
   bucketKey,
   showConsultant = true,
+  canProgress = true,
   onDetail,
   onProgress,
 }: {
@@ -42,6 +43,8 @@ export function CompanyTable({
   busyKey: string;
   bucketKey: string;
   showConsultant?: boolean;
+  /** 끄면 「업무 현황에 추가」 단추를 그리지 않는다(업무 현황을 만들 권한이 없는 사람). 기본은 켬. */
+  canProgress?: boolean;
   onDetail?: (row: CompanyMatchRow) => void;
   onProgress: (row: CompanyMatchRow) => void;
 }) {
@@ -81,7 +84,7 @@ export function CompanyTable({
               {columns.fit && <td className={TD}><FitCell labels={row.fitLabels} /></td>}
               {columns.check && <td className={TD}><CheckCell toCheck={row.toCheck} gaps={row.gaps} /></td>}
               <td className={`${TD} text-right`}>
-                <ProgressCell inProgress={!!row.progress} busy={busyKey === `${row.customerKey}|${bucketKey}`} onProgress={() => onProgress(row)} />
+                <ProgressCell inProgress={!!row.progress} busy={busyKey === `${row.customerKey}|${bucketKey}`} canProgress={canProgress} onProgress={() => onProgress(row)} />
               </td>
             </tr>
           ))}
@@ -99,11 +102,14 @@ export function ContactAnnouncementTable({
   rows,
   customerKey,
   busyKey,
+  canProgress = true,
   onProgress,
 }: {
   rows: CompanyAnnouncementRow[];
   customerKey: string;
   busyKey: string;
+  /** 끄면 「업무 현황에 추가」 단추를 그리지 않는다(업무 현황을 만들 권한이 없는 사람). 기본은 켬. */
+  canProgress?: boolean;
   onProgress: (announcement: CompanyAnnouncementRow) => void;
 }) {
   const columns = conditionColumns(rows, true);
@@ -153,7 +159,7 @@ export function ContactAnnouncementTable({
               {columns.fit && <td className={TD}><FitCell labels={a.fitLabels} /></td>}
               {columns.check && <td className={TD}><CheckCell toCheck={a.toCheck} gaps={a.gaps} unstructuredChip /></td>}
               <td className={`${TD} text-right`}>
-                <ProgressCell inProgress={!!a.progress} busy={busyKey === `${customerKey}|${a.bucketKey}`} onProgress={() => onProgress(a)} />
+                <ProgressCell inProgress={!!a.progress} busy={busyKey === `${customerKey}|${a.bucketKey}`} canProgress={canProgress} onProgress={() => onProgress(a)} />
               </td>
             </tr>
           ))}
@@ -172,6 +178,7 @@ export function CompanyAnnouncementsPanel({
   kind,
   customerKey,
   busyKey,
+  canProgress = true,
   onProgress,
   onRetry,
 }: {
@@ -179,6 +186,8 @@ export function CompanyAnnouncementsPanel({
   kind: string;
   customerKey: string;
   busyKey: string;
+  /** 끄면 「업무 현황에 추가」 단추를 그리지 않는다(업무 현황을 만들 권한이 없는 사람). 기본은 켬. */
+  canProgress?: boolean;
   onProgress: (announcement: CompanyAnnouncementRow) => void;
   onRetry: () => void;
 }) {
@@ -193,5 +202,5 @@ export function CompanyAnnouncementsPanel({
       </p>
     );
   }
-  return <ContactAnnouncementTable rows={announcementsFor(state.rows, kind)} customerKey={customerKey} busyKey={busyKey} onProgress={onProgress} />;
+  return <ContactAnnouncementTable rows={announcementsFor(state.rows, kind)} customerKey={customerKey} busyKey={busyKey} canProgress={canProgress} onProgress={onProgress} />;
 }

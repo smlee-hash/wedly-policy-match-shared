@@ -163,11 +163,25 @@ export function CheckCell({ toCheck, gaps, unstructuredChip = false }: { toCheck
 // 할 일 이름은 서버 PROGRESS_TODO(「신청 마감」)와 같은 글자다.
 export const PROGRESS_HINT = "이 업체의 컨설팅 업무 현황에 공고를 넣고 할 일 「신청 마감」(기한 = 공고 마감)을 만듭니다";
 
-/** 「업무 현황에 추가」 단추, 이미 넣었으면 「업무 현황에 있음」. */
-export function ProgressCell({ inProgress, busy, onProgress }: { inProgress: boolean; busy: boolean; onProgress: () => void }) {
+/**
+ * 「업무 현황에 추가」 단추, 이미 넣었으면 「업무 현황에 있음」.
+ * `canProgress` 를 끄면(업무 현황을 만들 권한이 없는 사람) 단추 자리를 비운다 — 「업무 현황에 있음」은 그대로 보인다.
+ */
+export function ProgressCell({
+  inProgress,
+  busy,
+  canProgress = true,
+  onProgress,
+}: {
+  inProgress: boolean;
+  busy: boolean;
+  canProgress?: boolean;
+  onProgress: () => void;
+}) {
   if (inProgress) {
     return <span className="inline-flex items-center whitespace-nowrap rounded-md bg-wedly-bg-green px-2.5 py-1 text-wedly-hint font-bold text-wedly-green-ink">업무 현황에 있음</span>;
   }
+  if (!canProgress) return null;
   return (
     <button type="button" className={buttonClass("primary", "xs")} disabled={busy} title={PROGRESS_HINT} onClick={onProgress}>
       업무 현황에 추가

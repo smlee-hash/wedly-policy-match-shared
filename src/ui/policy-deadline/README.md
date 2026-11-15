@@ -86,6 +86,7 @@ return NextResponse.json(body, { status });
 | `onOpenCompany` / `onViewProgress` | 업체명 누르기 · 알림 「업무 현황 보기」. 두 목록에는 하나(`onDetail`)로 합쳐 넘기며 `onOpenCompany` 가 먼저, 없으면 `onViewProgress`. 둘 다 없으면 업체명은 글자이고 「업무 현황 보기」도 그리지 않는다 |
 | `revision` | 값이 **바뀌면** 지금 탭의 목록(펼친 업체 표 포함)과 요약 카드를 다시 읽는다. 업체 상세창에서 저장한 뒤 앱이 +1 한다 |
 | `now` | 캘린더의 「오늘」 — 시험이 날짜를 고정할 때만 |
+| `canProgress` | (기본 `true`) 끄면 두 탭의 펼친 표에 「업무 현황에 추가」 단추를 그리지 않는다. 업무 현황(정책 진행)을 만들 권한이 없는 사람에게 앱이 끈다 — 눌러도 권한 오류만 나서. 이미 넣은 공고의 「업무 현황에 있음」은 그대로 보인다 |
 
 `showConsultant`(업체 표의 「담당」 칸)는 화면이 셈한다: `scopeToggle` 이면 「전체」를 골랐을 때, 아니면 `seesAll`.
 `tab=deadline` 으로 온 옛 주소는 `tab=companies` 로 읽는다(옛 「마감」 탭 주소가 깨지지 않게).
@@ -93,7 +94,7 @@ return NextResponse.json(body, { status });
 ## 목록만 따로 끼워 쓰기 (지원정책 매칭 「정책별 업체」 탭 등)
 
 `AnnouncementBoard`(정책별 고객사)·`ContactsBoard`(연락 예정 업체)는 화면 안쪽 부품이면서 `index.ts` 에서 따로 내보낸다.
-ERP 가 쓰던 속성을 **그대로** 받고, 새로 생긴 것은 `endpoints`(`AnnouncementBoard` 는 `features?` 도)뿐이다.
+ERP 가 쓰던 속성을 **그대로** 받고, 새로 생긴 것은 `endpoints`(`AnnouncementBoard` 는 `features?` 도)와 `canProgress?`(기본 켬 — 아래 표)다.
 
 | 이름 | `AnnouncementBoard` | `ContactsBoard` |
 |---|---|---|
@@ -109,6 +110,7 @@ ERP 가 쓰던 속성을 **그대로** 받고, 새로 생긴 것은 `endpoints`(
 | `onDetail(customerKey, companyName)` | 선택 — 없으면 업체명은 글자 | 선택 — 없으면 「업무 현황 보기」 없음 |
 | `onProgressed` | 선택 — 「업무 현황에 추가」가 끝난 뒤 | 선택 — 같음 |
 | `showConsultant` | 선택(기본 `true`) — 「담당」 칸 | 선택(기본 `true`) |
+| `canProgress` | 선택(기본 `true`) — 끄면 「업무 현황에 추가」 단추 없음(「업무 현황에 있음」은 그대로) | 선택(기본 `true`) — 목록·캘린더 「고른 업체」 모두 |
 | `view` / `now` | 없음 | 선택 — `list`(기본)｜`calendar` / 캘린더의 「오늘」 |
 
 ```tsx

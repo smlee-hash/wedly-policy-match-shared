@@ -57,6 +57,11 @@ export interface ContactsBoardProps {
   showConsultant?: boolean;
   /** 캘린더의 「오늘」 — 시험에서 날짜를 고정할 때만 넘긴다. */
   now?: Date;
+  /**
+   * 펼친 공고 표(목록·캘린더 「고른 업체」)에 「업무 현황에 추가」 단추를 그린다. 기본 true — 업무 현황(정책 진행)을 만들 권한이
+   * 없는 사람에게는 앱이 끈다(눌러도 권한 오류만 난다). 이미 넣은 공고의 「업무 현황에 있음」은 꺼도 그대로 보인다.
+   */
+  canProgress?: boolean;
 }
 
 /**
@@ -76,6 +81,7 @@ export function ContactsList({
   busyKey,
   includeProgress,
   showConsultant,
+  canProgress = true,
   loading,
   onToggle,
   onProgress,
@@ -88,6 +94,7 @@ export function ContactsList({
   busyKey: string;
   includeProgress: boolean;
   showConsultant: boolean;
+  canProgress?: boolean;
   /** 거르기를 바꿔 다시 읽는 동안엔 앞 목록이 남아 있어, 새 목록이 왔는지 aria-busy 로 알린다. */
   loading: boolean;
   onToggle: (customerKey: string) => void;
@@ -132,6 +139,7 @@ export function ContactsList({
                   kind={kind}
                   customerKey={row.customerKey}
                   busyKey={busyKey}
+                  canProgress={canProgress}
                   onProgress={(a) => onProgress(row, a)}
                   onRetry={() => onRetry(row.customerKey)}
                 />
@@ -155,6 +163,7 @@ export default function ContactsBoard({
   view = "list",
   showConsultant = true,
   now,
+  canProgress = true,
 }: ContactsBoardProps) {
   const [days, setDays] = useState<DaysFilter>(14);
   const [ownKind, setOwnKind] = useState("");
@@ -311,6 +320,7 @@ export default function ContactsBoard({
                 kind={kind}
                 customerKey={company.customerKey}
                 busyKey={busyKey}
+                canProgress={canProgress}
                 onProgress={(a) => void progress(company, a)}
                 onRetry={() => loadCompany(company.customerKey)}
               />
@@ -326,6 +336,7 @@ export default function ContactsBoard({
           busyKey={busyKey}
           includeProgress={includeProgress}
           showConsultant={showConsultant}
+          canProgress={canProgress}
           loading={loading}
           onToggle={toggle}
           onProgress={(company, a) => void progress(company, a)}

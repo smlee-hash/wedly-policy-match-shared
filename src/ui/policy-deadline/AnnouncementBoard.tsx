@@ -66,6 +66,11 @@ export interface AnnouncementBoardProps {
   features?: DeadlineFeatures;
   /** 업체 표에 「담당」 칸을 그린다. 기본 true — 자기 담당만 보는 화면은 끈다(어차피 전부 자기 업체라서). */
   showConsultant?: boolean;
+  /**
+   * 펼친 업체 표에 「업무 현황에 추가」 단추를 그린다. 기본 true — 업무 현황(정책 진행)을 만들 권한이 없는 사람에게는 앱이 끈다
+   * (눌러도 권한 오류만 난다). 이미 넣은 업체의 「업무 현황에 있음」은 꺼도 그대로 보인다.
+   */
+  canProgress?: boolean;
 }
 
 function todayKst(): string {
@@ -89,6 +94,7 @@ export function BucketPanel({
   bucketKey,
   busyKey,
   showConsultant = true,
+  canProgress = true,
   onDetail,
   onProgress,
   onRetry,
@@ -100,6 +106,7 @@ export function BucketPanel({
   bucketKey: string;
   busyKey: string;
   showConsultant?: boolean;
+  canProgress?: boolean;
   onDetail?: (row: CompanyMatchRow) => void;
   onProgress: (row: CompanyMatchRow) => void;
   onRetry: () => void;
@@ -111,7 +118,7 @@ export function BucketPanel({
   const columns = conditionColumns([...fit, ...unverified], false);
   const unstructured = [...fit, ...unverified].some((r) => needsSourceCheck(r.toCheck));
   const table = (rows: CompanyMatchRow[]) => (
-    <CompanyTable rows={rows} columns={columns} busyKey={busyKey} bucketKey={bucketKey} showConsultant={showConsultant} onDetail={onDetail} onProgress={onProgress} />
+    <CompanyTable rows={rows} columns={columns} busyKey={busyKey} bucketKey={bucketKey} showConsultant={showConsultant} canProgress={canProgress} onDetail={onDetail} onProgress={onProgress} />
   );
   const sourceLink = url && <a href={url} target="_blank" rel="noopener noreferrer" className="text-wedly-accent-ink underline">공고 원문 보기</a>;
   return (
@@ -166,6 +173,7 @@ export default function AnnouncementBoard({
   endpoints,
   features,
   showConsultant = true,
+  canProgress = true,
 }: AnnouncementBoardProps) {
   const [ownDays, setOwnDays] = useState<DaysFilter>(initialBucket ? "all" : defaultDays);
   const days = controlledDays ?? ownDays;
@@ -355,6 +363,7 @@ export default function AnnouncementBoard({
               bucketKey={row.bucketKey}
               busyKey={busyKey}
               showConsultant={showConsultant}
+              canProgress={canProgress}
               onDetail={onDetail ? (r) => onDetail(r.customerKey, r.companyName) : undefined}
               onProgress={(r) => void progress(r, row.bucketKey)}
               onRetry={() => loadBucket(row.bucketKey)}
