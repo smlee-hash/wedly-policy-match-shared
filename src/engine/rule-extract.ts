@@ -54,11 +54,26 @@ function krw(amount: string, unit: string | undefined): number {
   return toNumber(amount) * (unit ? (KRW_UNITS[unit] ?? 1) : 1);
 }
 
+const isHighSurrogate = (code: number) => code >= 0xd800 && code <= 0xdbff;
+const isLowSurrogate = (code: number) => code >= 0xdc00 && code <= 0xdfff;
+/** 짝을 잃은 반쪽 글자 — 저장소(Postgres JSON)가 줄 전체를 거부한다. */
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+
+/**
+ * 두 칸짜리 글자(이모지·PDF 사용자 정의 글자) 한가운데서 자르지 않는다 — 경계가 짝 사이면 글자를 통째로 넣는다.
+ * 반쪽이 남으면 ruleStructure 저장이 「lone leading surrogate」로 거부돼 공고 본문이 7일 동안 빈다(NO.486).
+ */
+function sliceWhole(text: string, from: number, to: number): string {
+  let a = Math.max(0, from);
+  let b = Math.min(text.length, to);
+  if (a > 0 && a < text.length && isLowSurrogate(text.charCodeAt(a)) && isHighSurrogate(text.charCodeAt(a - 1))) a -= 1;
+  if (b > 0 && b < text.length && isHighSurrogate(text.charCodeAt(b - 1)) && isLowSurrogate(text.charCodeAt(b))) b += 1;
+  return text.slice(a, b);
+}
+
 /** 원문에서 그 문구가 있던 한 토막을 잘라 사람이 확인할 수 있게 남긴다. */
 function snippet(text: string, index: number, length: number): string {
-  const from = Math.max(0, index - 15);
-  const to = Math.min(text.length, index + length + 25);
-  return `${RULE_SOURCE_PREFIX} ${text.slice(from, to).trim()}`;
+  return `${RULE_SOURCE_PREFIX} ${sliceWhole(text, index - 15, index + length + 25).trim()}`;
 }
 
 function condition(
@@ -71,7 +86,8 @@ function condition(
     key,
     op: EXPECTED_OP[key as keyof typeof EXPECTED_OP],
     value,
-    rawText,
+    // 원문에 이미 섞여 온 반쪽까지 마지막으로 거른다 — 근거 문구 한 칸 때문에 공고 전체가 저장되지 않으면 안 된다.
+    rawText: rawText.replace(LONE_SURROGATE, ""),
     machineReadable,
   };
 }
@@ -281,7 +297,7 @@ const TITLE_TAG_RE = /^\s*\[([^\]]{1,12})\]\s*(\S+)/;
 export function titleSectorCondition(title: string): StructuredCondition | null {
   const families = sectorFamiliesInTitle(title ?? "");
   if (families.length === 0) return null;
-  return condition("targetSector", families, `${RULE_SOURCE_PREFIX} ${(title ?? "").slice(0, 40)}`);
+  return condition("targetSector", families, `${RULE_SOURCE_PREFIX} ${sliceWhole(title ?? "", 0, 40)}`);
 }
 
 /**
@@ -305,7 +321,7 @@ export function titleTargetOrgCondition(title: string): StructuredCondition | nu
   return condition(
     "targetOrg",
     all,
-    complete ? `${RULE_SOURCE_PREFIX} ${t.slice(0, 40)}` : `${RULE_SOURCE_PREFIX} ${all.join("ㆍ")} 대상으로 보임 — 원문 확인`,
+    complete ? `${RULE_SOURCE_PREFIX} ${sliceWhole(t, 0, 40)}` :`${RULE_SOURCE_PREFIX} ${all.join("ㆍ")} 대상으로 보임 — 원문 확인`,
     complete,
   );
 }
@@ -358,7 +374,7 @@ export function titleRegionConditions(title: string, agency: string): Structured
     // 태그·기관 둘 다 여러 값일 수 있으므로 **하나라도 겹치면** 같은 지역으로 본다.
     const agSidos = sidosInText(agency);
     if (agSidos.length === 0 || tagSidos.some((s) => agSidos.includes(s))) {
-      out.push(condition("region", tagSidos, `${RULE_SOURCE_PREFIX} ${title.slice(0, 40)}`));
+      out.push(condition("region", tagSidos, `${RULE_SOURCE_PREFIX} ${sliceWhole(title, 0, 40)}`));
     }
     out.push(
       condition("region", gugun, `${RULE_SOURCE_PREFIX} ${gugun.join("ㆍ")} 대상으로 보임 — 원문 확인`, false),
@@ -381,6 +397,6 @@ export function titleRegionConditions(title: string, agency: string): Structured
   // 폴백(②)을 막아 정작 수원 회사가 「맞음」을 잃는다(2차 리뷰 지적 1).
   if (agSidos.length === 0) return [];
   return [
-    condition("region", found.map((f) => f.name), `${RULE_SOURCE_PREFIX} ${(title ?? "").slice(0, 40)}`),
+    condition("region", found.map((f) => f.name), `${RULE_SOURCE_PREFIX} ${sliceWhole(title ?? "", 0, 40)}`),
   ];
 }

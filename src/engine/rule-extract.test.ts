@@ -383,3 +383,42 @@ describe("titleRegionConditions — 태그 없는 제목의 시군구 사전", (
     expect(cs.find((c) => !c.machineReadable)?.value).toEqual(["진주시"]);
   });
 });
+
+describe("근거 문구 — 두 칸짜리 글자를 반으로 자르지 않는다(NO.486)", () => {
+  // PDF 에서 뽑힌 사용자 정의 글자(U+F03DA)는 두 칸이 짝이다. 근거 문구 경계가 그 가운데에 걸리면
+  // 반쪽만 남아 저장소가 공고 한 줄 전체를 거부했다(2026-11-15 운영 「lone leading surrogate」).
+  const ASTRAL = "\u{F03DA}";
+  const LONE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+  const loneIn = (cs: StructuredCondition[]) => cs.filter((c) => LONE.test(c.rawText)).map((c) => c.key);
+
+  it("본문 근거 문구의 앞·뒤 경계가 어디에 걸려도 반쪽 글자가 남지 않는다", () => {
+    for (let pad = 0; pad <= 40; pad++) {
+      const before = `가${ASTRAL}${"나".repeat(pad)}부산 소재 기업, 업력 3년 이내`;
+      const after = `부산 소재 기업, 업력 3년 이내${"나".repeat(pad)}${ASTRAL}다`;
+      const cs = [...extractConditions(before), ...extractConditions(after)];
+      expect(cs.some((c) => c.key === "region")).toBe(true);
+      expect(loneIn(cs)).toEqual([]);
+    }
+  });
+
+  it("앞 경계가 짝 한가운데면 글자를 통째로 남긴다(지우지 않는다)", () => {
+    // 「소재」 앞 15칸이 짝의 뒤쪽 반에 걸리게 맞춘다 — 가(0) 짝(1·2) 나×11 부산␣ 소재(17).
+    const c = pick(extractConditions(`가${ASTRAL}${"나".repeat(11)}부산 소재 기업`), "region");
+    expect(c?.rawText).toContain(ASTRAL);
+  });
+
+  it("제목 앞 40칸에서 자를 때도 반쪽 글자가 남지 않는다", () => {
+    const sector = titleSectorCondition(`${"2026년 혁신형 제약기업 신규인증 공고".padEnd(39, "가")}${ASTRAL}`);
+    const org = titleTargetOrgCondition(`${"[충남] 2026년 (예비)사회적기업 사업개발비 지원사업".padEnd(39, "가")}${ASTRAL}`);
+    const region = titleRegionConditions(`${"[경남] 진주시 2026년 해외지사화 지원사업".padEnd(39, "가")}${ASTRAL}`, "경상남도");
+    const cs = [sector, org, ...region].filter((c): c is StructuredCondition => c !== null);
+    expect(cs.length).toBeGreaterThanOrEqual(3);
+    expect(loneIn(cs)).toEqual([]);
+  });
+
+  it("원문에 이미 짝 잃은 반쪽이 있어도 근거 문구에는 남기지 않는다", () => {
+    const cs = extractConditions("부산\uDFDA 소재 기업");
+    expect(cs.some((c) => c.key === "region")).toBe(true);
+    expect(loneIn(cs)).toEqual([]);
+  });
+});
