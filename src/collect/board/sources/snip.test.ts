@@ -194,6 +194,21 @@ describe("상세 주소 — 저장된 세 꼴을 정식 주소로", () => {
     expect(snipOfficialDetailUrl(`${detailOf(SNP_OLD)}&page=3`)).toBe(detailOf(SNP_OLD));
   });
 
+  /**
+   * ★2009년 「입주기업 모집」 글은 연도 자리가 `1900` 인 번호(`1900-0001`~)로 남아 있다(2026-11-15 운영 백업·실사이트 실측).
+   * 20xx 만 받으면 상세를 안 불러 빈 글 → 「게시판 상세 채움 실패」에 남는다(NO.486).
+   */
+  it("연도 자리가 1900 인 옛 번호도 옛 포털 꼴·정식 꼴 모두 정식 주소로 옮긴다", async () => {
+    const portal1900 =
+      "https://portal.snip.or.kr:8443/portal/snip/MainMenu/businessManagement/application.page?portlet=1900-0001&portlet2=12&homeYn=Y";
+    expect(snipOfficialDetailUrl(portal1900)).toBe(detailOf("1900-0001"));
+    expect(snipOfficialDetailUrl(detailOf("1900-0012"))).toBe(detailOf("1900-0012"));
+    // 상세 쪽 모양은 개편 뒤 공통이라 첨부 없는 고정본으로 잰다 — 요점은 번호 검사가 요청 전에 거절하지 않는 것.
+    const { asked, fetchText } = routes({ [detailOf("1900-0001")]: viewImageHtml });
+    expect(await snipConfig.detailFetch!(portal1900, fetchText)).not.toBe("");
+    expect(asked.map((a) => a.url)).toEqual([detailOf("1900-0001")]);
+  });
+
   it("틀린 입력은 요청 전에 거절한다", async () => {
     const bad = [
       `http://www.snip.or.kr/SNIP/contents/Business1.do?schM=view&snp=${SNP_FILES}`,

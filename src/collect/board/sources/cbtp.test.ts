@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import iconv from "iconv-lite";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseHtml } from "../html";
 import { pagingParamsOf } from "../engine";
-import { cbtpConfig, isCbtpDropTitle, parseCbtpList } from "./cbtp";
-import { harvestBoardAttachments } from "../detail-fill";
+import { cbtpAttachmentCellEmpty, cbtpConfig, isCbtpDropTitle, parseCbtpList } from "./cbtp";
+import { harvestBoardAttachments, readBoardDetail } from "../detail-fill";
 import { safeAttachmentUrl } from "../../attachment-text";
 
 /**
@@ -224,5 +225,84 @@ describe("충북테크노파크 첨부 수확 — 파일 이름 euc-kr 인코딩
 
   it("게시판 글자표가 euc-kr 이다 — 목록 읽기뿐 아니라 첨부 주소도 이 값을 본다", () => {
     expect(cbtpConfig.charset).toBe("euc-kr");
+  });
+});
+
+/**
+ * 첨부 없는 `contact_…` 글(2026-11-15 실측 `no=contact_2598`, NO.486).
+ * 과제관리시스템에서 넘어온 글은 첨부가 없으면 `ul.attach` 상자를 안 그린다 — 상자를 필수로 둔 탓에
+ * 첨부 없는 공고 4건이 「첨부 영역 선택자 미적중」으로 정리 실패에 굳었다.
+ * 고정본은 상세 표만 남기고 담당자 이름·메일·전화를 가렸다.
+ */
+describe("충북테크노파크 첨부 없는 contact_ 글 — 상자가 없어도 칸이 비면 첨부 0건", () => {
+  const noAttach = readFileSync(join(__dirname, "../__fixtures__/cbtp-detail-contact-noattach.html"), "utf-8");
+  const withAttach = readFileSync(join(__dirname, "../__fixtures__/cbtp-detail.html"), "utf-8");
+  const url = "https://www.cbtp.or.kr/index.php?control=bbs&board_id=saup_notice&mode=view&no=contact_2598&lm_uid=387";
+
+  /** 실사이트처럼 euc-kr 바이트로 돌려준다 — 엔진이 글자표대로 풀어야 「첨부파일」 글자를 읽는다. */
+  function eucKrFetch(html: string) {
+    const bytes = new Uint8Array(iconv.encode(html, "euc-kr"));
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      body: {
+        getReader() {
+          let sent = false;
+          return {
+            read: async () => {
+              if (sent) return { done: true as const, value: undefined };
+              sent = true;
+              return { done: false as const, value: bytes };
+            },
+            cancel: async () => {},
+          };
+        },
+      },
+      arrayBuffer: async () => bytes.buffer,
+    })));
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("고정본에는 상자가 없고 「첨부파일」 칸이 비었다 — 첨부 없는 정상 글로 본다", () => {
+    expect(parseHtml(noAttach).querySelectorAll(cbtpConfig.attachmentsScopeSelector!)).toHaveLength(0);
+    expect(cbtpAttachmentCellEmpty(noAttach)).toBe(true);
+    expect(cbtpConfig.attachmentsScopeRequired).toBe(true);
+    expect(cbtpConfig.attachmentsScopeAbsentOk).toBe(cbtpAttachmentCellEmpty);
+  });
+
+  it("엔진으로 읽으면 실패가 아니라 첨부 0건이다", async () => {
+    eucKrFetch(noAttach);
+    const read = await readBoardDetail(cbtpConfig, url);
+    expect(read).toMatchObject({ kind: "ok", attachments: { list: [] } });
+  });
+
+  it("첨부가 있는 숫자 번호 글은 예전처럼 상자에서 2건을 거둔다", async () => {
+    expect(cbtpAttachmentCellEmpty(withAttach)).toBe(false);
+    eucKrFetch(withAttach);
+    const read = await readBoardDetail(cbtpConfig, url.replace("contact_2598", "307"));
+    expect(read.kind).toBe("ok");
+    expect(read.kind === "ok" && "list" in read.attachments ? read.attachments.list : []).toHaveLength(2);
+  });
+
+  it("★상자 이름이 바뀌면(칸에 링크가 남음) 예전처럼 실패로 남긴다 — 첨부가 조용히 사라지지 않게", async () => {
+    const renamed = withAttach.replaceAll('class="attach clearfix"', 'class="attach-x clearfix"');
+    expect(parseHtml(renamed).querySelectorAll(cbtpConfig.attachmentsScopeSelector!)).toHaveLength(0);
+    expect(cbtpAttachmentCellEmpty(renamed)).toBe(false);
+    eucKrFetch(renamed);
+    expect(await readBoardDetail(cbtpConfig, url)).toEqual({ kind: "fail", reason: "첨부 영역 선택자 미적중" });
+  });
+
+  it("칸에 글자만 있어도, 상세 표·「첨부파일」 줄이 없어도 거짓이다(서식 변경)", () => {
+    const cell = /(<span>첨부파일<\/span><\/th>\s*<td colspan="3">)\s*(<\/td>)/;
+    expect(cell.test(noAttach)).toBe(true);
+    expect(cbtpAttachmentCellEmpty(noAttach.replace(cell, "$1붙임1. 공고문.pdf$2"))).toBe(false);
+    expect(cbtpAttachmentCellEmpty(noAttach.replace(cell, '$1<img src="/x.gif" alt="첨부">$2'))).toBe(false);
+    expect(cbtpAttachmentCellEmpty(noAttach.replaceAll('class="bbs_view"', 'class="bbs_view-x"'))).toBe(false);
+    expect(cbtpAttachmentCellEmpty(noAttach.replace("<span>첨부파일</span>", "<span>첨부</span>"))).toBe(false);
+    expect(cbtpAttachmentCellEmpty("")).toBe(false);
   });
 });

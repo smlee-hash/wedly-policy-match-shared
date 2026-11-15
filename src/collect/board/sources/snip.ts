@@ -26,11 +26,18 @@ const YMD = /(20\d{2})[.\-/](\d{1,2})[.\-/](\d{1,2})/g;
 /** 개편 전 저장 주소. 옛 줄을 다시 읽을 때 snp 로 옮긴다. */
 const PORTAL_ORIGIN = "https://portal.snip.or.kr:8443";
 const STORED_DETAIL_PATH = "/portal/snip/MainMenu/businessManagement/application.page";
-const PORTLET = /^20\d{2}-\d+$/;
+/**
+ * 개편 전 글 번호 `YYYY-NNNN`. ★연도 자리가 `1900` 인 번호도 받는다 — 2009년 「입주기업 모집」 글이 마감일 칸이
+ * 「~ 1900-01-00」인 채 `1900-0001`~ 번호로 남아 있고, 새 사이트도 이 번호로 상세를 연다
+ * (2026-11-15 실측 `snp=1900-0001` → 200·본문 있음). 20xx 만 받으면 이 글들이 빈 글로 실패에 남는다.
+ * 그 밖의 19xx 는 본 적이 없어 계속 거절한다.
+ */
+const OLD_NO = /^(?:20\d{2}|1900)-\d+$/;
 const PORTLET2 = /^[1-9]\d*$/;
 
 /** 새 글은 32자리 16진수, 개편 전 글은 `YYYY-NNNN`(실측). */
-const SNP = /^(?:[0-9A-Fa-f]{32}|20\d{2}-\d+)$/;
+const SNP_NEW = /^[0-9A-Fa-f]{32}$/;
+const isSnp = (v: string) => SNP_NEW.test(v) || OLD_NO.test(v);
 const FILE_ID = /^[0-9A-Za-z_-]{1,100}$/;
 const FILE_LIST_PATH = "/afile/fileList.do";
 const FILE_DOWNLOAD_PATH = /^\/afile\/fileDownload\/[0-9A-Za-z]+$/;
@@ -69,12 +76,12 @@ function snpOf(url: string): string | null {
     if (u.pathname !== LIST && u.pathname !== "/") return null;
     if (u.searchParams.get("schM") !== "view") return null;
     const snp = u.searchParams.get("snp") ?? "";
-    return SNP.test(snp) ? snp : null;
+    return isSnp(snp) ? snp : null;
   }
   if (u.origin === PORTAL_ORIGIN && u.pathname === STORED_DETAIL_PATH) {
     const portlet = u.searchParams.get("portlet") ?? "";
     const portlet2 = u.searchParams.get("portlet2") ?? "";
-    return PORTLET.test(portlet) && PORTLET2.test(portlet2) ? portlet : null;
+    return OLD_NO.test(portlet) && PORTLET2.test(portlet2) ? portlet : null;
   }
   return null;
 }

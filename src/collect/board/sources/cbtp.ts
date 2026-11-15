@@ -93,6 +93,25 @@ export function parseCbtpList(html: string, _page = 1, now = Date.now()): BoardR
   return out;
 }
 
+/**
+ * 첨부 상자(`ul.attach`)가 없는 상세가 **첨부 없는 정상 글**인가 — 머리 표 「첨부파일」 줄의 칸이 비었는지 본다.
+ *
+ * 왜(2026-11-15 실측, NO.486): 과제관리시스템에서 넘어온 `contact_…` 글(contact_2598·2596·2528·447)은
+ * 첨부가 없으면 상자를 안 그리고 「첨부파일」 칸만 빈 채로 둔다. 숫자 번호 글은 첨부가 없어도 상자가 있다(no=303~306).
+ * ★칸에 글자나 링크가 하나라도 있으면 거짓이다 — 상자 이름이 바뀐 것이라 실패로 남겨 다음에 다시 읽는다.
+ *  상세 표·「첨부파일」 줄이 없어도 거짓이다(서식 변경).
+ */
+export function cbtpAttachmentCellEmpty(pageHtml: string): boolean {
+  const view = parseHtml(pageHtml).querySelector("table.bbs_view");
+  if (!view) return false;
+  const row = view
+    .querySelectorAll("tr")
+    .find((tr) => (tr.querySelector("th")?.text ?? "").replace(/\s+/g, "") === "첨부파일");
+  const cell = row?.querySelector("td");
+  if (!cell) return false;
+  return !cell.querySelector("a, img, ul, li") && cell.text.replace(/\s+/g, "") === "";
+}
+
 export const cbtpConfig: BoardConfig = {
   id: "cbtp",
   label: "충북테크노파크",
@@ -120,6 +139,8 @@ export const cbtpConfig: BoardConfig = {
   attachmentsScopeSelector: "table.bbs_view ul.attach",
   /** 상자가 사라지면 서식 변경이다 — 실측 4건(no=303~306) 전부 이 상자가 있다. */
   attachmentsScopeRequired: true,
+  /** 단 `contact_…` 글은 첨부가 없으면 상자를 안 그린다 — 「첨부파일」 칸이 비었을 때만 첨부 0건으로 받는다. */
+  attachmentsScopeAbsentOk: cbtpAttachmentCellEmpty,
   /**
    * ★`charset: "euc-kr"` 는 목록·상세를 읽는 데만이 아니라 **첨부 주소를 만드는 데도** 쓰인다.
    * 첨부 href 는 파일 이름을 날 한글로 들고 있는데(`…&file=붙임1. … 공고문.pdf`), 표준대로

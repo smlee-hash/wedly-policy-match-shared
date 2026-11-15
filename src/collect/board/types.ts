@@ -270,10 +270,21 @@ export interface BoardConfig {
    *
    * ★실물로 「**첨부가 없는 상세에도 그 상자는 있다**」를 확인한 게시판에만 켠다. 안 그러면
    *  첨부 없는 공고가 매번 실패로 돌아가 본문을 받아 놓고도 버려지고 7일마다 헛돈다.
-   *  지금 켠 곳: 시흥(`div.dl_st1` 4쪽 실측) · 충북TP(`ul.attach` 4건 실측) ·
+   *  지금 켠 곳: 시흥(`div.dl_st1` 4쪽 실측) · 충북TP(`ul.attach` 4건 실측 — 단 `contact_…` 글은 아래 예외) ·
    *  안양(`ul.list-group` — 고정본 `aca-detail-noattach.html` 에도 있다).
    */
   attachmentsScopeRequired?: true;
+  /**
+   * `attachmentsScopeRequired` 의 예외 — 범위 상자가 한 조각도 안 잡힌 상세가 **첨부가 없는 정상 글**인지
+   * 쪽 전체 HTML 로 판정한다. 참이면 실패가 아니라 첨부 0건이다.
+   *
+   * 왜 필요한가(2026-11-15 실측, NO.486): 충북TP 는 과제관리시스템에서 넘어온 `contact_…` 글만
+   * 첨부가 없으면 `ul.attach` 상자를 아예 안 그린다. 상자를 필수로 둔 탓에 첨부 없는 공고 4건이
+   * 「첨부 영역 선택자 미적중」으로 정리 실패에 굳었다.
+   * ★상세가 열렸다는 것만으로 참을 주면 안 된다 — 그러면 상자 이름이 바뀌어도 첨부가 조용히 사라진다.
+   *  **원문의 첨부 칸이 비었음**을 직접 확인할 때만 참을 준다.
+   */
+  attachmentsScopeAbsentOk?: (pageHtml: string) => boolean;
   /** 절대화 직후 상세 URL 에서 지울 쿼리 키(페이지 번호 등). */
   dropUrlParams?: string[];
   customParse?: (html: string, page: number) => BoardRow[];
