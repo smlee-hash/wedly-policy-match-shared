@@ -72,4 +72,15 @@ describe("scripts/propagate/apps.json", () => {
     expect(byId.lab.install).toBe(false);
     expect(byId.lab.postSteps).toEqual([]);
   });
+
+  it("ERP 만 전체 기록으로 클론한다(fullHistory) — 나머지는 얕은 클론", () => {
+    // ★ERP 의 design:check 는 release-scope.json 의 기준 커밋(수백 개 앞)과 그 파일을 읽는다.
+    //  얕은 클론(--depth 50)이면 그 커밋이 없어 봇이 ERP 에서만 멈춘다(2026-11-15 실측 — 88e714d·fa8dbc7).
+    //  다른 앱은 기록이 필요 없으니 얕게 받아 빨리 끝낸다. 칸은 앱마다 꼭 적는다(빠지면 봇이 멈춘다).
+    const byId = Object.fromEntries(apps.map((a) => [String(a.id), a] as const));
+    for (const a of apps) expect(typeof a.fullHistory, String(a.id)).toBe("boolean");
+    expect(byId.erp.fullHistory).toBe(true);
+    expect(byId.illua.fullHistory).toBe(false);
+    expect(byId.lab.fullHistory).toBe(false);
+  });
 });

@@ -59,7 +59,11 @@ run_clone() {
   FAIL_META_DIR="$(out_dir)"
   load_app
   WORK="$WORK_PARENT/$APP_ID"
-  clone_app "$WORK"
+  if [ "$FULL_HISTORY" = "true" ]; then
+    clone_app "$WORK" full
+  else
+    clone_app "$WORK"
+  fi
   # 여기서부터 이 폴더는 앱 코드(npm·후처리)가 만지는 자리다 — 자격을 남기지 않는다.
   disarm_credentials "$WORK"
   echo "propagate[$APP_ID]: 클론 완료 — $(git -C "$WORK" rev-parse HEAD) ($WORK)"
