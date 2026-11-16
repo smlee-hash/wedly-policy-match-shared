@@ -168,9 +168,13 @@ describe("엑셀·알림·주소", () => {
     expect(specificToCheck([generic, "수출 실적", "자격 조건 원문 확인"])).toEqual(["수출 실적"]);
     expect([needsSourceCheck([generic]), needsSourceCheck(["수출 실적"])]).toEqual([true, false]);
     const onlyGeneric = [{ fitLabels: [], toCheck: [generic], gaps: [] }];
-    expect(conditionColumns(onlyGeneric, false)).toEqual({ fit: false, check: false });
-    expect(conditionColumns(onlyGeneric, true)).toEqual({ fit: false, check: true });
-    expect(conditionColumns([...onlyGeneric, { fitLabels: ["업력"], toCheck: [], gaps: ["매출액"] }], false)).toEqual({ fit: true, check: true });
+    expect(conditionColumns(onlyGeneric, false)).toEqual({ check: false });
+    expect(conditionColumns(onlyGeneric, true)).toEqual({ check: true });
+    const withGap = { fitLabels: ["업력"], toCheck: [], gaps: ["매출액"] };
+    expect(conditionColumns([...onlyGeneric, withGap], false)).toEqual({ check: true });
+    // 맞은 조건만 있는 줄은 조건 칸을 만들지 않는다 — 「맞은 조건」 칸은 두지 않는다(2026-11-16 사장님).
+    const fitOnly = { fitLabels: ["업력"], toCheck: [], gaps: [] };
+    expect(conditionColumns([fitOnly], true)).toEqual({ check: false });
   });
 
   it("상세창 신원 — b: 는 사업자번호, p: 는 연락처", () => {

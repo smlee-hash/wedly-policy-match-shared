@@ -220,15 +220,14 @@ export function needsSourceCheck(toCheck: readonly string[]): boolean {
 }
 
 /**
- * 펼친 표에 그릴 조건 칸 — 줄 전부가 비는 칸은 머리부터 뺀다.
+ * 펼친 표에 그릴 조건 칸 — 줄 전부가 비는 칸은 머리부터 뺀다. 「맞은 조건」 칸은 두지 않는다(2026-11-16 사장님).
  * unstructuredInCell: 줄마다 「조건 정리 전」 표시를 확인할 조건 칸에 넣는가(연락 예정 업체 — 줄마다 공고가 다르다).
  */
 export function conditionColumns(
-  rows: readonly { fitLabels: readonly string[]; toCheck: readonly string[]; gaps: readonly string[] }[],
+  rows: readonly { toCheck: readonly string[]; gaps: readonly string[] }[],
   unstructuredInCell: boolean,
-): { fit: boolean; check: boolean } {
+): { check: boolean } {
   return {
-    fit: rows.some((r) => r.fitLabels.length > 0),
     check: rows.some((r) => specificToCheck(r.toCheck).length > 0 || r.gaps.length > 0 || (unstructuredInCell && needsSourceCheck(r.toCheck))),
   };
 }

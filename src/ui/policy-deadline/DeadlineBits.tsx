@@ -116,18 +116,6 @@ export function Seg<T extends string | number>({
   );
 }
 
-/** 맞은 조건 칸 — 초록 조각, 없으면 비워 둔다. */
-export function FitCell({ labels }: { labels: string[] }) {
-  if (!labels.length) return null;
-  return (
-    <span className="flex flex-wrap gap-1">
-      {labels.map((label) => (
-        <span key={label} className="break-keep rounded bg-wedly-bg-green px-1.5 text-wedly-hint text-wedly-green-ink">{label}</span>
-      ))}
-    </span>
-  );
-}
-
 /**
  * 확인할 조건 칸 — 업체마다 다른 조건만 노랑 조각으로 + 「채울 칸: …」. 없으면 비워 둔다.
  * 「공고 원문 확인(조건 정리 전)」 같은 공고 전체 문구는 칸에 되풀이하지 않는다 —

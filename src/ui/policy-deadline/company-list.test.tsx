@@ -1,5 +1,5 @@
 // 정책별 고객사·연락 예정 업체의 펼친 업체 표 — ERP `company-list.test.tsx`(jsdom)를 test-kit(훅 실행기)으로 옮긴 것이다.
-// 공고를 누르면 맞음·확인 필요 업체가 한 번에 보이고, 다 비는 「맞은 조건」 칸은 없애고, 업체마다 다른 확인할 조건만 보이고,
+// 공고를 누르면 맞음·확인 필요 업체가 한 번에 보이고, 「맞은 조건」 칸은 두지 않고(2026-11-16 사장님), 업체마다 다른 확인할 조건만 보이고,
 // 칸 폭은 표마다 같게 고정하고, 「상세」 대신 상호명을 누르면 상세창을 열고, 「진행」은 무엇을 하는지 드러나는 이름으로 바꾼다.
 // 판정은 ERP 와 같고, 확인 방식만 다르다: DOM 대신 풀어 낸 요소 트리(글자·속성)를 읽고 onClick 을 직접 부른다.
 import { Checkbox, Toast } from "@wedly/ui-shared/ui";
@@ -115,13 +115,13 @@ describe("정책별 고객사 — 펼친 업체 표", () => {
   it("업체마다 다른 조건만 칸에 보이고, 조건 정리 전 안내는 공고마다 한 줄이다", async () => {
     await openAnnouncement(mixedBucket);
     const [fitTable, checkTable] = tables();
-    expect(headsOf(fitTable)).toContain("맞은 조건");
-    expect(textOf(cellOf(fitTable, "가나상사", "맞은 조건") ?? [])).toContain("업력 3년 이상");
+    // 맞은 조건이 있는 줄이 있어도 「맞은 조건」 칸은 두 표 모두 없다 — 맞음·확인 필요 표로 이미 나뉜다(2026-11-16 사장님).
+    for (const t of [fitTable, checkTable]) expect(headsOf(t)).not.toContain("맞은 조건");
+    expect(textOf(fitTable)).not.toContain("업력 3년 이상");
     expect(textOf(cellOf(checkTable, "다라상사", "확인할 조건") ?? [])).toContain("수출 실적");
     expect(textOf(cellOf(checkTable, "다라상사", "확인할 조건") ?? [])).toContain("채울 칸: 매출");
     // 빈 칸은 비워 둔다 — 「없음」을 줄마다 찍지 않는다.
     expect(textOf(cellOf(checkTable, "마바상사", "확인할 조건") ?? ["(칸 없음)"])).toBe("");
-    expect(textOf(cellOf(checkTable, "다라상사", "맞은 조건") ?? ["(칸 없음)"])).toBe("");
     for (const t of tables()) expect(textOf(t)).not.toContain("없음");
     // 같은 공고의 일반 문구는 표 칸에 되풀이하지 않고 위에 한 줄로 알린다.
     for (const t of tables()) expect(textOf(t)).not.toContain(GENERIC);
@@ -130,7 +130,7 @@ describe("정책별 고객사 — 펼친 업체 표", () => {
     expect(byTag(notes[0], "a")[0]?.props.href).toBe(meta.url);
   });
 
-  it("다 비는 칸은 머리부터 없앤다 — 조건 정리 전 공고는 「맞은 조건」·「확인할 조건」 칸이 없다", async () => {
+  it("다 비는 칸은 머리부터 없앤다 — 조건 정리 전 공고는 「확인할 조건」 칸이 없다", async () => {
     await openAnnouncement(genericBucket);
     expect(tables()).toHaveLength(1);
     // 마지막 칸 머리는 화면 읽기 도구용 숨은 글자다.
@@ -149,23 +149,20 @@ describe("정책별 고객사 — 펼친 업체 표", () => {
     expect(headsOf(a)).toEqual(headsOf(b));
   });
 
-  it("두 조건 칸이 다 나와도 「확인할 조건」이 좁아지지 않고, 조건 조각은 낱말 중간에서 줄을 바꾸지 않는다", async () => {
+  it("「확인할 조건」이 좁아지지 않고, 조건 조각은 낱말 중간에서 줄을 바꾸지 않는다", async () => {
     await openAnnouncement(mixedBucket);
     const [t, other] = tables();
-    expect(headsOf(t)).toEqual(expect.arrayContaining(["맞은 조건", "확인할 조건"]));
+    expect(headsOf(t)).toEqual(["업체명", "담당", "진행상태", "확인할 조건", "업무 현황"]);
     // 운영 화면(1440 너비)의 표 폭 약 1,060px — 앞 칸 % 합과 「업무 현황」 칸(148px)을 빼고 남는 폭이 마지막 칸 폭이다.
     const cols = byTag(byTag(t, "colgroup")[0], "col").map((c) => String(c.props.className ?? ""));
     const percent = cols.reduce((sum, c) => sum + Number(/w-\[(\d+)%\]/.exec(c)?.[1] ?? 0), 0);
     const fixedPx = cols.reduce((sum, c) => sum + Number(/w-\[(\d+)px\]/.exec(c)?.[1] ?? 0), 0);
     expect(1060 - (1060 * percent) / 100 - fixedPx).toBeGreaterThanOrEqual(220);
-    // 마지막 칸(확인할 조건)이 남는 폭을 가져가고, 「맞은 조건」 칸이 그보다 넓지 않다.
+    // 마지막 칸(확인할 조건)이 남는 폭을 가져간다.
     expect(cols.at(-2)).toBe("");
-    const fitPercent = Number(/w-\[(\d+)%\]/.exec(cols[headsOf(t).indexOf("맞은 조건")])?.[1] ?? 0);
-    expect((1060 * fitPercent) / 100).toBeLessThanOrEqual(1060 - (1060 * percent) / 100 - fixedPx);
-    const chips = chipsOf(cellOf(t, "가나상사", "맞은 조건"));
     const checkChips = chipsOf(cellOf(other, "다라상사", "확인할 조건"));
-    expect(chips.length + checkChips.length).toBeGreaterThan(1);
-    for (const chip of [...chips, ...checkChips]) expect(String(chip.props.className)).toContain("break-keep");
+    expect(checkChips.length).toBeGreaterThan(0);
+    for (const chip of checkChips) expect(String(chip.props.className)).toContain("break-keep");
   });
 
   it("「상세」 단추 없이 상호명을 누르면 그 업체 상세를 연다", async () => {
@@ -252,7 +249,7 @@ describe("연락 예정 업체 — 펼친 공고 표", () => {
     return onDetail;
   }
 
-  it("다 비는 「맞은 조건」 칸이 없고, 조건 정리 전 공고는 짧은 「조건 정리 전」 표시만 한다", async () => {
+  it("「맞은 조건」 칸이 없고, 조건 정리 전 공고는 짧은 「조건 정리 전」 표시만 한다", async () => {
     await openCompany();
     const [t] = tables();
     expect(String(t.props.className)).toContain("table-fixed");
