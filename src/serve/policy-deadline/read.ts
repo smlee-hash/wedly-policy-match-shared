@@ -300,19 +300,20 @@ export async function readAnnouncementList(
     row[c.verdict] += c.count;
     countOf.set(c.bucketKey, row);
   }
-  const metas = await readBucketMetas(now, src);
-  const rows: AnnouncementListRow[] = metas.map((b) => ({
-    ...b,
+  // 묶음 표는 한 번만 읽는다 — 요약 글(summary)은 표시 칸(BucketMeta)이 아니라 이 목록 줄에만 붙인다.
+  const rows: AnnouncementListRow[] = (await src.buckets()).map((b) => ({
+    ...bucketMetaOf(b, now),
     fit: countOf.get(b.bucketKey)?.fit ?? 0,
     unverified: countOf.get(b.bucketKey)?.unverified ?? 0,
+    summary: b.summary ?? "",
   }));
   const shown = q.hideEmpty ? rows.filter((r) => r.fit + r.unverified > 0) : rows;
   const { dated, always } = splitBuckets(shown, q.days);
   return {
     lastRun: await src.lastRun(),
     companyCount: companies.length,
-    bucketCount: metas.length,
-    categories: [...new Set(metas.map((b) => b.category))].filter((c) => c !== "").sort(compareText),
+    bucketCount: rows.length,
+    categories: [...new Set(rows.map((b) => b.category))].filter((c) => c !== "").sort(compareText),
     dated,
     always,
   };

@@ -79,6 +79,15 @@ describe("deadlineReadSource — 거르기", () => {
     expect(calls.bucket).toHaveBeenCalledTimes(2);
   });
 
+  it("묶음은 요약 글(summary)을 있으면 그대로, 줄에 칸이 없으면 빈 글로 읽고 select 를 쓰지 않는다", async () => {
+    const { db, calls } = fakeDb();
+    const base = { bucketKey: "B7", repAnnouncementId: "ann", announcementIds: ["ann"], title: "공고", agency: "기관", category: "정책자금", url: "", applyEnd: null };
+    calls.bucket.mockResolvedValueOnce([{ ...base, summary: "운전자금 최대 5억 원" }, { ...base, bucketKey: "B3" }]);
+    const rows = await deadlineReadSource(db).buckets();
+    expect(rows.map((r) => [r.bucketKey, r.summary])).toEqual([["B7", "운전자금 최대 5억 원"], ["B3", ""]]);
+    expect(calls.bucket).toHaveBeenLastCalledWith({ where: {} });
+  });
+
   it("판정 줄·진행 줄은 업체 열쇠와 묶음 열쇠를 함께 건다 — null 은 거르지 않음", async () => {
     const { db, calls } = fakeDb();
     const src = deadlineReadSource(db);

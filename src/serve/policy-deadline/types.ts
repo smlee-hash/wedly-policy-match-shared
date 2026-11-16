@@ -24,6 +24,8 @@ export interface DeadlineBucket {
   url: string;
   /** 자격 줄 마감의 최솟값. null = 상시. */
   applyEnd: Date | null;
+  /** 공고 핵심 내용 한 줄 — 정리된 혜택 한 줄, 없으면 지원 목적. 칸이 없는 옛 표·요약 전이면 없음·빈 글. */
+  summary?: string;
 }
 
 /** 업체 하나 × 묶음 하나의 판정. */
@@ -148,6 +150,8 @@ export interface AnnouncementListRow extends BucketMeta {
   /** 범위 안 업체 중 맞음 · 확인 필요 곳 수. */
   fit: number;
   unverified: number;
+  /** 공고 핵심 내용 한 줄 — 요약 전이면 빈 글. */
+  summary: string;
 }
 
 export interface AnnouncementListView {

@@ -113,6 +113,9 @@ ERP 가 쓰던 속성을 **그대로** 받고, 새로 생긴 것은 `endpoints`(
 | `canProgress` | 선택(기본 `true`) — 끄면 「업무 현황에 추가」 단추 없음(「업무 현황에 있음」은 그대로) | 선택(기본 `true`) — 목록·캘린더 「고른 업체」 모두 |
 | `view` / `now` | 없음 | 선택 — `list`(기본)｜`calendar` / 캘린더의 「오늘」 |
 
+공고 줄에는 제목과 「대상 기업」 딱지 사이에 「핵심 내용」 칸(공고 요약 한 줄, 두 줄까지·전체는 `title`)이 있다. 요약이 아직 없으면 「아직 요약 전」,
+좁은 화면에서는 제목 아래 줄에 내려간다. 넓은 화면에는 목록 맨 위에 「마감·공고·핵심 내용·대상 기업」 머리줄이 하나 붙는다.
+
 ```tsx
 // 지원정책 매칭 「정책별 업체」 탭 — 카드·탭 없이 마감 거르기가 달린 정책별 고객사 목록만
 import { AnnouncementBoard, DEADLINE_ENDPOINTS } from "@wedly/policy-match-shared/ui/policy-deadline";

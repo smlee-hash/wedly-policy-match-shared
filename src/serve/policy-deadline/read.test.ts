@@ -253,6 +253,48 @@ describe("readAnnouncementList — 정책별 고객사 목록", () => {
   });
 });
 
+describe("공고 핵심 내용(summary) — 목록 줄에만 실린다", () => {
+  const SUMMARY = "운전자금 최대 5억 원을 연 2% 대 금리로 빌려 줍니다";
+  const withSummary = () => memorySource({ buckets: BUCKETS.map((b) => (b.bucketKey === "B7" ? { ...b, summary: SUMMARY } : b)) });
+
+  it("목록 줄에 그 묶음의 요약 글이 붙고, 요약이 없는 묶음(칸 없음·빈 글)은 빈 글이다", async () => {
+    const src = memorySource({
+      buckets: BUCKETS.map((b) => {
+        if (b.bucketKey === "B7") return { ...b, summary: SUMMARY };
+        if (b.bucketKey === "B3") return { ...b, summary: "" };
+        return b;
+      }),
+    });
+    const view = await readAnnouncementList(ALL, { days: "all", hideEmpty: false }, NOW, src);
+    const summaryOf = (key: string) => [...view.dated, ...view.always].find((r) => r.bucketKey === key)?.summary;
+    expect(summaryOf("B7")).toBe(SUMMARY);
+    expect(summaryOf("B3")).toBe("");
+    expect(summaryOf("B20")).toBe("");
+    expect(summaryOf("BALW")).toBe("");
+  });
+
+  it("목록을 읽을 때 묶음 표는 한 번만 읽는다", async () => {
+    const src = withSummary();
+    await readAnnouncementList(ALL, { days: "all", hideEmpty: true }, NOW, src);
+    expect(src.buckets).toHaveBeenCalledTimes(1);
+  });
+
+  it("묶음 표시 칸(bucketMetaOf)에는 summary 가 없다 — 연락 예정·묶음 펼치기 응답이 커지지 않는다", () => {
+    expect(bucketMetaOf({ ...BUCKETS[0], summary: SUMMARY }, NOW)).not.toHaveProperty("summary");
+  });
+
+  it("묶음 펼치기·연락 예정 업체 펼치기·엑셀 줄에도 summary 키가 없다", async () => {
+    const opened = await readBucketCompanies(ALL, { bucketKey: "B7" }, NOW, withSummary());
+    expect(opened?.bucket).not.toHaveProperty("summary");
+    const company = await readCompanyAnnouncements(ALL, { customerKey: "b:1", days: 30, includeUnstructured: true, includeProgress: true }, NOW, withSummary());
+    expect(company?.announcements.length).toBeGreaterThan(0);
+    for (const row of company?.announcements ?? []) expect(row).not.toHaveProperty("summary");
+    const exported = await readExport(ALL, { days: 30, fitOnly: false }, NOW, withSummary());
+    expect(exported.rows.length).toBeGreaterThan(0);
+    for (const row of exported.rows) expect(row).not.toHaveProperty("summary");
+  });
+});
+
 describe("readBucketCompanies — 묶음 하나 펼치기", () => {
   it("범위 안 업체만 맞음·확인 필요로 나누고 업체명 순, 진행을 붙인다", async () => {
     const view = await readBucketCompanies(U1, { bucketKey: "B7" }, NOW, memorySource());

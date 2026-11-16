@@ -39,6 +39,8 @@ const DAY_OPTIONS: { value: DaysFilter; label: string }[] = [
 ];
 const FIELD = "h-8 rounded-lg border border-wedly-bd bg-white py-0 pl-2 pr-8 text-wedly-sub text-wedly-navy";
 const FLASH_MS = 1600;
+// 넓은 화면 공고 줄 격자 — 마감 · 공고 · 핵심 내용 · 대상 기업 · ▶. 머리줄이 같은 문자열을 쓴다(대상 기업 칸은 고정 폭이라 줄마다 칸 위치가 같다).
+const ROW_GRID_MD = "md:grid-cols-[64px_minmax(0,1.2fr)_minmax(0,1fr)_132px_20px]";
 
 export type BucketState = { status: "loading" } | { status: "error"; message: string } | { status: "ok"; view: BucketCompaniesView };
 
@@ -330,7 +332,7 @@ export default function AnnouncementBoard({
           type="button"
           aria-expanded={isOpen}
           onClick={() => toggle(row.bucketKey)}
-          className={`grid w-full grid-cols-[56px_minmax(0,1fr)_16px] items-center gap-3 px-3.5 py-3 text-left transition-colors duration-200 hover:bg-wedly-bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-wedly-accent md:grid-cols-[64px_minmax(0,1fr)_auto_20px] ${flash === row.bucketKey ? "bg-wedly-bg-yellow" : "bg-white"}`}
+          className={`grid w-full grid-cols-[56px_minmax(0,1fr)_16px] items-center gap-3 px-3.5 py-3 text-left transition-colors duration-200 hover:bg-wedly-bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-wedly-accent ${ROW_GRID_MD} ${flash === row.bucketKey ? "bg-wedly-bg-yellow" : "bg-white"}`}
         >
           <DDayBadge dDay={row.dDay} />
           <span className="min-w-0">
@@ -341,6 +343,11 @@ export default function AnnouncementBoard({
               <span>{row.applyEnd ? `마감 ${dateLabel(row.applyEnd)}` : "상시 모집"}</span>
             </span>
           </span>
+          {row.summary ? (
+            <span title={row.summary} className="col-start-2 line-clamp-2 min-w-0 break-keep text-wedly-sub text-wedly-t2 md:col-start-auto">{row.summary}</span>
+          ) : (
+            <span className="col-start-2 min-w-0 text-wedly-hint text-wedly-muted md:col-start-auto">아직 요약 전</span>
+          )}
           {/* 업체 수는 딱지 하나 — 펼치면 나오는 업체 수(맞음 + 확인 필요, 「맞음만」이면 맞음만). 맞음/확인 필요 구분은 펼친 표 제목이 한다(2026-11-16 대표 요청). */}
           <span className="col-start-2 flex flex-wrap gap-1.5 md:col-start-auto md:justify-end">
             {shown === 0 ? (
@@ -426,6 +433,15 @@ export default function AnnouncementBoard({
         </div>
       ) : list ? (
         <div className={sectionCardClass("none")} aria-busy={loading}>
+          {(dated.length > 0 || (alwaysOpen && always.length > 0)) && (
+            <div aria-hidden className={`hidden gap-3 border-b border-wedly-bd bg-wedly-bg-page px-3.5 py-2 text-wedly-hint text-wedly-muted md:grid ${ROW_GRID_MD}`}>
+              <span>마감</span>
+              <span>공고</span>
+              <span>핵심 내용</span>
+              <span className="text-right">대상 기업</span>
+              <span />
+            </div>
+          )}
           {dated.map(announcement)}
           {always.length > 0 && (
             <>

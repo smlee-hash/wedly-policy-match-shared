@@ -24,7 +24,7 @@ import {
 } from "./deadline-view";
 
 function listRow(over: Partial<AnnouncementListRow>): AnnouncementListRow {
-  return { bucketKey: "b1", repAnnouncementId: "a1", title: "공고", agency: "기관", category: "정책자금", url: "", applyEnd: "2026-11-20", dDay: 8, fit: 0, unverified: 0, ...over };
+  return { bucketKey: "b1", repAnnouncementId: "a1", title: "공고", agency: "기관", category: "정책자금", url: "", applyEnd: "2026-11-20", dDay: 8, fit: 0, unverified: 0, summary: "", ...over };
 }
 
 function contact(over: Partial<ContactCompanyRow>): ContactCompanyRow {

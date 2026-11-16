@@ -47,6 +47,8 @@ export interface DeadlineReadDb {
         category: string;
         url: string;
         applyEnd: Date | null;
+        /** 칸이 없는 옛 Prisma 클라이언트도 맞게 선택 칸 — select 를 쓰지 않아 칸이 있으면 함께 온다. */
+        summary?: string;
       }>
     >;
   };
@@ -197,6 +199,7 @@ export function deadlineReadSource(db: DeadlineDb): ReadSource {
         category: r.category,
         url: r.url,
         applyEnd: r.applyEnd,
+        summary: r.summary ?? "",
       }));
     },
 
