@@ -146,7 +146,7 @@ describe("정책별 고객사 — 펼친 업체 표", () => {
     await openAnnouncement(genericBucket);
     expect(tables()).toHaveLength(1);
     // 마지막 칸 머리는 화면 읽기 도구용 숨은 글자다.
-    expect(headsOf(tables()[0])).toEqual(["업체명", "담당", "진행상태", "업무 현황"]);
+    expect(headsOf(tables()[0])).toEqual(["업체명", "담당", "업무 현황"]);
   });
 
   it("칸 폭이 표마다 같다 — 고정 폭 표이고 맞음·확인 필요 표의 칸 폭이 똑같다", async () => {
@@ -164,7 +164,7 @@ describe("정책별 고객사 — 펼친 업체 표", () => {
   it("「확인할 조건」이 좁아지지 않고, 조건 조각은 낱말 중간에서 줄을 바꾸지 않는다", async () => {
     await openAnnouncement(mixedBucket);
     const [t, other] = tables();
-    expect(headsOf(t)).toEqual(["업체명", "담당", "진행상태", "확인할 조건", "업무 현황"]);
+    expect(headsOf(t)).toEqual(["업체명", "담당", "확인할 조건", "업무 현황"]);
     // 운영 화면(1440 너비)의 표 폭 약 1,060px — 앞 칸 % 합과 「업무 현황」 칸(148px)을 빼고 남는 폭이 마지막 칸 폭이다.
     const cols = byTag(byTag(t, "colgroup")[0], "col").map((c) => String(c.props.className ?? ""));
     const percent = cols.reduce((sum, c) => sum + Number(/w-\[(\d+)%\]/.exec(c)?.[1] ?? 0), 0);

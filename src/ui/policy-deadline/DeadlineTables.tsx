@@ -17,12 +17,12 @@ const TABLE_BOX = "relative overflow-x-auto rounded-lg border border-wedly-bd bg
 export type ConditionColumns = { check: boolean };
 
 // 펼친 업체 표의 칸 — 맞음·확인 필요 두 표가 같은 칸·같은 폭을 써서 위아래 줄이 맞는다.
-// 마지막 내용 칸은 폭을 두지 않아 남는 폭을 가져간다(조건 칸이 빠지면 진행상태가 넓어진다).
+// 마지막 내용 칸은 폭을 두지 않아 남는 폭을 가져간다(조건 칸이 빠지면 담당이 넓어진다).
+// 「진행상태」 칸은 두지 않는다(2026-11-16 사장님). 엑셀 내려받기 칸은 그대로 둔다.
 export function companyColumns(columns: ConditionColumns, showConsultant = true): { head: string; width: string }[] {
   const cols = [
     { head: "업체명", width: "w-[22%]" },
     ...(showConsultant ? [{ head: "담당", width: "w-[11%]" }] : []),
-    { head: "진행상태", width: "w-[13%]" },
     ...(columns.check ? [{ head: "확인할 조건", width: "" }] : []),
   ];
   cols[cols.length - 1] = { ...cols[cols.length - 1], width: "" };
@@ -82,7 +82,6 @@ export function CompanyTable({
                 )}
               </td>
               {showConsultant && <td className={TD}>{row.consultant || <span className="text-wedly-red-ink">담당 없음</span>}</td>}
-              <td className={TD}>{row.statusText}</td>
               {columns.check && <td className={TD}><CheckCell toCheck={row.toCheck} gaps={row.gaps} /></td>}
               <td className={`${TD} text-right`}>
                 <ProgressCell inProgress={!!row.progress} busy={busyKey === `${row.customerKey}|${bucketKey}`} canProgress={canProgress} onProgress={() => onProgress(row)} />
