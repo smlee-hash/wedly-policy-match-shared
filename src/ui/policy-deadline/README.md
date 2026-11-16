@@ -83,7 +83,7 @@ return NextResponse.json(body, { status });
 | `scopeToggle` | 켜면 「담당: 내 담당·전체」를 그리고 `scope` 를 보낸다. 꺼진 앱은 보내지 않고 서버(앱의 `scopeOf`)가 정한 범위로 읽는다 |
 | `seesAll` | `scopeToggle` 이 꺼진 앱에서 「담당」 칸·「모든 고객사」 설명을 보일지(컨설턴트 앱 최고 관리자) |
 | `features.saveSheet` | 엑셀 파일 저장(앱이 저장 방식을 안다). `endpoints.export` 와 둘 다 있어야 「엑셀 내려받기」를 그린다 |
-| `onOpenCompany` / `onViewProgress` | 업체명 누르기 · 알림 「업무 현황 보기」. 두 목록에는 하나(`onDetail`)로 합쳐 넘기며 `onOpenCompany` 가 먼저, 없으면 `onViewProgress`. 둘 다 없으면 업체명은 글자이고 「업무 현황 보기」도 그리지 않는다 |
+| `onOpenCompany` / `onViewProgress` | 업체명 누르기 · 알림 「업무 현황 보기」. 두 목록에는 하나(`onDetail`)로 합쳐 넘기며 `onOpenCompany` 가 먼저, 없으면 `onViewProgress`. 둘 다 없으면 업체명은 글자이고 「업무 현황 보기」도 그리지 않는다. 알림에서 부르면 받는 `DeadlineCompanyRef` 에 방금 만든(또는 이은) 업무 번호 `trackId` 가 실린다 — 상세창이 그 업무 카드를 처음부터 열게 |
 | `revision` | 값이 **바뀌면** 지금 탭의 목록(펼친 업체 표 포함)과 요약 카드를 다시 읽는다. 업체 상세창에서 저장한 뒤 앱이 +1 한다 |
 | `now` | 캘린더의 「오늘」 — 시험이 날짜를 고정할 때만 |
 | `canProgress` | (기본 `true`) 끄면 두 탭의 펼친 표에 「업무 현황에 추가」 단추를 그리지 않는다. 업무 현황(정책 진행)을 만들 권한이 없는 사람에게 앱이 끈다 — 눌러도 권한 오류만 나서. 이미 넣은 공고의 「업무 현황에 있음」은 그대로 보인다 |
@@ -107,7 +107,7 @@ ERP 가 쓰던 속성을 **그대로** 받고, 새로 생긴 것은 `endpoints`(
 | `kind` / `onKindChange` | 없음 | 둘 다 주면 바깥이 종류 거르기를 쥔다 |
 | `initialBucket` | 슬랙 「공고 보기」로 온 공고 — 마감 「전체」로 펼쳐 그 줄로 옮긴다 | 없음 |
 | `revision` | 선택 — 바뀌면 처음부터 다시 읽는다 | 선택 — 같음 |
-| `onDetail(customerKey, companyName)` | 선택 — 없으면 업체명은 글자 | 선택 — 없으면 「업무 현황 보기」 없음 |
+| `onDetail(customerKey, companyName, trackId?)` | 선택 — 없으면 업체명은 글자. 알림 「업무 현황 보기」로 부를 때만 방금 만든(또는 이은) 업무 번호 `trackId` 가 온다 | 선택 — 없으면 「업무 현황 보기」 없음(`trackId` 같음) |
 | `onProgressed` | 선택 — 「업무 현황에 추가」가 끝난 뒤 | 선택 — 같음 |
 | `showConsultant` | 선택(기본 `true`) — 「담당」 칸 | 선택(기본 `true`) |
 | `canProgress` | 선택(기본 `true`) — 끄면 「업무 현황에 추가」 단추 없음(「업무 현황에 있음」은 그대로) | 선택(기본 `true`) — 목록·캘린더 「고른 업체」 모두 |

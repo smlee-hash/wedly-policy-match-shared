@@ -26,6 +26,8 @@ import {
 export interface DeadlineCompanyRef {
   customerKey: string;
   companyName: string;
+  /** 알림 「업무 현황 보기」에서만 — 방금 만들거나 이은 업무 번호. 앱이 상세를 그 업무 탭으로 열 때 쓴다. */
+  trackId?: string;
 }
 
 export interface PolicyCompaniesScreenProps {
@@ -197,7 +199,7 @@ export default function PolicyCompaniesScreen({
             }}
             initialBucket={state.bucket || undefined}
             revision={revision}
-            onDetail={onDetail ? (customerKey, companyName) => onDetail({ customerKey, companyName }) : undefined}
+            onDetail={onDetail ? (customerKey, companyName, trackId) => onDetail({ customerKey, companyName, ...(trackId ? { trackId } : {}) }) : undefined}
             onProgressed={afterProgress}
             endpoints={endpoints}
             features={features}
@@ -212,7 +214,7 @@ export default function PolicyCompaniesScreen({
             kind={kind}
             onKindChange={setKind}
             revision={revision}
-            onDetail={onDetail ? (customerKey, companyName) => onDetail({ customerKey, companyName }) : undefined}
+            onDetail={onDetail ? (customerKey, companyName, trackId) => onDetail({ customerKey, companyName, ...(trackId ? { trackId } : {}) }) : undefined}
             onProgressed={afterProgress}
             endpoints={endpoints}
             view={state.view}

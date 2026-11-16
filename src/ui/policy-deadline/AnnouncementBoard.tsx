@@ -58,7 +58,8 @@ export interface AnnouncementBoardProps {
   /** 값이 바뀌면 목록과 펼친 업체 표를 처음부터 다시 읽는다(업체 상세창에서 저장한 뒤). */
   revision?: number;
   /** 그 업체 상세를 연다 — 상호명·「업무 현황 보기」가 부른다. 없으면 상호명은 글자이고 「업무 현황 보기」도 그리지 않는다. */
-  onDetail?: (customerKey: string, companyName: string) => void;
+  /** 업체 상세 열기 — 알림 「업무 현황 보기」에서는 방금 만든 업무 번호(`trackId`)도 넘긴다. */
+  onDetail?: (customerKey: string, companyName: string, trackId?: string) => void;
   onProgressed?: () => void;
   /** 부를 주소 — 모듈 상수 하나로 넘긴다(DEADLINE_ENDPOINTS 를 그대로 또는 `export` 를 더해). */
   endpoints: DeadlineEndpoints;
@@ -292,7 +293,7 @@ export default function AnnouncementBoard({
         const mark = (rows: CompanyMatchRow[]) => rows.map((r) => (r.customerKey === row.customerKey ? { ...r, progress: done } : r));
         return { ...current, [bucketKey]: { status: "ok", view: { ...state.view, fit: mark(state.view.fit), unverified: mark(state.view.unverified) } } };
       });
-      setNotice({ tone: "success", text: progressToastText(result), customerKey: row.customerKey, companyName: row.companyName });
+      setNotice({ tone: "success", text: progressToastText(result), customerKey: row.customerKey, companyName: row.companyName, trackId: result.trackId });
       onProgressed?.();
     } catch (e) {
       setNotice({ tone: "error", text: e instanceof Error ? e.message : "업무 현황에 넣지 못했습니다." });
@@ -447,9 +448,9 @@ export default function AnnouncementBoard({
         notice={notice}
         onOpen={
           onDetail
-            ? (customerKey, companyName) => {
+            ? (customerKey, companyName, trackId) => {
                 setNotice(null);
-                onDetail(customerKey, companyName);
+                onDetail(customerKey, companyName, trackId);
               }
             : undefined
         }

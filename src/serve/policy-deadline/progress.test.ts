@@ -8,12 +8,14 @@ import {
   PROGRESS_TODO,
   findLinkableTrack,
   policyNameOf,
+  progressDocs,
   progressStepGroups,
   readProgressBody,
   startDeadlineProgress,
   type ProgressActor,
   type ProgressCompany,
   type ProgressDeps,
+  type ProgressTaskSource,
   type ProgressTrack,
 } from "./progress";
 import type { DeadlineBucket, StoredProgress } from "./types";
@@ -81,6 +83,43 @@ describe("작은 도움 함수", () => {
     expect(progressStepGroups("")[0].steps[0].due).toBe("");
   });
 
+  it("공고 자료가 있으면 「자격 확인」(원문 확인·업체별 조건·채울 칸) → 「서류 준비」 → 「신청」 — 기한은 「신청 마감」에만", () => {
+    const source: ProgressTaskSource = {
+      documents: [],
+      toCheck: ["기업 규모: 중소기업", "공고 원문 확인(조건 정리 전)", "소재지 확인", "기업 규모: 중소기업"],
+      gaps: ["매출액", "업력"],
+    };
+    const groups = progressStepGroups("2026-11-19", source);
+    expect(groups.map((g) => g.name)).toEqual(["자격 확인", "서류 준비", "신청"]);
+    expect(groups[0].steps.map((s) => s.label)).toEqual(["공고 원문에서 자격 조건 확인", "기업 규모: 중소기업", "소재지 확인", "업체 정보 채우기: 매출액 · 업력"]);
+    expect(groups[1].steps.map((s) => s.label)).toEqual(["공고 원문에서 제출 서류 확인"]);
+    expect(groups[2].steps.map((s) => s.label)).toEqual([PROGRESS_TODO]);
+    expect(groups.flatMap((g) => g.steps).map((s) => [s.status, s.due])).toEqual([
+      ["대기", ""], ["대기", ""], ["대기", ""], ["대기", ""], ["대기", ""], ["대기", "2026-11-19"],
+    ]);
+    expect(groups.flatMap((g) => g.steps).every((s) => /^s-\d+-\d+-[0-9a-f]{6}$/.test(String(s.id)))).toBe(true);
+  });
+
+  it("공고에 제출 서류가 있으면 「제출 서류 N개 준비」 — 조건이 다 맞으면 「자격 확인」 갈래는 없다", () => {
+    const source: ProgressTaskSource = { documents: ["사업자등록증", " 사업자등록증 ", "", "재무제표"], toCheck: [], gaps: [] };
+    const groups = progressStepGroups("", source);
+    expect(groups.map((g) => g.name)).toEqual(["서류 준비", "신청"]);
+    expect(groups[0].steps.map((s) => s.label)).toEqual(["제출 서류 2개 준비"]);
+  });
+
+  it("공고 자료가 없으면(null) 지금처럼 「신청 마감」 한 칸", () => {
+    expect(progressStepGroups("2026-11-19", null)).toEqual(progressStepGroups("2026-11-19"));
+  });
+
+  it("서류 전달 칸 = 공고 제출 서류(앞뒤 공백·빈 줄·겹침 빼고, 100개·한 줄 500자까지)", () => {
+    expect(progressDocs({ documents: ["사업자등록증", " 사업자등록증 ", "", "재무제표"], toCheck: [], gaps: [] }))
+      .toEqual([{ label: "사업자등록증", done: false }, { label: "재무제표", done: false }]);
+    expect(progressDocs(null)).toEqual([]);
+    const many = progressDocs({ documents: Array.from({ length: 130 }, (_, i) => `서류 ${i}`), toCheck: [], gaps: [] });
+    expect(many).toHaveLength(100);
+    expect(progressDocs({ documents: ["가".repeat(800)], toCheck: [], gaps: [] })[0].label).toHaveLength(500);
+  });
+
   it("이을 정책 = 공고 id 가 묶음 안이거나 앱의 이름 비교가 같다고 한 첫 정책", () => {
     const tracks: ProgressTrack[] = [
       { id: "t1", customerKey: "b:1", policyName: "고용장려금", announcementId: null },
@@ -132,7 +171,7 @@ describe("startDeadlineProgress", () => {
     expect(deps.findTracks).toHaveBeenCalledWith(["b:1", "p:01012345678"]);
     expect(deps.createTrack).toHaveBeenCalledWith({
       customerKey: "b:1", policyName: "2026년 수출바우처 지원사업", announcementId: "ann-1", assignee: "kim@wedly.kr",
-      startedAt: NOW, stepGroups: progressStepGroups("2026-11-19"), companyName: "삼영식품",
+      startedAt: NOW, stepGroups: progressStepGroups("2026-11-19"), docs: [], companyName: "삼영식품",
     });
     expect(deps.appendHistory).toHaveBeenCalledWith(
       "b:1",
@@ -142,6 +181,46 @@ describe("startDeadlineProgress", () => {
     expect(deps.insertProgress).toHaveBeenCalledWith({
       customerKey: "b:1", bucketKey: BUCKET.bucketKey, trackId: "t-new", byUserId: "u1", byName: "김컨설", via: "web", createdAt: NOW,
     });
+  });
+
+  it("readTaskSource 가 있으면 공고 자료로 단계·서류 전달 칸을 만든다", async () => {
+    const source: ProgressTaskSource = { documents: ["사업자등록증"], toCheck: ["소재지 확인"], gaps: [] };
+    const readTaskSource = vi.fn(async () => source);
+    const deps = fakeDeps({ readTaskSource });
+    await startDeadlineProgress(input(), NOW, deps);
+    expect(readTaskSource).toHaveBeenCalledWith("b:1", BUCKET);
+    expect(deps.createTrack).toHaveBeenCalledWith(expect.objectContaining({
+      stepGroups: progressStepGroups("2026-11-19", source),
+      docs: [{ label: "사업자등록증", done: false }],
+    }));
+  });
+
+  it("readTaskSource 가 실패하면 「신청 마감」 한 칸으로 만든다 — 진행은 막지 않는다", async () => {
+    const deps = fakeDeps({ readTaskSource: vi.fn(async () => { throw new Error("공고 읽기 실패"); }) });
+    const result = await startDeadlineProgress(input(), NOW, deps);
+    expect(result.created).toBe(true);
+    expect(deps.createTrack).toHaveBeenCalledWith(expect.objectContaining({ stepGroups: progressStepGroups("2026-11-19"), docs: [] }));
+  });
+
+  it("공고 자료 모양이 어긋나도(칸 없음·배열 아님·글자 아닌 값) 진행은 깨지지 않고 맞는 글자만 쓴다", async () => {
+    const odd = { documents: undefined, toCheck: "소재지 확인", gaps: ["대표자 생년", 3] } as unknown as ProgressTaskSource;
+    const deps = fakeDeps({ readTaskSource: vi.fn(async () => odd) });
+    const result = await startDeadlineProgress(input(), NOW, deps);
+    expect(result.created).toBe(true);
+    expect(deps.createTrack).toHaveBeenCalledWith(expect.objectContaining({
+      stepGroups: progressStepGroups("2026-11-19", { documents: [], toCheck: [], gaps: ["대표자 생년"] }),
+      docs: [],
+    }));
+  });
+
+  it("이을 정책이 있으면 공고 자료를 읽지 않는다(정책은 고치지 않는다)", async () => {
+    const readTaskSource = vi.fn(async () => null);
+    const deps = fakeDeps({
+      readTaskSource,
+      findTracks: vi.fn(async () => [{ id: "t-alias", customerKey: "b:1", policyName: "옛 이름", announcementId: "ann-2" }]),
+    });
+    await startDeadlineProgress(input(), NOW, deps);
+    expect(readTaskSource).not.toHaveBeenCalled();
   });
 
   it("슬랙에서 누르면 히스토리에 「정책별 고객사 · 슬랙에서 시작」", async () => {

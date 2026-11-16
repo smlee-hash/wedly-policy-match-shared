@@ -70,7 +70,7 @@ const progressCalls = () => fetchMock.mock.calls.filter(([input]) => String(inpu
 const rowOf = (company: string) => byTag(root(), "tbody").flatMap((body) => byTag(body, "tr")).find((tr) => textOf(tr).includes(company));
 const addButton = (company: string) => buttonsWith(rowOf(company) ?? root(), "업무 현황에 추가")[0];
 const toast = () => find(root(), (n) => n.tag === "DeadlineToast");
-const notice = () => toast()?.props.notice as { tone: string; text: string } | null | undefined;
+const notice = () => toast()?.props.notice as { tone: string; text: string; trackId?: string } | null | undefined;
 /** 표 칸 안의 글자 조각(td 바로 아래 span 의 안쪽 span) — ERP 의 `td span span`. */
 const chipsOf = (cell: HostNode | null): HostNode[] => (cell ? cell.kids.flatMap((kid) => (typeof kid === "string" ? [] : byTag(kid, "span").filter((s) => s !== kid))) : []);
 
@@ -101,6 +101,18 @@ afterEach(() => {
   mounted?.unmount();
   mounted = null;
   vi.unstubAllGlobals();
+});
+
+describe("DeadlineToast — 「업무 현황 보기」", () => {
+  it("알림에 업무 번호가 있으면 onOpen 에 함께 넘긴다", async () => {
+    const onOpen = vi.fn();
+    mounted = mountTree(
+      <DeadlineToast notice={{ tone: "success", text: "추가했습니다", customerKey: "cB", companyName: "다라상사", trackId: "t1" }} onOpen={onOpen} />,
+    );
+    await mounted.settle();
+    await mounted.click(buttonsWith(root(), "업무 현황 보기")[0]);
+    expect(onOpen).toHaveBeenCalledWith("cB", "다라상사", "t1");
+  });
 });
 
 describe("정책별 고객사 — 펼친 업체 표", () => {
@@ -185,16 +197,18 @@ describe("정책별 고객사 — 펼친 업체 표", () => {
   it("「업무 현황에 추가」 — 무엇이 생기는지 알리고 「업무 현황 보기」로 그 업체 상세를 연다", async () => {
     const onDetail = await openAnnouncement(mixedBucket);
     expect(buttonsWith(root(), "진행")).toHaveLength(0);
-    expect(String(addButton("다라상사")?.props.title)).toContain("할 일 「신청 마감」");
+    expect(String(addButton("다라상사")?.props.title)).toContain("공고에 맞춘 할 일");
+    expect(String(addButton("다라상사")?.props.title)).toContain("「신청 마감」");
     await mounted?.click(addButton("다라상사"));
     expect(progressCalls()).toHaveLength(1);
     expect(JSON.parse(String((progressCalls()[0][1] as RequestInit).body))).toEqual({ customerKey: "cB", bucketKey: "b1" });
     expect(textOf(rowOf("다라상사") ?? [])).toContain("업무 현황에 있음");
-    expect(notice()).toMatchObject({ tone: "success", text: "다라상사 · 컨설팅 업무 현황에 「공고 하나」 추가 · 할 일 「신청 마감」 · 기한 11/20(금)" });
-    const open = toast()?.props.onOpen as ((customerKey: string, companyName: string) => void) | undefined;
+    expect(notice()).toMatchObject({ tone: "success", text: "다라상사 · 컨설팅 업무 현황에 「공고 하나」 추가 · 할 일 「신청 마감」 · 기한 11/20(금)", trackId: "t1" });
+    const open = toast()?.props.onOpen as ((customerKey: string, companyName: string, trackId?: string) => void) | undefined;
     expect(typeof open).toBe("function");
-    await mounted?.act(() => open?.("cB", "다라상사"));
-    expect(onDetail).toHaveBeenCalledWith("cB", "다라상사");
+    await mounted?.act(() => open?.("cB", "다라상사", "t1"));
+    // 방금 만든(또는 이은) 업무 번호까지 넘긴다 — 앱이 상세창에서 그 업무를 바로 연다.
+    expect(onDetail).toHaveBeenCalledWith("cB", "다라상사", "t1");
     expect(notice()).toBeNull();
   });
 
@@ -265,9 +279,10 @@ describe("연락 예정 업체 — 펼친 공고 표", () => {
     const onDetail = await openCompany();
     await mounted?.click(addButton("공고 하나"));
     expect(notice()?.text).toContain("컨설팅 업무 현황에 「공고 하나」 추가");
-    const open = toast()?.props.onOpen as ((customerKey: string, companyName: string) => void) | undefined;
-    await mounted?.act(() => open?.("cB", "다라상사"));
-    expect(onDetail).toHaveBeenCalledWith("cB", "다라상사");
+    expect(notice()?.trackId).toBe("t1");
+    const open = toast()?.props.onOpen as ((customerKey: string, companyName: string, trackId?: string) => void) | undefined;
+    await mounted?.act(() => open?.("cB", "다라상사", "t1"));
+    expect(onDetail).toHaveBeenCalledWith("cB", "다라상사", "t1");
   });
 
   it("담당 줄은 showConsultant 가 켜졌을 때만 그린다(기본은 그림)", async () => {

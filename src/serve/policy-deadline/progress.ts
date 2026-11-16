@@ -1,13 +1,15 @@
 /**
  * 「업무 현황에 추가」(진행) — 화면의 단추와 슬랙 단추가 함께 쓴다.
  * 그 업체에 공고 이름의 정부지원금 정책 진행을 만들고(할 일 「신청 마감」, 기한 = 공고 마감일), 진행 줄을 남긴다.
+ * 앱이 공고 자료(`readTaskSource`)를 주면 단계·서류 전달 칸을 그 공고에 맞춰 만든다 — 공고에 없는 일은 지어내지 않는다.
  * 같은 업체 × 공고 묶음은 한 번만 — 두 번째부터는 처음 만든 정책을 돌려준다.
  *
  * ERP `services/policy-deadline/progress.ts` 를 그대로 옮기되 앱마다 다른 것만 주입으로 바꿨다:
  * 담당 확인(`isAssigned`)·정책 이름 같음 판정(`isSamePolicyName`). 정책 만들기·히스토리·진행 줄 저장은 원래부터 주입이다.
  */
+import { GENERIC_TO_CHECK } from "../../engine/eligibility-review";
 import { kstDateKey } from "./kst";
-import { ensureStepIds, type StepGroup } from "./step-ids";
+import { ensureStepIds, type StepGroup, type TrackStep } from "./step-ids";
 import type { DeadlineBucket, ProgressResult, StoredProgress } from "./types";
 import { isCustomerKey } from "./query";
 
@@ -52,6 +54,22 @@ export interface ProgressCompany {
   readConsultantIds: string[];
 }
 
+/**
+ * 새 업무를 공고에 맞춰 만들 자료 — 공고의 제출 서류(정리된 공고 `structure.documents`),
+ * 그 업체 판정 줄의 확인할 조건(`toCheck`)·채울 칸(`gaps`).
+ */
+export interface ProgressTaskSource {
+  documents: string[];
+  toCheck: string[];
+  gaps: string[];
+}
+
+/** 서류 전달 칸 한 줄 — 앱의 정책 진행 `docs` 칸과 같은 모양. */
+export interface ProgressDoc {
+  label: string;
+  done: boolean;
+}
+
 export interface ProgressDeps {
   readCompany(customerKey: string): Promise<ProgressCompany | null>;
   /**
@@ -64,6 +82,10 @@ export interface ProgressDeps {
   /** 그 업체 × 묶음 판정 줄이 있나(맞음·확인 필요만 저장된다). */
   hasMatch(customerKey: string, bucketKey: string): Promise<boolean>;
   readBucket(bucketKey: string): Promise<DeadlineBucket | null>;
+  /**
+   * 새 업무를 공고에 맞춰 만들 자료 — 새로 만들 때만 읽는다. 없으면(앱이 안 넘김·null·실패) 「신청 마감」 한 칸으로 만든다.
+   */
+  readTaskSource?(customerKey: string, bucket: DeadlineBucket): Promise<ProgressTaskSource | null>;
   readProgress(customerKey: string, bucketKey: string): Promise<StoredProgress | null>;
   /** 정부지원금 정책 진행 중 customerKey 가 customerKeys 안인 것 — 만든 순서대로. */
   findTracks(customerKeys: string[]): Promise<ProgressTrack[]>;
@@ -75,6 +97,8 @@ export interface ProgressDeps {
     assignee: string;
     startedAt: Date;
     stepGroups: StepGroup[];
+    /** 서류 전달 칸 — 공고 제출 서류(없으면 빈 목록). */
+    docs: ProgressDoc[];
     companyName: string;
   }): Promise<{ id: string }>;
   /** 분야 히스토리 한 줄 — 실패해도 진행은 성공이다. */
@@ -88,9 +112,67 @@ export function policyNameOf(bucket: Pick<DeadlineBucket, "title">): string {
   return bucket.title.trim().slice(0, 200) || "이름 없는 공고";
 }
 
-/** 새 정책의 단계 = [{ name: "신청", steps: [{ label: PROGRESS_TODO, status: "대기", due }] }] 에 ensureStepIds 로 식별자를 붙인 것. */
-export function progressStepGroups(due: string): StepGroup[] {
-  return ensureStepIds([{ name: "신청", steps: [{ label: PROGRESS_TODO, status: "대기", due }] }]).groups;
+/** 앞뒤 공백을 빼고 빈 줄·겹친 줄을 지운 목록(처음 나온 순서). */
+function cleanLabels(labels: readonly string[]): string[] {
+  return Array.from(new Set(labels.map((label) => label.trim()).filter(Boolean)));
+}
+
+const MAX_DOCS = 100;
+const MAX_DOC_CHARS = 500;
+
+/** 서류 전달 칸 = 공고 제출 서류(앞뒤 공백·빈 줄·겹침 빼고 100개·한 줄 500자까지, 모두 「안 받음」). 자료가 없으면 빈 목록. */
+export function progressDocs(source: ProgressTaskSource | null | undefined): ProgressDoc[] {
+  if (!source) return [];
+  return cleanLabels(source.documents)
+    .slice(0, MAX_DOCS)
+    .map((label) => ({ label: label.slice(0, MAX_DOC_CHARS), done: false }));
+}
+
+/**
+ * 새 정책의 단계 — 식별자는 ensureStepIds 로 붙인다. 기한은 「신청 마감」에만(공고 마감일), 나머지는 비운다.
+ * 자료가 없으면 [「신청」: 「신청 마감」] 한 칸. 자료가 있으면 공고에 있는 것만으로:
+ * 1) 「자격 확인」 — 조건 정리 전 공고면 「공고 원문에서 자격 조건 확인」, 그 업체의 확인할 조건 하나씩, 채울 칸이 있으면
+ *    「업체 정보 채우기: 매출액 · 업력」. 하나도 없으면(조건이 다 맞음) 갈래를 두지 않는다.
+ * 2) 「서류 준비」 — 공고 제출 서류가 있으면 「제출 서류 N개 준비」(목록은 서류 전달 칸), 없으면 「공고 원문에서 제출 서류 확인」.
+ * 3) 「신청」 — 「신청 마감」.
+ */
+export function progressStepGroups(due: string, source?: ProgressTaskSource | null): StepGroup[] {
+  const todo = (label: string, stepDue = ""): TrackStep => ({ label, status: "대기", due: stepDue });
+  const apply: StepGroup = { name: "신청", steps: [todo(PROGRESS_TODO, due)] };
+  if (!source) return ensureStepIds([apply]).groups;
+  const toCheck = cleanLabels(source.toCheck);
+  const gaps = cleanLabels(source.gaps);
+  const checks = [
+    ...(toCheck.some((label) => GENERIC_TO_CHECK.has(label)) ? ["공고 원문에서 자격 조건 확인"] : []),
+    ...toCheck.filter((label) => !GENERIC_TO_CHECK.has(label)),
+    ...(gaps.length ? [`업체 정보 채우기: ${gaps.join(" · ")}`] : []),
+  ];
+  const docCount = progressDocs(source).length;
+  const groups: StepGroup[] = [
+    ...(checks.length ? [{ name: "자격 확인", steps: checks.map((label) => todo(label)) }] : []),
+    { name: "서류 준비", steps: [todo(docCount ? `제출 서류 ${docCount}개 준비` : "공고 원문에서 제출 서류 확인")] },
+    apply,
+  ];
+  return ensureStepIds(groups).groups;
+}
+
+/** 공고 자료 — 앱이 안 넘기거나 읽다 실패하면 null(새 업무는 「신청 마감」 한 칸으로 만든다). */
+/** 글자 목록만 남긴다 — 앱이 옛 모양 JSON(칸 없음·배열 아님)을 그대로 넘겨도 진행이 깨지지 않게. */
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+async function readTaskSourceSafe(deps: ProgressDeps, customerKey: string, bucket: DeadlineBucket): Promise<ProgressTaskSource | null> {
+  if (!deps.readTaskSource) return null;
+  try {
+    const source: unknown = await deps.readTaskSource(customerKey, bucket);
+    if (!source || typeof source !== "object") return null;
+    const raw = source as Record<string, unknown>;
+    return { documents: stringList(raw.documents), toCheck: stringList(raw.toCheck), gaps: stringList(raw.gaps) };
+  } catch {
+    // 공고 자료는 업무를 채우는 덧붙임 — 못 읽어도 진행은 막지 않는다.
+    return null;
+  }
 }
 
 /**
@@ -135,8 +217,9 @@ function progressOf(row: StoredProgress): ProgressResult["progress"] {
  * 3) hasMatch 가 거짓이면 (404, "NOT_FOUND", "이 업체에 맞는 공고가 아닙니다."). readBucket 이 null 이면 (404, "NOT_FOUND", "공고를 찾지 못했습니다.").
  * 4) policyName = policyNameOf(묶음), due = 묶음 applyEnd 가 있으면 kstDateKey(applyEnd), 없으면 "".
  * 5) findTracks([업체 customerKey, ...aliases(겹친 것 빼고)]) → findLinkableTrack 이 있으면 그 정책에 잇는다(trackCreated false, 정책은 고치지 않는다).
- *    없으면 createTrack({ customerKey, policyName, announcementId: 묶음 repAnnouncementId 가 비면 null,
- *    assignee: actor.email, startedAt: now, stepGroups: progressStepGroups(due), companyName }) (trackCreated true).
+ *    없으면 readTaskSource(업체 customerKey, 묶음)로 공고 자료를 읽어(없거나 실패면 null)
+ *    createTrack({ customerKey, policyName, announcementId: 묶음 repAnnouncementId 가 비면 null,
+ *    assignee: actor.email, startedAt: now, stepGroups: progressStepGroups(due, 자료), docs: progressDocs(자료), companyName }) (trackCreated true).
  *    createTrack 이 P2002 를 던지면 findTracks 를 다시 읽어 findLinkableTrack 으로 잇고(trackCreated false), 그래도 없으면 그 오류를 던진다.
  * 6) 새로 만들었을 때만 appendHistory(업체 customerKey, `[진행 정책] 「${policyName}」 진행을 시작했습니다. (정책별 고객사${via === "slack" ? " · 슬랙" : ""}에서 시작) · 담당 ${actor.email}`, actor.name)
  *    — 던져도 삼킨다.
@@ -195,6 +278,7 @@ export async function startDeadlineProgress(
   if (linked) {
     trackId = linked.id;
   } else {
+    const source = await readTaskSourceSafe(deps, customerKey, bucket);
     try {
       const created = await deps.createTrack({
         customerKey,
@@ -202,7 +286,8 @@ export async function startDeadlineProgress(
         announcementId: bucket.repAnnouncementId || null,
         assignee: actor.email,
         startedAt: now,
-        stepGroups: progressStepGroups(due),
+        stepGroups: progressStepGroups(due, source),
+        docs: progressDocs(source),
         companyName,
       });
       trackId = created.id;
