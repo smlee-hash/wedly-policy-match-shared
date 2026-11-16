@@ -70,6 +70,8 @@ describe("좁은 화면의 펼친 표", () => {
         <CompanyTable rows={[company(BOTH)]} columns={{ check: true }} busyKey="" bucketKey="b1" showConsultant={showConsultant} onProgress={() => {}} />,
       ).tree,
     );
+    // 「진행상태」 칸은 두지 않는다(2026-11-16 사장님).
+    expect(headsOf(t)).not.toContain("진행상태");
     expect(colsOf(t).at(-2)).toBe("");
     for (const { px } of minWidthsOf(t)) expect(leftover(t, px)).toBeGreaterThanOrEqual(100);
   });
