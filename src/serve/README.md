@@ -182,6 +182,12 @@ readAnnouncementDetailRow(q, id)   // 없으면 404
 `appendHistory`(실패해도 진행은 성공이다). 새 정책을 만들었을 때만 분야 히스토리에 「(정책별 고객사에서 시작)」
 (슬랙이면 「(정책별 고객사 · 슬랙에서 시작)」)가 한 줄 남는다.
 
+`readTaskSource(customerKey, bucket)`(선택)는 새 업무를 공고에 맞춰 만들 자료 `{ documents, toCheck, gaps }` 를 돌려준다 —
+대표 공고의 정리된 제출 서류와 그 업체 판정 줄의 확인할 조건·채울 칸. 새로 만들 때만 부르고(이을 정책이 있으면 안 부름),
+그 자료로 「자격 확인」·「서류 준비」·「신청」 단계(`progressStepGroups`)와 서류 칸(`progressDocs`)을 만들어 `createTrack` 의
+`stepGroups`·`docs` 로 넘긴다. 없거나 못 읽거나 모양이 어긋나면 「신청 마감」 한 칸만 만든다(진행은 막지 않는다).
+두 앱 모두 넘겨야 「업무 현황에 추가」 단추 안내 글과 실제로 만들어지는 업무가 맞는다.
+
 ## 앱이 만드는 `ServeQuery` (요약)
 
 `Prisma.sql`/`Prisma.join`/`Prisma.raw`/`$queryRaw` 는 그대로 꽂고 나머지는 한 줄로 감싼다.

@@ -176,3 +176,26 @@ describe("화면 PolicyCompaniesScreen — canProgress 를 두 보드에 넘긴�
     expect(boardProp("AnnouncementBoard")).toBe(false);
   });
 });
+
+describe("화면 PolicyCompaniesScreen — 알림 「업무 현황 보기」는 업무 번호까지 앱에 넘긴다", () => {
+  const BOARDS = [...OPAQUE, AnnouncementBoard, ContactsBoard];
+  const summary = { within7Companies: 0, contacts: 0, buckets: { d7: 0, d14: 0, d30: 0, all: 0 }, contactKinds: { policyFund: 0, freeGrant: 0, other: 0 } };
+  beforeEach(() => {
+    fetchMock.mockImplementation((input: string) =>
+      String(input).includes("view=summary") ? Promise.resolve(jsonResponse({ success: true, data: summary })) : never(),
+    );
+  });
+
+  it("업무 번호가 있으면 { customerKey, companyName, trackId }, 상호명을 누른 것(번호 없음)은 둘만", async () => {
+    const onOpenCompany = vi.fn();
+    mounted = mountTree(<PolicyCompaniesScreen endpoints={DEADLINE_ENDPOINTS} now={NOW} onOpenCompany={onOpenCompany} />, { opaque: BOARDS });
+    await mounted.settle();
+    const onDetail = find(root(), (n) => n.tag === "AnnouncementBoard")?.props.onDetail as (customerKey: string, companyName: string, trackId?: string) => void;
+    onDetail("cB", "다라상사", "t1");
+    onDetail("cB", "다라상사");
+    expect(onOpenCompany.mock.calls).toEqual([
+      [{ customerKey: "cB", companyName: "다라상사", trackId: "t1" }],
+      [{ customerKey: "cB", companyName: "다라상사" }],
+    ]);
+  });
+});

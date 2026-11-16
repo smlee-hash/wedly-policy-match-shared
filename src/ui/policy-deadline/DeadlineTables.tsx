@@ -2,7 +2,7 @@
 
 // 펼친 표 둘 — 공고 하나를 펼친 「업체 표」(정책별 고객사)와 업체 하나를 펼친 「공고 표」(연락 예정 업체·캘린더 고른 업체).
 // 상태는 갖지 않는다 — 읽기·누르기 처리는 보드가 쥐고 이 표들은 받은 값을 그리기만 한다(그래서 그려서 잴 수 있다).
-import { ACTION_COL, CheckCell, DDayBadge, FitCell, KindChip, ProgressCell } from "./DeadlineBits";
+import { ACTION_COL, CheckCell, DDayBadge, KindChip, ProgressCell } from "./DeadlineBits";
 import { buttonClass } from "./classes";
 import { announcementsFor, conditionColumns, dateLabel } from "./deadline-view";
 import type { CompanyAnnouncementRow, CompanyMatchRow } from "../../serve/policy-deadline/types";
@@ -13,17 +13,16 @@ const TD = "border-b border-wedly-bd px-2.5 py-2 align-top text-wedly-sub";
 // 없으면 문서 전체를 기준으로 표 오른쪽 끝 자리에 놓여 좁은 화면의 문서 폭을 늘렸다(2026-11-16 390px 운영 QA — 문서 폭 932px).
 const TABLE_BOX = "relative overflow-x-auto rounded-lg border border-wedly-bd bg-white";
 
-export type ConditionColumns = { fit: boolean; check: boolean };
+/** 펼친 표의 조건 칸 — 「확인할 조건」 하나뿐이다. 「맞은 조건」 칸은 두지 않는다(2026-11-16 사장님 — 맞음·확인 필요로 이미 나뉜다). */
+export type ConditionColumns = { check: boolean };
 
 // 펼친 업체 표의 칸 — 맞음·확인 필요 두 표가 같은 칸·같은 폭을 써서 위아래 줄이 맞는다.
 // 마지막 내용 칸은 폭을 두지 않아 남는 폭을 가져간다(조건 칸이 빠지면 진행상태가 넓어진다).
-// 앞 칸 % 합을 64%로 둬 두 조건 칸이 다 나와도 「확인할 조건」이 「업무 현황」 칸(148px)을 빼고 넉넉히 남는다.
 export function companyColumns(columns: ConditionColumns, showConsultant = true): { head: string; width: string }[] {
   const cols = [
     { head: "업체명", width: "w-[22%]" },
     ...(showConsultant ? [{ head: "담당", width: "w-[11%]" }] : []),
     { head: "진행상태", width: "w-[13%]" },
-    ...(columns.fit ? [{ head: "맞은 조건", width: "w-[18%]" }] : []),
     ...(columns.check ? [{ head: "확인할 조건", width: "" }] : []),
   ];
   cols[cols.length - 1] = { ...cols[cols.length - 1], width: "" };
@@ -84,7 +83,6 @@ export function CompanyTable({
               </td>
               {showConsultant && <td className={TD}>{row.consultant || <span className="text-wedly-red-ink">담당 없음</span>}</td>}
               <td className={TD}>{row.statusText}</td>
-              {columns.fit && <td className={TD}><FitCell labels={row.fitLabels} /></td>}
               {columns.check && <td className={TD}><CheckCell toCheck={row.toCheck} gaps={row.gaps} /></td>}
               <td className={`${TD} text-right`}>
                 <ProgressCell inProgress={!!row.progress} busy={busyKey === `${row.customerKey}|${bucketKey}`} canProgress={canProgress} onProgress={() => onProgress(row)} />
@@ -116,18 +114,14 @@ export function ContactAnnouncementTable({
   onProgress: (announcement: CompanyAnnouncementRow) => void;
 }) {
   const columns = conditionColumns(rows, true);
-  // 두 조건 칸이 다 나오면 % 칸이 표 폭의 44%를 가져가 760px 표에서는 공고명 칸이 6px 로 찌그러졌다(2026-11-15 좁은 화면 QA).
-  // 그래서 최소 폭을 늘린다 — 왼쪽 메뉴가 있는 넓은 화면(lg)은 표 896px·공고명 약 100px(ERP 1280 너비 표 폭 약 900px 안),
-  // 좁은 화면은 가로로 밀어 보며 공고명 약 180px. 마감 칸(딱지 56px + 날짜 11px 글자)은 140px 이면 한 줄에 들어간다.
-  const minWidth = columns.fit && columns.check ? "min-w-[1040px] lg:min-w-[896px]" : "min-w-[780px]";
+  // 마감 칸(딱지 56px + 날짜 11px 글자)은 140px 이면 한 줄에 들어간다. 조건 칸이 하나라 780px 표에서도 공고명이 넉넉하다.
   return (
     <div className={TABLE_BOX}>
-      <table className={`w-full ${minWidth} table-fixed border-collapse [&_tr:last-child>td]:border-b-0`}>
+      <table className="w-full min-w-[780px] table-fixed border-collapse [&_tr:last-child>td]:border-b-0">
         <colgroup>
           <col />
           <col className="w-[112px]" />
           <col className="w-[140px]" />
-          {columns.fit && <col className="w-[20%]" />}
           {columns.check && <col className="w-[24%]" />}
           <col className={ACTION_COL} />
         </colgroup>
@@ -136,7 +130,6 @@ export function ContactAnnouncementTable({
             <th className={TH}>공고명</th>
             <th className={TH}>종류</th>
             <th className={TH}>마감</th>
-            {columns.fit && <th className={TH}>맞은 조건</th>}
             {columns.check && <th className={TH}>확인할 조건</th>}
             <th className={TH}><span className="sr-only">업무 현황</span></th>
           </tr>
@@ -159,7 +152,6 @@ export function ContactAnnouncementTable({
                   {a.applyEnd && <span className="text-wedly-hint text-wedly-t2">{dateLabel(a.applyEnd)}</span>}
                 </span>
               </td>
-              {columns.fit && <td className={TD}><FitCell labels={a.fitLabels} /></td>}
               {columns.check && <td className={TD}><CheckCell toCheck={a.toCheck} gaps={a.gaps} unstructuredChip /></td>}
               <td className={`${TD} text-right`}>
                 <ProgressCell inProgress={!!a.progress} busy={busyKey === `${customerKey}|${a.bucketKey}`} canProgress={canProgress} onProgress={() => onProgress(a)} />

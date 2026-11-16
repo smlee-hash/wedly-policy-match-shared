@@ -1,6 +1,7 @@
 // 좁은 화면의 펼친 표 — 표는 최소 폭까지만 줄고 그 아래는 가로로 밀어 본다(overflow-x-auto).
 // 최소 폭에서도 폭을 두지 않은 칸(공고 표의 공고명·업체 표의 마지막 칸)이 글자를 읽을 만큼 남아야 한다.
 // 2026-11-15 운영 QA(390px 화면): 두 조건 칸이 다 나온 공고 표가 760px 에서 고정 칸·% 칸에 754px 을 내줘 공고명이 한 글자씩 줄을 바꿨다.
+// 2026-11-16 「맞은 조건」 칸을 뺐다(사장님) — 맞은 조건이 있는 줄도 조건 칸은 「확인할 조건」 하나다.
 import { describe, expect, it, vi } from "vitest";
 import { CompanyTable, ContactAnnouncementTable } from "./DeadlineTables";
 import { byTag, find, findAll, headsOf, mountTree, type HostNode } from "./test-kit";
@@ -37,8 +38,8 @@ function leftover(t: HostNode, tablePx: number): number {
 
 describe("좁은 화면의 펼친 표", () => {
   it.each([
-    ["두 조건 칸", BOTH],
-    ["맞은 조건만", FIT],
+    ["맞은 조건·확인할 조건 둘 다 있는 줄", BOTH],
+    ["맞은 조건만 있는 줄", FIT],
     ["확인할 조건만", CHECK],
     ["조건 칸 없음", {}],
   ])("공고 표(%s) — 최소 폭에서도 공고명 칸이 100px 넘게 남고, 사이드바 없는 좁은 화면은 180px 넘게 남는다", (_, extra) => {
@@ -46,6 +47,7 @@ describe("좁은 화면의 펼친 표", () => {
     expect(String(t.props.className)).toContain("table-fixed");
     expect(headsOf(t)[0]).toBe("공고명");
     expect(colsOf(t)[0]).toBe("");
+    expect(headsOf(t)).not.toContain("맞은 조건");
     const widths = minWidthsOf(t);
     expect(widths.length).toBeGreaterThan(0);
     for (const { px } of widths) expect(leftover(t, px)).toBeGreaterThanOrEqual(100);
@@ -62,10 +64,10 @@ describe("좁은 화면의 펼친 표", () => {
   it.each([
     ["담당 칸 있음", true],
     ["담당 칸 없음", false],
-  ])("업체 표(%s) — 두 조건 칸이 다 나와도 최소 폭에서 마지막 칸이 100px 넘게 남는다", (_, showConsultant) => {
+  ])("업체 표(%s) — 최소 폭에서 마지막 칸이 100px 넘게 남는다", (_, showConsultant) => {
     const t = tableOf(
       mountTree(
-        <CompanyTable rows={[company(BOTH)]} columns={{ fit: true, check: true }} busyKey="" bucketKey="b1" showConsultant={showConsultant} onProgress={() => {}} />,
+        <CompanyTable rows={[company(BOTH)]} columns={{ check: true }} busyKey="" bucketKey="b1" showConsultant={showConsultant} onProgress={() => {}} />,
       ).tree,
     );
     expect(colsOf(t).at(-2)).toBe("");
@@ -76,7 +78,7 @@ describe("좁은 화면의 펼친 표", () => {
   // 가로 밀기 상자에 잘리지 않고 문서 폭을 932px 로 늘렸다. 밀기 상자가 기준 상자(relative)여야 그 글자가 상자 안에서 잘린다.
   it.each([
     ["공고 표", () => <ContactAnnouncementTable rows={[announcement(BOTH)]} customerKey="cA" busyKey="" onProgress={() => {}} />],
-    ["업체 표", () => <CompanyTable rows={[company(BOTH)]} columns={{ fit: true, check: true }} busyKey="" bucketKey="b1" onProgress={() => {}} />],
+    ["업체 표", () => <CompanyTable rows={[company(BOTH)]} columns={{ check: true }} busyKey="" bucketKey="b1" onProgress={() => {}} />],
   ])("%s — 가로 밀기 상자가 기준 상자라 안쪽 절대 위치 글자(sr-only)가 문서를 넓히지 않는다", (_, render) => {
     const tree = mountTree(render()).tree;
     const box = find(tree, (n) => n.kids.some((k) => typeof k !== "string" && k.tag === "table"));

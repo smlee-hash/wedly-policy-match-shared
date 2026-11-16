@@ -116,18 +116,6 @@ export function Seg<T extends string | number>({
   );
 }
 
-/** 맞은 조건 칸 — 초록 조각, 없으면 비워 둔다. */
-export function FitCell({ labels }: { labels: string[] }) {
-  if (!labels.length) return null;
-  return (
-    <span className="flex flex-wrap gap-1">
-      {labels.map((label) => (
-        <span key={label} className="break-keep rounded bg-wedly-bg-green px-1.5 text-wedly-hint text-wedly-green-ink">{label}</span>
-      ))}
-    </span>
-  );
-}
-
 /**
  * 확인할 조건 칸 — 업체마다 다른 조건만 노랑 조각으로 + 「채울 칸: …」. 없으면 비워 둔다.
  * 「공고 원문 확인(조건 정리 전)」 같은 공고 전체 문구는 칸에 되풀이하지 않는다 —
@@ -160,8 +148,8 @@ export function CheckCell({ toCheck, gaps, unstructuredChip = false }: { toCheck
   );
 }
 
-// 할 일 이름은 서버 PROGRESS_TODO(「신청 마감」)와 같은 글자다.
-export const PROGRESS_HINT = "이 업체의 컨설팅 업무 현황에 공고를 넣고 할 일 「신청 마감」(기한 = 공고 마감)을 만듭니다";
+// 할 일 이름은 서버 PROGRESS_TODO(「신청 마감」)와 같은 글자다. 자격 확인·서류 준비는 공고 자료가 있을 때만 생긴다.
+export const PROGRESS_HINT = "이 업체의 컨설팅 업무 현황에 공고를 넣고 공고에 맞춘 할 일(자격 확인·서류 준비·「신청 마감」 — 기한 = 공고 마감)을 만듭니다";
 
 /**
  * 「업무 현황에 추가」 단추, 이미 넣었으면 「업무 현황에 있음」.
@@ -198,6 +186,8 @@ export interface DeadlineNotice {
   /** 둘 다 있으면 「업무 현황 보기」 단추를 붙인다 — 그 업체 상세를 연다(열기는 앱이 정한다). */
   customerKey?: string;
   companyName?: string;
+  /** 방금 만들거나 이은 업무(정책 진행) 번호 — 앱이 상세를 그 업무에 맞춰 열 때 쓴다. */
+  trackId?: string;
 }
 
 /** 알림이 떠 있는 시간 — 「업무 현황 보기」 단추가 있으면 누를 틈을 더 준다. */
@@ -206,7 +196,13 @@ export function noticeMs(notice: DeadlineNotice): number {
 }
 
 /** 화면 아래 가운데 알림 — 「업무 현황에 추가」 결과·실패. `onOpen` 이 없으면 「업무 현황 보기」는 그리지 않는다. */
-export function DeadlineToast({ notice, onOpen }: { notice: DeadlineNotice | null; onOpen?: (customerKey: string, companyName: string) => void }) {
+export function DeadlineToast({
+  notice,
+  onOpen,
+}: {
+  notice: DeadlineNotice | null;
+  onOpen?: (customerKey: string, companyName: string, trackId?: string) => void;
+}) {
   if (!notice) return null;
   const key = notice.customerKey;
   const name = notice.companyName;
@@ -217,7 +213,7 @@ export function DeadlineToast({ notice, onOpen }: { notice: DeadlineNotice | nul
         {key && name !== undefined && onOpen && (
           <button
             type="button"
-            onClick={() => onOpen(key, name)}
+            onClick={() => onOpen(key, name, notice.trackId)}
             className="pointer-events-auto ml-3 whitespace-nowrap text-wedly-bg-blue underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             업무 현황 보기
