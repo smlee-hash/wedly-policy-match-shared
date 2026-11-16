@@ -340,16 +340,12 @@ export default function AnnouncementBoard({
               <span>{row.applyEnd ? `마감 ${dateLabel(row.applyEnd)}` : "상시 모집"}</span>
             </span>
           </span>
+          {/* 업체 수는 딱지 하나 — 펼치면 나오는 업체 수(맞음 + 확인 필요, 「맞음만」이면 맞음만). 맞음/확인 필요 구분은 펼친 표 제목이 한다(2026-11-16 대표 요청). */}
           <span className="col-start-2 flex flex-wrap gap-1.5 md:col-start-auto md:justify-end">
             {shown === 0 ? (
-              <span className="whitespace-nowrap rounded-full bg-wedly-bg-gray px-2.5 py-0.5 text-wedly-hint text-wedly-t2">맞는 업체 없음</span>
+              <span className="whitespace-nowrap rounded-full bg-wedly-bg-gray px-2.5 py-0.5 text-wedly-hint text-wedly-t2">대상 기업 없음</span>
             ) : (
-              <>
-                <span className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-wedly-hint font-semibold ${row.fit ? "bg-wedly-bg-green text-wedly-green-ink" : "bg-wedly-bg-gray text-wedly-t2"}`}>맞음 {row.fit}곳</span>
-                {!fitOnly && (
-                  <span className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-wedly-hint font-semibold ${row.unverified ? "bg-wedly-bg-yellow text-wedly-t1" : "bg-wedly-bg-gray text-wedly-t2"}`}>확인 필요 {row.unverified}곳</span>
-                )}
-              </>
+              <span className="whitespace-nowrap rounded-full bg-wedly-bg-gray px-2.5 py-0.5 text-wedly-hint font-semibold text-wedly-t1">대상 기업 {shown}곳</span>
             )}
           </span>
           <span aria-hidden className={`col-start-3 row-start-1 text-wedly-hint text-wedly-muted transition-transform duration-150 md:col-start-auto md:row-start-auto ${isOpen ? "rotate-90" : ""}`}>▶</span>
