@@ -33,7 +33,7 @@ const announcement = {
   bucketKey: "b1", repAnnouncementId: "a1", title: "공고 하나", agency: "기관", category: "정책자금", url: "", applyEnd: "2026-11-20", dDay: 7,
   verdict: "fit", fitLabels: ["업력"], toCheck: [], gaps: [], progress: null,
 };
-const summary = { within7Companies: 1, contacts: 1, buckets: { d7: 1, d14: 1, d30: 1, all: 1 }, contactKinds: { policyFund: 1, freeGrant: 0, other: 0 } };
+const summary = { within7Companies: 1, contacts: 1, buckets: { d7: 1, d14: 1, d30: 1, all: 1 }, contactKinds: { policyFund: 1, freeGrant: 0, other: 0 }, today: { contactNow: 1, checkFirst: 0, inProgress: 0 } };
 
 const never = () => new Promise<Response>(() => {});
 const reads = (part: string) => fetchMock.mock.calls.filter(([input]) => String(input).includes(part)).length;

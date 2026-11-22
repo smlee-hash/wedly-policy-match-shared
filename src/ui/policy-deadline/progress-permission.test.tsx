@@ -152,7 +152,7 @@ describe("연락 예정 보드 — canProgress", () => {
 
 describe("화면 PolicyCompaniesScreen — canProgress 를 두 보드에 넘긴다", () => {
   const BOARDS = [...OPAQUE, AnnouncementBoard, ContactsBoard];
-  const summary = { within7Companies: 0, contacts: 0, buckets: { d7: 0, d14: 0, d30: 0, all: 0 }, contactKinds: { policyFund: 0, freeGrant: 0, other: 0 } };
+  const summary = { within7Companies: 0, contacts: 0, buckets: { d7: 0, d14: 0, d30: 0, all: 0 }, contactKinds: { policyFund: 0, freeGrant: 0, other: 0 }, today: { contactNow: 0, checkFirst: 0, inProgress: 0 } };
   beforeEach(() => {
     fetchMock.mockImplementation((input: string) =>
       String(input).includes("view=summary") ? Promise.resolve(jsonResponse({ success: true, data: summary })) : never(),
@@ -179,7 +179,7 @@ describe("화면 PolicyCompaniesScreen — canProgress 를 두 보드에 넘긴�
 
 describe("화면 PolicyCompaniesScreen — 알림 「업무 현황 보기」는 업무 번호까지 앱에 넘긴다", () => {
   const BOARDS = [...OPAQUE, AnnouncementBoard, ContactsBoard];
-  const summary = { within7Companies: 0, contacts: 0, buckets: { d7: 0, d14: 0, d30: 0, all: 0 }, contactKinds: { policyFund: 0, freeGrant: 0, other: 0 } };
+  const summary = { within7Companies: 0, contacts: 0, buckets: { d7: 0, d14: 0, d30: 0, all: 0 }, contactKinds: { policyFund: 0, freeGrant: 0, other: 0 }, today: { contactNow: 0, checkFirst: 0, inProgress: 0 } };
   beforeEach(() => {
     fetchMock.mockImplementation((input: string) =>
       String(input).includes("view=summary") ? Promise.resolve(jsonResponse({ success: true, data: summary })) : never(),

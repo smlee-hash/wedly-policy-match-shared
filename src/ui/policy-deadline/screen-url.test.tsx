@@ -19,9 +19,9 @@ vi.mock("react", async (importOriginal) => ({
 
 const OPAQUE = [Checkbox, Toast, CustomSelect, DeadlineToast, AnnouncementBoard, ContactsBoard];
 const NOW = new Date("2026-11-14T03:00:00Z");
-const MINE_LINE = "정책마다 맞는 내 담당 고객사를 묶어 보고, 연락할 업체를 마감 순서로 봅니다.";
-const ALL_LINE = "정책마다 맞는 고객사를 묶어 보고, 연락할 업체를 마감 순서로 봅니다. 모든 고객사가 보입니다.";
-const summary = { within7Companies: 2, contacts: 4, buckets: { d7: 3, d14: 5, d30: 8, all: 9 }, contactKinds: { policyFund: 1, freeGrant: 2, other: 3 } };
+const MINE_LINE = "정책마다 맞는 내 담당 고객사를 묶어 보고, 연락할 업체를 맞을 확률 순서로 봅니다.";
+const ALL_LINE = "정책마다 맞는 고객사를 묶어 보고, 연락할 업체를 맞을 확률 순서로 봅니다. 모든 고객사가 보입니다.";
+const summary = { within7Companies: 2, contacts: 4, buckets: { d7: 3, d14: 5, d30: 8, all: 9 }, contactKinds: { policyFund: 1, freeGrant: 2, other: 3 }, today: { contactNow: 1, checkFirst: 2, inProgress: 0 } };
 
 const fetchMock = vi.fn();
 let mounted: ReturnType<typeof mountTree> | null = null;
@@ -69,7 +69,7 @@ describe("주소 읽기 parseScreenSearch", () => {
   it("빈 주소는 기본값 — 정책별 고객사 · 목록 · 내 담당", () => {
     expect(parseScreenSearch("", true)).toEqual(DEFAULT_SCREEN_STATE);
     expect(DEFAULT_SCREEN_STATE).toEqual({ tab: "companies", view: "list", bucket: "", scope: "mine" });
-    expect(DEFAULT_DAYS).toBe(14);
+    expect(DEFAULT_DAYS).toBe(7);
   });
 
   it("탭·보기·담당을 읽는다", () => {
@@ -140,6 +140,7 @@ describe("요약·설명 글", () => {
     expect(completeSummary(null)).toBeNull();
     expect(completeSummary({ within7Companies: 1, contacts: 1 } as never)).toBeNull();
     expect(completeSummary({ ...summary, contactKinds: undefined } as never)).toBeNull();
+    expect(completeSummary({ ...summary, today: undefined } as never)).toBeNull();
   });
 
   it("설명 한 줄 — 모든 고객사가 보이는지에 따라 두 가지", () => {
@@ -198,8 +199,8 @@ describe("요약 카드", () => {
     const second = find(root(), (n) => n.props["data-scorecard"] === "연락 예정 업체");
     expect(textOf(first ?? [])).toContain("2곳");
     expect(textOf(second ?? [])).toContain("4곳");
-    expect(choice("7일 안 마감 공고 3건")?.props["aria-pressed"]).toBe(false);
-    expect(choice("14일 안 마감 공고 5건")?.props["aria-pressed"]).toBe(true);
+    expect(choice("7일 안 마감 공고 3건")?.props["aria-pressed"]).toBe(true);
+    expect(choice("14일 안 마감 공고 5건")?.props["aria-pressed"]).toBe(false);
   });
 
   it("못 읽으면 숫자 자리에 「…」, 단추는 그대로 누를 수 있다", async () => {
@@ -371,7 +372,7 @@ describe("앱이 넘기는 값의 전달", () => {
     expect(announcementBoard()?.props.endpoints).toBe(DEADLINE_ENDPOINTS);
     expect(announcementBoard()?.props.features).toBe(features);
     expect(announcementBoard()?.props.revision).toBe(3);
-    expect(announcementBoard()?.props.defaultDays).toBe(14);
+    expect(announcementBoard()?.props.defaultDays).toBe(7);
     await draw({ revision: 2 }, "?tab=contacts");
     expect(contactsBoard()?.props.endpoints).toBe(DEADLINE_ENDPOINTS);
     expect(contactsBoard()?.props.revision).toBe(2);
