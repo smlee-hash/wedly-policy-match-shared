@@ -24,6 +24,7 @@ const MD_GRID = "md:grid-cols-[64px_minmax(0,1.2fr)_minmax(0,1fr)_132px_20px]";
 const bucketOf = (bucketKey: string, title: string, summary: string, applyEnd: string | null = "2026-11-20") => ({
   bucketKey, repAnnouncementId: bucketKey, title, agency: "기관", category: "정책자금", url: "",
   applyEnd, dDay: applyEnd ? 4 : null, fit: 1, unverified: 0, summary,
+  tiers: { high: 1, mid: 0, low: 0 }, unstructured: 0, bestTier: "high",
 });
 const datedList = {
   lastRun: null, companyCount: 3, bucketCount: 3, categories: ["정책자금"],

@@ -34,12 +34,19 @@ const meta = {
   bucketKey: "b1", repAnnouncementId: "a1", title: "공고 하나", agency: "기관", category: "정책자금",
   url: "", applyEnd: "2026-11-20", dDay: 6,
 };
-const list = { lastRun: null, companyCount: 2, bucketCount: 1, categories: ["정책자금"], dated: [{ ...meta, fit: 1, unverified: 1 }], always: [] };
-const company = (customerKey: string, companyName: string, progress: typeof done | null) => ({
-  customerKey, companyName, consultant: "김컨설", consultantNames: ["김컨설"], statusText: "계약", fitLabels: [], toCheck: [], gaps: [], progress,
+const list = { lastRun: null, companyCount: 2, bucketCount: 1, categories: ["정책자금"], dated: [{ ...meta, fit: 1, unverified: 1, tiers: { high: 1, mid: 1, low: 0 }, unstructured: 0, bestTier: "high", summary: "" }], always: [] };
+const company = (customerKey: string, companyName: string, progress: typeof done | null, verdict = "fit", tier = "high") => ({
+  customerKey, companyName, consultant: "김컨설", consultantNames: ["김컨설"], statusText: "계약", verdict, fitLabels: [], toCheck: [], gaps: [], progress,
+  tier, tierScore: tier === "high" ? 100 : 77, tierReason: "조건 6개 모두 맞음", checkItems: [], checkCount: 0, nextAction: "고객에게 연락해 신청 안내", unstructured: false,
+  amountMaxWon: null, dismissed: null,
 });
 // 가나상사는 아직 안 넣은 업체, 다라상사는 이미 업무 현황에 넣은 업체.
-const bucket = { bucket: meta, fit: [company("cA", "가나상사", null)], unverified: [company("cB", "다라상사", done)] };
+const fitRow = company("cA", "가나상사", null);
+const doneRow = company("cB", "다라상사", done, "unverified", "mid");
+const bucket = {
+  bucket: meta, fit: [fitRow], unverified: [doneRow], rows: [fitRow, doneRow],
+  tierCounts: { high: 1, mid: 1, low: 0, unstructured: 0, dismissed: 0 },
+};
 const contact = {
   customerKey: "cB", companyName: "다라상사", consultant: "김컨설", consultantNames: ["김컨설"], statusText: "",
   nearestApplyEnd: "2026-11-20", nearestDDay: 6, kinds: [{ category: "정책자금", count: 2, nearestDDay: 6 }],

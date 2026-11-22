@@ -30,6 +30,7 @@ const company = {
 const bucket = {
   bucketKey: "b1", repAnnouncementId: "a1", title: "공고 하나", agency: "기관", category: "정책자금", url: "",
   applyEnd: "2026-11-20", dDay: 7, fit: 1, unverified: 0,
+  tiers: { high: 1, mid: 0, low: 0 }, unstructured: 0, bestTier: "high", summary: "",
 };
 const list = { lastRun: null, companyCount: 1, bucketCount: 1, categories: ["정책자금"], dated: [bucket], always: [] };
 
