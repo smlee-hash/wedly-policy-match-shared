@@ -1,7 +1,7 @@
-// 마지막 대조 요약 읽기 — JsonCache 값 모양 검사와 열쇠.
+// 마지막 대조 요약·맞을 확률 설정 읽기 — JsonCache 값 모양 검사와 열쇠.
 import { describe, expect, it, vi } from "vitest";
 import type { DeadlineReadDb } from "./db";
-import { LAST_RUN_KEY, readLastRun, runSummaryOf } from "./store";
+import { LAST_RUN_KEY, TIER_CONFIG_KEY, readLastRun, readTierConfigRaw, runSummaryOf } from "./store";
 import type { RunSummary } from "./types";
 
 const SUMMARY: RunSummary = {
@@ -48,5 +48,19 @@ describe("readLastRun", () => {
   it("값이 없거나 모양이 틀리면 null", async () => {
     expect(await readLastRun(cacheDb(null).db)).toBeNull();
     expect(await readLastRun(cacheDb({ value: { kind: "full" } }).db)).toBeNull();
+  });
+});
+
+describe("readTierConfigRaw", () => {
+  it("정해진 열쇠로 읽고 값을 그대로 돌려준다(합치기는 mergeTierConfig 몫)", async () => {
+    const raw = { weights: { fieldGap: 30 }, nope: 1 };
+    const { db, findUnique } = cacheDb({ value: raw });
+    expect(await readTierConfigRaw(db)).toBe(raw);
+    expect(findUnique).toHaveBeenCalledWith({ where: { key: TIER_CONFIG_KEY } });
+    expect(TIER_CONFIG_KEY).toBe("policy-deadline:tier-config");
+  });
+
+  it("줄이 없으면 null", async () => {
+    expect(await readTierConfigRaw(cacheDb(null).db)).toBeNull();
   });
 });

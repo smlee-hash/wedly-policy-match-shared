@@ -1,7 +1,9 @@
 // 정책별 고객사 「맞을 확률」 읽기(NO.789) — 저장된 단계로 정렬·단계 수·거르기·해당 없음·옛 줄 계산·설정 글자·동시 읽기·엑셀 칸.
 import { describe, expect, it, vi } from "vitest";
 import {
+  isPreStructureMatch,
   isUnstructuredMatch,
+  lineTierOf,
   readAnnouncementList,
   readBucketCompanies,
   readCompanyAnnouncements,
@@ -9,6 +11,7 @@ import {
   readExport,
   readSummary,
   readTierConfig,
+  tierViewOf,
 } from "./read";
 import type { DeadlineScope } from "./scope";
 import { DEFAULT_TIER_CONFIG, nextActionOf, tierOf, type CheckItem, type DeadlineTier } from "./tier";
@@ -188,7 +191,8 @@ function tierSource(data: {
       for (const m of matches) {
         if (!inKeys(keys, m.customerKey)) continue;
         const tier = m.tier ?? null;
-        const flat = isUnstructuredMatch(m);
+        // 저장 칸 unstructured = 조건 정리 전(ERP 저장이 isPreStructureMatch 로 쓴다).
+        const flat = isPreStructureMatch(m);
         const id = `${m.bucketKey}|${m.verdict}|${tier}|${flat}`;
         const row = counts.get(id) ?? { bucketKey: m.bucketKey, verdict: m.verdict, tier, unstructured: flat, count: 0 };
         row.count += 1;
@@ -312,8 +316,8 @@ describe("옛 줄(대조 전 — 단계 칸 없음)은 읽을 때 계산한다",
     });
   });
 
-  it("확인할 것이 있으면 그 갈래로 계산 — 저장 칸 둘(단계·확인 항목) 중 하나만 있어도 계산한다", async () => {
-    const m = old({ verdict: "unverified", fitLabels: ["업종"], toCheck: ["체납 여부 입력"], tier: "low" });
+  it("확인할 것이 있으면 그 갈래로 계산한다(단계만 저장된 줄은 아래 「단계만 저장되고 확인 항목이 없는 줄」)", async () => {
+    const m = old({ verdict: "unverified", fitLabels: ["업종"], toCheck: ["체납 여부 입력"] });
     const want = tierOf({ verdict: "unverified", fit: [{ label: "업종", verdict: "pass", note: "" }], toCheck: ["체납 여부 입력"] });
     const view = await readBucketCompanies(ALL, { bucketKey: "T7" }, NOW, tierSource({ matches: [m], dismissals: [], progress: [] }));
     expect(view?.rows[0]).toMatchObject({
@@ -367,10 +371,45 @@ describe("readAnnouncementList — 공고 줄의 단계별 수·맞을 확률 �
     expect(keysOf(byTier.always)).toEqual(["TA2", "TA1"]);
   });
 
-  it("단계 칸이 빈 수 줄(대조 전 옛 줄)은 낮음으로 센다", async () => {
-    const old: ReadMatch = { customerKey: "b:11", bucketKey: "T7", repAnnouncementId: "ann-T7", verdict: "fit", fitLabels: [], toCheck: [], gaps: [] };
-    const view = await readAnnouncementList(ALL, { days: 14, hideEmpty: true }, NOW, tierSource({ matches: [old] }));
-    expect(view.dated[0]).toMatchObject({ bucketKey: "T7", fit: 1, tiers: { high: 0, mid: 0, low: 1 }, unstructured: 0, bestTier: "low" });
+  it("단계 칸이 빈 옛 줄(대조 전)이 하나라도 있으면 거르기 칸을 읽어 계산한 단계로 센다 — 기본 거르기(높음·보통)에서 숨지 않는다", async () => {
+    const base = { repAnnouncementId: "ann-T7", gaps: [] };
+    const oldFit: ReadMatch = { ...base, customerKey: "b:11", bucketKey: "T7", verdict: "fit", fitLabels: ["업종"], toCheck: [] };
+    const oldBare: ReadMatch = { ...base, customerKey: "b:12", bucketKey: "T7", verdict: "fit", fitLabels: [], toCheck: [] };
+    const oldRaw: ReadMatch = { ...base, customerKey: "b:13", bucketKey: "T7", verdict: "unverified", fitLabels: [], toCheck: ["공고 원문 확인(조건 정리 전)"] };
+    const calc = (m: ReadMatch) => tierOf({ verdict: m.verdict, fit: m.fitLabels.map((label) => ({ label, verdict: "pass" as const, note: "" })), toCheck: m.toCheck }).tier;
+    expect([calc(oldFit), calc(oldBare)]).toEqual(["high", "mid"]);
+
+    // 해당 없음 기록은 없는 자리 — 펼친 표는 해당 없음 줄을 따로 세므로 수를 맞춰 보려면 빼 둔다.
+    const src = tierSource({ matches: [oldFit, oldBare, oldRaw], dismissals: [] });
+    const view = await readAnnouncementList(ALL, { days: 14, hideEmpty: true }, NOW, src);
+    expect(view.dated[0]).toMatchObject({ bucketKey: "T7", fit: 2, unverified: 1, tiers: { high: 1, mid: 1, low: 0 }, unstructured: 1, bestTier: "high" });
+    expect(src.matchKeys).toHaveBeenCalledWith({ customerKeys: null });
+
+    // 펼친 표도 같은 단계 — 수와 표가 어긋나지 않는다.
+    const opened = await readBucketCompanies(ALL, { bucketKey: "T7" }, NOW, src);
+    expect(opened?.tierCounts).toMatchObject({ high: 1, mid: 1, low: 0, unstructured: 1 });
+
+    // 엑셀 묶음 순서도 같은 셈 — 옛 줄만 있어도 거르기 칸을 읽어 센다.
+    const exported = await readExport(ALL, { days: 14, fitOnly: false, sort: "tier" }, NOW, src);
+    expect(exported.total).toBe(3);
+  });
+
+  it("단계가 모두 저장된 줄이면 수만 읽는다 — 거르기 칸(matchKeys)을 읽지 않는다", async () => {
+    const src = tierSource();
+    await readAnnouncementList(ALL, { days: 14, hideEmpty: true }, NOW, src);
+    expect(src.matchKeys).not.toHaveBeenCalled();
+  });
+
+  it("단계만 저장되고 확인 항목이 없는 줄 — 단계·점수·이유는 저장 값, 확인 항목만 계산한다(거르기 lineTierOf 와 같은 단계)", () => {
+    const m: ReadMatch = {
+      customerKey: "b:11", bucketKey: "T7", repAnnouncementId: "ann-T7", verdict: "fit", fitLabels: ["업종"], toCheck: [], gaps: [],
+      tier: "low", tierScore: 40, tierReason: "저장한 이유",
+    };
+    expect(tierViewOf(m, false, DEFAULT_TIER_CONFIG)).toMatchObject({ tier: "low", tierScore: 40, tierReason: "저장한 이유", checkItems: [], checkCount: 0 });
+    expect(lineTierOf(m, DEFAULT_TIER_CONFIG)).toBe("low");
+    const bare: ReadMatch = { customerKey: "b:11", bucketKey: "T7", repAnnouncementId: "ann-T7", verdict: "fit", fitLabels: ["업종"], toCheck: [], gaps: [], tier: "low" };
+    const calc = tierOf({ verdict: "fit", fit: [{ label: "업종", verdict: "pass", note: "" }], toCheck: [] });
+    expect(tierViewOf(bare, false, DEFAULT_TIER_CONFIG)).toMatchObject({ tier: "low", tierScore: calc.score, tierReason: calc.reason });
   });
 });
 
@@ -612,5 +651,51 @@ describe("묶음 조각을 동시에 읽는다(한 번에 최대 4조각)", () =
     expect(src.matches).toHaveBeenCalledTimes(600 / EXPORT_BUCKET_CHUNK);
     expect(most).toBeGreaterThanOrEqual(2);
     expect(most).toBeLessThanOrEqual(4);
+  });
+});
+
+describe("조건 정리 전 문구가 다른 확인과 섞인 줄 — 판단 전과 갈라 본다(2026-11-23 운영 16.9만 줄)", () => {
+  // 공고가 아직 AI 로 정리되지 않으면 확인할 것에 늘 「공고 원문 확인(조건 정리 전)」이 붙고, 무료 규칙 추출이 다른 확인을 더한다.
+  const PRE = "공고 원문 확인(조건 정리 전)";
+  const mixedStored: ReadMatch = { ...unstructured("b:21", "T5"), toCheck: ["업종 해당 여부(식품)", PRE] };
+  // 대조 전 옛 줄 — 단계 칸이 없어 읽을 때 계산한다.
+  const mixedOld: ReadMatch = {
+    customerKey: "b:22", bucketKey: "T5", repAnnouncementId: "ann-T5", verdict: "unverified", fitLabels: ["지역"], toCheck: ["체납 여부 입력", PRE], gaps: [], amountMaxWon: null,
+  };
+  const plainMid = stored("b:23", "T3", "mid", 85, [CALL]);
+  const data = {
+    companies: [company("b:21", "아름식품", ["u1"]), company("b:22", "자람기계", ["u1"]), company("b:23", "차오름", ["u1"])],
+    matches: [mixedStored, mixedOld, plainMid],
+    progress: [],
+    dismissals: [],
+  };
+
+  it("판단 전(isUnstructuredMatch)은 아니고 조건 정리 전(isPreStructureMatch) — 옛 줄도 낮음·「공고 조건 정리 대기」", () => {
+    expect(isUnstructuredMatch(mixedOld)).toBe(false);
+    expect(isPreStructureMatch(mixedOld)).toBe(true);
+    expect(isPreStructureMatch(plainMid)).toBe(false);
+    expect(tierViewOf(mixedOld, false, DEFAULT_TIER_CONFIG)).toEqual({
+      tier: "low", tierScore: 0, tierReason: "공고 조건을 아직 정리하지 않음", checkItems: [], checkCount: 0, nextAction: "공고 조건 정리 대기", unstructured: true,
+    });
+  });
+
+  it("연락 예정: 「판단 전 포함」을 꺼도 보이고(요약 카드 수 그대로) 단계 거르기에 걸리지 않으며 늘 맨 뒤", async () => {
+    const view = await readContacts(ALL, { ...CONTACT_14, sort: "tier", tiers: ["high", "mid"] }, NOW, tierSource(data));
+    expect(namesOf(view.companies)).toEqual(["차오름", "아름식품", "자람기계"]);
+    expect(view.companies[1]).toMatchObject({
+      bestTier: "low", tiers: { high: 0, mid: 0, low: 0, unstructured: 1 }, best: { bucketKey: "T5", unstructured: true, nextAction: "공고 조건 정리 대기" },
+    });
+    const summary = await readSummary(ALL, NOW, tierSource(data));
+    expect(summary.contacts).toBe(3);
+    // 오늘 할 일 줄에는 조건 정리 전을 넣지 않는다.
+    expect(summary.today).toEqual({ contactNow: 0, checkFirst: 1, inProgress: 0 });
+  });
+
+  it("공고 줄: 조건 정리 전으로 따로 센다 — 단계 수·가장 높은 단계에 넣지 않는다", async () => {
+    const view = await readAnnouncementList(ALL, { days: 14, hideEmpty: true }, NOW, tierSource(data));
+    const row = [...view.dated, ...view.always].find((r) => r.bucketKey === "T5");
+    expect(row).toMatchObject({ unverified: 2, tiers: { high: 0, mid: 0, low: 0 }, unstructured: 2, bestTier: null });
+    const opened = await readBucketCompanies(ALL, { bucketKey: "T5" }, NOW, tierSource(data));
+    expect(opened?.tierCounts).toEqual({ high: 0, mid: 0, low: 0, unstructured: 2, dismissed: 0 });
   });
 });

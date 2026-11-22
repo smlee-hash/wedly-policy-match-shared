@@ -1,7 +1,7 @@
 // 정책별 고객사 「맞을 확률」 화면 계산(NO.789) — 단계 글자·단계 고르기·확인 항목 묶기·금액 글·오늘 줄·목록 나누기.
 // 순서·단계·확인 항목은 서버가 준 값(TierView·ContactBest·tiers)과 compareByTier 만 쓴다. 순수 계산이라 React 를 가져오지 않는다.
 import { compareByTier } from "../../serve/policy-deadline/order";
-import { TIER_LABEL } from "../../serve/policy-deadline/tier";
+import { DEFAULT_TIER_CONFIG, TIER_LABEL } from "../../serve/policy-deadline/tier";
 import type {
   AnnouncementListRow,
   CheckItem,
@@ -9,6 +9,7 @@ import type {
   CompanyMatchRow,
   DeadlineTier,
   DismissInfo,
+  ProgressInfo,
   SortOrder,
   SummaryView,
   TierView,
@@ -16,6 +17,14 @@ import type {
 import { UNSTRUCTURED_LABEL, dateLabel, type ContactListRow } from "./deadline-view";
 
 export { UNSTRUCTURED_LABEL };
+
+/**
+ * 「업무 현황에 추가」한 줄 — 진행 기록을 붙이고 다음 할 일을 「업무 현황에서 진행 중」(서버 nextActionOf 의 기본 말)으로 바꾼다.
+ * 다시 읽기 전까지 「고객에게 연락해 신청 안내」가 진행 표시 옆에 남지 않게.
+ */
+export function markProgressed<T extends { progress: ProgressInfo | null; nextAction: string }>(row: T, done: ProgressInfo): T {
+  return { ...row, progress: done, nextAction: DEFAULT_TIER_CONFIG.text.inProgress };
+}
 
 /** 단계 순서 — 높음 → 보통 → 낮음. */
 export const TIER_ORDER: readonly DeadlineTier[] = ["high", "mid", "low"];

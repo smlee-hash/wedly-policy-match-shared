@@ -38,6 +38,7 @@ import {
   amountLabel,
   dismissedTitle,
   hiddenHint,
+  markProgressed,
   partitionAnnouncements,
   partitionLines,
   sortCompanyLines,
@@ -345,7 +346,7 @@ export default function AnnouncementBoard({
       setBuckets((current) => {
         const state = current[bucketKey];
         if (state?.status !== "ok") return current;
-        const mark = (rows: CompanyMatchRow[]) => rows.map((r) => (r.customerKey === row.customerKey ? { ...r, progress: done } : r));
+        const mark = (rows: CompanyMatchRow[]) => rows.map((r) => (r.customerKey === row.customerKey ? markProgressed(r, done) : r));
         return {
           ...current,
           [bucketKey]: { status: "ok", view: { ...state.view, fit: mark(state.view.fit), unverified: mark(state.view.unverified), rows: mark(state.view.rows) } },

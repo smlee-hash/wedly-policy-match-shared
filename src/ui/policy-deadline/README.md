@@ -14,12 +14,12 @@ ERP 와 컨설턴트 앱(일루아)이 **같은 화면**을 쓰는 부품 묶음
 // ERP — src/app/(erp)/policy-companies/PolicyCompaniesErpClient.tsx
 "use client";
 import { useState } from "react";
-import { PolicyCompaniesScreen, DEADLINE_ENDPOINTS } from "@wedly/policy-match-shared/ui/policy-deadline";
+import { PolicyCompaniesScreen, DEADLINE_DISMISS_ENDPOINT, DEADLINE_ENDPOINTS } from "@wedly/policy-match-shared/ui/policy-deadline";
 import { companyCardRowOf } from "@wedly/policy-match-shared/ui/policy-deadline/deadline-view";
 import CompanyCard from "@/app/(erp)/_shared/CompanyCard";
 
 // 모듈 상수 하나로 넘긴다 — 그리는 자리에서 새로 만들지 않는다.
-const ERP_DEADLINE_ENDPOINTS = { ...DEADLINE_ENDPOINTS, export: "/api/policy-track/deadline" };
+const ERP_DEADLINE_ENDPOINTS = { ...DEADLINE_ENDPOINTS, export: "/api/policy-track/deadline", dismiss: DEADLINE_DISMISS_ENDPOINT };
 
 export default function PolicyCompaniesErpClient() {
   const [card, setCard] = useState<{ customerKey: string; companyName: string } | null>(null);
@@ -52,7 +52,7 @@ export default function PolicyCompaniesErpClient() {
 const openUrl = (key: string) => "/policy-companies/open?key=" + encodeURIComponent(key);
 
 <PolicyCompaniesScreen
-  endpoints={DEADLINE_ENDPOINTS}                    // export 없음 → 엑셀 단추를 그리지 않는다
+  endpoints={DEADLINE_ENDPOINTS}                    // export·dismiss 없음 → 엑셀·「해당 없음」 단추를 그리지 않는다
   scopeToggle={false}
   seesAll={isSuper}                                 // 최고 관리자만 「담당」 칸·「모든 고객사」 설명
   onOpenCompany={(row) => window.open(openUrl(row.customerKey), "_blank", "noopener")}
@@ -137,6 +137,7 @@ import { AnnouncementBoard, DEADLINE_ENDPOINTS } from "@wedly/policy-match-share
 | `read` | `GET` 목록·묶음·연락 예정·업체·요약(`?view=list｜bucket｜contacts｜company｜summary`) | 필수 — 화면이 그려지지 않는다 |
 | `progress` | `POST` 「업무 현황에 추가」 | 필수 — `DEADLINE_ENDPOINTS.progress` 를 쓴다 |
 | `export` | `GET ?view=export` 엑셀 줄 | 「엑셀 내려받기」 단추를 그리지 않는다(`features.saveSheet` 도 있어야 그린다) |
+| `dismiss` | `POST` 「해당 없음」 남기기·되돌리기(`DEADLINE_DISMISS_ENDPOINT`) | 「해당 없음」·「되돌리기」 단추를 그리지 않는다(이미 남은 기록은 아래 접힌 묶음에 보이기만 한다) — 통로(`readDismissBody` → `setDeadlineDismiss`)를 만든 앱이 더해 켠다 |
 
 `DEADLINE_ENDPOINTS` = `{ read: "/api/policy-track/deadline", progress: "/api/policy-track/deadline/progress" }` —
 두 앱의 통로 주소가 같다. **주소를 안 넘긴 단추는 존재하지 않는다**(그리지도, 부르지도 않는다 — `ui/policy/endpoints.ts` 와 같은 규칙).

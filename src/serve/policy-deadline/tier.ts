@@ -3,7 +3,7 @@
  * 순수 함수 묶음이다(읽기·저장·화면은 이 모듈을 부른다). 판정 규칙(맞음·확인 필요·제외)은 바꾸지 않고,
  * 이미 나온 조건별 결과(맞은 조건·확인할 것·걸림돌)로만 점수와 단계를 매긴다.
  */
-import { GENERIC_TO_CHECK, INDUSTRY_SCOPE_UNKNOWN, RAW_TO_CHECK, REGION_SCOPE_UNKNOWN, type FundingFit } from "../../funding/funding-map";
+import { GENERIC_TO_CHECK, INDUSTRY_SCOPE_UNKNOWN, PRE_STRUCTURE_TO_CHECK, RAW_TO_CHECK, REGION_SCOPE_UNKNOWN, type FundingFit } from "../../funding/funding-map";
 
 export type DeadlineTier = "high" | "mid" | "low";
 export const TIER_LABEL: Record<DeadlineTier, string> = { high: "높음", mid: "보통", low: "낮음" };
@@ -255,8 +255,31 @@ export interface TierResult {
   checkItems: CheckItem[];
   fitTotal: number;
   fitPass: number;
-  /** 공고 조건을 아직 정리하지 못한 줄 — 읽기 쪽 isUnstructuredMatch 와 같은 뜻. */
+  /** 공고 조건을 아직 정리하지 못한 줄 — isPreStructureJudgement(읽기 쪽 isPreStructureMatch)와 같은 뜻. */
   unstructured: boolean;
+}
+
+/** 판정 줄의 두 칸 — 「판단 전」·「조건 정리 전」을 가르는 데 쓴다. */
+export interface JudgementShape {
+  verdict: string;
+  toCheck: readonly string[];
+}
+
+/**
+ * 「판단 전」 줄인가 — 확인 필요이고 확인할 것이 모두 뭉뚱그린 문구(GENERIC_TO_CHECK, 빈 목록도 해당).
+ * 연락 예정의 「판단 전 포함」을 켜야 보이는 줄이다 — 요약 카드 수가 이 기준으로 센다.
+ */
+export function isUnjudgedJudgement(m: JudgementShape): boolean {
+  return m.verdict === "unverified" && m.toCheck.every((t) => GENERIC_TO_CHECK.has(t));
+}
+
+/**
+ * 「조건 정리 전」 줄인가 — 판단 전이거나, 확인 필요이고 확인할 것에 「공고 원문 확인(조건 정리 전)」이 있다
+ * (AI 정리 전 공고에 규칙 추출 확인이 섞인 줄). 점수와 상관없이 낮음·맨 뒤 접기·「공고 조건 정리 대기」.
+ * 「자격 조건 원문 확인」이 다른 확인과 섞인 줄은 정리된 공고라 해당하지 않는다.
+ */
+export function isPreStructureJudgement(m: JudgementShape): boolean {
+  return isUnjudgedJudgement(m) || (m.verdict === "unverified" && m.toCheck.includes(PRE_STRUCTURE_TO_CHECK));
 }
 
 /** 업체 칸의 지금 값·피드백 힌트를 넘겨주는 함수 — 모르면 undefined. */
@@ -332,7 +355,7 @@ function reasonOf(fitTotal: number, fitPass: number, counted: readonly CheckItem
 export function tierOf(input: TierInput, config: TierConfig = DEFAULT_TIER_CONFIG, fieldInfo?: FieldInfo): TierResult {
   const fitTotal = input.fit.length;
   const fitPass = input.fit.filter((f) => f.verdict === "pass").length;
-  const unstructured = input.verdict === "unverified" && input.toCheck.every((t) => GENERIC_TO_CHECK.has(t));
+  const unstructured = isPreStructureJudgement(input);
   const lowOf = (reason: string): TierResult => ({ tier: "low", score: 0, reason, checkItems: [], fitTotal, fitPass, unstructured });
   if (unstructured) return lowOf("공고 조건을 아직 정리하지 않음");
   if (input.verdict !== "fit" && input.verdict !== "unverified") return lowOf("조건이 맞지 않음");

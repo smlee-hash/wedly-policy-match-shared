@@ -20,6 +20,7 @@ import {
   dismissedTitle,
   firstCheckText,
   hiddenHint,
+  markProgressed,
   partitionAnnouncements,
   partitionContactRows,
   partitionLines,
@@ -61,6 +62,15 @@ function line(key: string, over: Partial<CompanyMatchRow>): CompanyMatchRow {
     amountMaxWon: null, dismissed: null, tier: "high", tierScore: 100, tierReason: "", checkItems: [], checkCount: 0, nextAction: "", unstructured: false, ...over,
   };
 }
+
+describe("업무 현황에 추가한 줄", () => {
+  it("진행 기록을 붙이고 다음 할 일을 「업무 현황에서 진행 중」으로 — 나머지 칸과 원래 줄은 그대로", () => {
+    const row = { bucketKey: "b1", progress: null, nextAction: "고객에게 연락해 신청 안내", tier: "high" as const };
+    const done = { trackId: "t1", byName: "김컨설", via: "web" as const, at: "2026-11-14T00:00:00.000Z" };
+    expect(markProgressed(row, done)).toEqual({ bucketKey: "b1", progress: done, nextAction: "업무 현황에서 진행 중", tier: "high" });
+    expect(row.nextAction).toBe("고객에게 연락해 신청 안내");
+  });
+});
 
 describe("단계 글자·딱지", () => {
   it("단계 순서는 높음 → 보통 → 낮음, 첫 화면 기본은 높음·보통", () => {

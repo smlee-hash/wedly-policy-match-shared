@@ -9,7 +9,10 @@ import type { AnnouncementListRow, BucketCompaniesView, CompanyMatchRow } from "
 import AnnouncementBoard, { announcementListKey, type AnnouncementBoardProps } from "./AnnouncementBoard";
 import { DeadlineToast } from "./DeadlineBits";
 import { CompanyTable } from "./DeadlineTables";
-import { DEADLINE_ENDPOINTS, type DeadlineEndpoints } from "./endpoints";
+import { DEADLINE_DISMISS_ENDPOINT, DEADLINE_ENDPOINTS, type DeadlineEndpoints } from "./endpoints";
+
+/** 「해당 없음」 통로를 켠 앱의 통로 — 기본 상수에는 dismiss 가 없다. */
+const WITH_DISMISS: DeadlineEndpoints = { ...DEADLINE_ENDPOINTS, dismiss: DEADLINE_DISMISS_ENDPOINT };
 import { buttonsWith, byTag, cellOf, find, headsOf, jsonResponse, mountTree, stubBrowser, textOf, type HostNode } from "./test-kit";
 
 vi.mock("react", async (importOriginal) => ({
@@ -128,7 +131,7 @@ async function draw(
   const onDetail = vi.fn();
   const onProgressed = vi.fn();
   mounted = mountTree(
-    <AnnouncementBoard scope="all" defaultDays={14} onDetail={onDetail} onProgressed={onProgressed} endpoints={DEADLINE_ENDPOINTS} {...props} />,
+    <AnnouncementBoard scope="all" defaultDays={14} onDetail={onDetail} onProgressed={onProgressed} endpoints={WITH_DISMISS} {...props} />,
     { opaque: OPAQUE },
   );
   await mounted.settle();
@@ -335,8 +338,9 @@ describe("해당 없음 — 사유를 남기면 아래로 내려간다(NO.789)",
     expect(buttonsWith(root(), "되돌리기")).toHaveLength(0);
 
     mounted?.unmount();
-    const noDismiss: DeadlineEndpoints = { read: DEADLINE_ENDPOINTS.read, progress: DEADLINE_ENDPOINTS.progress };
-    await openAnnouncement(MAIN, { endpoints: noDismiss });
+    // 기본 통로 상수에는 「해당 없음」이 없다 — 통로를 만든 앱만 켠다.
+    expect(DEADLINE_ENDPOINTS.dismiss).toBeUndefined();
+    await openAnnouncement(MAIN, { endpoints: DEADLINE_ENDPOINTS });
     expect(buttonsWith(root(), "해당 없음")).toHaveLength(0);
     expect(buttonsWith(root(), "업무 현황에 추가").length).toBeGreaterThan(0);
   });

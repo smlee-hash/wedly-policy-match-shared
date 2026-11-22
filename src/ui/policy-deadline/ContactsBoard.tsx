@@ -8,7 +8,7 @@
 // 「해당 없음」으로 사유를 남기면 그 공고가 해당 없음 묶음으로 내려가고, 되돌리면 제자리로 돌아온다.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Checkbox } from "@wedly/ui-shared/ui";
-import type { CheckField, DeadlineTier } from "../../serve/policy-deadline/tier";
+import { isUnjudgedJudgement, type CheckField, type DeadlineTier } from "../../serve/policy-deadline/tier";
 import type {
   CompanyAnnouncementRow,
   ContactCompanyRow,
@@ -40,6 +40,7 @@ import {
   amountLabel,
   firstCheckText,
   hiddenHint,
+  markProgressed,
   partitionContactRows,
   sortAnnouncementLines,
   unstructuredTitle,
@@ -320,7 +321,7 @@ export default function ContactsBoard({
       if (state?.status === "ok") {
         const done = { trackId: result.trackId, ...result.progress };
         const next = includeProgress
-          ? state.rows.map((r) => (r.bucketKey === announcement.bucketKey ? { ...r, progress: done } : r))
+          ? state.rows.map((r) => (r.bucketKey === announcement.bucketKey ? markProgressed(r, done) : r))
           : state.rows.filter((r) => r.bucketKey !== announcement.bucketKey);
         applyLines(company, next, state.dismissed);
       }
@@ -334,6 +335,8 @@ export default function ContactsBoard({
   };
 
   // 「해당 없음」 남기기·되돌리기(reason 이 null) — 남기면 그 공고를 해당 없음 묶음(마감 순)으로, 되돌리면 지금 순서의 제자리로 옮긴다.
+  // 되돌린 줄이 지금 거르기(진행 중·판단 전 포함)에 맞지 않으면 표에 다시 넣지 않는다 — 서버 keepsContactLine 과 같게
+  // (판단 전 = 확인할 것이 모두 뭉뚱그린 문구인 줄. 다른 확인이 섞인 조건 정리 전 줄은 늘 남는다).
   const dismiss = async (company: ContactCompanyRow, announcement: CompanyAnnouncementRow, reason: DismissReason | null) => {
     const key = `${company.customerKey}|${announcement.bucketKey}`;
     if (busyKey) return;
@@ -345,7 +348,10 @@ export default function ContactsBoard({
         const moved = { ...announcement, dismissed: result.dismissed };
         const without = (lines: CompanyAnnouncementRow[]) => lines.filter((r) => r.bucketKey !== announcement.bucketKey);
         if (reason) applyLines(company, without(state.rows), sortAnnouncementLines([...without(state.dismissed), moved], "deadline"));
-        else applyLines(company, sortAnnouncementLines([...without(state.rows), moved], sort), without(state.dismissed));
+        else {
+          const keeps = (includeProgress || moved.progress === null) && (includeUnstructured || !isUnjudgedJudgement(moved));
+          applyLines(company, keeps ? sortAnnouncementLines([...without(state.rows), moved], sort) : without(state.rows), without(state.dismissed));
+        }
       }
       setNotice({
         tone: "success",

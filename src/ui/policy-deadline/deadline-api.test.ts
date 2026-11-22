@@ -7,12 +7,13 @@ import {
   fetchExport,
   postDismiss,
 } from "./deadline-api";
-import { DEADLINE_ENDPOINTS, type DeadlineEndpoints } from "./endpoints";
+import { DEADLINE_DISMISS_ENDPOINT, DEADLINE_ENDPOINTS, type DeadlineEndpoints } from "./endpoints";
 import { jsonResponse } from "./test-kit";
 
 const fetchMock = vi.fn();
 const urls = () => fetchMock.mock.calls.map(([input]) => String(input));
 const WITH_EXPORT: DeadlineEndpoints = { ...DEADLINE_ENDPOINTS, export: "/api/x/export" };
+const WITH_DISMISS: DeadlineEndpoints = { ...DEADLINE_ENDPOINTS, dismiss: DEADLINE_DISMISS_ENDPOINT };
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -54,16 +55,17 @@ describe("정렬 싣기", () => {
 });
 
 describe("해당 없음 보내기", () => {
-  it("두 앱 기본 주소에 dismiss 통로가 있다", () => {
-    expect(DEADLINE_ENDPOINTS.dismiss).toBe("/api/policy-track/deadline/dismiss");
+  it("기본 주소에는 dismiss 가 없다 — 통로를 만든 앱이 DEADLINE_DISMISS_ENDPOINT 를 더해 켠다", () => {
+    expect(DEADLINE_ENDPOINTS.dismiss).toBeUndefined();
+    expect(DEADLINE_DISMISS_ENDPOINT).toBe("/api/policy-track/deadline/dismiss");
   });
 
   it("업체·공고·사유를 POST 로 보내고 결과(dismissed)를 돌려준다 · 되돌리기는 사유 null", async () => {
     const dismissed = { reason: "자격이 안 됨", byName: "김지현", at: "2026-11-20T00:00:00.000Z" };
     fetchMock.mockImplementationOnce(() => Promise.resolve(jsonResponse({ success: true, data: { dismissed } })));
-    await expect(postDismiss(DEADLINE_ENDPOINTS, "b:1", "B1", "자격이 안 됨")).resolves.toEqual({ dismissed });
+    await expect(postDismiss(WITH_DISMISS, "b:1", "B1", "자격이 안 됨")).resolves.toEqual({ dismissed });
     fetchMock.mockImplementationOnce(() => Promise.resolve(jsonResponse({ success: true, data: { dismissed: null } })));
-    await expect(postDismiss(DEADLINE_ENDPOINTS, "b:1", "B1", null)).resolves.toEqual({ dismissed: null });
+    await expect(postDismiss(WITH_DISMISS, "b:1", "B1", null)).resolves.toEqual({ dismissed: null });
 
     expect(fetchMock.mock.calls.map(([input, init]) => [String(input), (init as RequestInit).method, JSON.parse(String((init as RequestInit).body))])).toEqual([
       ["/api/policy-track/deadline/dismiss", "POST", { customerKey: "b:1", bucketKey: "B1", reason: "자격이 안 됨" }],
@@ -76,9 +78,9 @@ describe("해당 없음 보내기", () => {
     fetchMock.mockImplementationOnce(() =>
       Promise.resolve(jsonResponse({ success: false, error: { code: "FORBIDDEN", message: "담당 업체만 바꿀 수 있습니다." } }, 403)),
     );
-    await expect(postDismiss(DEADLINE_ENDPOINTS, "b:1", "B1", "기타")).rejects.toThrow("담당 업체만 바꿀 수 있습니다.");
+    await expect(postDismiss(WITH_DISMISS, "b:1", "B1", "기타")).rejects.toThrow("담당 업체만 바꿀 수 있습니다.");
     fetchMock.mockImplementationOnce(() => Promise.resolve(new Response("x", { status: 500 })));
-    await expect(postDismiss(DEADLINE_ENDPOINTS, "b:1", "B1", "기타")).rejects.toThrow("해당 없음으로 남기지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    await expect(postDismiss(WITH_DISMISS, "b:1", "B1", "기타")).rejects.toThrow("해당 없음으로 남기지 못했습니다. 잠시 후 다시 시도해 주세요.");
   });
 
   it("앱이 dismiss 주소를 주지 않으면 부르지 않고 거절한다", async () => {

@@ -12,7 +12,10 @@ import ContactsBoard, { contactsListKey, type ContactsBoardProps } from "./Conta
 import { DeadlineToast } from "./DeadlineBits";
 import { CompanyAnnouncementsPanel, ContactAnnouncementTable } from "./DeadlineTables";
 import { rebuildContactRow } from "./deadline-view";
-import { DEADLINE_ENDPOINTS, type DeadlineEndpoints } from "./endpoints";
+import { DEADLINE_DISMISS_ENDPOINT, DEADLINE_ENDPOINTS, type DeadlineEndpoints } from "./endpoints";
+
+/** 「해당 없음」 통로를 켠 앱의 통로 — 기본 상수에는 dismiss 가 없다. */
+const WITH_DISMISS: DeadlineEndpoints = { ...DEADLINE_ENDPOINTS, dismiss: DEADLINE_DISMISS_ENDPOINT };
 import { DEFAULT_TIERS, sortAnnouncementLines } from "./tier-view";
 import { buttonsWith, byTag, cellOf, find, findAll, headsOf, jsonResponse, mountTree, stubBrowser, textOf, type HostNode } from "./test-kit";
 
@@ -39,13 +42,13 @@ const line = (bucketKey: string, title: string, over: Partial<CompanyAnnouncemen
   ...over,
 });
 const MID: Partial<CompanyAnnouncementRow> = {
-  verdict: "unverified", tier: "mid", tierScore: 77, tierReason: "조건 6개 중 4개 맞음 · 체납 확인", checkItems: [TAX, EXPORT], checkCount: 2, nextAction: "체납 확인 후 연락",
+  verdict: "unverified", toCheck: ["체납 여부 입력", "수출 실적 확인"], tier: "mid", tierScore: 77, tierReason: "조건 6개 중 4개 맞음 · 체납 확인", checkItems: [TAX, EXPORT], checkCount: 2, nextAction: "체납 확인 후 연락",
 };
 const LOW: Partial<CompanyAnnouncementRow> = {
-  verdict: "unverified", tier: "low", tierScore: 40, tierReason: "조건 6개 중 2개 맞음", checkItems: [EXPORT], checkCount: 1, nextAction: "공고 원문에서 자격 먼저 확인",
+  verdict: "unverified", toCheck: ["수출 실적 확인"], tier: "low", tierScore: 40, tierReason: "조건 6개 중 2개 맞음", checkItems: [EXPORT], checkCount: 1, nextAction: "공고 원문에서 자격 먼저 확인",
 };
 const FLAT: Partial<CompanyAnnouncementRow> = {
-  verdict: "unverified", tier: "low", tierScore: 0, tierReason: "공고 조건을 아직 정리하지 않음", nextAction: "공고 조건 정리 대기", unstructured: true,
+  verdict: "unverified", toCheck: ["공고 원문 확인(조건 정리 전)"], tier: "low", tierScore: 0, tierReason: "공고 조건을 아직 정리하지 않음", nextAction: "공고 조건 정리 대기", unstructured: true,
 };
 
 const GA = line("g1", "공고 가", { amountMaxWon: 300_000_000, applyEnd: "2026-11-17", dDay: 3 });
@@ -167,7 +170,7 @@ async function draw(props: Partial<ContactsBoardProps> = {}, seeds: readonly See
   const onProgressed = vi.fn();
   mounted?.unmount();
   mounted = mountTree(
-    <ContactsBoard scope="all" onDetail={onDetail} onProgressed={onProgressed} endpoints={DEADLINE_ENDPOINTS} now={NOW} {...props} />,
+    <ContactsBoard scope="all" onDetail={onDetail} onProgressed={onProgressed} endpoints={WITH_DISMISS} now={NOW} {...props} />,
     { opaque: OPAQUE },
   );
   await mounted.settle();
@@ -437,8 +440,8 @@ describe("업체를 펼친 공고 표 — 맞을 확률 순 한 표(NO.789)", ()
     expect(flat(root())).toContain("해당 없음 · 이미 신청함 · 김컨설 · 11/21(토)");
     expect(buttonsWith(root(), "되돌리기")).toHaveLength(0);
 
-    const noDismiss: DeadlineEndpoints = { read: DEADLINE_ENDPOINTS.read, progress: DEADLINE_ENDPOINTS.progress };
-    await draw({ endpoints: noDismiss });
+    expect(DEADLINE_ENDPOINTS.dismiss).toBeUndefined();
+    await draw({ endpoints: DEADLINE_ENDPOINTS });
     await openCompany();
     expect(buttonsWith(root(), "업무 현황에 추가")).toHaveLength(2);
     expect(buttonsWith(root(), "해당 없음")).toHaveLength(0);
@@ -457,6 +460,52 @@ describe("업체를 펼친 공고 표 — 맞을 확률 순 한 표(NO.789)", ()
     const open = toast()?.props.onOpen as ((customerKey: string, companyName: string, trackId?: string) => void) | undefined;
     await mounted?.act(() => open?.("cB", "다라상사", "t1"));
     expect(onDetail.mock.calls.at(-1)).toEqual(["cB", "다라상사", "t1"]);
+  });
+
+  it("「진행 중 포함」이 켜져 있으면 추가한 공고가 남고 다음 할 일이 「업무 현황에서 진행 중」으로 바뀐다", async () => {
+    await draw();
+    await mounted?.act(toggle("진행 중 포함", true));
+    await openCompany();
+    expect(flat(rowOf("공고 하나") ?? [])).toContain("체납 확인 후 연락");
+    await mounted?.click(buttonsWith(rowOf("공고 하나") ?? root(), "업무 현황에 추가")[0]);
+    expect(titlesOf(tables()[0])).toEqual(["공고 하나", "공고 다섯"]);
+    expect(flat(rowOf("공고 하나") ?? [])).toContain("업무 현황에서 진행 중");
+    expect(flat(rowOf("공고 하나") ?? [])).not.toContain("체납 확인 후 연락");
+  });
+
+  it("되돌린 공고가 지금 거르기(진행 중 포함 꺼짐)에 맞지 않으면 표에 다시 넣지 않는다", async () => {
+    const progressed = line("b6", "공고 여섯", {
+      ...MID,
+      progress: { trackId: "t9", byName: "김컨설", via: "web", at: "2026-11-13T00:00:00.000Z" },
+      dismissed: { reason: "기타", byName: "김컨설", at: "2026-11-21T01:00:00.000Z" },
+    });
+    await draw({}, [{ customerKey: "cB", companyName: "다라상사", lines: [B1], dismissed: [progressed] }]);
+    await openCompany();
+    await mounted?.click(foldButton("해당 없음 공고 1건"));
+    await mounted?.click(buttonsWith(rowOf("공고 여섯") ?? root(), "되돌리기")[0]);
+    expect(bodyOf(callsTo("/deadline/dismiss").at(-1))).toEqual({ customerKey: "cB", bucketKey: "b6", reason: null });
+    expect(titlesOf(tables()[0])).toEqual(["공고 하나"]);
+    expect(foldButton("해당 없음 공고")).toBeUndefined();
+    expect(flat(root())).not.toContain("공고 여섯");
+    expect(notice()?.text).toBe("다라상사 · 해당 없음을 되돌렸습니다");
+  });
+
+  it("되돌린 공고가 판단 전(확인할 것이 모두 뭉뚱그린 문구)이면 「판단 전 포함」이 꺼진 동안 표에 넣지 않고, 다른 확인이 섞인 조건 정리 전 줄은 맨 뒤 접힌 묶음에 남긴다", async () => {
+    const was = { reason: "기타", byName: "김컨설", at: "2026-11-21T01:00:00.000Z" } as const;
+    const flatOnly = line("b7", "공고 일곱", { ...FLAT, dismissed: was });
+    const mixed = line("b8", "공고 여덟", { ...FLAT, toCheck: ["체납 여부 입력", "공고 원문 확인(조건 정리 전)"], dismissed: was });
+    await draw({}, [{ customerKey: "cB", companyName: "다라상사", lines: [B1], dismissed: [flatOnly, mixed] }]);
+    await openCompany();
+    await mounted?.click(foldButton("해당 없음 공고 2건"));
+    await mounted?.click(buttonsWith(rowOf("공고 일곱") ?? root(), "되돌리기")[0]);
+    expect(bodyOf(callsTo("/deadline/dismiss").at(-1))).toEqual({ customerKey: "cB", bucketKey: "b7", reason: null });
+    expect(flat(root())).not.toContain("공고 일곱");
+    await mounted?.click(buttonsWith(rowOf("공고 여덟") ?? root(), "되돌리기")[0]);
+    expect(bodyOf(callsTo("/deadline/dismiss").at(-1))).toEqual({ customerKey: "cB", bucketKey: "b8", reason: null });
+    expect(foldButton("해당 없음 공고")).toBeUndefined();
+    expect(flat(root())).not.toContain("공고 여덟");
+    await mounted?.click(foldButton("판단 전 공고 1건"));
+    expect(flat(root())).toContain("공고 여덟");
   });
 
   it("판단 전 공고만 있는 업체는 그 묶음이 처음부터 펼쳐져 있다", async () => {

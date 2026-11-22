@@ -7,11 +7,21 @@
  * 마감 순서·숫자 규칙은 바꾸지 않았다. 맞을 확률(NO.789)은 줄마다 단계·근거·확인 항목·다음 할 일·해당 없음 칸을 더하고,
  * sort 를 "tier" 로 줄 때만 맞을 확률 순(`./order`)으로 줄 세운다.
  */
-import { GENERIC_TO_CHECK, dDayOf } from "../../funding/funding-map";
+import { dDayOf } from "../../funding/funding-map";
 import { kstDateKey } from "./kst";
 import { compareByTier, type TierOrderKey } from "./order";
 import { readScope, scopeAllows, type DeadlineScope } from "./scope";
-import { DEFAULT_TIER_CONFIG, TIER_RANK, mergeTierConfig, nextActionOf, tierOf, type TierConfig, type TierResult } from "./tier";
+import {
+  DEFAULT_TIER_CONFIG,
+  TIER_RANK,
+  isPreStructureJudgement,
+  isUnjudgedJudgement,
+  mergeTierConfig,
+  nextActionOf,
+  tierOf,
+  type TierConfig,
+  type TierResult,
+} from "./tier";
 import {
   CONTACTS_DEFAULT_DAYS,
   CONTACTS_INCLUDE_UNSTRUCTURED_DEFAULT,
@@ -48,9 +58,6 @@ import {
   type TierView,
 } from "./types";
 
-/** 공용 「조건 정리 전」 문구 모음 — 줄마다 배열을 훑지 않게 한 번만 Set 으로 만든다. */
-const GENERIC_CHECKS = new Set<string>(GENERIC_TO_CHECK);
-
 /** 단계 높은 순 — 가장 높은 단계를 고르는 데 쓴다. */
 const TIER_ORDER: readonly DeadlineTier[] = ["high", "mid", "low"];
 
@@ -58,11 +65,20 @@ const TIER_ORDER: readonly DeadlineTier[] = ["high", "mid", "low"];
 const READ_CONCURRENCY = 4;
 
 /**
- * 「조건 정리 전」 판정 줄인가 — 확인 필요(unverified)이고 확인할 조건이 모두 공용 GENERIC_TO_CHECK
+ * 「판단 전」 판정 줄인가 — 확인 필요(unverified)이고 확인할 조건이 모두 공용 GENERIC_TO_CHECK
  * (「공고 원문 확인(조건 정리 전)」·「자격 조건 원문 확인」) 안에 든다(빈 목록도 해당). 맞음(fit)은 늘 false.
+ * 연락 예정의 「판단 전 포함」이 꺼져 있으면 이 줄을 뺀다(요약 카드 수가 같은 기준).
  */
 export function isUnstructuredMatch(m: Pick<DeadlineJudgement, "verdict" | "toCheck">): boolean {
-  return m.verdict === "unverified" && m.toCheck.every((t) => GENERIC_CHECKS.has(t));
+  return isUnjudgedJudgement(m);
+}
+
+/**
+ * 「조건 정리 전」 판정 줄인가 — 판단 전이거나, 확인할 것에 「공고 원문 확인(조건 정리 전)」이 섞인 확인 필요 줄.
+ * 단계는 낮음·다음 할 일 「공고 조건 정리 대기」, 단계 수에 넣지 않고 따로 세며 맨 뒤 접기로 간다. 저장 칸 unstructured 가 이 뜻이다.
+ */
+export function isPreStructureMatch(m: Pick<DeadlineJudgement, "verdict" | "toCheck">): boolean {
+  return isPreStructureJudgement(m);
 }
 
 /**
@@ -117,10 +133,11 @@ function calculatedTierOf(m: Pick<DeadlineJudgement, "verdict" | "fitLabels" | "
 
 /**
  * 판정 줄 → 맞을 확률 칸. 단계와 확인 항목이 둘 다 저장돼 있으면 저장 값 그대로, 하나라도 없는 옛 줄은 읽을 때 계산한다.
+ * 단계만 저장된 줄은 단계(와 저장된 점수·이유)는 저장 값, 확인 항목만 계산한다 — 거르기·수(lineTierOf)가 저장된 단계로 세므로 표시도 같게.
  * inProgress 는 다음 할 일(「업무 현황에서 진행 중」)을 정한다.
  */
 export function tierViewOf(m: DeadlineJudgement, inProgress: boolean, config: TierConfig): TierView {
-  const unstructured = isUnstructuredMatch(m);
+  const unstructured = isPreStructureMatch(m);
   let tier: DeadlineTier;
   let tierScore: number;
   let tierReason: string;
@@ -132,9 +149,9 @@ export function tierViewOf(m: DeadlineJudgement, inProgress: boolean, config: Ti
     checkItems = m.checkItems;
   } else {
     const t = calculatedTierOf(m, config);
-    tier = t.tier;
-    tierScore = t.score;
-    tierReason = t.reason;
+    tier = m.tier ?? t.tier;
+    tierScore = m.tier !== undefined ? (m.tierScore ?? t.score) : t.score;
+    tierReason = m.tier !== undefined ? (m.tierReason ?? t.reason) : t.reason;
     checkItems = t.checkItems;
   }
   return {
@@ -255,17 +272,43 @@ function emptyBucketCount(): BucketCount {
   return { fit: 0, unverified: 0, tiers: { high: 0, mid: 0, low: 0 }, unstructured: 0 };
 }
 
-/** matchCounts 줄을 묶음별로 모은다. 단계 칸이 빈 옛 줄(tier 없음·null)은 낮음으로 센다. */
-function countsByBucket(counts: Awaited<ReturnType<ReadSource["matchCounts"]>>): Map<string, BucketCount> {
+/** matchCounts 줄을 묶음별로 모은다. 단계 칸이 빈 옛 줄(tier 없음·null)이 하나라도 있으면 null — 부른 쪽이 줄을 읽어 단계를 계산해 센다. */
+function countsByBucket(counts: Awaited<ReturnType<ReadSource["matchCounts"]>>): Map<string, BucketCount> | null {
   const countOf = new Map<string, BucketCount>();
   for (const c of counts) {
+    if (c.tier === undefined || c.tier === null) return null;
     const row = countOf.get(c.bucketKey) ?? emptyBucketCount();
     row[c.verdict] += c.count;
     if (c.unstructured) row.unstructured += c.count;
-    else row.tiers[c.tier ?? "low"] += c.count;
+    else row.tiers[c.tier] += c.count;
     countOf.set(c.bucketKey, row);
   }
   return countOf;
+}
+
+/** 거르기 칸 줄을 묶음별로 모은다 — 단계는 lineTierOf(저장된 단계, 없으면 계산), 조건 정리 전은 isPreStructureMatch 로 가린다. */
+function countsByKeys(lines: ReadMatchKey[], config: TierConfig): Map<string, BucketCount> {
+  const countOf = new Map<string, BucketCount>();
+  for (const m of lines) {
+    const row = countOf.get(m.bucketKey) ?? emptyBucketCount();
+    row[m.verdict] += 1;
+    if (isPreStructureMatch(m)) row.unstructured += 1;
+    else row.tiers[lineTierOf(m, config)] += 1;
+    countOf.set(m.bucketKey, row);
+  }
+  return countOf;
+}
+
+/**
+ * 범위 안 묶음별 판정 수. 보통은 저장된 단계로 센 수(matchCounts) 그대로다. 단계 칸이 빈 옛 줄(배포 직후 다시 대조하기 전의 줄)이
+ * 하나라도 있으면 거르기 칸(matchKeys)을 읽어 단계를 계산해 센다 — 옛 줄을 낮음으로 세면 기본 거르기(높음·보통)에서 공고가
+ * 통째로 숨고, 펼친 표(계산한 단계)와 수가 어긋난다. 설정은 계산할 때만 읽는다.
+ */
+async function bucketCountsOf(src: ReadSource, keys: string[] | null, config: () => Promise<TierConfig>): Promise<Map<string, BucketCount>> {
+  const counted = countsByBucket(await src.matchCounts(keys));
+  if (counted) return counted;
+  const [lines, tierConfig] = await Promise.all([src.matchKeys({ customerKeys: keys }), config()]);
+  return countsByKeys(lines, tierConfig);
 }
 
 /** 묶음 전부를 표시 칸으로 — 마감 거르기는 호출한 쪽이 한다. */
@@ -366,15 +409,16 @@ function datedBucketsWithin(buckets: BucketMeta[], days: DaysFilter): Map<string
 
 /**
  * 「연락 예정」 거르기 한 곳 — readContacts·readCompanyAnnouncements·readSummary 가 모두 이 함수를 지나
- * 요약 숫자와 목록 수가 늘 같다. 해당 없음 줄은 늘 뺀다. 마감이 q.days 안이고, 조건 정리 전·진행한 줄은 q 가 끄면 뺀다.
- * q.tiers 를 주면 그 단계 줄만 남긴다 — 조건 정리 전 줄에는 걸지 않는다(그 줄은 includeUnstructured 가 정한다).
+ * 요약 숫자와 목록 수가 늘 같다. 해당 없음 줄은 늘 뺀다. 마감이 q.days 안이고, 판단 전·진행한 줄은 q 가 끄면 뺀다.
+ * q.tiers 를 주면 그 단계 줄만 남긴다 — 조건 정리 전 줄(판단 전 포함)에는 걸지 않는다: 판단 전은 includeUnstructured 가 정하고,
+ * 다른 확인이 섞인 조건 정리 전 줄은 늘 남아 맨 뒤 접기로 간다(요약 카드 수가 판단 전만 빼고 세므로 그대로).
  */
 function keepsContactLine(line: ContactLine<ReadMatchKey>, q: ContactQuery, config: TierConfig): boolean {
   if (line.dismissed) return false;
   if (!inDays(line.bucket.dDay, q.days)) return false;
   if (isUnstructuredMatch(line.match)) {
     if (!q.includeUnstructured) return false;
-  } else if (q.tiers && q.tiers.length > 0 && !q.tiers.includes(lineTierOf(line.match, config))) {
+  } else if (!isPreStructureMatch(line.match) && q.tiers && q.tiers.length > 0 && !q.tiers.includes(lineTierOf(line.match, config))) {
     return false;
   }
   return q.includeProgress || !line.progress;
@@ -550,7 +594,7 @@ function contactRowsOf(lines: ContactLine[], config: TierConfig, sort: SortOrder
  * 「정책별 업체」·「정책별 고객사」 목록. 범위 안 업체 → matchCounts(그 업체 열쇠, 범위가 all 이면 null) →
  * 묶음 전부를 bucketMetaOf 로 바꿔 날짜 마감은 inDays(days) 안 것만 dated, 상시는 전부 always.
  * hideEmpty 면 fit + unverified 가 0인 줄을 뺀다(dated·always 모두). 범위 안 업체가 0곳이면 matchCounts 를 부르지 않고 수는 모두 0.
- * 줄마다 단계별 수(tiers)·조건 정리 전 수·가장 높은 단계(bestTier)를 싣는다 — 저장된 단계로 세므로 설정은 읽지 않는다.
+ * 줄마다 단계별 수(tiers)·조건 정리 전 수·가장 높은 단계(bestTier)를 싣는다 — 저장된 단계로 센다(옛 줄이 있으면 bucketCountsOf 가 계산해 센다).
  * sort 가 "tier" 면 dated·always 각각 가장 높은 단계 순(단계 없음은 뒤, 같으면 지금 순서), 없거나 "deadline" 이면 지금 순서.
  */
 export async function readAnnouncementList(
@@ -561,8 +605,7 @@ export async function readAnnouncementList(
 ): Promise<AnnouncementListView> {
   const { companies, keys } = await readScope(scope, src);
   // 업체가 0곳이면 세지 않는다 — 빈 범위를 「전체(열쇠 null)」로 세지 않게.
-  const counts = companies.length === 0 ? [] : await src.matchCounts(keys);
-  const countOf = countsByBucket(counts);
+  const countOf = companies.length === 0 ? new Map<string, BucketCount>() : await bucketCountsOf(src, keys, () => readTierConfig(src));
   // 묶음 표는 한 번만 읽는다 — 요약 글(summary)은 표시 칸(BucketMeta)이 아니라 이 목록 줄에만 붙인다.
   const rows: AnnouncementListRow[] = (await src.buckets()).map((b) => {
     const count = countOf.get(b.bucketKey) ?? emptyBucketCount();
@@ -710,7 +753,7 @@ function todayCountsOf(lines: ContactLine<ReadMatchKey>[], config: TierConfig): 
   const contactNow = new Set<string>();
   const hasMid = new Set<string>();
   for (const line of lines) {
-    if (!inDays(line.bucket.dDay, 7) || line.dismissed || isUnstructuredMatch(line.match)) continue;
+    if (!inDays(line.bucket.dDay, 7) || line.dismissed || isPreStructureMatch(line.match)) continue;
     const key = line.company.customerKey;
     if (line.progress) {
       inProgress.add(key);
@@ -804,8 +847,8 @@ export async function readExport(
   const { companies, keys } = await readScope(scope, src);
   if (companies.length === 0) return { rows: [], total: 0, truncated: false };
 
-  const [metas, counts, config] = await Promise.all([readBucketMetas(now, src), src.matchCounts(keys), readTierConfig(src)]);
-  const countOf = countsByBucket(counts);
+  const configP = readTierConfig(src);
+  const [metas, countOf, config] = await Promise.all([readBucketMetas(now, src), bucketCountsOf(src, keys, () => configP), configP]);
   const split = splitBuckets(metas, q.days);
   const bestOf = (b: BucketMeta) => bestTierOf((countOf.get(b.bucketKey) ?? emptyBucketCount()).tiers);
   const { dated, always } = q.sort === "tier" ? { dated: byBestTier(split.dated, bestOf), always: byBestTier(split.always, bestOf) } : split;

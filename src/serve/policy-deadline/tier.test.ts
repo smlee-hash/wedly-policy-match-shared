@@ -8,6 +8,8 @@ import {
   TIER_LABEL,
   TIER_RANK,
   classifyCheck,
+  isPreStructureJudgement,
+  isUnjudgedJudgement,
   mergeTierConfig,
   nextActionOf,
   tierOf,
@@ -95,6 +97,26 @@ describe("tierOf — 점수와 단계", () => {
     expect(t.reason).toBe("조건 3개 모두 맞음 · 공고 원문 조건만 확인");
     expect(t.checkItems[0]).toMatchObject({ group: "notice", rank: 8, what: "공고 원문 조건", where: "공고 원문", evidence: "중소기업기본법상 소상공인으로서 사업장이 경기도에 있는 자" });
     expect(nextActionOf({ tier: t.tier, checkItems: t.checkItems, unstructured: false, inProgress: false })).toBe("공고 원문에서 자격 먼저 확인");
+  });
+
+  it("「공고 원문 확인(조건 정리 전)」이 다른 확인과 섞여도 조건 정리 전 — 업체와 상관없이 낮음 0점·확인 항목 없음", () => {
+    // 공고가 아직 AI 로 정리되지 않으면 공용 판정이 늘 이 문구를 붙이고, 무료 규칙 추출이 다른 확인을 더한다(2026-11-23 운영 16.9만 줄).
+    const toCheck = ["업종 해당 여부(식품)", "체납 여부 입력", "공고 원문 확인(조건 정리 전)"];
+    const t = tierOf(input({ fit: [pass("지역")], toCheck }));
+    expect(t).toMatchObject({ tier: "low", score: 0, reason: "공고 조건을 아직 정리하지 않음", unstructured: true, checkItems: [] });
+    expect(nextActionOf({ tier: t.tier, checkItems: t.checkItems, unstructured: t.unstructured, inProgress: false })).toBe("공고 조건 정리 대기");
+    // 판단 전(「판단 전 포함」을 켜야 보이는 줄)은 확인할 것이 모두 일반 문구일 때만 — 섞인 줄은 판단 전이 아니다.
+    expect(isUnjudgedJudgement({ verdict: "unverified", toCheck })).toBe(false);
+    expect(isPreStructureJudgement({ verdict: "unverified", toCheck })).toBe(true);
+    for (const only of [[], ["공고 원문 확인(조건 정리 전)"], ["자격 조건 원문 확인"]]) {
+      expect(isUnjudgedJudgement({ verdict: "unverified", toCheck: only })).toBe(true);
+      expect(isPreStructureJudgement({ verdict: "unverified", toCheck: only })).toBe(true);
+    }
+    // 맞음·안 맞음 판정은 둘 다 아니다.
+    for (const verdict of ["fit", "unfit"]) {
+      expect(isUnjudgedJudgement({ verdict, toCheck: ["공고 원문 확인(조건 정리 전)"] })).toBe(false);
+      expect(isPreStructureJudgement({ verdict, toCheck: ["공고 원문 확인(조건 정리 전)"] })).toBe(false);
+    }
   });
 
   it("「자격 조건 원문 확인」이 다른 확인과 섞이면 조건 정리 전이 아니고 −20", () => {
