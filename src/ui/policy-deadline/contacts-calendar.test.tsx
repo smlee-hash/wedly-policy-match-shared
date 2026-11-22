@@ -287,6 +287,8 @@ describe("ContactsBoard 캘린더 보기", () => {
   const announcement = {
     bucketKey: "b1", repAnnouncementId: "a1", title: "공고 하나", agency: "기관", category: "정책자금", url: "", applyEnd: "2026-11-20", dDay: 6,
     verdict: "fit", fitLabels: ["업력"], toCheck: [], gaps: [], progress: null,
+    tier: "high", tierScore: 100, tierReason: "조건 6개 모두 맞음", checkItems: [], checkCount: 0, nextAction: "고객에게 연락해 신청 안내", unstructured: false,
+    amountMaxWon: null, dismissed: null,
   };
   const single = contact({ kinds: [{ category: "정책자금", count: 1, nearestDDay: 6, best: BEST }], announcementCount: 1 });
   const progressResult = {
@@ -299,7 +301,7 @@ describe("ContactsBoard 캘린더 보기", () => {
       const url = String(input);
       if (url.endsWith("/deadline/progress") && init?.method === "POST") return Promise.resolve(jsonResponse({ success: true, data: progressResult }));
       if (url.includes("view=contacts")) return Promise.resolve(jsonResponse({ success: true, data: { companies: [single] } }));
-      if (url.includes("view=company")) return Promise.resolve(jsonResponse({ success: true, data: { company: { customerKey: "c1", companyName: "가나상사" }, announcements: [announcement] } }));
+      if (url.includes("view=company")) return Promise.resolve(jsonResponse({ success: true, data: { company: { customerKey: "c1", companyName: "가나상사" }, announcements: [announcement], dismissed: [] } }));
       return new Promise<Response>(() => {});
     });
   }

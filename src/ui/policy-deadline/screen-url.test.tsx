@@ -203,6 +203,15 @@ describe("요약 카드", () => {
     expect(choice("14일 안 마감 공고 5건")?.props["aria-pressed"]).toBe(false);
   });
 
+  it("카드 위에 오늘 한 줄 — 요약을 다 읽었을 때만 보인다(NO.789)", async () => {
+    await draw();
+    const cards = find(root(), (n) => n.tag === "section" && n.props["aria-label"] === "요약 카드");
+    expect(textOf(cards ?? [])).toContain("오늘 연락할 곳 1곳 · 확인 후 연락 2곳 · 진행함 0곳");
+    fetchMock.mockImplementation(() => new Promise<Response>(() => {}));
+    await draw();
+    expect(textOf(root())).not.toContain("오늘 연락할 곳");
+  });
+
   it("못 읽으면 숫자 자리에 「…」, 단추는 그대로 누를 수 있다", async () => {
     fetchMock.mockImplementation(() => new Promise<Response>(() => {}));
     await draw();
@@ -386,6 +395,20 @@ describe("앱이 넘기는 값의 전달", () => {
     await draw({ onOpenCompany }, "?tab=contacts");
     (contactsBoard()?.props.onDetail as (key: string, name: string) => void)("c2", "다라상사");
     expect(onOpenCompany.mock.calls).toEqual([[{ customerKey: "c1", companyName: "가나상사" }], [{ customerKey: "c2", companyName: "다라상사" }]]);
+  });
+
+  it("확인할 것의 업체 항목에서 열면 상세창에서 열 칸(field)까지 넘긴다 — 두 탭 모두(NO.789)", async () => {
+    const onOpenCompany = vi.fn();
+    await draw({ onOpenCompany }, "?tab=contacts");
+    (contactsBoard()?.props.onDetail as (key: string, name: string, trackId?: string, field?: string) => void)("c2", "다라상사", undefined, "taxArrears");
+    await draw({ onOpenCompany });
+    (announcementBoard()?.props.onDetail as (key: string, name: string, trackId?: string, field?: string) => void)("c1", "가나상사", undefined, "industry");
+    expect(onOpenCompany.mock.calls).toEqual([
+      [{ customerKey: "c2", companyName: "다라상사", field: "taxArrears" }],
+      [{ customerKey: "c1", companyName: "가나상사", field: "industry" }],
+    ]);
+    // toEqual 은 값이 undefined 인 키를 못 본다 — trackId 키를 만들지 않았는지 키 목록으로 본다.
+    expect(onOpenCompany.mock.calls.map(([ref]) => Object.keys(ref as object))).toEqual([["customerKey", "companyName", "field"], ["customerKey", "companyName", "field"]]);
   });
 
   it("onViewProgress 만 있으면 그것을 쓰고, 둘 다 있으면 onOpenCompany 가 먼저다", async () => {

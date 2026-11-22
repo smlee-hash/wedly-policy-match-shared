@@ -47,17 +47,25 @@ const bucket = {
   bucket: meta, fit: [fitRow], unverified: [doneRow], rows: [fitRow, doneRow],
   tierCounts: { high: 1, mid: 1, low: 0, unstructured: 0, dismissed: 0 },
 };
+const best = {
+  bucketKey: "b1", title: "공고 하나", category: "정책자금", url: "", applyEnd: "2026-11-20", dDay: 6, amountMaxWon: null,
+  tier: "high", tierScore: 100, tierReason: "조건 6개 모두 맞음", checkItems: [], checkCount: 0, nextAction: "고객에게 연락해 신청 안내", unstructured: false,
+};
 const contact = {
   customerKey: "cB", companyName: "다라상사", consultant: "김컨설", consultantNames: ["김컨설"], statusText: "",
-  nearestApplyEnd: "2026-11-20", nearestDDay: 6, kinds: [{ category: "정책자금", count: 2, nearestDDay: 6 }],
+  nearestApplyEnd: "2026-11-20", nearestDDay: 6, kinds: [{ category: "정책자금", count: 2, nearestDDay: 6, best }],
   announcementCount: 2, progressCount: 1,
+  bestTier: "high", tiers: { high: 2, mid: 0, low: 0, unstructured: 0 }, best,
 };
 const announcement = (bucketKey: string, title: string, progress: typeof done | null) => ({
   ...meta, bucketKey, title, verdict: "fit", fitLabels: [], toCheck: [], gaps: [], progress,
+  tier: "high", tierScore: 100, tierReason: "조건 6개 모두 맞음", checkItems: [], checkCount: 0, nextAction: "고객에게 연락해 신청 안내", unstructured: false,
+  amountMaxWon: null, dismissed: null,
 });
 const companyView = {
   company: { customerKey: "cB", companyName: "다라상사" },
   announcements: [announcement("b1", "공고 하나", null), announcement("b2", "공고 둘", done)],
+  dismissed: [],
 };
 
 function serve() {

@@ -22,10 +22,15 @@ const fetchMock = vi.fn();
 const never = () => new Promise<Response>(() => {});
 let mounted: ReturnType<typeof mountTree> | null = null;
 
+const best = {
+  bucketKey: "b1", title: "공고 하나", category: "정책자금", url: "", applyEnd: "2026-11-20", dDay: 7, amountMaxWon: null,
+  tier: "high", tierScore: 100, tierReason: "조건 6개 모두 맞음", checkItems: [], checkCount: 0, nextAction: "고객에게 연락해 신청 안내", unstructured: false,
+};
 const company = {
   customerKey: "c1", companyName: "가나상사", consultant: "담당", consultantNames: ["담당"], statusText: "",
-  nearestApplyEnd: "2026-11-20", nearestDDay: 7, kinds: [{ category: "정책자금", count: 1, nearestDDay: 7 }],
+  nearestApplyEnd: "2026-11-20", nearestDDay: 7, kinds: [{ category: "정책자금", count: 1, nearestDDay: 7, best }],
   announcementCount: 1, progressCount: 0,
+  bestTier: "high", tiers: { high: 1, mid: 0, low: 0, unstructured: 0 }, best,
 };
 const bucket = {
   bucketKey: "b1", repAnnouncementId: "a1", title: "공고 하나", agency: "기관", category: "정책자금", url: "",
@@ -62,7 +67,7 @@ afterEach(() => {
 });
 
 describe("거르기를 바꾼 첫 화면의 바쁨 표시", () => {
-  it("연락 예정 업체: 「조건 정리 전 포함」을 켠 첫 화면부터 aria-busy=true, 새 답이 오면 false", async () => {
+  it("연락 예정 업체: 「판단 전 포함」을 켠 첫 화면부터 aria-busy=true, 새 답이 오면 false", async () => {
     const gate: { release: ((r: Response) => void) | null } = { release: null };
     fetchMock.mockImplementation((input: string) => {
       const url = String(input);
@@ -74,8 +79,8 @@ describe("거르기를 바꾼 첫 화면의 바쁨 표시", () => {
     await mounted.settle();
     expect(busyOfList()).toBe(false);
 
-    await mounted.actFirstFrame(toggle("조건 정리 전 포함", true));
-    expect(checkbox("조건 정리 전 포함")?.props.checked).toBe(true);
+    await mounted.actFirstFrame(toggle("판단 전 포함", true));
+    expect(checkbox("판단 전 포함")?.props.checked).toBe(true);
     expect(busyOfList()).toBe(true);
 
     await mounted.settle();

@@ -1,4 +1,4 @@
-// 정책별 고객사·연락 예정 업체의 펼친 업체 표 — ERP `company-list.test.tsx`(jsdom)를 test-kit(훅 실행기)으로 옮긴 것이다.
+// 정책별 고객사의 펼친 업체 표 — ERP `company-list.test.tsx`(jsdom)를 test-kit(훅 실행기)으로 옮긴 것이다(연락 예정 업체는 contacts-tier.test.tsx).
 // 공고를 누르면 업체가 한 표에 맞을 확률 순으로 한 번에 보이고(NO.789 — 칸·단계 거르기·해당 없음은 bucket-tier.test.tsx),
 // 「상세」 대신 상호명을 누르면 상세창을 열고, 「진행」은 무엇을 하는지 드러나는 이름으로 바꾼다.
 // 판정은 ERP 와 같고, 확인 방식만 다르다: DOM 대신 풀어 낸 요소 트리(글자·속성)를 읽고 onClick 을 직접 부른다.
@@ -6,16 +6,12 @@ import { Checkbox, Toast } from "@wedly/ui-shared/ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CustomSelect from "../CustomSelect";
 import AnnouncementBoard from "./AnnouncementBoard";
-import ContactsBoard from "./ContactsBoard";
 import { DeadlineToast } from "./DeadlineBits";
 import { DEADLINE_ENDPOINTS, type DeadlineEndpoints } from "./endpoints";
 import {
   buttonsWith,
   byTag,
-  cellOf,
   find,
-  findAll,
-  headsOf,
   jsonResponse,
   mountTree,
   stubBrowser,
@@ -62,7 +58,6 @@ const root = (): HostNode => {
   if (!mounted) throw new Error("먼저 화면을 그려야 합니다.");
   return mounted.tree;
 };
-const tables = () => byTag(root(), "table");
 const progressCalls = () => fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/deadline/progress"));
 const rowOf = (company: string) => byTag(root(), "tbody").flatMap((body) => byTag(body, "tr")).find((tr) => textOf(tr).includes(company));
 const addButton = (company: string) => buttonsWith(rowOf(company) ?? root(), "업무 현황에 추가")[0];
@@ -174,67 +169,5 @@ describe("정책별 고객사 — 펼친 업체 표", () => {
     expect(await draw(DEADLINE_ENDPOINTS, { saveSheet })).toBe(0);
     expect(await draw(withExport)).toBe(0);
     expect(await draw(withExport, { saveSheet })).toBe(1);
-  });
-});
-
-describe("연락 예정 업체 — 펼친 공고 표", () => {
-  const company = {
-    customerKey: "cB", companyName: "다라상사", consultant: "김컨설", consultantNames: ["김컨설"], statusText: "",
-    nearestApplyEnd: "2026-11-20", nearestDDay: 6, kinds: [{ category: "정책자금", count: 2, nearestDDay: 6 }],
-    announcementCount: 2, progressCount: 0,
-  };
-  const announcement = (bucketKey: string, title: string, extra: Partial<{ toCheck: string[]; gaps: string[] }>) => ({
-    ...meta, bucketKey, title, verdict: "unverified", fitLabels: [], toCheck: [], gaps: [], progress: null, ...extra,
-  });
-  const companyView = {
-    company: { customerKey: "cB", companyName: "다라상사" },
-    announcements: [announcement("b1", "공고 하나", { toCheck: [GENERIC] }), announcement("b2", "공고 둘", { toCheck: ["수출 실적"], gaps: ["매출"] })],
-  };
-
-  async function openCompany(onDetail = vi.fn()) {
-    fetchMock.mockImplementation((input: string, init?: RequestInit) => {
-      const url = String(input);
-      if (url.endsWith("/deadline/progress") && init?.method === "POST") return Promise.resolve(jsonResponse({ success: true, data: progressResult(true) }));
-      if (url.includes("view=contacts")) return Promise.resolve(jsonResponse({ success: true, data: { companies: [company] } }));
-      if (url.includes("view=company")) return Promise.resolve(jsonResponse({ success: true, data: companyView }));
-      return never();
-    });
-    mounted = mountTree(<ContactsBoard scope="all" onDetail={onDetail} endpoints={DEADLINE_ENDPOINTS} />, { opaque: OPAQUE });
-    await mounted.settle();
-    await mounted.click(buttonsWith(root(), /다라상사/)[0]);
-    return onDetail;
-  }
-
-  it("「맞은 조건」 칸이 없고, 조건 정리 전 공고는 짧은 「조건 정리 전」 표시만 한다", async () => {
-    await openCompany();
-    const [t] = tables();
-    expect(String(t.props.className)).toContain("table-fixed");
-    expect(byTag(byTag(t, "colgroup")[0], "col")).toHaveLength(headsOf(t).length);
-    expect(headsOf(t)).not.toContain("맞은 조건");
-    expect(textOf(t)).not.toContain(GENERIC);
-    expect(textOf(t)).not.toContain("없음");
-    expect(textOf(cellOf(t, "공고 하나", "확인할 조건") ?? ["(칸 없음)"])).toBe("조건 정리 전");
-    expect(textOf(cellOf(t, "공고 둘", "확인할 조건") ?? [])).toContain("수출 실적");
-  });
-
-  it("「업무 현황에 추가」 뒤 알림의 「업무 현황 보기」가 그 업체 상세를 연다", async () => {
-    const onDetail = await openCompany();
-    await mounted?.click(addButton("공고 하나"));
-    expect(notice()?.text).toContain("컨설팅 업무 현황에 「공고 하나」 추가");
-    expect(notice()?.trackId).toBe("t1");
-    const open = toast()?.props.onOpen as ((customerKey: string, companyName: string, trackId?: string) => void) | undefined;
-    await mounted?.act(() => open?.("cB", "다라상사", "t1"));
-    expect(onDetail).toHaveBeenCalledWith("cB", "다라상사", "t1");
-  });
-
-  it("담당 줄은 showConsultant 가 켜졌을 때만 그린다(기본은 그림)", async () => {
-    await openCompany();
-    expect(textOf(root())).toContain("담당 김컨설");
-    mounted?.unmount();
-    mounted = mountTree(<ContactsBoard scope="all" showConsultant={false} endpoints={DEADLINE_ENDPOINTS} />, { opaque: OPAQUE });
-    await mounted.settle();
-    expect(textOf(root())).toContain("다라상사");
-    expect(textOf(root())).not.toContain("담당 김컨설");
-    expect(findAll(root(), (n) => n.tag === "button").length).toBeGreaterThan(0);
   });
 });
