@@ -364,7 +364,7 @@ describe("readContacts — 연락 예정 업체", () => {
       {
         customerKey: "b:1", companyName: "삼영식품", consultant: "담당 삼영식품", consultantNames: ["담당 삼영식품"], statusText: "계약 완료",
         nearestApplyEnd: "2026-11-12", nearestDDay: 0,
-        kinds: [{ category: "", count: 1, nearestDDay: 0 }],
+        kinds: [expect.objectContaining({ category: "", count: 1, nearestDDay: 0 })],
         announcementCount: 1, progressCount: 0,
         bestTier: "high",
         tiers: { high: 1, mid: 0, low: 0, unstructured: 0 },
@@ -376,7 +376,10 @@ describe("readContacts — 연락 예정 업체", () => {
       {
         customerKey: "p:3", companyName: "다라테크", consultant: "담당 다라테크", consultantNames: ["담당 다라테크"], statusText: "계약 완료",
         nearestApplyEnd: "2026-11-15", nearestDDay: 3,
-        kinds: [{ category: "정책자금", count: 1, nearestDDay: 7 }, { category: "무상지원금", count: 1, nearestDDay: 3 }],
+        kinds: [
+          expect.objectContaining({ category: "정책자금", count: 1, nearestDDay: 7 }),
+          expect.objectContaining({ category: "무상지원금", count: 1, nearestDDay: 3 }),
+        ],
         announcementCount: 2, progressCount: 0,
         // B3 「업력 3년 이상」은 공고 확인(−15)이라 보통 — 가장 좋은 줄은 맞음인 B7.
         bestTier: "high",
@@ -392,12 +395,15 @@ describe("readContacts — 연락 예정 업체", () => {
     expect(bucketKeys).not.toContain("B40");
     expect(bucketKeys).not.toContain("BPAST");
     expect(bucketKeys).not.toContain("(전부)");
+    // 종류 칸마다 그 분야의 가장 좋은 줄 — 정책자금은 B7(맞음), 무상지원금은 B3(보통).
+    const p3 = view.companies.find((c) => c.customerKey === "p:3");
+    expect(p3?.kinds.map((k) => [k.category, k.best.bucketKey, k.best.tier])).toEqual([["정책자금", "B7", "high"], ["무상지원금", "B3", "mid"]]);
   });
 
   it("조건 정리 전·진행 포함 30일 — 분야 순서 = 정책자금, 무상지원금, 그 밖 글자 순, 빈 분류 맨 끝", async () => {
     const view = await readContacts(U1, { days: 30, includeUnstructured: true, includeProgress: true }, NOW, memorySource());
     const c1 = view.companies.find((c) => c.customerKey === "b:1");
-    expect(c1?.kinds).toEqual([
+    expect(c1?.kinds.map((k) => ({ category: k.category, count: k.count, nearestDDay: k.nearestDDay }))).toEqual([
       { category: "정책자금", count: 1, nearestDDay: 7 },
       { category: "무상지원금", count: 1, nearestDDay: 3 },
       { category: "R&D", count: 1, nearestDDay: 20 },

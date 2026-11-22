@@ -268,6 +268,8 @@ export interface ContactKind {
   count: number;
   /** 그 분야 공고 중 가장 가까운 D-n. */
   nearestDDay: number;
+  /** 그 분야의 가장 좋은 줄(업체 줄의 best 와 같은 셈) — 종류로 거를 때 화면이 이 줄로 보이고 줄 세운다. */
+  best: ContactBest;
 }
 
 /** 업체의 가장 좋은 공고 줄 — 공고 칸 + 맞을 확률 칸. */

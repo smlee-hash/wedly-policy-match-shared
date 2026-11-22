@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AnnouncementListRow, CompanyAnnouncementRow, ContactCompanyRow, ExportRow } from "../../serve/policy-deadline/types";
+import type { AnnouncementListRow, CompanyAnnouncementRow, ContactBest, ContactCompanyRow, ExportRow } from "../../serve/policy-deadline/types";
 import {
   EXPORT_HEADERS,
   OTHER_KINDS,
@@ -30,6 +30,11 @@ function listRow(over: Partial<AnnouncementListRow>): AnnouncementListRow {
   };
 }
 
+const BEST: ContactBest = {
+  bucketKey: "b1", title: "공고", category: "정책자금", url: "", applyEnd: "2026-11-15", dDay: 3, amountMaxWon: null,
+  tier: "high", tierScore: 100, tierReason: "", checkItems: [], checkCount: 0, nextAction: "", unstructured: false,
+};
+
 function contact(over: Partial<ContactCompanyRow>): ContactCompanyRow {
   return {
     customerKey: "b:1",
@@ -39,15 +44,12 @@ function contact(over: Partial<ContactCompanyRow>): ContactCompanyRow {
     statusText: "진행",
     nearestApplyEnd: "2026-11-15",
     nearestDDay: 3,
-    kinds: [{ category: "정책자금", count: 1, nearestDDay: 3 }],
+    kinds: [{ category: "정책자금", count: 1, nearestDDay: 3, best: BEST }],
     announcementCount: 1,
     progressCount: 0,
     bestTier: "high",
     tiers: { high: 1, mid: 0, low: 0, unstructured: 0 },
-    best: {
-      bucketKey: "b1", title: "공고", category: "정책자금", url: "", applyEnd: "2026-11-15", dDay: 3, amountMaxWon: null,
-      tier: "high", tierScore: 100, tierReason: "", checkItems: [], checkCount: 0, nextAction: "", unstructured: false,
-    },
+    best: BEST,
     ...over,
   };
 }
@@ -117,9 +119,9 @@ describe("공고 줄 거르기", () => {
 
 describe("연락 예정 업체", () => {
   const companies = [
-    contact({ customerKey: "b:2", companyName: "다라", kinds: [{ category: "무상지원금", count: 1, nearestDDay: 2 }, { category: "수출", count: 2, nearestDDay: 9 }], nearestDDay: 2 }),
-    contact({ customerKey: "b:1", companyName: "가나", kinds: [{ category: "정책자금", count: 1, nearestDDay: 5 }, { category: "수출", count: 1, nearestDDay: 4 }], nearestDDay: 4 }),
-    contact({ customerKey: "b:3", companyName: "가나", kinds: [{ category: "정책자금", count: 3, nearestDDay: 5 }], nearestDDay: 5 }),
+    contact({ customerKey: "b:2", companyName: "다라", kinds: [{ category: "무상지원금", count: 1, nearestDDay: 2, best: BEST }, { category: "수출", count: 2, nearestDDay: 9, best: BEST }], nearestDDay: 2 }),
+    contact({ customerKey: "b:1", companyName: "가나", kinds: [{ category: "정책자금", count: 1, nearestDDay: 5, best: BEST }, { category: "수출", count: 1, nearestDDay: 4, best: BEST }], nearestDDay: 4 }),
+    contact({ customerKey: "b:3", companyName: "가나", kinds: [{ category: "정책자금", count: 3, nearestDDay: 5, best: BEST }], nearestDDay: 5 }),
   ];
 
   it("종류를 고르면 그 종류 공고가 없는 업체는 빠지고 가까운 마감을 그 종류로 다시 잡는다", () => {
