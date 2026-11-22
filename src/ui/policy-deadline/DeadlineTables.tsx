@@ -2,10 +2,13 @@
 
 // 펼친 표 둘 — 공고 하나를 펼친 「업체 표」(정책별 고객사)와 업체 하나를 펼친 「공고 표」(연락 예정 업체·캘린더 고른 업체).
 // 상태는 갖지 않는다 — 읽기·누르기 처리는 보드가 쥐고 이 표들은 받은 값을 그리기만 한다(그래서 그려서 잴 수 있다).
+import { useState } from "react";
 import { ACTION_COL, CheckCell, DDayBadge, KindChip, ProgressCell } from "./DeadlineBits";
+import { CheckList, CheckSummary, DismissControl, TierCell } from "./TierBits";
 import { buttonClass } from "./classes";
 import { announcementsFor, conditionColumns, dateLabel } from "./deadline-view";
-import type { CompanyAnnouncementRow, CompanyMatchRow } from "../../serve/policy-deadline/types";
+import type { CheckField } from "../../serve/policy-deadline/tier";
+import type { CompanyAnnouncementRow, CompanyMatchRow, DismissReason } from "../../serve/policy-deadline/types";
 
 const TH = "bg-wedly-bg-gray px-2.5 py-2 text-left text-wedly-tablehead font-semibold text-wedly-t2";
 const TD = "border-b border-wedly-bd px-2.5 py-2 align-top text-wedly-sub";
@@ -13,47 +16,123 @@ const TD = "border-b border-wedly-bd px-2.5 py-2 align-top text-wedly-sub";
 // 없으면 문서 전체를 기준으로 표 오른쪽 끝 자리에 놓여 좁은 화면의 문서 폭을 늘렸다(2026-11-16 390px 운영 QA — 문서 폭 932px).
 const TABLE_BOX = "relative overflow-x-auto rounded-lg border border-wedly-bd bg-white";
 
-/** 펼친 표의 조건 칸 — 「확인할 조건」 하나뿐이다. 「맞은 조건」 칸은 두지 않는다(2026-11-16 사장님 — 맞음·확인 필요로 이미 나뉜다). */
-export type ConditionColumns = { check: boolean };
-
-// 펼친 업체 표의 칸 — 맞음·확인 필요 두 표가 같은 칸·같은 폭을 써서 위아래 줄이 맞는다.
-// 마지막 내용 칸은 폭을 두지 않아 남는 폭을 가져간다(조건 칸이 빠지면 담당이 넓어진다).
+// 펼친 업체 표의 칸 — 맞을 확률 순 표와 「판단 전」·「해당 없음」 묶음 표가 같은 칸·같은 폭을 써서 위아래 줄이 맞는다.
+// 마지막 내용 칸(확인할 것)은 폭을 두지 않아 남는 폭을 가져간다(담당 칸이 빠지면 더 넓어진다).
 // 「진행상태」 칸은 두지 않는다(2026-11-16 사장님). 엑셀 내려받기 칸은 그대로 둔다.
-export function companyColumns(columns: ConditionColumns, showConsultant = true): { head: string; width: string }[] {
-  const cols = [
-    { head: "업체명", width: "w-[22%]" },
-    ...(showConsultant ? [{ head: "담당", width: "w-[11%]" }] : []),
-    ...(columns.check ? [{ head: "확인할 조건", width: "" }] : []),
+export function companyColumns(showConsultant = true): { head: string; width: string }[] {
+  return [
+    { head: "업체명", width: "w-[18%]" },
+    ...(showConsultant ? [{ head: "담당", width: "w-[10%]" }] : []),
+    { head: "맞을 확률", width: "w-[150px]" },
+    { head: "다음 할 일", width: "w-[20%]" },
+    { head: "확인할 것", width: "" },
   ];
-  cols[cols.length - 1] = { ...cols[cols.length - 1], width: "" };
-  return cols;
 }
 
-/** 공고 하나의 업체 표 — 상호명을 누르면 업체 상세(`onDetail` 이 있을 때만 단추, 없으면 글자). */
+/** 업체 한 줄 — 「확인할 것」을 펼쳤는지는 줄마다 갖는다(다른 줄을 펼쳐도 그대로). */
+function CompanyLine({
+  row,
+  busyKey,
+  bucketKey,
+  showConsultant,
+  canProgress,
+  onDetail,
+  onProgress,
+  onDismiss,
+}: {
+  row: CompanyMatchRow;
+  busyKey: string;
+  bucketKey: string;
+  showConsultant: boolean;
+  canProgress: boolean;
+  onDetail?: (row: CompanyMatchRow, field?: CheckField) => void;
+  onProgress: (row: CompanyMatchRow) => void;
+  onDismiss?: (row: CompanyMatchRow, reason: DismissReason | null) => void | Promise<unknown>;
+}) {
+  const [checkOpen, setCheckOpen] = useState(false);
+  // 「업무 현황에 추가」와 「해당 없음」은 같은 업체·공고를 누르므로 바쁜 값이 같다.
+  const busy = busyKey === `${row.customerKey}|${bucketKey}`;
+  const dismiss = onDismiss ? (reason: DismissReason | null) => onDismiss(row, reason) : undefined;
+  return (
+    <tr>
+      <td className={TD}>
+        {onDetail ? (
+          <button
+            type="button"
+            title="업체 상세 열기"
+            onClick={() => onDetail(row)}
+            className="break-keep rounded-sm text-left font-semibold text-wedly-navy underline-offset-2 hover:text-wedly-accent-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wedly-accent"
+          >
+            {row.companyName}
+          </button>
+        ) : (
+          <span className="break-keep font-semibold text-wedly-navy">{row.companyName}</span>
+        )}
+      </td>
+      {showConsultant && <td className={TD}>{row.consultant || <span className="text-wedly-red-ink">담당 없음</span>}</td>}
+      <td className={TD}>
+        <TierCell tier={row.tier} unstructured={row.unstructured} tierReason={row.tierReason} />
+      </td>
+      <td className={`${TD} break-keep text-wedly-t1`}>{row.nextAction}</td>
+      <td className={TD}>
+        <CheckSummary
+          checkItems={row.checkItems}
+          checkCount={row.checkCount}
+          open={checkOpen}
+          onToggle={row.checkCount > 0 ? () => setCheckOpen((v) => !v) : undefined}
+        />
+        {checkOpen && (
+          <div className="mt-2">
+            <CheckList items={row.checkItems} onField={onDetail ? (field) => onDetail(row, field) : undefined} />
+          </div>
+        )}
+      </td>
+      <td className={`${TD} text-right`}>
+        <div className="flex flex-col items-end gap-1.5">
+          {row.dismissed ? (
+            <DismissControl dismissed={row.dismissed} busy={busy} onDismiss={dismiss} />
+          ) : (
+            <>
+              <ProgressCell inProgress={!!row.progress} busy={busy} canProgress={canProgress} onProgress={() => onProgress(row)} />
+              <DismissControl dismissed={null} busy={busy} onDismiss={dismiss} />
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+/**
+ * 공고 하나의 업체 표 — 맞을 확률 순(받은 순서 그대로)으로 줄마다 단계 딱지·근거·다음 할 일·확인할 것을 보인다.
+ * 상호명을 누르면 업체 상세(`onDetail` 이 있을 때만 단추, 없으면 글자). 「판단 전」·「해당 없음」 묶음도 같은 표 모양이다.
+ */
 export function CompanyTable({
   rows,
-  columns,
   busyKey,
   bucketKey,
   showConsultant = true,
   canProgress = true,
   onDetail,
   onProgress,
+  onDismiss,
 }: {
   rows: CompanyMatchRow[];
-  columns: ConditionColumns;
   busyKey: string;
   bucketKey: string;
   showConsultant?: boolean;
   /** 끄면 「업무 현황에 추가」 단추를 그리지 않는다(업무 현황을 만들 권한이 없는 사람). 기본은 켬. */
   canProgress?: boolean;
-  onDetail?: (row: CompanyMatchRow) => void;
+  /** 상호명은 칸 없이, 확인할 것의 업체 항목 이름은 그 칸(`field`)과 함께 부른다. */
+  onDetail?: (row: CompanyMatchRow, field?: CheckField) => void;
   onProgress: (row: CompanyMatchRow) => void;
+  /** 없으면 「해당 없음」 단추를 그리지 않는다(남긴 기록은 그대로 보인다). reason 이 null 이면 되돌리기. */
+  onDismiss?: (row: CompanyMatchRow, reason: DismissReason | null) => void | Promise<unknown>;
 }) {
-  const cols = companyColumns(columns, showConsultant);
+  const cols = companyColumns(showConsultant);
   return (
     <div className={TABLE_BOX}>
-      <table className="w-full min-w-[760px] table-fixed border-collapse [&_tr:last-child>td]:border-b-0">
+      <table className="w-full min-w-[820px] table-fixed border-collapse [&_tr:last-child>td]:border-b-0">
         <colgroup>
           {cols.map((c) => <col key={c.head} className={c.width} />)}
           <col className={ACTION_COL} />
@@ -66,27 +145,17 @@ export function CompanyTable({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.customerKey}>
-              <td className={TD}>
-                {onDetail ? (
-                  <button
-                    type="button"
-                    title="업체 상세 열기"
-                    onClick={() => onDetail(row)}
-                    className="break-keep rounded-sm text-left font-semibold text-wedly-navy underline-offset-2 hover:text-wedly-accent-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wedly-accent"
-                  >
-                    {row.companyName}
-                  </button>
-                ) : (
-                  <span className="break-keep font-semibold text-wedly-navy">{row.companyName}</span>
-                )}
-              </td>
-              {showConsultant && <td className={TD}>{row.consultant || <span className="text-wedly-red-ink">담당 없음</span>}</td>}
-              {columns.check && <td className={TD}><CheckCell toCheck={row.toCheck} gaps={row.gaps} /></td>}
-              <td className={`${TD} text-right`}>
-                <ProgressCell inProgress={!!row.progress} busy={busyKey === `${row.customerKey}|${bucketKey}`} canProgress={canProgress} onProgress={() => onProgress(row)} />
-              </td>
-            </tr>
+            <CompanyLine
+              key={row.customerKey}
+              row={row}
+              busyKey={busyKey}
+              bucketKey={bucketKey}
+              showConsultant={showConsultant}
+              canProgress={canProgress}
+              onDetail={onDetail}
+              onProgress={onProgress}
+              onDismiss={onDismiss}
+            />
           ))}
         </tbody>
       </table>

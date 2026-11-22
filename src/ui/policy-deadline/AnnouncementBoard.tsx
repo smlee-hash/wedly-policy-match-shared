@@ -6,30 +6,45 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Download } from "lucide-react";
 import { Checkbox } from "@wedly/ui-shared/ui";
 import CustomSelect from "../CustomSelect";
+import type { CheckField, DeadlineTier } from "../../serve/policy-deadline/tier";
 import type {
   AnnouncementListRow,
   AnnouncementListView,
   BucketCompaniesView,
   CompanyMatchRow,
   DaysFilter,
+  DismissReason,
   ScopeFilter,
+  SortOrder,
 } from "../../serve/policy-deadline/types";
-import { fetchAnnouncementList, fetchBucketCompanies, fetchExport, postProgress } from "./deadline-api";
+import { fetchAnnouncementList, fetchBucketCompanies, fetchExport, postDismiss, postProgress } from "./deadline-api";
 import { DDayBadge, DeadlineToast, KindButtons, KindChip, Seg, noticeMs, type DeadlineNotice } from "./DeadlineBits";
 import { CompanyTable } from "./DeadlineTables";
+import { FoldGroup, SortSeg, TierFilter } from "./TierBits";
 import { buttonClass, sectionCardClass } from "./classes";
 import type { DeadlineEndpoints, DeadlineFeatures } from "./endpoints";
 import {
   EXPORT_HEADERS,
-  conditionColumns,
   dateLabel,
   exportBody,
   filterAnnouncements,
   lastRunLabel,
-  needsSourceCheck,
   progressToastText,
   visibleCount,
 } from "./deadline-view";
+import {
+  DEFAULT_TIERS,
+  TIER_ORDER,
+  amountLabel,
+  dismissedTitle,
+  hiddenHint,
+  partitionAnnouncements,
+  partitionLines,
+  sortCompanyLines,
+  tierCountLine,
+  unstructuredTitle,
+  type TierChipCounts,
+} from "./tier-view";
 
 const DAY_OPTIONS: { value: DaysFilter; label: string }[] = [
   { value: 7, label: "7일" },
@@ -59,9 +74,11 @@ export interface AnnouncementBoardProps {
   initialBucket?: string;
   /** 값이 바뀌면 목록과 펼친 업체 표를 처음부터 다시 읽는다(업체 상세창에서 저장한 뒤). */
   revision?: number;
-  /** 그 업체 상세를 연다 — 상호명·「업무 현황 보기」가 부른다. 없으면 상호명은 글자이고 「업무 현황 보기」도 그리지 않는다. */
-  /** 업체 상세 열기 — 알림 「업무 현황 보기」에서는 방금 만든 업무 번호(`trackId`)도 넘긴다. */
-  onDetail?: (customerKey: string, companyName: string, trackId?: string) => void;
+  /**
+   * 그 업체 상세를 연다 — 상호명·확인할 것의 업체 항목·「업무 현황 보기」가 부른다. 없으면 상호명은 글자이고 「업무 현황 보기」도 그리지 않는다.
+   * 알림 「업무 현황 보기」에서는 방금 만든 업무 번호(`trackId`)도, 확인할 것의 업체 항목 이름에서는 채울 칸(`field`)도 넘긴다.
+   */
+  onDetail?: (customerKey: string, companyName: string, trackId?: string, field?: CheckField) => void;
   onProgressed?: () => void;
   /** 부를 주소 — 모듈 상수 하나로 넘긴다(DEADLINE_ENDPOINTS 를 그대로 또는 `export` 를 더해). */
   endpoints: DeadlineEndpoints;
@@ -84,15 +101,33 @@ function todayKst(): string {
  * 보이는 목록이 어느 거르기의 답인지 — 거르기를 바꾼 첫 화면부터 「불러오는 중」이다(ContactsBoard 와 같은 까닭).
  * 효과 안에서 「불러오는 중」을 켜면 그 갱신이 다음 일감으로 밀려, 그 사이 옛 목록이 다 불러온 것처럼(aria-busy=false) 보인다.
  * 그래서 화면을 그릴 때 `settledKey !== announcementListKey(...)` 로 바로 셈한다.
+ * 순서(sort)도 열쇠에 든다 — 순서를 바꾸면 목록을 다시 읽는다. 맞을 확률 단계 거르기는 화면 안에서만 거르므로 열쇠에 넣지 않는다.
  */
-export function announcementListKey(scope: ScopeFilter | undefined, days: DaysFilter, hideEmpty: boolean, revision: number): string {
-  return `${scope ?? "-"}|${days}|${hideEmpty}|${revision}`;
+export function announcementListKey(
+  scope: ScopeFilter | undefined,
+  days: DaysFilter,
+  hideEmpty: boolean,
+  revision: number,
+  sort: SortOrder = "tier",
+): string {
+  return `${scope ?? "-"}|${days}|${hideEmpty}|${revision}|${sort}`;
 }
 
-/** 공고 하나를 펼친 안쪽 — 읽는 중 · 오류(다시 불러오기) · 맞음/확인 필요 업체 표 · 안내 줄. 상태는 갖지 않는다. */
+const sumCounts = (a: TierChipCounts, b: TierChipCounts): TierChipCounts => ({
+  high: a.high + b.high,
+  mid: a.mid + b.mid,
+  low: a.low + b.low,
+  unstructured: a.unstructured + b.unstructured,
+});
+
+/**
+ * 공고 하나를 펼친 안쪽 — 읽는 중 · 오류(다시 불러오기) · 지원 금액 · 맞을 확률 순 업체 표 · 「판단 전」·「해당 없음」 접힌 묶음 · 안내 줄.
+ * 고른 단계(tiers)에 없는 업체는 숨기고 몇 곳인지만 알린다. 상태는 갖지 않는다.
+ */
 export function BucketPanel({
   state,
   fitOnly,
+  tiers,
   url,
   bucketKey,
   busyKey,
@@ -100,28 +135,45 @@ export function BucketPanel({
   canProgress = true,
   onDetail,
   onProgress,
+  onDismiss,
   onRetry,
 }: {
   state: BucketState | undefined;
   fitOnly: boolean;
+  /** 고른 맞을 확률 단계 — 이 밖의 단계 업체는 표에서 숨긴다. */
+  tiers: readonly DeadlineTier[];
   /** 공고 원문 주소 — 없으면 「공고 원문 보기」 링크를 그리지 않는다. */
   url: string;
   bucketKey: string;
   busyKey: string;
   showConsultant?: boolean;
   canProgress?: boolean;
-  onDetail?: (row: CompanyMatchRow) => void;
+  onDetail?: (row: CompanyMatchRow, field?: CheckField) => void;
   onProgress: (row: CompanyMatchRow) => void;
+  /** 없으면 「해당 없음」 단추를 그리지 않는다(남긴 기록은 그대로 보인다). */
+  onDismiss?: (row: CompanyMatchRow, reason: DismissReason | null) => void;
   onRetry: () => void;
 }) {
   const view = state?.status === "ok" ? state.view : null;
-  const fit = view?.fit ?? [];
-  const unverified = fitOnly ? [] : view?.unverified ?? [];
-  // 두 표가 같은 칸을 쓰도록 두 묶음을 합쳐 칸을 고른다.
-  const columns = conditionColumns([...fit, ...unverified], false);
-  const unstructured = [...fit, ...unverified].some((r) => needsSourceCheck(r.toCheck));
-  const table = (rows: CompanyMatchRow[]) => (
-    <CompanyTable rows={rows} columns={columns} busyKey={busyKey} bucketKey={bucketKey} showConsultant={showConsultant} canProgress={canProgress} onDetail={onDetail} onProgress={onProgress} />
+  // 서버가 맞을 확률 순으로 준 줄을 그대로 쓴다 — 「맞음만」이면 맞음 줄만.
+  const rows = view ? (fitOnly ? view.rows.filter((r) => r.verdict === "fit") : view.rows) : [];
+  const parts = partitionLines(rows, tiers);
+  const biggest = view ? view.rows.reduce<number | null>((max, r) => (r.amountMaxWon !== null && (max === null || r.amountMaxWon > max) ? r.amountMaxWon : max), null) : null;
+  const amount = amountLabel(biggest);
+  const hint = hiddenHint(parts.hidden, "업체");
+  const table = (list: CompanyMatchRow[]) => (
+    <div className="mt-2.5">
+      <CompanyTable
+        rows={list}
+        busyKey={busyKey}
+        bucketKey={bucketKey}
+        showConsultant={showConsultant}
+        canProgress={canProgress}
+        onDetail={onDetail}
+        onProgress={onProgress}
+        onDismiss={onDismiss}
+      />
+    </div>
   );
   const sourceLink = url && <a href={url} target="_blank" rel="noopener noreferrer" className="text-wedly-accent-ink underline">공고 원문 보기</a>;
   return (
@@ -135,29 +187,27 @@ export function BucketPanel({
       )}
       {view && (
         <>
-          {unstructured && (
-            <p className="mt-2.5 text-wedly-sub text-wedly-t2">
-              조건 정리 전 공고입니다 — 업체별 자격 조건은 공고 원문에서 확인해 주세요. {sourceLink}
-            </p>
+          {amount && <p className="mt-2.5 text-wedly-sub text-wedly-t1">지원 금액 {amount}</p>}
+          {parts.main.length > 0 && table(parts.main)}
+          {hint && <p className="mt-2 text-wedly-hint text-wedly-t2">{hint}</p>}
+          {parts.unstructured.length > 0 && (
+            <div className="mt-2.5">
+              <FoldGroup key="unstructured" title={unstructuredTitle(parts.unstructured.length, "업체")} defaultOpen={parts.main.length === 0}>
+                {table(parts.unstructured)}
+              </FoldGroup>
+            </div>
           )}
-          {fit.length > 0 && (
-            <>
-              <p className="mb-1.5 mt-2.5 text-wedly-sub font-bold text-wedly-navy">맞음 {fit.length}곳</p>
-              {table(fit)}
-            </>
+          {parts.dismissed.length > 0 && (
+            <div className="mt-2.5">
+              <FoldGroup key="dismissed" title={dismissedTitle(parts.dismissed.length, "업체")}>
+                {table(parts.dismissed)}
+              </FoldGroup>
+            </div>
           )}
-          {unverified.length > 0 && (
-            <>
-              <p className="mb-1.5 mt-2.5 text-wedly-sub font-bold text-wedly-navy">확인 필요 {unverified.length}곳</p>
-              {table(unverified)}
-            </>
-          )}
-          {!fit.length && !unverified.length && <p className="py-3 text-wedly-sub text-wedly-t2">지금 거르기 조건에서 맞는 업체가 없습니다.</p>}
+          {rows.length === 0 && <p className="py-3 text-wedly-sub text-wedly-t2">지금 거르기 조건에서 맞는 업체가 없습니다.</p>}
         </>
       )}
-      <p className="mt-2 text-wedly-hint text-wedly-muted">
-        안 맞는 업체는 보이지 않습니다. {!(view && unstructured) && sourceLink}
-      </p>
+      <p className="mt-2 text-wedly-hint text-wedly-muted">안 맞는 업체는 보이지 않습니다. {sourceLink}</p>
     </>
   );
 }
@@ -187,9 +237,12 @@ export default function AnnouncementBoard({
   const [category, setCategory] = useState("");
   const [fitOnly, setFitOnly] = useState(false);
   const [hideEmpty, setHideEmpty] = useState(true);
+  const [sort, setSort] = useState<SortOrder>("tier");
+  // 맞을 확률 단계 거르기 — 화면 안에서만 거른다(목록·묶음을 다시 읽지 않고 엑셀에도 싣지 않는다). 슬랙으로 들어오면 그 공고가 보이게 모두 켠다.
+  const [tiers, setTiers] = useState<DeadlineTier[]>(() => (initialBucket ? [...TIER_ORDER] : [...DEFAULT_TIERS]));
   const [list, setList] = useState<AnnouncementListView | null>(null);
   const [error, setError] = useState("");
-  const listKey = announcementListKey(scope, days, hideEmpty, revision);
+  const listKey = announcementListKey(scope, days, hideEmpty, revision, sort);
   const [settledKey, setSettledKey] = useState("");
   const loading = settledKey !== listKey;
   const [open, setOpen] = useState<Set<string>>(() => new Set(initialBucket ? [initialBucket] : []));
@@ -215,7 +268,7 @@ export default function AnnouncementBoard({
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchAnnouncementList(endpoints, { scope, days, hideEmpty }, controller.signal)
+    fetchAnnouncementList(endpoints, { scope, days, hideEmpty, sort }, controller.signal)
       .then((data) => {
         setList(data);
         setError("");
@@ -228,7 +281,7 @@ export default function AnnouncementBoard({
         if (!controller.signal.aborted) setSettledKey(listKey);
       });
     return () => controller.abort();
-  }, [scope, days, hideEmpty, revision, listKey, readUrl]);
+  }, [scope, days, hideEmpty, sort, revision, listKey, readUrl]);
 
   const loadBucket = useCallback(
     (bucketKey: string) => {
@@ -293,7 +346,10 @@ export default function AnnouncementBoard({
         const state = current[bucketKey];
         if (state?.status !== "ok") return current;
         const mark = (rows: CompanyMatchRow[]) => rows.map((r) => (r.customerKey === row.customerKey ? { ...r, progress: done } : r));
-        return { ...current, [bucketKey]: { status: "ok", view: { ...state.view, fit: mark(state.view.fit), unverified: mark(state.view.unverified) } } };
+        return {
+          ...current,
+          [bucketKey]: { status: "ok", view: { ...state.view, fit: mark(state.view.fit), unverified: mark(state.view.unverified), rows: mark(state.view.rows) } },
+        };
       });
       setNotice({ tone: "success", text: progressToastText(result), customerKey: row.customerKey, companyName: row.companyName, trackId: result.trackId });
       onProgressed?.();
@@ -304,11 +360,43 @@ export default function AnnouncementBoard({
     }
   };
 
+  // 「해당 없음」 남기기·되돌리기(reason 이 null) — 줄은 그 자리에서 기록만 바꾸고, 맞을 확률 순으로 다시 세워 해당 없음 묶음으로 옮긴다.
+  const dismiss = async (row: CompanyMatchRow, bucketKey: string, reason: DismissReason | null) => {
+    const key = `${row.customerKey}|${bucketKey}`;
+    if (busyKey) return;
+    setBusyKey(key);
+    try {
+      const result = await postDismiss(endpoints, row.customerKey, bucketKey, reason);
+      setBuckets((current) => {
+        const state = current[bucketKey];
+        if (state?.status !== "ok") return current;
+        const mark = (rows: CompanyMatchRow[]) => rows.map((r) => (r.customerKey === row.customerKey ? { ...r, dismissed: result.dismissed } : r));
+        return {
+          ...current,
+          [bucketKey]: {
+            status: "ok",
+            view: { ...state.view, fit: mark(state.view.fit), unverified: mark(state.view.unverified), rows: sortCompanyLines(mark(state.view.rows)) },
+          },
+        };
+      });
+      setNotice({
+        tone: "success",
+        text: reason ? `${row.companyName} · 「${reason}」 — 해당 없음으로 옮겼습니다` : `${row.companyName} · 해당 없음을 되돌렸습니다`,
+      });
+      // 오늘 연락할 곳 수가 바뀐다 — 위 카드를 다시 읽게 한다.
+      onProgressed?.();
+    } catch (e) {
+      setNotice({ tone: "error", text: e instanceof Error ? e.message : "해당 없음으로 남기지 못했습니다." });
+    } finally {
+      setBusyKey("");
+    }
+  };
+
   const exportRows = async () => {
     if (!saveSheet) return;
     setExporting(true);
     try {
-      const data = await fetchExport(endpoints, { scope, days, fitOnly, category });
+      const data = await fetchExport(endpoints, { scope, days, fitOnly, category, sort });
       await saveSheet({ fileName: `정책별고객사_${todayKst()}.xlsx`, sheetName: "정책별 고객사", headers: EXPORT_HEADERS, body: exportBody(data.rows) });
       if (data.truncated) setNotice({ tone: "success", text: `줄이 많아 앞 ${data.rows.length.toLocaleString("ko-KR")}줄만 담았습니다` });
     } catch (e) {
@@ -319,12 +407,27 @@ export default function AnnouncementBoard({
   };
 
   const filter = { category, fitOnly, hideEmpty };
-  const dated = list ? filterAnnouncements(list.dated, filter) : [];
-  const always = list ? filterAnnouncements(list.always, filter) : [];
+  const datedParts = partitionAnnouncements(list ? filterAnnouncements(list.dated, filter) : [], tiers);
+  const alwaysParts = partitionAnnouncements(list ? filterAnnouncements(list.always, filter) : [], tiers);
+  const datedMain = datedParts.main;
+  const alwaysMain = alwaysParts.main;
+  // 판단 전 공고는 마감 있는 줄 먼저, 상시 줄 뒤로 한 묶음에 모은다. 숨긴 수·단추 숫자는 둘을 더한다.
+  const unstructuredRows = [...datedParts.unstructured, ...alwaysParts.unstructured];
+  const hidden = datedParts.hidden + alwaysParts.hidden;
+  const counts = sumCounts(datedParts.counts, alwaysParts.counts);
+  const hiddenText = hiddenHint(hidden, "공고");
+  // 업체 상세 열기 — 상호명은 칸 없이, 확인할 것의 업체 항목은 그 칸과 함께 연다.
+  const openCompany = onDetail
+    ? (r: CompanyMatchRow, field?: CheckField) => {
+        if (field) onDetail(r.customerKey, r.companyName, undefined, field);
+        else onDetail(r.customerKey, r.companyName);
+      }
+    : undefined;
 
   const announcement = (row: AnnouncementListRow) => {
     const isOpen = open.has(row.bucketKey);
     const shown = visibleCount(row, fitOnly);
+    const tierLine = tierCountLine(row.tiers, tiers);
     const state = buckets[row.bucketKey];
     return (
       <div key={row.bucketKey} id={`pdl-${row.bucketKey}`} className="border-b border-wedly-bd last:border-b-0">
@@ -348,13 +451,14 @@ export default function AnnouncementBoard({
           ) : (
             <span className="col-start-2 min-w-0 text-wedly-hint text-wedly-muted md:col-start-auto">아직 요약 전</span>
           )}
-          {/* 업체 수는 딱지 하나 — 펼치면 나오는 업체 수(맞음 + 확인 필요, 「맞음만」이면 맞음만). 맞음/확인 필요 구분은 펼친 표 제목이 한다(2026-11-16 대표 요청). */}
-          <span className="col-start-2 flex flex-wrap gap-1.5 md:col-start-auto md:justify-end">
+          {/* 업체 수는 딱지 하나 — 펼치면 나오는 업체 수(맞음 + 확인 필요, 「맞음만」이면 맞음만)(2026-11-16 대표 요청). 단계별 곳 수는 딱지 아래 한 줄이 알린다(고른 단계만, 「맞음만」이면 없음). */}
+          <span className="col-start-2 flex flex-col items-start gap-1 md:col-start-auto md:items-end">
             {shown === 0 ? (
               <span className="whitespace-nowrap rounded-full bg-wedly-bg-gray px-2.5 py-0.5 text-wedly-hint text-wedly-t2">대상 기업 없음</span>
             ) : (
               <span className="whitespace-nowrap rounded-full bg-wedly-bg-gray px-2.5 py-0.5 text-wedly-hint font-semibold text-wedly-t1">대상 기업 {shown}곳</span>
             )}
+            {!fitOnly && tierLine && <span className="break-keep text-wedly-hint text-wedly-t2 md:text-right">{tierLine}</span>}
           </span>
           <span aria-hidden className={`col-start-3 row-start-1 text-wedly-hint text-wedly-muted transition-transform duration-150 md:col-start-auto md:row-start-auto ${isOpen ? "rotate-90" : ""}`}>▶</span>
         </button>
@@ -363,13 +467,15 @@ export default function AnnouncementBoard({
             <BucketPanel
               state={state}
               fitOnly={fitOnly}
+              tiers={tiers}
               url={row.url}
               bucketKey={row.bucketKey}
               busyKey={busyKey}
               showConsultant={showConsultant}
               canProgress={canProgress}
-              onDetail={onDetail ? (r) => onDetail(r.customerKey, r.companyName) : undefined}
+              onDetail={openCompany}
               onProgress={(r) => void progress(r, row.bucketKey)}
+              onDismiss={canProgress && endpoints.dismiss ? (r, reason) => void dismiss(r, row.bucketKey, reason) : undefined}
               onRetry={() => loadBucket(row.bucketKey)}
             />
           </div>
@@ -416,6 +522,11 @@ export default function AnnouncementBoard({
             ]}
           />
         )}
+        <span className="inline-flex items-center gap-1.5">
+          <span className="text-wedly-hint text-wedly-muted">맞을 확률</span>
+          <TierFilter value={tiers} counts={counts} unit="건" onChange={setTiers} />
+        </span>
+        <SortSeg value={sort} onChange={setSort} />
         <Checkbox label="맞음만" checked={fitOnly} onChange={(e) => setFitOnly(e.target.checked)} />
         <Checkbox label="0곳 숨기기" checked={hideEmpty} onChange={(e) => setHideEmpty(e.target.checked)} />
       </div>
@@ -426,39 +537,53 @@ export default function AnnouncementBoard({
       )}
       {loading && !list ? (
         <p className="py-6 text-wedly-sub text-wedly-muted" role="status">공고를 불러오고 있습니다.</p>
-      ) : list && !dated.length && !always.length ? (
+      ) : list && !datedMain.length && !alwaysMain.length && !unstructuredRows.length ? (
         <div className={sectionCardClass("lg", "text-center")} aria-busy={loading}>
           <p className="text-wedly-section font-semibold text-wedly-navy">조건에 맞는 공고가 없습니다</p>
-          <p className="mt-1 text-wedly-sub text-wedly-t2">마감 기간을 넓히거나 「0곳 숨기기」를 꺼 보세요.</p>
+          <p className="mt-1 text-wedly-sub text-wedly-t2">
+            {hidden > 0 ? `${hiddenText} — 「맞을 확률」에서 단계를 더 골라 보세요.` : "마감 기간을 넓히거나 「0곳 숨기기」를 꺼 보세요."}
+          </p>
         </div>
       ) : list ? (
-        <div className={sectionCardClass("none")} aria-busy={loading}>
-          {(dated.length > 0 || (alwaysOpen && always.length > 0)) && (
-            <div aria-hidden className={`hidden gap-3 border-b border-wedly-bd bg-wedly-bg-page px-3.5 py-2 text-wedly-hint text-wedly-muted md:grid ${ROW_GRID_MD}`}>
-              <span>마감</span>
-              <span>공고</span>
-              <span>핵심 내용</span>
-              <span className="text-right">대상 기업</span>
-              <span />
-            </div>
-          )}
-          {dated.map(announcement)}
-          {always.length > 0 && (
-            <>
-              <button
-                type="button"
-                aria-expanded={alwaysOpen}
-                onClick={() => setAlwaysOpen((v) => !v)}
-                className="flex w-full items-center gap-2 border-b border-wedly-bd bg-wedly-bg-gray px-3.5 py-2.5 text-left text-wedly-sub font-bold text-wedly-navy last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-wedly-accent"
+        <>
+          <div className={sectionCardClass("none")} aria-busy={loading}>
+            {(datedMain.length > 0 || (alwaysOpen && alwaysMain.length > 0)) && (
+              <div aria-hidden className={`hidden gap-3 border-b border-wedly-bd bg-wedly-bg-page px-3.5 py-2 text-wedly-hint text-wedly-muted md:grid ${ROW_GRID_MD}`}>
+                <span>마감</span>
+                <span>공고</span>
+                <span>핵심 내용</span>
+                <span className="text-right">대상 기업</span>
+                <span />
+              </div>
+            )}
+            {datedMain.map(announcement)}
+            {alwaysMain.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  aria-expanded={alwaysOpen}
+                  onClick={() => setAlwaysOpen((v) => !v)}
+                  className="flex w-full items-center gap-2 border-b border-wedly-bd bg-wedly-bg-gray px-3.5 py-2.5 text-left text-wedly-sub font-bold text-wedly-navy last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-wedly-accent"
+                >
+                  <DDayBadge dDay={null} />
+                  마감일이 없는 상시 모집 {alwaysMain.length}건
+                  <span className="ml-auto font-normal text-wedly-t2">{alwaysOpen ? "접기" : "펼치기"}</span>
+                </button>
+                {alwaysOpen && alwaysMain.map(announcement)}
+              </>
+            )}
+            {unstructuredRows.length > 0 && (
+              <FoldGroup
+                key="unstructured"
+                title={unstructuredTitle(unstructuredRows.length, "공고")}
+                defaultOpen={initialBucket !== undefined && unstructuredRows.some((r) => r.bucketKey === initialBucket)}
               >
-                <DDayBadge dDay={null} />
-                마감일이 없는 상시 모집 {always.length}건
-                <span className="ml-auto font-normal text-wedly-t2">{alwaysOpen ? "접기" : "펼치기"}</span>
-              </button>
-              {alwaysOpen && always.map(announcement)}
-            </>
-          )}
-        </div>
+                {unstructuredRows.map(announcement)}
+              </FoldGroup>
+            )}
+          </div>
+          {hiddenText && <p className="mt-2 text-wedly-hint text-wedly-t2">{hiddenText}</p>}
+        </>
       ) : null}
       <DeadlineToast
         notice={notice}
