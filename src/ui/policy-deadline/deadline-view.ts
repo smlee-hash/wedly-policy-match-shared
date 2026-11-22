@@ -1,19 +1,26 @@
 // 정책별 고객사 화면의 순수 계산 — 「정책별 업체」·「정책별 고객사」·「연락 예정 업체」 탭이 함께 쓴다.
 // 서버 읽기 함수는 마감·범위만 거르고, 분야·종류·「맞음만」·「0곳 숨기기」는 받은 목록을 여기서 거른다.
 import { GENERIC_TO_CHECK } from "../../funding/funding-map";
+import { compareByTier, type TierOrderKey } from "../../serve/policy-deadline/order";
+import { TIER_LABEL } from "../../serve/policy-deadline/tier";
 import type {
   AnnouncementListRow,
   CompanyAnnouncementRow,
+  ContactBest,
   ContactCompanyRow,
   ContactKind,
   ExportRow,
   RunSummary,
+  SortOrder,
+  TierView,
 } from "../../serve/policy-deadline/types";
 
 export const POLICY_FUND = "정책자금";
 export const FREE_GRANT = "무상지원금";
 /** 「연락 예정 업체」 종류 거르기의 「그 밖의 분야」. 분류 이름과 겹치지 않는 값이다. */
 export const OTHER_KINDS = "__other";
+/** 조건을 아직 정리하지 않은 공고의 단계 글자 — 화면과 엑셀이 같이 쓴다. */
+export const UNSTRUCTURED_LABEL = "판단 전";
 
 export type DDayTone = "today" | "soon" | "later" | "always";
 export type KindTone = "fund" | "grant" | "other";
@@ -92,6 +99,8 @@ export interface ContactListRow {
   kinds: ContactKind[];
   /** 그 분야들 중 가장 가까운 D-n. */
   nearestDDay: number;
+  /** 종류 거르기 안 가장 좋은 공고 — 종류를 안 골랐으면 업체 줄의 best, 골랐으면 그 분야들의 best 중 맞을 확률 순 첫 줄. */
+  best: ContactBest;
 }
 
 function compareText(a: string, b: string): number {
@@ -99,17 +108,53 @@ function compareText(a: string, b: string): number {
   return a < b ? -1 : 1;
 }
 
+/** 한 업체 안 공고 줄끼리 가르는 칸 — 이름·열쇠 자리는 공고 열쇠다(서버의 업체 안 best 와 같은 셈). */
+function lineOrderKey(line: TierView & { bucketKey: string; applyEnd: string | null }): TierOrderKey {
+  return {
+    dismissed: false,
+    unstructured: line.unstructured,
+    tier: line.tier,
+    checkCount: line.checkCount,
+    applyEnd: line.applyEnd,
+    tierScore: line.tierScore,
+    name: line.bucketKey,
+    key: line.bucketKey,
+  };
+}
+
+/** 업체 줄끼리 가르는 칸 — 그 줄의 best 칸에 업체명·업체 열쇠를 붙인다. */
+function rowOrderKey({ row, best }: ContactListRow): TierOrderKey {
+  return {
+    dismissed: false,
+    unstructured: best.unstructured,
+    tier: best.tier,
+    checkCount: best.checkCount,
+    applyEnd: best.applyEnd,
+    tierScore: best.tierScore,
+    name: row.companyName,
+    key: row.customerKey,
+  };
+}
+
+/** 가장 좋은 줄 = compareByTier 첫 줄. lines 는 비어 있지 않다. */
+function firstByTier<T extends TierView & { bucketKey: string; applyEnd: string | null }>(lines: readonly T[]): T {
+  return lines.reduce((first, line) => (compareByTier(lineOrderKey(line), lineOrderKey(first)) < 0 ? line : first));
+}
+
 /**
  * 「연락 예정 업체」 줄을 종류로 거른다 — 그 종류 공고가 없는 업체는 빼고,
- * 가장 가까운 마감을 그 종류 공고로 다시 잡아 가까운 순(같으면 업체명, 그다음 열쇠 순)으로 놓는다.
+ * 가장 가까운 마감을 그 종류 공고로 다시 잡는다. sort 가 "deadline" 이면 가까운 순(같으면 업체명, 그다음 열쇠 순),
+ * "tier" 면 줄마다 best 기준 맞을 확률 순(같으면 업체명, 그다음 열쇠 순)으로 놓는다.
  */
-export function contactRowsFor(companies: readonly ContactCompanyRow[], kind: string): ContactListRow[] {
+export function contactRowsFor(companies: readonly ContactCompanyRow[], kind: string, sort: SortOrder = "deadline"): ContactListRow[] {
   const out: ContactListRow[] = [];
   for (const row of companies) {
     const kinds = row.kinds.filter((k) => matchesKind(k.category, kind));
     if (kinds.length === 0) continue;
-    out.push({ row, kinds, nearestDDay: Math.min(...kinds.map((k) => k.nearestDDay)) });
+    const best = kind === "" ? row.best : firstByTier(kinds.map((k) => k.best));
+    out.push({ row, kinds, nearestDDay: Math.min(...kinds.map((k) => k.nearestDDay)), best });
   }
+  if (sort === "tier") return out.sort((a, b) => compareByTier(rowOrderKey(a), rowOrderKey(b)));
   return out.sort(
     (a, b) =>
       a.nearestDDay - b.nearestDDay ||
@@ -124,30 +169,66 @@ function kindRank(category: string): number {
   return category === "" ? 3 : 2;
 }
 
+type DatedLine = CompanyAnnouncementRow & { dDay: number; applyEnd: string };
+
+/** 공고 줄 → 업체 줄의 가장 좋은 공고(best) — 공고 칸과 맞을 확률 칸만 싣는다. */
+function contactBestOf(a: DatedLine): ContactBest {
+  return {
+    bucketKey: a.bucketKey,
+    title: a.title,
+    category: a.category,
+    url: a.url,
+    applyEnd: a.applyEnd,
+    dDay: a.dDay,
+    amountMaxWon: a.amountMaxWon,
+    tier: a.tier,
+    tierScore: a.tierScore,
+    tierReason: a.tierReason,
+    checkItems: a.checkItems,
+    checkCount: a.checkCount,
+    nextAction: a.nextAction,
+    unstructured: a.unstructured,
+  };
+}
+
 /**
- * 「진행」으로 공고가 빠진 뒤 업체 줄을 남은 공고로 다시 센다 — 남은 공고가 없으면 null(업체가 목록에서 빠진다).
- * 분야 순서는 서버와 같다: 정책자금, 무상지원금, 그 밖은 분류 이름 글자 순, 빈 분류는 맨 끝.
+ * 「진행」·「해당 없음」으로 공고가 빠진 뒤 업체 줄을 남은 공고로 다시 센다 — 남은 공고가 없으면 null(업체가 목록에서 빠진다).
+ * 해당 없음 줄은 센 적이 없는 것으로 본다. 분야 순서는 서버와 같다: 정책자금, 무상지원금, 그 밖은 분류 이름 글자 순, 빈 분류는 맨 끝.
+ * 분야마다·업체 전체의 가장 좋은 줄(best)은 맞을 확률 순(compareByTier) 첫 줄이다.
  */
 export function rebuildContactRow(row: ContactCompanyRow, announcements: readonly CompanyAnnouncementRow[]): ContactCompanyRow | null {
-  const dated = announcements.filter((a): a is CompanyAnnouncementRow & { dDay: number; applyEnd: string } => a.dDay !== null && a.applyEnd !== null);
+  const dated = announcements.filter((a): a is DatedLine => a.dismissed === null && a.dDay !== null && a.applyEnd !== null);
   if (dated.length === 0) return null;
-  const byKind = new Map<string, ContactKind>();
+  const byKind = new Map<string, DatedLine[]>();
+  const tiers = { high: 0, mid: 0, low: 0, unstructured: 0 };
   let nearest = dated[0];
   for (const a of dated) {
     if (a.dDay < nearest.dDay) nearest = a;
-    const kind = byKind.get(a.category);
-    if (kind) {
-      kind.count += 1;
-      kind.nearestDDay = Math.min(kind.nearestDDay, a.dDay);
-    } else byKind.set(a.category, { category: a.category, count: 1, nearestDDay: a.dDay });
+    const group = byKind.get(a.category);
+    if (group) group.push(a);
+    else byKind.set(a.category, [a]);
+    if (a.unstructured) tiers.unstructured += 1;
+    else tiers[a.tier] += 1;
   }
+  const kinds = [...byKind.values()].map(
+    (group): ContactKind => ({
+      category: group[0].category,
+      count: group.length,
+      nearestDDay: Math.min(...group.map((a) => a.dDay)),
+      best: contactBestOf(firstByTier(group)),
+    }),
+  );
+  const best = firstByTier(dated);
   return {
     ...row,
     nearestApplyEnd: nearest.applyEnd,
     nearestDDay: nearest.dDay,
-    kinds: [...byKind.values()].sort((a, b) => kindRank(a.category) - kindRank(b.category) || compareText(a.category, b.category)),
+    kinds: kinds.sort((a, b) => kindRank(a.category) - kindRank(b.category) || compareText(a.category, b.category)),
     announcementCount: dated.length,
     progressCount: dated.filter((a) => a.progress !== null).length,
+    bestTier: best.tier,
+    tiers,
+    best: contactBestOf(best),
   };
 }
 
@@ -165,11 +246,15 @@ export const EXPORT_HEADERS = [
   "업체명",
   "담당",
   "진행상태",
+  "맞을 확률",
+  "근거",
+  "다음 할 일",
   "판정",
   "맞은 조건",
   "확인할 조건",
   "채울 칸",
   "정책 진행",
+  "해당 없음 사유",
   "공고 원문",
 ];
 
@@ -184,11 +269,15 @@ export function exportBody(rows: readonly ExportRow[]): (string | number)[][] {
     r.companyName,
     r.consultant || "담당 없음",
     r.statusText,
+    r.unstructured ? UNSTRUCTURED_LABEL : TIER_LABEL[r.tier],
+    r.tierReason,
+    r.nextAction,
     r.verdict === "fit" ? "맞음" : "확인 필요",
     r.fitLabels.join(" · "),
     r.toCheck.join(" · "),
     r.gaps.join(" · "),
     r.inProgress ? "진행 중" : "",
+    r.dismissedReason,
     r.url,
   ]);
 }
