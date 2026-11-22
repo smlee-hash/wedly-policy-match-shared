@@ -1,11 +1,12 @@
 "use client";
 
-// 화면 위쪽 카드 두 장 — 정책별 고객사(마감 거르기)·연락 예정 업체(종류 거르기).
+// 화면 위쪽 카드 두 장 — 정책별 고객사(마감 거르기)·연락 예정 업체(종류 거르기). 그 위에 오늘 할 일 한 줄(요약을 읽었을 때만).
 // 거르기 값은 화면이 쥐고, 카드는 지금 값을 표시하고 누른 값을 알리기만 한다. 선택 줄을 누르면 그 탭으로 옮기는 일도 화면이 한다.
 import { Building2, CalendarClock } from "lucide-react";
 import type { DaysFilter, SummaryView } from "../../serve/policy-deadline/types";
 import { FREE_GRANT, OTHER_KINDS, POLICY_FUND } from "./deadline-view";
 import { ConsultingScorecard, ScorecardChoice, formatCount, type ScorecardDot } from "./Scorecard";
+import { TodayLine } from "./TierBits";
 
 /** 아직 못 읽은 숫자 자리 — 단추는 그대로 누를 수 있다. */
 const PENDING = "…";
@@ -46,57 +47,64 @@ export default function SummaryCards({
   onKind: (kind: string) => void;
 }) {
   return (
-    <section aria-label="요약 카드" className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2">
-      <ConsultingScorecard
-        title="정책별 고객사"
-        icon={<Building2 size={16} />}
-        label="7일 안 마감 공고가 있는 고객사"
-        value={summary ? summary.within7Companies : PENDING}
-        unit="곳"
-        warn={(summary?.within7Companies ?? 0) > 0}
-        active={tab === "companies"}
-        align="own"
-      >
-        {DAYS_CHOICES.map(({ label, value, dot, bucket }) => {
-          const count = summary?.buckets[bucket];
-          return (
-            <ScorecardChoice
-              key={String(value)}
-              label={label}
-              count={count === undefined ? PENDING : `${formatCount(count)}건`}
-              ariaLabel={count === undefined ? undefined : `${label} 공고 ${formatCount(count)}건`}
-              dot={dot}
-              selected={tab === "companies" && days === value}
-              onClick={() => onDays(value)}
-            />
-          );
-        })}
-      </ConsultingScorecard>
-      <ConsultingScorecard
-        title="연락 예정 업체"
-        icon={<CalendarClock size={16} />}
-        label="14일 안 마감 공고가 있는 고객사"
-        value={summary ? summary.contacts : PENDING}
-        unit="곳"
-        active={tab === "contacts"}
-        align="own"
-      >
-        {KIND_CHOICES.map(({ label, value, dot, field }) => {
-          const count = summary?.contactKinds[field];
-          const selected = tab === "contacts" && kind === value;
-          return (
-            <ScorecardChoice
-              key={value}
-              label={label}
-              count={count === undefined ? PENDING : `${formatCount(count)}곳`}
-              ariaLabel={count === undefined ? undefined : `${label} ${formatCount(count)}곳`}
-              dot={dot}
-              selected={selected}
-              onClick={() => onKind(selected ? "" : value)}
-            />
-          );
-        })}
-      </ConsultingScorecard>
+    <section aria-label="요약 카드" className="mb-5">
+      {summary && (
+        <div className="mb-2.5">
+          <TodayLine today={summary.today} />
+        </div>
+      )}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <ConsultingScorecard
+          title="정책별 고객사"
+          icon={<Building2 size={16} />}
+          label="7일 안 마감 공고가 있는 고객사"
+          value={summary ? summary.within7Companies : PENDING}
+          unit="곳"
+          warn={(summary?.within7Companies ?? 0) > 0}
+          active={tab === "companies"}
+          align="own"
+        >
+          {DAYS_CHOICES.map(({ label, value, dot, bucket }) => {
+            const count = summary?.buckets[bucket];
+            return (
+              <ScorecardChoice
+                key={String(value)}
+                label={label}
+                count={count === undefined ? PENDING : `${formatCount(count)}건`}
+                ariaLabel={count === undefined ? undefined : `${label} 공고 ${formatCount(count)}건`}
+                dot={dot}
+                selected={tab === "companies" && days === value}
+                onClick={() => onDays(value)}
+              />
+            );
+          })}
+        </ConsultingScorecard>
+        <ConsultingScorecard
+          title="연락 예정 업체"
+          icon={<CalendarClock size={16} />}
+          label="14일 안 마감 공고가 있는 고객사"
+          value={summary ? summary.contacts : PENDING}
+          unit="곳"
+          active={tab === "contacts"}
+          align="own"
+        >
+          {KIND_CHOICES.map(({ label, value, dot, field }) => {
+            const count = summary?.contactKinds[field];
+            const selected = tab === "contacts" && kind === value;
+            return (
+              <ScorecardChoice
+                key={value}
+                label={label}
+                count={count === undefined ? PENDING : `${formatCount(count)}곳`}
+                ariaLabel={count === undefined ? undefined : `${label} ${formatCount(count)}곳`}
+                dot={dot}
+                selected={selected}
+                onClick={() => onKind(selected ? "" : value)}
+              />
+            );
+          })}
+        </ConsultingScorecard>
+      </div>
     </section>
   );
 }

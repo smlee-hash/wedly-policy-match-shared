@@ -5,9 +5,11 @@ import { TIER_LABEL } from "../../serve/policy-deadline/tier";
 import type {
   AnnouncementListRow,
   CheckItem,
+  CompanyAnnouncementRow,
   CompanyMatchRow,
   DeadlineTier,
   DismissInfo,
+  SortOrder,
   SummaryView,
   TierView,
 } from "../../serve/policy-deadline/types";
@@ -223,6 +225,32 @@ export function sortCompanyLines(rows: readonly CompanyMatchRow[]): CompanyMatch
     tierScore: r.tierScore,
     name: r.companyName,
     key: r.customerKey,
+  });
+  return [...rows].sort((a, b) => compareByTier(orderOf(a), orderOf(b)));
+}
+
+/**
+ * 업체 하나의 공고 줄을 서버(view=company)와 같은 순서로 새로 세운다 — 「해당 없음」을 되돌린 줄을 표에 다시 넣을 때 제자리를 찾는다.
+ * "tier" 는 compareByTier(업체 안 공고끼리라 이름·열쇠 자리는 공고 열쇠), "deadline" 은 마감 글자 순(마감 없음은 맨 앞)에 같으면 공고 열쇠 순.
+ */
+export function sortAnnouncementLines(rows: readonly CompanyAnnouncementRow[], sort: SortOrder): CompanyAnnouncementRow[] {
+  if (sort === "deadline") {
+    return [...rows].sort((a, b) => {
+      const endA = a.applyEnd ?? "";
+      const endB = b.applyEnd ?? "";
+      if (endA !== endB) return endA < endB ? -1 : 1;
+      return a.bucketKey < b.bucketKey ? -1 : a.bucketKey > b.bucketKey ? 1 : 0;
+    });
+  }
+  const orderOf = (r: CompanyAnnouncementRow) => ({
+    dismissed: r.dismissed !== null,
+    unstructured: r.unstructured,
+    tier: r.tier,
+    checkCount: r.checkCount,
+    applyEnd: r.applyEnd,
+    tierScore: r.tierScore,
+    name: r.bucketKey,
+    key: r.bucketKey,
   });
   return [...rows].sort((a, b) => compareByTier(orderOf(a), orderOf(b)));
 }

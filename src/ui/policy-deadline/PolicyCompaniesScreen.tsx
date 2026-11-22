@@ -1,10 +1,11 @@
 "use client";
 
 // 정책별 고객사·연락 예정 화면 — ERP 와 컨설턴트 앱이 같은 화면을 쓴다.
-// 위에서 아래로: 설명 한 줄 · 요약 카드 두 장 · 탭 둘(+ 오른쪽 「보기」「담당」) · 탭 안쪽 목록/캘린더.
+// 위에서 아래로: 설명 한 줄 · 요약 카드 두 장(그 위에 오늘 할 일 한 줄) · 탭 둘(+ 오른쪽 「보기」「담당」) · 탭 안쪽 목록/캘린더.
 // 화면 이름(제목)은 앱 위 띠가 그린다 — 이 화면은 본문에 제목을 그리지 않는다.
 // 앱이 넘기는 것: 통로 주소(`endpoints`) · 담당 범위 단추(`scopeToggle`) · 업체 열기(`onOpenCompany`) · 엑셀 저장(`features`).
 import { useEffect, useState } from "react";
+import type { CheckField } from "../../serve/policy-deadline/tier";
 import type { DaysFilter, ScopeFilter, SummaryView } from "../../serve/policy-deadline/types";
 import AnnouncementBoard from "./AnnouncementBoard";
 import ContactsBoard, { type ContactsBoardView } from "./ContactsBoard";
@@ -28,6 +29,8 @@ export interface DeadlineCompanyRef {
   companyName: string;
   /** 알림 「업무 현황 보기」에서만 — 방금 만들거나 이은 업무 번호. 앱이 상세를 그 업무 탭으로 열 때 쓴다. */
   trackId?: string;
+  /** 「확인할 것」의 업체 항목 이름을 눌렀을 때만 — 상세창에서 열 칸. 앱이 그 칸이 보이게 상세를 연다. */
+  field?: CheckField;
 }
 
 export interface PolicyCompaniesScreenProps {
@@ -97,6 +100,11 @@ export default function PolicyCompaniesScreen({
   const scope: ScopeFilter | undefined = scopeToggle ? state.scope : undefined;
   const showConsultant = scopeToggle ? state.scope === "all" : seesAll;
   const onDetail = onOpenCompany ?? onViewProgress;
+  // 두 보드가 같은 모양으로 부른다 — 값이 없는 칸(업무 번호·칸)은 키를 만들지 않는다.
+  const openCompany = onDetail
+    ? (customerKey: string, companyName: string, trackId?: string, field?: CheckField) =>
+        onDetail({ customerKey, companyName, ...(trackId ? { trackId } : {}), ...(field ? { field } : {}) })
+    : undefined;
 
   // 처음 한 번 — 주소(?tab=…&view=…&bucket=…&scope=…)를 화면 상태로 옮긴다.
   useEffect(() => {
@@ -199,7 +207,7 @@ export default function PolicyCompaniesScreen({
             }}
             initialBucket={state.bucket || undefined}
             revision={revision}
-            onDetail={onDetail ? (customerKey, companyName, trackId) => onDetail({ customerKey, companyName, ...(trackId ? { trackId } : {}) }) : undefined}
+            onDetail={openCompany}
             onProgressed={afterProgress}
             endpoints={endpoints}
             features={features}
@@ -214,7 +222,7 @@ export default function PolicyCompaniesScreen({
             kind={kind}
             onKindChange={setKind}
             revision={revision}
-            onDetail={onDetail ? (customerKey, companyName, trackId) => onDetail({ customerKey, companyName, ...(trackId ? { trackId } : {}) }) : undefined}
+            onDetail={openCompany}
             onProgressed={afterProgress}
             endpoints={endpoints}
             view={state.view}

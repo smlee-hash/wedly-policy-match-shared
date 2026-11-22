@@ -18,7 +18,10 @@ export interface ScreenState {
 
 export const DEFAULT_SCREEN_STATE: ScreenState = { tab: "companies", view: "list", bucket: "", scope: "mine" };
 
-/** 첫 화면의 마감 거르기 — 두 탭 모두 7일(컨설턴트 기본 보기, NO.789). 카드 줄을 누르면 그 카드 기준 마감으로 연다. */
+/**
+ * 「정책별 고객사」 탭 첫 화면의 마감 거르기 — 7일(컨설턴트 기본 보기, NO.789). 카드 줄을 누르면 그 카드 기준 마감으로 연다.
+ * 「연락 예정 업체」 탭은 이 값을 쓰지 않는다 — 위 카드와 숫자가 맞게 14일(보드 기본값)로 연다.
+ */
 export const DEFAULT_DAYS: DaysFilter = 7;
 
 const OWN_KEYS = ["tab", "view", "bucket", "scope"] as const;

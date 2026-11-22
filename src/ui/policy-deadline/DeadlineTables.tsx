@@ -1,13 +1,14 @@
 "use client";
 
 // 펼친 표 둘 — 공고 하나를 펼친 「업체 표」(정책별 고객사)와 업체 하나를 펼친 「공고 표」(연락 예정 업체·캘린더 고른 업체).
-// 상태는 갖지 않는다 — 읽기·누르기 처리는 보드가 쥐고 이 표들은 받은 값을 그리기만 한다(그래서 그려서 잴 수 있다).
+// 읽기·누르기 처리는 보드가 쥐고 이 표들은 받은 값을 그린다(그래서 그려서 잴 수 있다). 표가 갖는 상태는 줄마다 「확인할 것」 펼침뿐이다.
 import { useState } from "react";
-import { ACTION_COL, CheckCell, DDayBadge, KindChip, ProgressCell } from "./DeadlineBits";
-import { CheckList, CheckSummary, DismissControl, TierCell } from "./TierBits";
+import { ACTION_COL, DDayBadge, KindChip, ProgressCell } from "./DeadlineBits";
+import { CheckList, CheckSummary, DismissControl, FoldGroup, TierCell } from "./TierBits";
 import { buttonClass } from "./classes";
-import { announcementsFor, conditionColumns, dateLabel } from "./deadline-view";
-import type { CheckField } from "../../serve/policy-deadline/tier";
+import { announcementsFor, dateLabel } from "./deadline-view";
+import { amountLabel, dismissedTitle, hiddenHint, partitionLines, unstructuredTitle } from "./tier-view";
+import type { CheckField, DeadlineTier } from "../../serve/policy-deadline/tier";
 import type { CompanyAnnouncementRow, CompanyMatchRow, DismissReason } from "../../serve/policy-deadline/types";
 
 const TH = "bg-wedly-bg-gray px-2.5 py-2 text-left text-wedly-tablehead font-semibold text-wedly-t2";
@@ -163,16 +164,114 @@ export function CompanyTable({
   );
 }
 
-/** 업체 하나를 펼쳐 읽은 공고의 읽기 상태. */
-export type CompanyState = { status: "loading" } | { status: "error"; message: string } | { status: "ok"; rows: CompanyAnnouncementRow[] };
+/** 업체 하나를 펼쳐 읽은 공고의 읽기 상태 — rows 는 서버가 세운 순서(맞을 확률 순·마감 순), dismissed 는 「해당 없음」 줄(마감 가까운 순). */
+export type CompanyState =
+  | { status: "loading" }
+  | { status: "error"; message: string }
+  | { status: "ok"; rows: CompanyAnnouncementRow[]; dismissed: CompanyAnnouncementRow[] };
 
-/** 업체 하나의 공고 표 — 줄마다 공고가 달라 「조건 정리 전」은 그 줄 칸에 짧게 둔다. 공고명이 남는 폭을 가져간다. */
+// 펼친 공고 표의 칸 — 맞을 확률 순 표와 「판단 전」·「해당 없음」 묶음 표가 같은 칸·같은 폭을 써서 위아래 줄이 맞는다.
+// 공고명은 폭을 두지 않아 남는 폭을 가져가고(920px 에서 180px 넘게), 마지막은 업무 현황 칸(ACTION_COL)이다.
+// 마감 칸(딱지 56px + 날짜 11px 글자)은 140px 이면 한 줄에 들어간다. 「종류」·「확인할 조건」 칸은 두지 않는다 — 종류는 공고명 아래 줄, 확인할 것은 한 칸이 맡는다.
+const CONTACT_COLUMNS: { head: string; width: string }[] = [
+  { head: "공고명", width: "" },
+  { head: "마감", width: "w-[140px]" },
+  { head: "맞을 확률", width: "w-[140px]" },
+  { head: "다음 할 일", width: "w-[15%]" },
+  { head: "확인할 것", width: "w-[18%]" },
+];
+
+/** 공고 한 줄 — 「확인할 것」을 펼쳤는지는 줄마다 갖는다. 펼치면 바로 아래에 표 폭 전체 줄이 하나 더 붙는다. */
+function AnnouncementLine({
+  a,
+  busy,
+  canProgress,
+  onProgress,
+  onField,
+  onDismiss,
+}: {
+  a: CompanyAnnouncementRow;
+  busy: boolean;
+  canProgress: boolean;
+  onProgress: (announcement: CompanyAnnouncementRow) => void;
+  onField?: (field: CheckField) => void;
+  onDismiss?: (announcement: CompanyAnnouncementRow, reason: DismissReason | null) => void | Promise<unknown>;
+}) {
+  const [checkOpen, setCheckOpen] = useState(false);
+  const title = a.title || "이름 없는 공고";
+  const amount = amountLabel(a.amountMaxWon);
+  const dismiss = onDismiss ? (reason: DismissReason | null) => onDismiss(a, reason) : undefined;
+  return (
+    <>
+      <tr>
+        <td className={TD}>
+          {a.url ? (
+            <a href={a.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-wedly-navy hover:underline">{title}</a>
+          ) : (
+            <span className="font-semibold text-wedly-navy">{title}</span>
+          )}
+          <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-wedly-hint text-wedly-t2">
+            <KindChip category={a.category} />
+            {a.agency && <span>{a.agency}</span>}
+            {amount && <span>{`지원 금액 ${amount}`}</span>}
+          </span>
+        </td>
+        <td className={`${TD} whitespace-nowrap`}>
+          <span className="inline-flex items-center gap-1.5">
+            <DDayBadge dDay={a.dDay} />
+            {a.applyEnd && <span className="text-wedly-hint text-wedly-t2">{dateLabel(a.applyEnd)}</span>}
+          </span>
+        </td>
+        <td className={TD}>
+          <TierCell tier={a.tier} unstructured={a.unstructured} tierReason={a.tierReason} />
+        </td>
+        <td className={`${TD} break-keep text-wedly-t1`}>{a.nextAction}</td>
+        <td className={TD}>
+          <CheckSummary
+            checkItems={a.checkItems}
+            checkCount={a.checkCount}
+            open={checkOpen}
+            onToggle={a.checkCount > 0 ? () => setCheckOpen((v) => !v) : undefined}
+          />
+        </td>
+        <td className={`${TD} text-right`}>
+          <div className="flex flex-col items-end gap-1.5">
+            {a.dismissed ? (
+              <DismissControl dismissed={a.dismissed} busy={busy} onDismiss={dismiss} />
+            ) : (
+              <>
+                <ProgressCell inProgress={!!a.progress} busy={busy} canProgress={canProgress} onProgress={() => onProgress(a)} />
+                <DismissControl dismissed={null} busy={busy} onDismiss={dismiss} />
+              </>
+            )}
+          </div>
+        </td>
+      </tr>
+      {/* 연락 예정 표는 칸이 좁아 좁은 칸 안에 목록을 넣지 않고 표 폭 전체를 쓴다. */}
+      {checkOpen && (
+        <tr>
+          <td colSpan={CONTACT_COLUMNS.length + 1} className={`${TD} bg-wedly-bg-page`}>
+            <CheckList items={a.checkItems} onField={onField} />
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+/**
+ * 업체 하나의 공고 표 — 받은 순서 그대로(맞을 확률 순·마감 순) 줄마다 마감·단계 딱지와 근거·다음 할 일·확인할 것·업무 현황을 보인다.
+ * 공고명 아래에 종류·기관·지원 금액을 두고, 「해당 없음」 줄은 사유 기록과 「되돌리기」만 보인다(`onDismiss` 가 없으면 기록만).
+ * 「판단 전」·「해당 없음」 묶음도 같은 표 모양이다.
+ */
 export function ContactAnnouncementTable({
   rows,
   customerKey,
   busyKey,
   canProgress = true,
   onProgress,
+  onField,
+  onDismiss,
 }: {
   rows: CompanyAnnouncementRow[];
   customerKey: string;
@@ -180,51 +279,35 @@ export function ContactAnnouncementTable({
   /** 끄면 「업무 현황에 추가」 단추를 그리지 않는다(업무 현황을 만들 권한이 없는 사람). 기본은 켬. */
   canProgress?: boolean;
   onProgress: (announcement: CompanyAnnouncementRow) => void;
+  /** 확인할 것의 업체 항목 이름을 누르면 그 칸(`field`)을 부른다. 없으면 이름은 글자다. */
+  onField?: (field: CheckField) => void;
+  /** 없으면 「해당 없음」 단추를 그리지 않는다(남긴 기록은 그대로 보인다). reason 이 null 이면 되돌리기. */
+  onDismiss?: (announcement: CompanyAnnouncementRow, reason: DismissReason | null) => void | Promise<unknown>;
 }) {
-  const columns = conditionColumns(rows, true);
-  // 마감 칸(딱지 56px + 날짜 11px 글자)은 140px 이면 한 줄에 들어간다. 조건 칸이 하나라 780px 표에서도 공고명이 넉넉하다.
   return (
     <div className={TABLE_BOX}>
-      <table className="w-full min-w-[780px] table-fixed border-collapse [&_tr:last-child>td]:border-b-0">
+      <table className="w-full min-w-[920px] table-fixed border-collapse lg:min-w-[840px] [&_tr:last-child>td]:border-b-0">
         <colgroup>
-          <col />
-          <col className="w-[112px]" />
-          <col className="w-[140px]" />
-          {columns.check && <col className="w-[24%]" />}
+          {CONTACT_COLUMNS.map((c) => <col key={c.head} className={c.width} />)}
           <col className={ACTION_COL} />
         </colgroup>
         <thead className="text-wedly-tablehead">
           <tr>
-            <th className={TH}>공고명</th>
-            <th className={TH}>종류</th>
-            <th className={TH}>마감</th>
-            {columns.check && <th className={TH}>확인할 조건</th>}
+            {CONTACT_COLUMNS.map((c) => <th key={c.head} className={TH}>{c.head}</th>)}
             <th className={TH}><span className="sr-only">업무 현황</span></th>
           </tr>
         </thead>
         <tbody>
           {rows.map((a) => (
-            <tr key={a.bucketKey}>
-              <td className={TD}>
-                {a.url ? (
-                  <a href={a.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-wedly-navy hover:underline">{a.title || "이름 없는 공고"}</a>
-                ) : (
-                  <span className="font-semibold text-wedly-navy">{a.title || "이름 없는 공고"}</span>
-                )}
-                {a.agency && <span className="mt-0.5 block text-wedly-hint text-wedly-t2">{a.agency}</span>}
-              </td>
-              <td className={TD}><KindChip category={a.category} /></td>
-              <td className={`${TD} whitespace-nowrap`}>
-                <span className="inline-flex items-center gap-1.5">
-                  <DDayBadge dDay={a.dDay} />
-                  {a.applyEnd && <span className="text-wedly-hint text-wedly-t2">{dateLabel(a.applyEnd)}</span>}
-                </span>
-              </td>
-              {columns.check && <td className={TD}><CheckCell toCheck={a.toCheck} gaps={a.gaps} unstructuredChip /></td>}
-              <td className={`${TD} text-right`}>
-                <ProgressCell inProgress={!!a.progress} busy={busyKey === `${customerKey}|${a.bucketKey}`} canProgress={canProgress} onProgress={() => onProgress(a)} />
-              </td>
-            </tr>
+            <AnnouncementLine
+              key={a.bucketKey}
+              a={a}
+              busy={busyKey === `${customerKey}|${a.bucketKey}`}
+              canProgress={canProgress}
+              onProgress={onProgress}
+              onField={onField}
+              onDismiss={onDismiss}
+            />
           ))}
         </tbody>
       </table>
@@ -233,7 +316,8 @@ export function ContactAnnouncementTable({
 }
 
 /**
- * 펼친 업체의 안쪽 — 읽는 중 · 오류(다시 불러오기) · 공고 표. 종류 거르기(kind)에 맞는 공고만 보인다.
+ * 펼친 업체의 안쪽 — 읽는 중 · 오류(다시 불러오기) · 「업체 상세 열기」 · 맞을 확률 순 공고 표 · 고르지 않은 단계라 숨긴 공고 수 ·
+ * 「판단 전」·「해당 없음」 접힌 묶음. 종류 거르기(kind)에 맞는 공고만 보이고, 고른 단계(tiers)에 없는 공고는 숨기고 몇 건인지만 알린다.
  * 연락 예정 업체 목록의 펼친 줄과 캘린더의 「고른 업체」 판이 같은 안쪽을 쓴다.
  */
 export function CompanyAnnouncementsPanel({
@@ -241,17 +325,29 @@ export function CompanyAnnouncementsPanel({
   kind,
   customerKey,
   busyKey,
+  tiers,
   canProgress = true,
   onProgress,
+  onField,
+  onDismiss,
+  onOpenCompany,
   onRetry,
 }: {
   state: CompanyState | undefined;
   kind: string;
   customerKey: string;
   busyKey: string;
+  /** 고른 맞을 확률 단계 — 이 밖의 단계 공고는 표에서 숨긴다. */
+  tiers: readonly DeadlineTier[];
   /** 끄면 「업무 현황에 추가」 단추를 그리지 않는다(업무 현황을 만들 권한이 없는 사람). 기본은 켬. */
   canProgress?: boolean;
   onProgress: (announcement: CompanyAnnouncementRow) => void;
+  /** 확인할 것의 업체 항목 이름을 누르면 그 칸(`field`)을 부른다. 없으면 이름은 글자다. */
+  onField?: (field: CheckField) => void;
+  /** 없으면 「해당 없음」 단추를 그리지 않는다(남긴 기록은 그대로 보인다). reason 이 null 이면 되돌리기. */
+  onDismiss?: (announcement: CompanyAnnouncementRow, reason: DismissReason | null) => void;
+  /** 있으면 표 위에 「업체 상세 열기」 단추를 그린다 — 칸 없이 그 업체 상세를 연다. */
+  onOpenCompany?: () => void;
   onRetry: () => void;
 }) {
   if (!state || state.status === "loading") {
@@ -265,5 +361,45 @@ export function CompanyAnnouncementsPanel({
       </p>
     );
   }
-  return <ContactAnnouncementTable rows={announcementsFor(state.rows, kind)} customerKey={customerKey} busyKey={busyKey} canProgress={canProgress} onProgress={onProgress} />;
+  const rows = announcementsFor(state.rows, kind);
+  const parts = partitionLines(rows, tiers);
+  const dismissed = [...parts.dismissed, ...announcementsFor(state.dismissed, kind)];
+  const hint = hiddenHint(parts.hidden, "공고");
+  const table = (list: CompanyAnnouncementRow[]) => (
+    <ContactAnnouncementTable
+      rows={list}
+      customerKey={customerKey}
+      busyKey={busyKey}
+      canProgress={canProgress}
+      onProgress={onProgress}
+      onField={onField}
+      onDismiss={onDismiss}
+    />
+  );
+  return (
+    <>
+      {onOpenCompany && (
+        <div className="mb-2 flex justify-end">
+          <button type="button" className={buttonClass("secondary", "xs")} onClick={onOpenCompany}>업체 상세 열기</button>
+        </div>
+      )}
+      {parts.main.length > 0 && table(parts.main)}
+      {hint && <p className="mt-2 text-wedly-hint text-wedly-t2">{hint}</p>}
+      {parts.unstructured.length > 0 && (
+        <div className="mt-2.5">
+          <FoldGroup key="unstructured" title={unstructuredTitle(parts.unstructured.length, "공고")} defaultOpen={parts.main.length === 0}>
+            {table(parts.unstructured)}
+          </FoldGroup>
+        </div>
+      )}
+      {dismissed.length > 0 && (
+        <div className="mt-2.5">
+          <FoldGroup key="dismissed" title={dismissedTitle(dismissed.length, "공고")}>
+            {table(dismissed)}
+          </FoldGroup>
+        </div>
+      )}
+      {rows.length === 0 && dismissed.length === 0 && <p className="py-2 text-wedly-sub text-wedly-t2">지금 거르기 조건에서 맞는 공고가 없습니다.</p>}
+    </>
+  );
 }
