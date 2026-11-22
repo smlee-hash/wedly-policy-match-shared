@@ -14,6 +14,7 @@ import {
   readSummary,
 } from "./read";
 import type { DeadlineScope } from "./scope";
+import { nextActionOf, tierOf } from "./tier";
 import {
   CONTACTS_DEFAULT_DAYS,
   CONTACTS_INCLUDE_UNSTRUCTURED_DEFAULT,
@@ -141,7 +142,7 @@ function memorySource(data: {
       matches.filter((m) => inKeys(f.customerKeys, m.customerKey) && (!f.bucketKeys || f.bucketKeys.includes(m.bucketKey)))),
     matchKeys: vi.fn(async (f: { customerKeys: string[] | null; bucketKeys?: string[] }) =>
       matches.filter((m) => inKeys(f.customerKeys, m.customerKey) && (!f.bucketKeys || f.bucketKeys.includes(m.bucketKey)))
-        .map(({ customerKey, bucketKey, verdict, toCheck }) => ({ customerKey, bucketKey, verdict, toCheck }))),
+        .map(({ customerKey, bucketKey, verdict, toCheck, fitLabels }) => ({ customerKey, bucketKey, verdict, toCheck, fitLabels }))),
     progress: vi.fn(async (f: { customerKeys: string[] | null; bucketKeys?: string[] }) =>
       progress.filter((p) => inKeys(f.customerKeys, p.customerKey) && (!f.bucketKeys || f.bucketKeys.includes(p.bucketKey)))),
     lastRun: vi.fn(async () => LAST_RUN),
@@ -150,6 +151,21 @@ function memorySource(data: {
 }
 
 const keysOf = (rows: { bucketKey: string }[]) => rows.map((r) => r.bucketKey);
+
+/** 단계 칸이 저장되지 않은 옛 줄 — 읽을 때 맞은 조건(fitLabels)·확인할 것(toCheck)으로 tierOf 를 부른 값과 같아야 한다(NO.789). */
+function tierFields(m: ReadMatch, inProgress = false) {
+  const t = tierOf({ verdict: m.verdict, fit: m.fitLabels.map((label) => ({ label, verdict: "pass" as const, note: "" })), toCheck: m.toCheck });
+  const unstructured = isUnstructuredMatch(m);
+  return {
+    tier: t.tier,
+    tierScore: t.score,
+    tierReason: t.reason,
+    checkItems: t.checkItems,
+    checkCount: t.checkItems.filter((c) => c.group !== "ref").length,
+    nextAction: nextActionOf({ tier: t.tier, checkItems: t.checkItems, unstructured, inProgress }),
+    unstructured,
+  };
+}
 
 /** 연락 예정 줄 중 그 분야 공고가 하나라도 있는 업체 수 — 요약 카드 숫자가 이것과 같아야 한다. */
 const withKind = (rows: ContactCompanyRow[], category: string) => rows.filter((r) => r.kinds.some((k) => k.category === category)).length;
@@ -305,7 +321,13 @@ describe("readBucketCompanies — 묶음 하나 펼치기", () => {
       customerKey: "b:1", companyName: "삼영식품", consultant: "담당 삼영식품", consultantNames: ["담당 삼영식품"],
       statusText: "계약 완료", fitLabels: ["업력"], toCheck: [], gaps: [],
       progress: { trackId: "t-1", byName: "김컨설", via: "web", at: "2026-11-11T02:00:00.000Z" },
+      verdict: "fit",
+      tier: "high", tierScore: 100, tierReason: "조건 1개 모두 맞음", checkItems: [], checkCount: 0,
+      nextAction: "업무 현황에서 진행 중", unstructured: false, amountMaxWon: null, dismissed: null,
     });
+    expect(view?.fit[1]).toMatchObject(tierFields(match("b:1", "B7", "fit"), true));
+    expect(view?.rows.map((r) => r.customerKey)).toEqual(["p:3", "b:1"]);
+    expect(view?.tierCounts).toEqual({ high: 2, mid: 0, low: 0, unstructured: 0, dismissed: 0 });
     expect(view?.fit[0].progress).toBeNull();
   });
 
@@ -344,12 +366,25 @@ describe("readContacts — 연락 예정 업체", () => {
         nearestApplyEnd: "2026-11-12", nearestDDay: 0,
         kinds: [{ category: "", count: 1, nearestDDay: 0 }],
         announcementCount: 1, progressCount: 0,
+        bestTier: "high",
+        tiers: { high: 1, mid: 0, low: 0, unstructured: 0 },
+        best: {
+          bucketKey: "B0", title: "공고 B0", category: "", url: "https://example.com/B0", applyEnd: "2026-11-12", dDay: 0, amountMaxWon: null,
+          ...tierFields(match("b:1", "B0", "fit")),
+        },
       },
       {
         customerKey: "p:3", companyName: "다라테크", consultant: "담당 다라테크", consultantNames: ["담당 다라테크"], statusText: "계약 완료",
         nearestApplyEnd: "2026-11-15", nearestDDay: 3,
         kinds: [{ category: "정책자금", count: 1, nearestDDay: 7 }, { category: "무상지원금", count: 1, nearestDDay: 3 }],
         announcementCount: 2, progressCount: 0,
+        // B3 「업력 3년 이상」은 공고 확인(−15)이라 보통 — 가장 좋은 줄은 맞음인 B7.
+        bestTier: "high",
+        tiers: { high: 1, mid: 1, low: 0, unstructured: 0 },
+        best: {
+          bucketKey: "B7", title: "공고 B7", category: "정책자금", url: "https://example.com/B7", applyEnd: "2026-11-19", dDay: 7, amountMaxWon: null,
+          ...tierFields(match("p:3", "B7", "fit")),
+        },
       },
     ]);
     const bucketKeys = src.matches.mock.calls.flatMap((c) => c[0].bucketKeys ?? ["(전부)"]);
@@ -515,6 +550,7 @@ describe("readSummary — 요약 카드·탭 옆 숫자", () => {
     const src = memorySource();
     expect(await readSummary(NOBODY, NOW, src)).toEqual({
       within7Companies: 0, contacts: 0, buckets: { d7: 0, d14: 0, d30: 0, all: 0 }, contactKinds: { policyFund: 0, freeGrant: 0, other: 0 },
+      today: { contactNow: 0, checkFirst: 0, inProgress: 0 },
     });
     expect(src.matchCounts).not.toHaveBeenCalled();
     expect(src.matchKeys).not.toHaveBeenCalled();
@@ -534,11 +570,14 @@ describe("readExport — 엑셀 줄", () => {
       ["공고 B20", "삼영식품", "unverified", false],
       ["공고 BALW", "삼영식품", "fit", false],
     ]);
+    const b3 = tierFields(match("p:3", "B3", "unverified", ["업력 3년 이상"]));
     expect(view.rows[1]).toEqual({
       applyEnd: "2026-11-15", dDay: 3, title: "공고 B3", agency: "중소벤처기업부", category: "무상지원금", url: "https://example.com/B3",
       companyName: "다라테크", consultant: "담당 다라테크", statusText: "계약 완료", verdict: "unverified",
       fitLabels: [], toCheck: ["업력 3년 이상"], gaps: ["매출액"], inProgress: false,
+      tier: b3.tier, tierReason: b3.tierReason, nextAction: b3.nextAction, unstructured: false, dismissedReason: "",
     });
+    expect(view.rows[1].tier).toBe("mid");
     expect(view.rows[6]).toMatchObject({ applyEnd: null, dDay: null });
     expect(view).toMatchObject({ total: 7, truncated: false });
   });
