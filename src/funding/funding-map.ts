@@ -237,7 +237,7 @@ export const REGION_SCOPE_UNKNOWN = "지역 제한 여부 확인";
 export const SCOPE_UNKNOWN_TO_CHECK: ReadonlySet<string> = new Set([INDUSTRY_SCOPE_UNKNOWN, REGION_SCOPE_UNKNOWN]);
 
 /** 분류하지 못한 원문을 그대로 줄인 확인할 것(「조건 확인: …」·「제외 조건: …」). */
-const RAW_TO_CHECK = /^(?:조건 확인|제외 조건): /;
+export const RAW_TO_CHECK = /^(?:조건 확인|제외 조건): /;
 
 /** 조건 정리가 안 된 확인할 것 하나의 무게 — 조건 수를 모른다. */
 const GENERIC_WEIGHT = 6;
