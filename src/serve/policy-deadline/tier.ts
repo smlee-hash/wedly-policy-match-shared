@@ -334,7 +334,7 @@ export function tierOf(input: TierInput, config: TierConfig = DEFAULT_TIER_CONFI
   const fitPass = input.fit.filter((f) => f.verdict === "pass").length;
   const unstructured = input.verdict === "unverified" && input.toCheck.every((t) => GENERIC_TO_CHECK.has(t));
   const lowOf = (reason: string): TierResult => ({ tier: "low", score: 0, reason, checkItems: [], fitTotal, fitPass, unstructured });
-  if (unstructured) return lowOf("공고 조건 정리 전");
+  if (unstructured) return lowOf("공고 조건을 아직 정리하지 않음");
   if (input.verdict !== "fit" && input.verdict !== "unverified") return lowOf("조건이 맞지 않음");
 
   // 같은 이름표는 한 번만(먼저 나온 것), rank 순 — 같은 rank 는 들어온 순서 그대로(sort 는 안정 정렬).

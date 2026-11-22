@@ -125,7 +125,7 @@ function unstructured(customerKey: string, bucketKey: string): ReadMatch {
     gaps: [],
     tier: "low",
     tierScore: 0,
-    tierReason: "공고 조건 정리 전",
+    tierReason: "공고 조건을 아직 정리하지 않음",
     checkItems: [],
     amountMaxWon: null,
   };

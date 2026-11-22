@@ -52,7 +52,7 @@ const maba = line("cC", "마바상사", {
   verdict: "unverified", tier: "low", tierScore: 40, tierReason: "조건 6개 중 2개 맞음", checkItems: [EXPORT], checkCount: 1, nextAction: "공고 원문에서 자격 먼저 확인",
 });
 const saa = line("cD", "사아상사", {
-  verdict: "unverified", tier: "low", tierScore: 0, tierReason: "공고 조건 정리 전", nextAction: "공고 조건 정리 대기", unstructured: true,
+  verdict: "unverified", tier: "low", tierScore: 0, tierReason: "공고 조건을 아직 정리하지 않음", nextAction: "공고 조건 정리 대기", unstructured: true,
   toCheck: ["공고 원문 확인(조건 정리 전)"],
 });
 const jacha = line("cE", "자차상사", { dismissed: { reason: "이미 신청함", byName: "김컨설", at: "2026-11-21T01:00:00.000Z" } });

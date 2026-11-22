@@ -117,7 +117,7 @@ export const LIST_DEFAULT_DAYS: DaysFilter = 30;
 /** 「연락 예정 업체」 기본 마감 거르기. */
 export const CONTACTS_DEFAULT_DAYS: DaysFilter = 14;
 /**
- * 「연락 예정 업체」 기본에 「조건 정리 전」 판정 줄을 넣을지 — 대표님 확인 2번(추천: 넣지 않음, 「조건 정리 전 포함」을 켜야 보임).
+ * 「연락 예정 업체」 기본에 「조건 정리 전」 판정 줄을 넣을지 — 대표님 확인 2번(추천: 넣지 않음, 화면의 「판단 전 포함」을 켜야 보임).
  * 기본 목록과 요약 숫자가 모두 이 값 하나를 따른다. 답이 달라지면 이 값만 바꾼다.
  */
 export const CONTACTS_INCLUDE_UNSTRUCTURED_DEFAULT = false;

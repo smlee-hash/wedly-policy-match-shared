@@ -78,9 +78,9 @@ describe("tierOf — 점수와 단계", () => {
     expect(nextActionOf({ tier: t.tier, checkItems: t.checkItems, unstructured: false, inProgress: false })).toBe("체납 정리 확인 후 연락");
   });
 
-  it("조건 정리 전 = 낮음 0점, 근거 「공고 조건 정리 전」, 다음 할 일 「공고 조건 정리 대기」", () => {
+  it("조건 정리 전 = 낮음 0점, 근거 「공고 조건을 아직 정리하지 않음」, 다음 할 일 「공고 조건 정리 대기」", () => {
     const t = tierOf(input({ toCheck: ["공고 원문 확인(조건 정리 전)"] }));
-    expect(t).toMatchObject({ tier: "low", score: 0, reason: "공고 조건 정리 전", unstructured: true, checkItems: [] });
+    expect(t).toMatchObject({ tier: "low", score: 0, reason: "공고 조건을 아직 정리하지 않음", unstructured: true, checkItems: [] });
     expect(nextActionOf({ tier: t.tier, checkItems: t.checkItems, unstructured: true, inProgress: false })).toBe("공고 조건 정리 대기");
     // 확인 필요인데 확인할 것이 하나도 없어도 조건 정리 전(읽기의 isUnstructuredMatch 와 같은 뜻)
     expect(tierOf(input({})).unstructured).toBe(true);
