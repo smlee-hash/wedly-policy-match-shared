@@ -24,7 +24,10 @@ import {
 } from "./deadline-view";
 
 function listRow(over: Partial<AnnouncementListRow>): AnnouncementListRow {
-  return { bucketKey: "b1", repAnnouncementId: "a1", title: "공고", agency: "기관", category: "정책자금", url: "", applyEnd: "2026-11-20", dDay: 8, fit: 0, unverified: 0, summary: "", ...over };
+  return {
+    bucketKey: "b1", repAnnouncementId: "a1", title: "공고", agency: "기관", category: "정책자금", url: "", applyEnd: "2026-11-20", dDay: 8, fit: 0, unverified: 0, summary: "",
+    tiers: { high: 0, mid: 0, low: 0 }, unstructured: 0, bestTier: null, ...over,
+  };
 }
 
 function contact(over: Partial<ContactCompanyRow>): ContactCompanyRow {
@@ -39,12 +42,21 @@ function contact(over: Partial<ContactCompanyRow>): ContactCompanyRow {
     kinds: [{ category: "정책자금", count: 1, nearestDDay: 3 }],
     announcementCount: 1,
     progressCount: 0,
+    bestTier: "high",
+    tiers: { high: 1, mid: 0, low: 0, unstructured: 0 },
+    best: {
+      bucketKey: "b1", title: "공고", category: "정책자금", url: "", applyEnd: "2026-11-15", dDay: 3, amountMaxWon: null,
+      tier: "high", tierScore: 100, tierReason: "", checkItems: [], checkCount: 0, nextAction: "", unstructured: false,
+    },
     ...over,
   };
 }
 
 function ann(over: Partial<CompanyAnnouncementRow>): CompanyAnnouncementRow {
-  return { bucketKey: "b1", repAnnouncementId: "a1", title: "공고", agency: "", category: "정책자금", url: "", applyEnd: "2026-11-20", dDay: 8, verdict: "fit", fitLabels: [], toCheck: [], gaps: [], progress: null, ...over };
+  return {
+    bucketKey: "b1", repAnnouncementId: "a1", title: "공고", agency: "", category: "정책자금", url: "", applyEnd: "2026-11-20", dDay: 8, verdict: "fit", fitLabels: [], toCheck: [], gaps: [], progress: null,
+    tier: "high", tierScore: 100, tierReason: "", checkItems: [], checkCount: 0, nextAction: "", unstructured: false, amountMaxWon: null, dismissed: null, ...over,
+  };
 }
 
 describe("마감 딱지", () => {
@@ -150,6 +162,7 @@ describe("엑셀·알림·주소", () => {
     const row: ExportRow = {
       applyEnd: null, dDay: null, title: "공고", agency: "기관", category: "", url: "https://example.com", companyName: "가나", consultant: "",
       statusText: "진행", verdict: "unverified", fitLabels: ["업력"], toCheck: ["매출", "지역"], gaps: ["매출액"], inProgress: true,
+      tier: "mid", tierReason: "", nextAction: "", unstructured: false, dismissedReason: "",
     };
     const [line] = exportBody([row]);
     expect(line).toHaveLength(EXPORT_HEADERS.length);

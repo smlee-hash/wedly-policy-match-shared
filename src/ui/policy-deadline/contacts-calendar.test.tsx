@@ -43,7 +43,13 @@ function contact(over: Partial<ContactCompanyRow>): ContactCompanyRow {
   return {
     customerKey: "c1", companyName: "가나상사", consultant: "김컨설", consultantNames: ["김컨설"], statusText: "",
     nearestApplyEnd: "2026-11-20", nearestDDay: 6, kinds: [{ category: "정책자금", count: 2, nearestDDay: 6 }],
-    announcementCount: 2, progressCount: 0, ...over,
+    announcementCount: 2, progressCount: 0,
+    bestTier: "high", tiers: { high: 2, mid: 0, low: 0, unstructured: 0 },
+    best: {
+      bucketKey: "b1", title: "공고", category: "정책자금", url: "", applyEnd: "2026-11-20", dDay: 6, amountMaxWon: null,
+      tier: "high", tierScore: 100, tierReason: "", checkItems: [], checkCount: 0, nextAction: "", unstructured: false,
+    },
+    ...over,
   };
 }
 const entry = (over: Partial<CalendarEntry>): CalendarEntry => ({ customerKey: "c1", companyName: "가나상사", consultant: "김컨설", day: "2026-11-20", dDay: 6, count: 2, ...over });
