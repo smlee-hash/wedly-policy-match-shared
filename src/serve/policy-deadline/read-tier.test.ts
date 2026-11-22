@@ -216,6 +216,17 @@ const CONTACT_14 = { days: 14, includeUnstructured: false, includeProgress: fals
 const ASK_TAX = "고객에게 연락해 신청 안내 · 통화 때 세금 체납 확인";
 const ASK_CALL = "고객에게 연락해 고용보험 가입 여부 확인";
 
+// 다온상사(b:13)의 두 줄 — 연락 예정 업체 줄의 가장 좋은 줄·종류별 가장 좋은 줄.
+const B13_T5 = {
+  bucketKey: "T5", title: "공고 T5", category: "무상지원금", url: "https://example.com/T5", applyEnd: "2026-11-17", dDay: 5, amountMaxWon: null,
+  tier: "high", tierScore: 92, tierReason: "저장된 근거 b:13 T5", checkItems: [TAX], checkCount: 1, nextAction: ASK_TAX, unstructured: false,
+} as const;
+const B13_T7 = {
+  bucketKey: "T7", title: "공고 T7", category: "정책자금", url: "https://example.com/T7", applyEnd: "2026-11-19", dDay: 7, amountMaxWon: null,
+  tier: "mid", tierScore: 80, tierReason: "저장된 근거 b:13 T7", checkItems: [RAW], checkCount: 1,
+  nextAction: "공고 원문에서 자격 먼저 확인", unstructured: false,
+} as const;
+
 describe("readTierConfig — 맞을 확률 설정", () => {
   it("설정 자리가 없으면 기본값, 있으면 맞는 값만 기본값 위에 덮는다", async () => {
     expect(await readTierConfig({})).toEqual(DEFAULT_TIER_CONFIG);
@@ -378,14 +389,14 @@ describe("readContacts — 연락 예정 업체를 맞을 확률 순으로", () 
     expect(view.companies.find((c) => c.customerKey === "b:13")).toEqual({
       customerKey: "b:13", companyName: "다온상사", consultant: "담당 다온상사", consultantNames: ["담당 다온상사"], statusText: "계약 완료",
       nearestApplyEnd: "2026-11-17", nearestDDay: 5,
-      kinds: [{ category: "정책자금", count: 1, nearestDDay: 7 }, { category: "무상지원금", count: 1, nearestDDay: 5 }],
+      kinds: [
+        { category: "정책자금", count: 1, nearestDDay: 7, best: B13_T7 },
+        { category: "무상지원금", count: 1, nearestDDay: 5, best: B13_T5 },
+      ],
       announcementCount: 2, progressCount: 0,
       bestTier: "high",
       tiers: { high: 1, mid: 1, low: 0, unstructured: 0 },
-      best: {
-        bucketKey: "T5", title: "공고 T5", category: "무상지원금", url: "https://example.com/T5", applyEnd: "2026-11-17", dDay: 5, amountMaxWon: null,
-        tier: "high", tierScore: 92, tierReason: "저장된 근거 b:13 T5", checkItems: [TAX], checkCount: 1, nextAction: ASK_TAX, unstructured: false,
-      },
+      best: B13_T5,
     });
     // 나래전자 = 해당 없음(T7)을 뺀 T10 하나.
     expect(view.companies.find((c) => c.customerKey === "b:12")).toMatchObject({
@@ -393,6 +404,23 @@ describe("readContacts — 연락 예정 업체를 맞을 확률 순으로", () 
     });
     // 사랑상회는 유일한 줄이 해당 없음이라 빠진다.
     expect(view.companies.find((c) => c.customerKey === "b:17")).toBeUndefined();
+  });
+
+  it("종류마다 그 종류의 가장 좋은 줄 — 종류로 거를 때 화면이 그 줄로 보이고 줄 세운다", async () => {
+    const view = await readContacts(ALL, { ...CONTACT_14, includeProgress: true, sort: "tier" }, NOW, tierSource());
+    // 가온식품: 정책자금 두 줄(T7 높음 · T3 보통 진행 중) → 정책자금의 가장 좋은 줄은 T7.
+    const gaon = view.companies.find((c) => c.customerKey === "b:11");
+    expect(gaon?.kinds).toHaveLength(1);
+    expect(gaon?.kinds[0]).toMatchObject({ category: "정책자금", count: 2, nearestDDay: 3, best: { bucketKey: "T7", tier: "high", checkCount: 0 } });
+    expect(gaon?.best.bucketKey).toBe("T7");
+    // 단계로 거르면 종류의 가장 좋은 줄도 남은 줄에서 고른다.
+    const mid = await readContacts(ALL, { ...CONTACT_14, includeProgress: true, sort: "tier", tiers: ["mid"] }, NOW, tierSource());
+    expect(mid.companies.find((c) => c.customerKey === "b:11")?.kinds[0]).toMatchObject({
+      count: 1, best: { bucketKey: "T3", nextAction: "업무 현황에서 진행 중" },
+    });
+    // 다온상사: 종류별 가장 좋은 줄이 각자 다르다.
+    const daon = view.companies.find((c) => c.customerKey === "b:13");
+    expect(daon?.kinds.map((k) => [k.category, k.best.bucketKey])).toEqual([["정책자금", "T7"], ["무상지원금", "T5"]]);
   });
 
   it("단계 거르기 — 그 단계 줄만 남기고, 남은 줄이 없는 업체는 뺀다", async () => {
