@@ -2,6 +2,7 @@
 // 최소 폭에서도 폭을 두지 않은 칸(공고 표의 공고명·업체 표의 마지막 칸)이 글자를 읽을 만큼 남아야 한다.
 // 2026-11-15 운영 QA(390px 화면): 두 조건 칸이 다 나온 공고 표가 760px 에서 고정 칸·% 칸에 754px 을 내줘 공고명이 한 글자씩 줄을 바꿨다.
 // 2026-11-16 「맞은 조건」 칸을 뺐다(사장님) — 맞은 조건이 있는 줄도 조건 칸은 「확인할 조건」 하나다.
+// 2026-11-22 NO.789 업체 표 칸 = 업체명·담당·맞을 확률·다음 할 일·확인할 것·업무 현황(마지막 폭 없는 칸 = 확인할 것).
 import { describe, expect, it, vi } from "vitest";
 import { CompanyTable, ContactAnnouncementTable } from "./DeadlineTables";
 import { byTag, find, findAll, headsOf, mountTree, type HostNode } from "./test-kit";
@@ -14,11 +15,15 @@ vi.mock("react", async (importOriginal) => ({
 const announcement = (extra: Partial<{ fitLabels: string[]; toCheck: string[]; gaps: string[] }>) => ({
   bucketKey: "b1", repAnnouncementId: "a1", title: "2026년 시설농업 AI로봇 실증기반 구축사업 기술지원 수혜기업 모집 공고", agency: "기관",
   category: "R&D·기술", url: "", applyEnd: "2026-11-15", dDay: 0, verdict: "unverified" as const,
-  fitLabels: [], toCheck: [], gaps: [], progress: null, ...extra,
+  fitLabels: [], toCheck: [], gaps: [], progress: null,
+  tier: "mid" as const, tierScore: 77, tierReason: "조건 6개 중 4개 맞음", checkItems: [], checkCount: 0, nextAction: "확인 후 연락", unstructured: false,
+  amountMaxWon: null, dismissed: null, ...extra,
 });
 const company = (extra: Partial<{ fitLabels: string[]; toCheck: string[]; gaps: string[] }>) => ({
   customerKey: "cA", companyName: "가나상사", consultant: "김컨설", consultantNames: ["김컨설"], statusText: "계약",
-  fitLabels: [], toCheck: [], gaps: [], progress: null, ...extra,
+  verdict: "unverified" as const, fitLabels: [], toCheck: [], gaps: [], progress: null,
+  tier: "mid" as const, tierScore: 77, tierReason: "조건 6개 중 4개 맞음", checkItems: [], checkCount: 0, nextAction: "확인 후 연락", unstructured: false,
+  amountMaxWon: null, dismissed: null, ...extra,
 });
 const BOTH = { fitLabels: ["업력 3년 이상"], toCheck: ["수출 실적"] };
 const FIT = { fitLabels: ["업력 3년 이상"] };
@@ -67,7 +72,7 @@ describe("좁은 화면의 펼친 표", () => {
   ])("업체 표(%s) — 최소 폭에서 마지막 칸이 100px 넘게 남는다", (_, showConsultant) => {
     const t = tableOf(
       mountTree(
-        <CompanyTable rows={[company(BOTH)]} columns={{ check: true }} busyKey="" bucketKey="b1" showConsultant={showConsultant} onProgress={() => {}} />,
+        <CompanyTable rows={[company(BOTH)]} busyKey="" bucketKey="b1" showConsultant={showConsultant} onProgress={() => {}} />,
       ).tree,
     );
     // 「진행상태」 칸은 두지 않는다(2026-11-16 사장님).
@@ -80,7 +85,7 @@ describe("좁은 화면의 펼친 표", () => {
   // 가로 밀기 상자에 잘리지 않고 문서 폭을 932px 로 늘렸다. 밀기 상자가 기준 상자(relative)여야 그 글자가 상자 안에서 잘린다.
   it.each([
     ["공고 표", () => <ContactAnnouncementTable rows={[announcement(BOTH)]} customerKey="cA" busyKey="" onProgress={() => {}} />],
-    ["업체 표", () => <CompanyTable rows={[company(BOTH)]} columns={{ check: true }} busyKey="" bucketKey="b1" onProgress={() => {}} />],
+    ["업체 표", () => <CompanyTable rows={[company(BOTH)]} busyKey="" bucketKey="b1" onProgress={() => {}} />],
   ])("%s — 가로 밀기 상자가 기준 상자라 안쪽 절대 위치 글자(sr-only)가 문서를 넓히지 않는다", (_, render) => {
     const tree = mountTree(render()).tree;
     const box = find(tree, (n) => n.kids.some((k) => typeof k !== "string" && k.tag === "table"));

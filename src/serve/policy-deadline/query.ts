@@ -1,12 +1,15 @@
 /**
  * 정책별 고객사 읽기 통로의 주소 글자(`URLSearchParams`) → 질의. ERP `api/policy-track/deadline/route.ts` 의 해석과 오류 글자를 그대로 옮겼다.
  * 잘못된 값은 `BadDeadlineQuery`(통로가 400 BAD_REQUEST 로 응답)를 던진다. 거르는 순서(view → scope → 보기별 값)도 원본과 같다.
+ * 정렬(`sort`)은 list·contacts·company·export 만, 단계(`tiers`)는 contacts·company 만 읽는다(NO.789 — 원본에 없는 질의).
  */
 import {
   CONTACTS_DEFAULT_DAYS,
   CONTACTS_INCLUDE_UNSTRUCTURED_DEFAULT,
   LIST_DEFAULT_DAYS,
   type DaysFilter,
+  type DeadlineTier,
+  type SortOrder,
 } from "./types";
 
 export const DEADLINE_VIEWS = ["list", "bucket", "contacts", "company", "summary", "export"] as const;
@@ -16,6 +19,9 @@ export type DeadlineView = (typeof DEADLINE_VIEWS)[number];
 export type RequestedScope = "mine" | "all" | null;
 
 const DAYS: Record<string, DaysFilter> = { "7": 7, "14": 14, "30": 30, all: "all" };
+const TIER_WORDS: readonly DeadlineTier[] = ["high", "mid", "low"];
+/** 정렬을 안 정하면 맞을 확률 순. */
+const DEFAULT_SORT: SortOrder = "tier";
 const CUSTOMER_KEY = /^[bp]:\d{1,64}$/;
 
 /** 잘못된 질의 — 통로가 400 BAD_REQUEST 와 이 글자로 응답한다. */
@@ -30,18 +36,25 @@ export interface ContactFilter {
   days: DaysFilter;
   includeUnstructured: boolean;
   includeProgress: boolean;
+  sort: SortOrder;
+  /** 남길 단계 — 비면(키 없음) 거르지 않는다. */
+  tiers?: DeadlineTier[];
 }
 
 export type DeadlineQuery =
-  | { view: "list"; scope: RequestedScope; days: DaysFilter; hideEmpty: boolean }
+  | { view: "list"; scope: RequestedScope; days: DaysFilter; hideEmpty: boolean; sort: SortOrder }
   | { view: "bucket"; scope: RequestedScope; bucketKey: string }
   | ({ view: "contacts"; scope: RequestedScope } & ContactFilter)
   | ({ view: "company"; customerKey: string } & ContactFilter)
   | { view: "summary"; scope: RequestedScope }
-  | { view: "export"; scope: RequestedScope; days: DaysFilter; fitOnly: boolean; category?: string };
+  | { view: "export"; scope: RequestedScope; days: DaysFilter; fitOnly: boolean; sort: SortOrder; category?: string };
 
 function isView(value: string): value is DeadlineView {
   return (DEADLINE_VIEWS as readonly string[]).includes(value);
+}
+
+function isTierWord(value: string): value is DeadlineTier {
+  return (TIER_WORDS as readonly string[]).includes(value);
 }
 
 function daysOf(raw: string | null, fallback: DaysFilter): DaysFilter {
@@ -64,12 +77,30 @@ function scopeOf(raw: string | null): RequestedScope {
   throw new BadDeadlineQuery("보기 범위가 올바르지 않습니다.");
 }
 
+function sortOf(raw: string | null): SortOrder {
+  if (raw === null || raw === "") return DEFAULT_SORT;
+  if (raw === "tier" || raw === "deadline") return raw;
+  throw new BadDeadlineQuery("정렬 값이 올바르지 않습니다.");
+}
+
+/** 쉼표로 이은 단계(예: "high,mid") — 겹친 낱말은 한 번만. 비면 undefined(거르지 않음), 모르는 낱말이 있으면 400. */
+function tiersOf(raw: string | null): DeadlineTier[] | undefined {
+  if (raw === null || raw === "") return undefined;
+  const tiers: DeadlineTier[] = [];
+  for (const word of raw.split(",")) {
+    if (!isTierWord(word)) throw new BadDeadlineQuery("단계 값이 올바르지 않습니다.");
+    if (!tiers.includes(word)) tiers.push(word);
+  }
+  return tiers;
+}
+
 function contactFilterOf(q: URLSearchParams): ContactFilter {
-  return {
-    days: daysOf(q.get("days"), CONTACTS_DEFAULT_DAYS),
-    includeUnstructured: flagOf(q.get("includeUnstructured"), CONTACTS_INCLUDE_UNSTRUCTURED_DEFAULT),
-    includeProgress: flagOf(q.get("includeProgress"), false),
-  };
+  const days = daysOf(q.get("days"), CONTACTS_DEFAULT_DAYS);
+  const includeUnstructured = flagOf(q.get("includeUnstructured"), CONTACTS_INCLUDE_UNSTRUCTURED_DEFAULT);
+  const includeProgress = flagOf(q.get("includeProgress"), false);
+  const sort = sortOf(q.get("sort"));
+  const tiers = tiersOf(q.get("tiers"));
+  return { days, includeUnstructured, includeProgress, sort, ...(tiers !== undefined ? { tiers } : {}) };
 }
 
 export function parseDeadlineQuery(q: URLSearchParams): DeadlineQuery {
@@ -78,7 +109,13 @@ export function parseDeadlineQuery(q: URLSearchParams): DeadlineQuery {
   const scope = scopeOf(q.get("scope"));
 
   if (view === "list") {
-    return { view, scope, days: daysOf(q.get("days"), LIST_DEFAULT_DAYS), hideEmpty: flagOf(q.get("hideEmpty"), true) };
+    return {
+      view,
+      scope,
+      days: daysOf(q.get("days"), LIST_DEFAULT_DAYS),
+      hideEmpty: flagOf(q.get("hideEmpty"), true),
+      sort: sortOf(q.get("sort")),
+    };
   }
   if (view === "bucket") {
     const bucketKey = (q.get("bucket") ?? "").trim();
@@ -100,6 +137,7 @@ export function parseDeadlineQuery(q: URLSearchParams): DeadlineQuery {
     scope,
     days: daysOf(q.get("days"), LIST_DEFAULT_DAYS),
     fitOnly: flagOf(q.get("fitOnly"), false),
+    sort: sortOf(q.get("sort")),
     ...(category !== null ? { category } : {}),
   };
 }

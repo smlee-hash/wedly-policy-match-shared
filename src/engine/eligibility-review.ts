@@ -28,6 +28,7 @@ import type { FitVerdict } from "./recommend-score";
 import {
   GENERIC_TO_CHECK,
   INDUSTRY_SCOPE_UNKNOWN,
+  PRE_STRUCTURE_TO_CHECK,
   REGION_SCOPE_UNKNOWN,
   SCOPE_UNKNOWN_TO_CHECK,
   toCheckWeight,
@@ -1179,7 +1180,7 @@ export function reviewEligibility(input: EligibilityInput): EligibilityReview {
     const regionKnown = anyRegionPass || nationwideRegion || sourceRegionSame || titleRegionSame;
     if (reg !== "all" && reg !== "restricted" && !regionKnown) addCheck(REGION_SCOPE_UNKNOWN);
   }
-  if (input.ruleOnly) addCheck("공고 원문 확인(조건 정리 전)");
+  if (input.ruleOnly) addCheck(PRE_STRUCTURE_TO_CHECK);
   if (input.manualProduct) addCheck("상품 안내 확인");
   if (realPass === 0 && toCheck.length === 0 && obstacles.length === 0) addCheck("자격 조건 원문 확인");
 

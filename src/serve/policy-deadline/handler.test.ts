@@ -1,8 +1,9 @@
 // 읽기 통로 본문 — 보기 여섯 가지 응답·400 글자·앱이 정한 범위(403)·엑셀 막기·없는 것(404)·예상 밖 오류(500).
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { handleDeadlineGet, type DeadlineGetDeps, type RequestedScope } from "./handler";
+import { parseDeadlineQuery } from "./query";
 import { DeadlineReadError, type DeadlineScope } from "./scope";
-import type { DeadlineBucket, ReadCompany, ReadMatch, ReadSource } from "./types";
+import type { CheckItem, DeadlineBucket, ReadCompany, ReadMatch, ReadSource } from "./types";
 
 // 2026-11-12 10:00 KST
 const NOW = new Date("2026-11-12T01:00:00Z");
@@ -22,9 +23,39 @@ function memorySource(): ReadSource {
     buckets: async (keys) => (keys === undefined || keys.includes("B7") ? [BUCKET] : []),
     matchCounts: async () => [{ bucketKey: "B7", verdict: "fit", count: 1 }],
     matches: async () => [MATCH],
-    matchKeys: async () => [{ customerKey: "b:1", bucketKey: "B7", verdict: "fit", toCheck: [] }],
+    matchKeys: async () => [{ customerKey: "b:1", bucketKey: "B7", verdict: "fit", toCheck: [], fitLabels: ["업력"] }],
     progress: async () => [],
     lastRun: async () => null,
+  };
+}
+
+// 맞을 확률이 갈리는 두 공고 — B7(D-7) 높음 · B3(D-3) 낮음. 마감 순이면 B3 가, 맞을 확률 순이면 B7 이 먼저다.
+const B3: DeadlineBucket = {
+  ...BUCKET, bucketKey: "B3", repAnnouncementId: "ann-B3", announcementIds: ["ann-B3"], title: "공고 B3",
+  url: "https://example.com/B3", applyEnd: new Date("2026-11-15T05:00:00Z"),
+};
+const AGE_ITEM: CheckItem = { label: "업력 3년 이상", what: "업력", group: "company", rank: 4, field: "foundedDate", where: "기본정보 · 설립일" };
+const TIERED: ReadMatch[] = [
+  { ...MATCH, tier: "high", tierScore: 100, tierReason: "조건 1개 모두 맞음", checkItems: [], amountMaxWon: null },
+  {
+    ...MATCH, bucketKey: "B3", repAnnouncementId: "ann-B3", verdict: "unverified", fitLabels: [], toCheck: ["업력 3년 이상"],
+    tier: "low", tierScore: 40, tierReason: "업력 확인", checkItems: [AGE_ITEM], amountMaxWon: null,
+  },
+];
+
+function tieredSource(): ReadSource {
+  return {
+    ...memorySource(),
+    buckets: async (keys) => [BUCKET, B3].filter((b) => keys === undefined || keys.includes(b.bucketKey)),
+    matchCounts: async () => [
+      { bucketKey: "B7", verdict: "fit", tier: "high", unstructured: false, count: 1 },
+      { bucketKey: "B3", verdict: "unverified", tier: "low", unstructured: false, count: 1 },
+    ],
+    matches: async (f) => TIERED.filter((m) => (f.customerKeys === null || f.customerKeys.includes(m.customerKey))
+      && (f.bucketKeys === undefined || f.bucketKeys.includes(m.bucketKey))),
+    matchKeys: async () => TIERED.map((m) => ({
+      customerKey: m.customerKey, bucketKey: m.bucketKey, verdict: m.verdict, toCheck: m.toCheck, fitLabels: m.fitLabels, tier: m.tier,
+    })),
   };
 }
 
@@ -76,6 +107,72 @@ describe("보기 여섯 가지", () => {
     const result = await call("view=export&days=30");
     expect(result.status).toBe(200);
     expect(result.body).toMatchObject({ success: true, data: { total: 1, truncated: false, rows: [{ companyName: "삼영식품" }] } });
+  });
+});
+
+describe("정렬(sort)·단계(tiers) 질의", () => {
+  const parse = (query: string) => parseDeadlineQuery(new URLSearchParams(query));
+
+  it("sort 기본값은 맞을 확률 순(tier) — list·contacts·company·export 만 읽는다", () => {
+    expect(parse("view=list")).toStrictEqual({ view: "list", scope: null, days: 30, hideEmpty: true, sort: "tier" });
+    expect(parse("view=list&sort=deadline")).toStrictEqual({ view: "list", scope: null, days: 30, hideEmpty: true, sort: "deadline" });
+    expect(parse("view=contacts")).toStrictEqual({
+      view: "contacts", scope: null, days: 14, includeUnstructured: false, includeProgress: false, sort: "tier",
+    });
+    expect(parse("view=company&customerKey=b:1&sort=deadline")).toStrictEqual({
+      view: "company", customerKey: "b:1", days: 14, includeUnstructured: false, includeProgress: false, sort: "deadline",
+    });
+    expect(parse("view=export")).toStrictEqual({ view: "export", scope: null, days: 30, fitOnly: false, sort: "tier" });
+    expect(parse("view=bucket&bucket=B7&sort=deadline")).toStrictEqual({ view: "bucket", scope: null, bucketKey: "B7" });
+    expect(parse("view=summary&sort=nope")).toStrictEqual({ view: "summary", scope: null });
+  });
+
+  it("tiers 는 contacts·company 에서만 읽는다 — 쉼표로 잇고, 겹친 낱말은 한 번, 비면 키가 없다", () => {
+    expect(parse("view=contacts&tiers=high,mid,high")).toMatchObject({ view: "contacts", tiers: ["high", "mid"] });
+    expect(parse("view=company&customerKey=b:1&tiers=low")).toMatchObject({ view: "company", tiers: ["low"] });
+    expect("tiers" in parse("view=contacts&tiers=")).toBe(false);
+    expect("tiers" in parse("view=contacts")).toBe(false);
+    expect("tiers" in parse("view=list&tiers=high")).toBe(false);
+  });
+
+  const bad: Array<[string, string]> = [
+    ["view=list&sort=nope", "정렬 값이 올바르지 않습니다."],
+    ["view=contacts&sort=TIER", "정렬 값이 올바르지 않습니다."],
+    ["view=export&sort=1", "정렬 값이 올바르지 않습니다."],
+    ["view=contacts&tiers=high,top", "단계 값이 올바르지 않습니다."],
+    ["view=company&customerKey=b:1&tiers=HIGH", "단계 값이 올바르지 않습니다."],
+  ];
+  for (const [query, message] of bad) {
+    it(`${query} → 400 ${message}`, async () => {
+      expect(failure(await call(query))).toEqual({ status: 400, code: "BAD_REQUEST", message });
+    });
+  }
+
+  it("정렬·단계를 각 읽기에 넘긴다 — 맞을 확률 순이면 높음(B7)이 마감 가까운 낮음(B3)보다 먼저", async () => {
+    const src = tieredSource();
+    const keysOf = (rows: Array<{ bucketKey: string }>) => rows.map((r) => r.bucketKey);
+    const data = async (query: string): Promise<Record<string, unknown>> => {
+      const result = await call(query, () => ALL, { src });
+      if (!result.body.success) throw new Error(`실패: ${query}`);
+      return result.body.data as Record<string, unknown>;
+    };
+
+    expect(keysOf((await data("view=list")).dated as Array<{ bucketKey: string }>)).toEqual(["B7", "B3"]);
+    expect(keysOf((await data("view=list&sort=deadline")).dated as Array<{ bucketKey: string }>)).toEqual(["B3", "B7"]);
+
+    expect(keysOf((await data("view=company&customerKey=b:1")).announcements as Array<{ bucketKey: string }>)).toEqual(["B7", "B3"]);
+    expect(keysOf((await data("view=company&customerKey=b:1&sort=deadline")).announcements as Array<{ bucketKey: string }>)).toEqual(["B3", "B7"]);
+    expect(keysOf((await data("view=company&customerKey=b:1&tiers=low")).announcements as Array<{ bucketKey: string }>)).toEqual(["B3"]);
+
+    const contacts = (await data("view=contacts")).companies as Array<{ best: { bucketKey: string }; tiers: unknown }>;
+    expect(contacts.map((c) => [c.best.bucketKey, c.tiers])).toEqual([["B7", { high: 1, mid: 0, low: 1, unstructured: 0 }]]);
+    const onlyHigh = (await data("view=contacts&tiers=high")).companies as Array<{ tiers: unknown }>;
+    expect(onlyHigh.map((c) => c.tiers)).toEqual([{ high: 1, mid: 0, low: 0, unstructured: 0 }]);
+
+    // 엑셀 줄에는 묶음 열쇠가 없어 공고 제목으로 본다.
+    const titlesOf = async (query: string) => ((await data(query)).rows as Array<{ title: string }>).map((r) => r.title);
+    expect(await titlesOf("view=export")).toEqual(["공고 B7", "공고 B3"]);
+    expect(await titlesOf("view=export&sort=deadline")).toEqual(["공고 B3", "공고 B7"]);
   });
 });
 

@@ -6,9 +6,12 @@ import type {
   CompanyAnnouncementsView,
   ContactsView,
   DaysFilter,
+  DismissInfo,
+  DismissReason,
   ExportView,
   ProgressResult,
   ScopeFilter,
+  SortOrder,
   SummaryView,
 } from "../../serve/policy-deadline/types";
 import type { DeadlineEndpoints } from "./endpoints";
@@ -34,14 +37,17 @@ const flag = (value: boolean) => (value ? "1" : "0");
 /** 담당 범위는 화면이 넘겼을 때만 싣는다. */
 const withScope = (scope: ScopeFilter | undefined): Record<string, string> => (scope === undefined ? {} : { scope });
 
+/** 정렬은 화면이 넘겼을 때만 싣는다 — 안 넘기면 서버 기본(맞을 확률 순). 단계(tiers)는 싣지 않는다(화면이 거른다). */
+const withSort = (sort: SortOrder | undefined): Record<string, string> => (sort === undefined ? {} : { sort });
+
 export function fetchAnnouncementList(
   endpoints: DeadlineEndpoints,
-  q: { scope?: ScopeFilter; days: DaysFilter; hideEmpty: boolean },
+  q: { scope?: ScopeFilter; days: DaysFilter; hideEmpty: boolean; sort?: SortOrder },
   signal?: AbortSignal,
 ) {
   return getView<AnnouncementListView>(
     endpoints.read,
-    { view: "list", ...withScope(q.scope), days: String(q.days), hideEmpty: flag(q.hideEmpty) },
+    { view: "list", ...withScope(q.scope), days: String(q.days), hideEmpty: flag(q.hideEmpty), ...withSort(q.sort) },
     signal,
   );
 }
@@ -55,10 +61,10 @@ export function fetchBucketCompanies(
 }
 
 /** 「연락 예정 업체」 거르기 — 업체 목록과 펼친 공고가 같은 값을 쓴다. */
-export type ContactsQuery = { days: DaysFilter; includeUnstructured: boolean; includeProgress: boolean };
+export type ContactsQuery = { days: DaysFilter; includeUnstructured: boolean; includeProgress: boolean; sort?: SortOrder };
 
 function contactParams(q: ContactsQuery): Record<string, string> {
-  return { days: String(q.days), includeUnstructured: flag(q.includeUnstructured), includeProgress: flag(q.includeProgress) };
+  return { days: String(q.days), includeUnstructured: flag(q.includeUnstructured), includeProgress: flag(q.includeProgress), ...withSort(q.sort) };
 }
 
 export function fetchContacts(endpoints: DeadlineEndpoints, q: ContactsQuery & { scope?: ScopeFilter }, signal?: AbortSignal) {
@@ -81,10 +87,10 @@ export function fetchSummary(endpoints: DeadlineEndpoints, scope: ScopeFilter | 
 /** 엑셀 줄 — `endpoints.export` 가 있을 때만 부른다(없으면 오류). */
 export function fetchExport(
   endpoints: DeadlineEndpoints,
-  q: { scope?: ScopeFilter; days: DaysFilter; fitOnly: boolean; category: string },
+  q: { scope?: ScopeFilter; days: DaysFilter; fitOnly: boolean; category: string; sort?: SortOrder },
 ) {
   if (!endpoints.export) return Promise.reject(new Error("엑셀 내려받기를 쓸 수 없습니다."));
-  const params: Record<string, string> = { view: "export", ...withScope(q.scope), days: String(q.days), fitOnly: flag(q.fitOnly) };
+  const params: Record<string, string> = { view: "export", ...withScope(q.scope), days: String(q.days), fitOnly: flag(q.fitOnly), ...withSort(q.sort) };
   if (q.category !== "") params.category = q.category;
   return getView<ExportView>(endpoints.export, params);
 }
@@ -96,4 +102,20 @@ export async function postProgress(endpoints: DeadlineEndpoints, customerKey: st
     body: JSON.stringify({ customerKey, bucketKey }),
   });
   return readJson<ProgressResult>(response, "업무 현황에 넣지 못했습니다. 잠시 후 다시 시도해 주세요.");
+}
+
+/** 「해당 없음」 남기기·되돌리기(reason 이 null) — `endpoints.dismiss` 가 있을 때만 부른다(없으면 오류). */
+export async function postDismiss(
+  endpoints: DeadlineEndpoints,
+  customerKey: string,
+  bucketKey: string,
+  reason: DismissReason | null,
+): Promise<{ dismissed: DismissInfo | null }> {
+  if (!endpoints.dismiss) return Promise.reject(new Error("해당 없음을 남길 수 없습니다."));
+  const response = await fetch(endpoints.dismiss, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ customerKey, bucketKey, reason }),
+  });
+  return readJson<{ dismissed: DismissInfo | null }>(response, "해당 없음으로 남기지 못했습니다. 잠시 후 다시 시도해 주세요.");
 }

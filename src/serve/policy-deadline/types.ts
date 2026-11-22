@@ -3,6 +3,9 @@
  * 판정은 업체별 매칭 화면과 같은 공용 `buildFundingMap` 으로 하고, 맞음·확인 필요만 남긴다(제외는 안 남김).
  * 대조를 **실행**하는 쪽(배치·슬랙 알림)의 모양은 앱 한 곳에만 있어 여기에 옮기지 않는다.
  */
+import type { CheckItem, DeadlineTier } from "./tier";
+
+export type { CheckItem, DeadlineTier } from "./tier";
 
 /** 저장하는 판정 — 제외(excluded)는 저장하지 않는다. */
 export type DeadlineVerdict = "fit" | "unverified";
@@ -40,6 +43,15 @@ export interface DeadlineJudgement {
   toCheck: string[];
   /** 채울 칸 — 업체 빈 칸 중 이 공고 판정이 「<칸> 미입력」으로 못 가린 것. */
   gaps: string[];
+  /**
+   * 대조 때 저장한 맞을 확률 — 단계·점수·근거·확인 항목·지원 금액(원). 칸이 없는 옛 줄(대조 전)은 읽을 때 계산한다.
+   * amountMaxWon 의 null = 금액을 모름.
+   */
+  tier?: DeadlineTier;
+  tierScore?: number;
+  tierReason?: string;
+  checkItems?: CheckItem[];
+  amountMaxWon?: number | null;
 }
 
 /** 진행 기록 한 줄(PolicyDeadlineProgress). */
@@ -51,6 +63,27 @@ export interface StoredProgress {
   byName: string;
   via: "web" | "slack" | "track";
   createdAt: Date;
+}
+
+/** 「해당 없음」으로 고를 수 있는 사유 — 되돌리기는 사유 null 이다. */
+export const DISMISS_REASONS = ["이미 신청함", "고객이 원하지 않음", "자격이 안 됨", "다른 정책으로 진행", "기타"] as const;
+export type DismissReason = (typeof DISMISS_REASONS)[number];
+
+/** 해당 없음 기록 한 줄(PolicyDeadlineDismiss). */
+export interface StoredDismissal {
+  customerKey: string;
+  bucketKey: string;
+  reason: string;
+  byUserId: string | null;
+  byName: string;
+  createdAt: Date;
+}
+
+/** 해당 없음으로 남긴 사유·사람·때 — at 은 ISO 시각. */
+export interface DismissInfo {
+  reason: string;
+  byName: string;
+  at: string;
 }
 
 /** 대조 한 번의 결과 — JsonCache `policy-deadline:last` 에 남고 화면의 「마지막 대조」로 보인다. */
@@ -76,13 +109,15 @@ export interface RunSummary {
 /** 마감 거르기 — 날짜 마감이 오늘부터 n일 안(D-0 ~ D-n). 「all」은 날짜 마감 전부. 상시는 어느 거르기에서나 따로 보인다. */
 export type DaysFilter = 7 | 14 | 30 | "all";
 export type ScopeFilter = "mine" | "all";
+/** 정렬 — 맞을 확률 순(기본) · 마감 순. */
+export type SortOrder = "tier" | "deadline";
 
 /** 「정책별 업체」 탭 기본 마감 거르기. 「정책별 고객사」 탭은 화면이 14 를 넘긴다. */
 export const LIST_DEFAULT_DAYS: DaysFilter = 30;
 /** 「연락 예정 업체」 기본 마감 거르기. */
 export const CONTACTS_DEFAULT_DAYS: DaysFilter = 14;
 /**
- * 「연락 예정 업체」 기본에 「조건 정리 전」 판정 줄을 넣을지 — 대표님 확인 2번(추천: 넣지 않음, 「조건 정리 전 포함」을 켜야 보임).
+ * 「연락 예정 업체」 기본에 「조건 정리 전」 판정 줄을 넣을지 — 대표님 확인 2번(추천: 넣지 않음, 화면의 「판단 전 포함」을 켜야 보임).
  * 기본 목록과 요약 숫자가 모두 이 값 하나를 따른다. 답이 달라지면 이 값만 바꾼다.
  */
 export const CONTACTS_INCLUDE_UNSTRUCTURED_DEFAULT = false;
@@ -105,23 +140,29 @@ export interface ReadCompany {
 /** 판정 줄 + 업체 열쇠. */
 export type ReadMatch = DeadlineJudgement & { customerKey: string };
 
-/** 판정 줄의 거르기 칸만 — 요약 숫자는 업체·묶음·판정·확인할 조건만 있으면 센다. */
-export type ReadMatchKey = Pick<ReadMatch, "customerKey" | "bucketKey" | "verdict" | "toCheck">;
+/** 판정 줄의 거르기 칸만 — 요약 숫자는 업체·묶음·판정·확인할 조건·맞은 조건·저장된 단계만 있으면 센다. */
+export type ReadMatchKey = Pick<ReadMatch, "customerKey" | "bucketKey" | "verdict" | "toCheck" | "fitLabels" | "tier">;
 
-/** 표 다섯 개를 읽는 자리 — 시험은 메모리 가짜, 앱은 `deadlineReadSource(db)`. customerKeys 가 null 이면 업체로 거르지 않는다. */
+/** 표를 읽는 자리 — 시험은 메모리 가짜, 앱은 `deadlineReadSource(db)`. customerKeys 가 null 이면 업체로 거르지 않는다. */
 export interface ReadSource {
   /** 업체 줄. readerId 를 주면 readConsultantIds 에 그 id 가 든 업체만, customerKeys 를 주면 그 업체만(둘 다 주면 둘 다 맞는 것). */
   companies(filter: { readerId?: string; customerKeys?: string[] }): Promise<ReadCompany[]>;
   /** 묶음 줄 전부, 또는 bucketKeys 의 묶음만. */
   buckets(bucketKeys?: string[]): Promise<DeadlineBucket[]>;
-  /** (묶음, 판정)별 판정 줄 수. */
-  matchCounts(customerKeys: string[] | null): Promise<{ bucketKey: string; verdict: DeadlineVerdict; count: number }[]>;
+  /** (묶음, 판정, 단계, 조건 정리 전)별 판정 줄 수. tier 의 null·없음 = 단계 칸이 빈 옛 줄. */
+  matchCounts(
+    customerKeys: string[] | null,
+  ): Promise<{ bucketKey: string; verdict: DeadlineVerdict; count: number; tier?: DeadlineTier | null; unstructured?: boolean }[]>;
   /** 판정 줄 — bucketKeys 를 주면 그 묶음 것만. */
   matches(filter: { customerKeys: string[] | null; bucketKeys?: string[] }): Promise<ReadMatch[]>;
   /** 판정 줄의 거르기 칸만 — 요약 숫자용. bucketKeys 를 주면 그 묶음 것만. */
   matchKeys(filter: { customerKeys: string[] | null; bucketKeys?: string[] }): Promise<ReadMatchKey[]>;
   /** 진행 줄 — bucketKeys 를 주면 그 묶음 것만. */
   progress(filter: { customerKeys: string[] | null; bucketKeys?: string[] }): Promise<StoredProgress[]>;
+  /** 해당 없음 줄 — bucketKeys 를 주면 그 묶음 것만. 자리가 없으면 해당 없음 줄이 없는 것으로 읽는다. */
+  dismissals?(filter: { customerKeys: string[] | null; bucketKeys?: string[] }): Promise<StoredDismissal[]>;
+  /** 맞을 확률 설정 원본(SystemConfig JSON 등) — `mergeTierConfig` 로 합친다. 자리가 없으면 기본 설정. */
+  tierConfig?(): Promise<unknown>;
   lastRun(): Promise<RunSummary | null>;
 }
 
@@ -146,10 +187,37 @@ export interface BucketMeta {
   dDay: number | null;
 }
 
+/** 맞을 확률 — 저장한 값(없는 옛 줄은 읽을 때 계산한 값)과 거기서 나온 화면 칸. */
+export interface TierView {
+  tier: DeadlineTier;
+  tierScore: number;
+  tierReason: string;
+  checkItems: CheckItem[];
+  /** 확인 항목 수 — 참고(ref)는 뺀다. */
+  checkCount: number;
+  /** 다음 할 일 한 줄. */
+  nextAction: string;
+  /** 공고 조건을 아직 정리하지 못한 줄. */
+  unstructured: boolean;
+}
+
+/** 단계별 곳 수 — 조건 정리 전(unstructured)은 높음·보통·낮음에 세지 않고 따로 센다. dismissed = 해당 없음으로 남긴 곳. */
+export interface TierCounts {
+  high: number;
+  mid: number;
+  low: number;
+  unstructured: number;
+  dismissed: number;
+}
+
 export interface AnnouncementListRow extends BucketMeta {
   /** 범위 안 업체 중 맞음 · 확인 필요 곳 수. */
   fit: number;
   unverified: number;
+  /** 단계별 곳 수(조건 정리 전은 뺀다) · 조건 정리 전 곳 수 · 가장 높은 단계(셀 곳이 없으면 null). 해당 없음 줄도 센다. */
+  tiers: { high: number; mid: number; low: number };
+  unstructured: number;
+  bestTier: DeadlineTier | null;
   /** 공고 핵심 내용 한 줄 — 요약 전이면 빈 글. */
   summary: string;
 }
@@ -168,23 +236,31 @@ export interface AnnouncementListView {
   always: AnnouncementListRow[];
 }
 
-export interface CompanyMatchRow {
+export interface CompanyMatchRow extends TierView {
   customerKey: string;
   companyName: string;
   consultant: string;
   consultantNames: string[];
   statusText: string;
+  verdict: DeadlineVerdict;
   fitLabels: string[];
   toCheck: string[];
   gaps: string[];
   progress: ProgressInfo | null;
+  /** 지원 금액 최댓값(원). null = 금액을 모름. */
+  amountMaxWon: number | null;
+  /** 해당 없음으로 남겼으면 사유·사람·때. */
+  dismissed: DismissInfo | null;
 }
 
 export interface BucketCompaniesView {
   bucket: BucketMeta;
-  /** 맞음 · 확인 필요 업체 — 각각 업체명 글자 순(같으면 customerKey 순). */
+  /** 맞음 · 확인 필요 업체 — 각각 업체명 글자 순(같으면 customerKey 순). 해당 없음 줄도 든다. */
   fit: CompanyMatchRow[];
   unverified: CompanyMatchRow[];
+  /** 모든 줄 — 맞을 확률 순(높음 → 보통 → 낮음 → 조건 정리 전 → 해당 없음). */
+  rows: CompanyMatchRow[];
+  tierCounts: TierCounts;
 }
 
 export interface ContactKind {
@@ -192,6 +268,19 @@ export interface ContactKind {
   count: number;
   /** 그 분야 공고 중 가장 가까운 D-n. */
   nearestDDay: number;
+  /** 그 분야의 가장 좋은 줄(업체 줄의 best 와 같은 셈) — 종류로 거를 때 화면이 이 줄로 보이고 줄 세운다. */
+  best: ContactBest;
+}
+
+/** 업체의 가장 좋은 공고 줄 — 공고 칸 + 맞을 확률 칸. */
+export interface ContactBest extends TierView {
+  bucketKey: string;
+  title: string;
+  category: string;
+  url: string;
+  applyEnd: string;
+  dDay: number;
+  amountMaxWon: number | null;
 }
 
 export interface ContactCompanyRow {
@@ -208,6 +297,12 @@ export interface ContactCompanyRow {
   announcementCount: number;
   /** 그중 진행한 공고 수(includeProgress 가 꺼져 있으면 늘 0). */
   progressCount: number;
+  /** 남은 공고 중 가장 높은 단계 — 높음·보통·낮음이 하나도 없으면(조건 정리 전뿐) 낮음. */
+  bestTier: DeadlineTier;
+  /** 남은 공고의 단계별 수 — 조건 정리 전은 따로 센다. */
+  tiers: { high: number; mid: number; low: number; unstructured: number };
+  /** 가장 좋은 줄 — 단계 → 확인 수 → 마감 순으로 먼저인 공고. */
+  best: ContactBest;
 }
 
 export interface ContactsView {
@@ -215,18 +310,24 @@ export interface ContactsView {
   companies: ContactCompanyRow[];
 }
 
-export interface CompanyAnnouncementRow extends BucketMeta {
+export interface CompanyAnnouncementRow extends BucketMeta, TierView {
   verdict: DeadlineVerdict;
   fitLabels: string[];
   toCheck: string[];
   gaps: string[];
   progress: ProgressInfo | null;
+  /** 지원 금액 최댓값(원). null = 금액을 모름. */
+  amountMaxWon: number | null;
+  /** 해당 없음으로 남겼으면 사유·사람·때. */
+  dismissed: DismissInfo | null;
 }
 
 export interface CompanyAnnouncementsView {
   company: ReadCompany;
-  /** 마감 가까운 순(같으면 bucketKey 순). */
+  /** 정렬 순서대로(맞을 확률 순 · 마감 순) — 마감 순이면 마감 가까운 순(같으면 bucketKey 순). 해당 없음 줄은 빠진다. */
   announcements: CompanyAnnouncementRow[];
+  /** 그 업체의 해당 없음 줄 — 마감 거르기 안 날짜 마감만, 마감 가까운 순. */
+  dismissed: CompanyAnnouncementRow[];
 }
 
 export interface SummaryView {
@@ -244,6 +345,11 @@ export interface SummaryView {
    * 한 업체가 여러 분야면 각 분야에 센다(합이 contacts 보다 클 수 있다). other = 정책자금·무상지원금이 아닌 분류(빈 분류 포함)가 하나라도 있는 업체.
    */
   contactKinds: { policyFund: number; freeGrant: number; other: number };
+  /**
+   * 「오늘 할 일」 — 마감 D-0~D-7 · 해당 없음 아님 · 조건 정리 전 아님인 줄로 센 업체 수.
+   * contactNow = 진행 전 높음 줄이 있는 업체 · checkFirst = 진행 전 보통 줄이 있고 contactNow 에 들지 않은 업체 · inProgress = 진행 줄이 있는 업체.
+   */
+  today: { contactNow: number; checkFirst: number; inProgress: number };
 }
 
 export interface ExportRow {
@@ -261,6 +367,12 @@ export interface ExportRow {
   toCheck: string[];
   gaps: string[];
   inProgress: boolean;
+  tier: DeadlineTier;
+  tierReason: string;
+  nextAction: string;
+  unstructured: boolean;
+  /** 해당 없음으로 남긴 사유 — 해당 없음이 아니면 빈 글. */
+  dismissedReason: string;
 }
 
 export interface ExportView {

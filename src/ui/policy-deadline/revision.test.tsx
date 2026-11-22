@@ -19,21 +19,29 @@ const OPAQUE = [Checkbox, Toast, CustomSelect, DeadlineToast];
 const fetchMock = vi.fn();
 let mounted: ReturnType<typeof mountTree> | null = null;
 
+const best = {
+  bucketKey: "b1", title: "공고 하나", category: "정책자금", url: "", applyEnd: "2026-11-20", dDay: 7, amountMaxWon: null,
+  tier: "high", tierScore: 100, tierReason: "조건 6개 모두 맞음", checkItems: [], checkCount: 0, nextAction: "고객에게 연락해 신청 안내", unstructured: false,
+};
 const company = {
   customerKey: "c1", companyName: "가나상사", consultant: "담당", consultantNames: ["담당"], statusText: "",
-  nearestApplyEnd: "2026-11-20", nearestDDay: 7, kinds: [{ category: "정책자금", count: 1, nearestDDay: 7 }],
+  nearestApplyEnd: "2026-11-20", nearestDDay: 7, kinds: [{ category: "정책자금", count: 1, nearestDDay: 7, best }],
   announcementCount: 1, progressCount: 0,
+  bestTier: "high", tiers: { high: 1, mid: 0, low: 0, unstructured: 0 }, best,
 };
 const bucket = {
   bucketKey: "b1", repAnnouncementId: "a1", title: "공고 하나", agency: "기관", category: "정책자금", url: "",
   applyEnd: "2026-11-20", dDay: 7, fit: 1, unverified: 0,
+  tiers: { high: 1, mid: 0, low: 0 }, unstructured: 0, bestTier: "high", summary: "",
 };
 const list = { lastRun: null, companyCount: 1, bucketCount: 1, categories: ["정책자금"], dated: [bucket], always: [] };
 const announcement = {
   bucketKey: "b1", repAnnouncementId: "a1", title: "공고 하나", agency: "기관", category: "정책자금", url: "", applyEnd: "2026-11-20", dDay: 7,
   verdict: "fit", fitLabels: ["업력"], toCheck: [], gaps: [], progress: null,
+  tier: "high", tierScore: 100, tierReason: "조건 6개 모두 맞음", checkItems: [], checkCount: 0, nextAction: "고객에게 연락해 신청 안내", unstructured: false,
+  amountMaxWon: null, dismissed: null,
 };
-const summary = { within7Companies: 1, contacts: 1, buckets: { d7: 1, d14: 1, d30: 1, all: 1 }, contactKinds: { policyFund: 1, freeGrant: 0, other: 0 } };
+const summary = { within7Companies: 1, contacts: 1, buckets: { d7: 1, d14: 1, d30: 1, all: 1 }, contactKinds: { policyFund: 1, freeGrant: 0, other: 0 }, today: { contactNow: 1, checkFirst: 0, inProgress: 0 } };
 
 const never = () => new Promise<Response>(() => {});
 const reads = (part: string) => fetchMock.mock.calls.filter(([input]) => String(input).includes(part)).length;
@@ -49,7 +57,7 @@ beforeEach(() => {
     if (url.includes("view=summary")) return Promise.resolve(jsonResponse({ success: true, data: summary }));
     if (url.includes("view=list")) return Promise.resolve(jsonResponse({ success: true, data: list }));
     if (url.includes("view=contacts")) return Promise.resolve(jsonResponse({ success: true, data: { companies: [company] } }));
-    if (url.includes("view=company")) return Promise.resolve(jsonResponse({ success: true, data: { announcements: [announcement] } }));
+    if (url.includes("view=company")) return Promise.resolve(jsonResponse({ success: true, data: { company: { customerKey: "c1", companyName: "가나상사" }, announcements: [announcement], dismissed: [] } }));
     return never();
   });
   vi.stubGlobal("fetch", fetchMock);

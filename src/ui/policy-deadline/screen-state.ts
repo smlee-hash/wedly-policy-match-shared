@@ -18,8 +18,11 @@ export interface ScreenState {
 
 export const DEFAULT_SCREEN_STATE: ScreenState = { tab: "companies", view: "list", bucket: "", scope: "mine" };
 
-/** 첫 화면의 마감 거르기 — 두 탭 모두 14일(카드 숫자도 14일 기준이다). */
-export const DEFAULT_DAYS: DaysFilter = 14;
+/**
+ * 「정책별 고객사」 탭 첫 화면의 마감 거르기 — 7일(컨설턴트 기본 보기, NO.789). 카드 줄을 누르면 그 카드 기준 마감으로 연다.
+ * 「연락 예정 업체」 탭은 이 값을 쓰지 않는다 — 위 카드와 숫자가 맞게 14일(보드 기본값)로 연다.
+ */
+export const DEFAULT_DAYS: DaysFilter = 7;
 
 const OWN_KEYS = ["tab", "view", "bucket", "scope"] as const;
 
@@ -55,14 +58,14 @@ export function screenSearch(state: ScreenState, scopeToggle: boolean, currentSe
   return text ? `?${text}` : "";
 }
 
-/** 요약 응답이 두 카드를 그릴 만큼 다 왔는지 — 덜 온 응답은 못 읽은 것으로 본다. */
+/** 요약 응답이 두 카드와 「오늘 할 일」 줄을 그릴 만큼 다 왔는지 — 덜 온 응답은 못 읽은 것으로 본다. */
 export function completeSummary(view: SummaryView | null | undefined): SummaryView | null {
-  return view?.buckets && view.contactKinds ? view : null;
+  return view?.buckets && view.contactKinds && view.today ? view : null;
 }
 
 /** 설명 한 줄 — 모든 고객사가 보이는지(앱이 정한 범위)에 따라 한 줄이 다르다. 제목은 앱 위 띠가 그린다. */
 export function descriptionLine(showConsultant: boolean): string {
   return showConsultant
-    ? "정책마다 맞는 고객사를 묶어 보고, 연락할 업체를 마감 순서로 봅니다. 모든 고객사가 보입니다."
-    : "정책마다 맞는 내 담당 고객사를 묶어 보고, 연락할 업체를 마감 순서로 봅니다.";
+    ? "정책마다 맞는 고객사를 묶어 보고, 연락할 업체를 맞을 확률 순서로 봅니다. 모든 고객사가 보입니다."
+    : "정책마다 맞는 내 담당 고객사를 묶어 보고, 연락할 업체를 맞을 확률 순서로 봅니다.";
 }

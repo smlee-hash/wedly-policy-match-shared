@@ -22,6 +22,7 @@ let mounted: ReturnType<typeof mountTree> | null = null;
 const bucketOf = (bucketKey: string, title: string, fit: number, unverified: number) => ({
   bucketKey, repAnnouncementId: bucketKey, title, agency: "기관", category: "정책자금", url: "",
   applyEnd: "2026-11-20", dDay: 4, fit, unverified,
+  tiers: { high: fit, mid: unverified, low: 0 }, unstructured: 0, bestTier: fit > 0 ? "high" : unverified > 0 ? "mid" : null, summary: "",
 });
 const list = {
   lastRun: null, companyCount: 20, bucketCount: 3, categories: ["정책자금"],

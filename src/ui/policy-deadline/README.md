@@ -1,11 +1,11 @@
 # 정책별 고객사·연락 예정 화면 (`ui/policy-deadline`)
 
 ERP 와 컨설턴트 앱(일루아)이 **같은 화면**을 쓰는 부품 묶음이다. 계산(어느 업체가 어느 공고에 맞는지, 연락할 업체를
-마감 순서로 세는 일)은 `serve/policy-deadline/*` 가, 화면은 이 폴더가 맡는다. 앱은 **로그인·보는 범위·통로 껍데기·
+맞을 확률 순서로 세는 일)은 `serve/policy-deadline/*` 가, 화면은 이 폴더가 맡는다. 앱은 **로그인·보는 범위·통로 껍데기·
 앱에만 있는 기능**만 넘긴다.
 
 제목은 앱 위 띠가 그린다 — 화면은 설명 한 줄부터. 위에서 아래로: 설명 한 줄 · 요약 카드 두 장(「정책별 고객사」·
-「연락 예정 업체」) · 탭 둘 · 탭 줄 오른쪽의 「보기: 목록·캘린더」(연락 예정 탭에서만)와 「담당: 내 담당·전체」(`scopeToggle`
+「연락 예정 업체」, 그 위에 오늘 할 일 한 줄) · 탭 둘 · 탭 줄 오른쪽의 「보기: 목록·캘린더」(연락 예정 탭에서만)와 「담당: 내 담당·전체」(`scopeToggle`
 일 때만) · 탭 안쪽 목록 또는 캘린더. 본문에 `<h1>` 이나 화면 제목 글자를 그리지 않는다(`screen-title.test.tsx` 가 잰다).
 
 ## 쓰는 쪽 코드
@@ -14,12 +14,12 @@ ERP 와 컨설턴트 앱(일루아)이 **같은 화면**을 쓰는 부품 묶음
 // ERP — src/app/(erp)/policy-companies/PolicyCompaniesErpClient.tsx
 "use client";
 import { useState } from "react";
-import { PolicyCompaniesScreen, DEADLINE_ENDPOINTS } from "@wedly/policy-match-shared/ui/policy-deadline";
+import { PolicyCompaniesScreen, DEADLINE_DISMISS_ENDPOINT, DEADLINE_ENDPOINTS } from "@wedly/policy-match-shared/ui/policy-deadline";
 import { companyCardRowOf } from "@wedly/policy-match-shared/ui/policy-deadline/deadline-view";
 import CompanyCard from "@/app/(erp)/_shared/CompanyCard";
 
 // 모듈 상수 하나로 넘긴다 — 그리는 자리에서 새로 만들지 않는다.
-const ERP_DEADLINE_ENDPOINTS = { ...DEADLINE_ENDPOINTS, export: "/api/policy-track/deadline" };
+const ERP_DEADLINE_ENDPOINTS = { ...DEADLINE_ENDPOINTS, export: "/api/policy-track/deadline", dismiss: DEADLINE_DISMISS_ENDPOINT };
 
 export default function PolicyCompaniesErpClient() {
   const [card, setCard] = useState<{ customerKey: string; companyName: string } | null>(null);
@@ -52,7 +52,7 @@ export default function PolicyCompaniesErpClient() {
 const openUrl = (key: string) => "/policy-companies/open?key=" + encodeURIComponent(key);
 
 <PolicyCompaniesScreen
-  endpoints={DEADLINE_ENDPOINTS}                    // export 없음 → 엑셀 단추를 그리지 않는다
+  endpoints={DEADLINE_ENDPOINTS}                    // export·dismiss 없음 → 엑셀·「해당 없음」 단추를 그리지 않는다
   scopeToggle={false}
   seesAll={isSuper}                                 // 최고 관리자만 「담당」 칸·「모든 고객사」 설명
   onOpenCompany={(row) => window.open(openUrl(row.customerKey), "_blank", "noopener")}
@@ -83,7 +83,7 @@ return NextResponse.json(body, { status });
 | `scopeToggle` | 켜면 「담당: 내 담당·전체」를 그리고 `scope` 를 보낸다. 꺼진 앱은 보내지 않고 서버(앱의 `scopeOf`)가 정한 범위로 읽는다 |
 | `seesAll` | `scopeToggle` 이 꺼진 앱에서 「담당」 칸·「모든 고객사」 설명을 보일지(컨설턴트 앱 최고 관리자) |
 | `features.saveSheet` | 엑셀 파일 저장(앱이 저장 방식을 안다). `endpoints.export` 와 둘 다 있어야 「엑셀 내려받기」를 그린다 |
-| `onOpenCompany` / `onViewProgress` | 업체명 누르기 · 알림 「업무 현황 보기」. 두 목록에는 하나(`onDetail`)로 합쳐 넘기며 `onOpenCompany` 가 먼저, 없으면 `onViewProgress`. 둘 다 없으면 업체명은 글자이고 「업무 현황 보기」도 그리지 않는다. 알림에서 부르면 받는 `DeadlineCompanyRef` 에 방금 만든(또는 이은) 업무 번호 `trackId` 가 실린다 — 상세창이 그 업무 카드를 처음부터 열게 |
+| `onOpenCompany` / `onViewProgress` | 업체명 누르기 · 알림 「업무 현황 보기」. 두 목록에는 하나(`onDetail`)로 합쳐 넘기며 `onOpenCompany` 가 먼저, 없으면 `onViewProgress`. 둘 다 없으면 업체명은 글자이고 「업무 현황 보기」도 그리지 않는다. 알림에서 부르면 받는 `DeadlineCompanyRef` 에 방금 만든(또는 이은) 업무 번호 `trackId` 가 실린다 — 상세창이 그 업무 카드를 처음부터 열게. 「확인할 것」의 업체 항목 이름을 누르면 `field`(상세창에서 열 칸)가 실린다 — 값이 없는 `trackId`·`field` 는 키를 만들지 않는다 |
 | `revision` | 값이 **바뀌면** 지금 탭의 목록(펼친 업체 표 포함)과 요약 카드를 다시 읽는다. 업체 상세창에서 저장한 뒤 앱이 +1 한다 |
 | `now` | 캘린더의 「오늘」 — 시험이 날짜를 고정할 때만 |
 | `canProgress` | (기본 `true`) 끄면 두 탭의 펼친 표에 「업무 현황에 추가」 단추를 그리지 않는다. 업무 현황(정책 진행)을 만들 권한이 없는 사람에게 앱이 끈다 — 눌러도 권한 오류만 나서. 이미 넣은 공고의 「업무 현황에 있음」은 그대로 보인다 |
@@ -107,7 +107,7 @@ ERP 가 쓰던 속성을 **그대로** 받고, 새로 생긴 것은 `endpoints`(
 | `kind` / `onKindChange` | 없음 | 둘 다 주면 바깥이 종류 거르기를 쥔다 |
 | `initialBucket` | 슬랙 「공고 보기」로 온 공고 — 마감 「전체」로 펼쳐 그 줄로 옮긴다 | 없음 |
 | `revision` | 선택 — 바뀌면 처음부터 다시 읽는다 | 선택 — 같음 |
-| `onDetail(customerKey, companyName, trackId?)` | 선택 — 없으면 업체명은 글자. 알림 「업무 현황 보기」로 부를 때만 방금 만든(또는 이은) 업무 번호 `trackId` 가 온다 | 선택 — 없으면 「업무 현황 보기」 없음(`trackId` 같음) |
+| `onDetail(customerKey, companyName, trackId?, field?)` | 선택 — 없으면 업체명은 글자. 알림 「업무 현황 보기」로 부를 때만 방금 만든(또는 이은) 업무 번호 `trackId`, 「확인할 것」의 업체 항목 이름을 눌렀을 때만 상세창에서 열 칸 `field` 가 온다 | 선택 — 없으면 「업체 상세 열기」·「업무 현황 보기」·확인할 것의 업체 항목 단추 없음(`trackId`·`field` 같음) |
 | `onProgressed` | 선택 — 「업무 현황에 추가」가 끝난 뒤 | 선택 — 같음 |
 | `showConsultant` | 선택(기본 `true`) — 「담당」 칸 | 선택(기본 `true`) |
 | `canProgress` | 선택(기본 `true`) — 끄면 「업무 현황에 추가」 단추 없음(「업무 현황에 있음」은 그대로) | 선택(기본 `true`) — 목록·캘린더 「고른 업체」 모두 |
@@ -137,6 +137,7 @@ import { AnnouncementBoard, DEADLINE_ENDPOINTS } from "@wedly/policy-match-share
 | `read` | `GET` 목록·묶음·연락 예정·업체·요약(`?view=list｜bucket｜contacts｜company｜summary`) | 필수 — 화면이 그려지지 않는다 |
 | `progress` | `POST` 「업무 현황에 추가」 | 필수 — `DEADLINE_ENDPOINTS.progress` 를 쓴다 |
 | `export` | `GET ?view=export` 엑셀 줄 | 「엑셀 내려받기」 단추를 그리지 않는다(`features.saveSheet` 도 있어야 그린다) |
+| `dismiss` | `POST` 「해당 없음」 남기기·되돌리기(`DEADLINE_DISMISS_ENDPOINT`) | 「해당 없음」·「되돌리기」 단추를 그리지 않는다(이미 남은 기록은 아래 접힌 묶음에 보이기만 한다) — 통로(`readDismissBody` → `setDeadlineDismiss`)를 만든 앱이 더해 켠다 |
 
 `DEADLINE_ENDPOINTS` = `{ read: "/api/policy-track/deadline", progress: "/api/policy-track/deadline/progress" }` —
 두 앱의 통로 주소가 같다. **주소를 안 넘긴 단추는 존재하지 않는다**(그리지도, 부르지도 않는다 — `ui/policy/endpoints.ts` 와 같은 규칙).

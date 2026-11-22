@@ -60,7 +60,7 @@ export async function handleDeadlineGet(
 
     switch (query.view) {
       case "list":
-        return ok(await readAnnouncementList(scope, { days: query.days, hideEmpty: query.hideEmpty }, now, src));
+        return ok(await readAnnouncementList(scope, { days: query.days, hideEmpty: query.hideEmpty, sort: query.sort }, now, src));
       case "bucket": {
         const data = await readBucketCompanies(scope, { bucketKey: query.bucketKey }, now, src);
         return data ? ok(data) : fail(404, "NOT_FOUND", "공고를 찾지 못했습니다.");
@@ -69,7 +69,13 @@ export async function handleDeadlineGet(
         return ok(
           await readContacts(
             scope,
-            { days: query.days, includeUnstructured: query.includeUnstructured, includeProgress: query.includeProgress },
+            {
+              days: query.days,
+              includeUnstructured: query.includeUnstructured,
+              includeProgress: query.includeProgress,
+              sort: query.sort,
+              ...(query.tiers !== undefined ? { tiers: query.tiers } : {}),
+            },
             now,
             src,
           ),
@@ -82,6 +88,8 @@ export async function handleDeadlineGet(
             days: query.days,
             includeUnstructured: query.includeUnstructured,
             includeProgress: query.includeProgress,
+            sort: query.sort,
+            ...(query.tiers !== undefined ? { tiers: query.tiers } : {}),
           },
           now,
           src,
@@ -94,7 +102,7 @@ export async function handleDeadlineGet(
         return ok(
           await readExport(
             scope,
-            { days: query.days, fitOnly: query.fitOnly, ...(query.category !== undefined ? { category: query.category } : {}) },
+            { days: query.days, fitOnly: query.fitOnly, sort: query.sort, ...(query.category !== undefined ? { category: query.category } : {}) },
             now,
             src,
           ),

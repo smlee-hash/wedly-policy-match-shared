@@ -225,8 +225,11 @@ export interface FundingFilters {
 /** 갈래 한 칸에 실어 보내는 최대 건수 — 나머지는 「N건 전부 보기」가 아니라 표 보기로 간다. */
 export const GROUP_TOP_N = 80;
 
+/** 공고를 아직 AI 로 정리하지 않아(규칙 추출만) 붙는 확인할 것 — 이 문구가 있으면 다른 확인이 섞여도 조건 정리 전이다. */
+export const PRE_STRUCTURE_TO_CHECK = "공고 원문 확인(조건 정리 전)";
+
 /** 조건을 정리하지 못해 붙는 뭉뚱그린 확인할 것 — 고객 정보를 채워도 사라지지 않는다. */
-export const GENERIC_TO_CHECK: ReadonlySet<string> = new Set(["공고 원문 확인(조건 정리 전)", "자격 조건 원문 확인"]);
+export const GENERIC_TO_CHECK: ReadonlySet<string> = new Set([PRE_STRUCTURE_TO_CHECK, "자격 조건 원문 확인"]);
 
 /**
  * AI 가 업종·지역 범위를 「모름」이라 답해 붙는 확인할 것 — 남은 조건 하나로 세지만(무게 1),
@@ -237,7 +240,7 @@ export const REGION_SCOPE_UNKNOWN = "지역 제한 여부 확인";
 export const SCOPE_UNKNOWN_TO_CHECK: ReadonlySet<string> = new Set([INDUSTRY_SCOPE_UNKNOWN, REGION_SCOPE_UNKNOWN]);
 
 /** 분류하지 못한 원문을 그대로 줄인 확인할 것(「조건 확인: …」·「제외 조건: …」). */
-const RAW_TO_CHECK = /^(?:조건 확인|제외 조건): /;
+export const RAW_TO_CHECK = /^(?:조건 확인|제외 조건): /;
 
 /** 조건 정리가 안 된 확인할 것 하나의 무게 — 조건 수를 모른다. */
 const GENERIC_WEIGHT = 6;

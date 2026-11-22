@@ -4,7 +4,7 @@ import { Checkbox, Toast } from "@wedly/ui-shared/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CustomSelect from "../CustomSelect";
-import type { ContactCompanyRow } from "../../serve/policy-deadline/types";
+import type { ContactBest, ContactCompanyRow } from "../../serve/policy-deadline/types";
 import ContactsBoard from "./ContactsBoard";
 import ContactsCalendar, {
   CalendarView,
@@ -39,11 +39,19 @@ const root = (): HostNode => {
 const fetchMock = vi.fn();
 const NOW = new Date("2026-11-14T03:00:00Z"); // 서울 2026-11-14 낮 12시(토)
 
+const BEST: ContactBest = {
+  bucketKey: "b1", title: "공고", category: "정책자금", url: "", applyEnd: "2026-11-20", dDay: 6, amountMaxWon: null,
+  tier: "high", tierScore: 100, tierReason: "", checkItems: [], checkCount: 0, nextAction: "", unstructured: false,
+};
+
 function contact(over: Partial<ContactCompanyRow>): ContactCompanyRow {
   return {
     customerKey: "c1", companyName: "가나상사", consultant: "김컨설", consultantNames: ["김컨설"], statusText: "",
-    nearestApplyEnd: "2026-11-20", nearestDDay: 6, kinds: [{ category: "정책자금", count: 2, nearestDDay: 6 }],
-    announcementCount: 2, progressCount: 0, ...over,
+    nearestApplyEnd: "2026-11-20", nearestDDay: 6, kinds: [{ category: "정책자금", count: 2, nearestDDay: 6, best: BEST }],
+    announcementCount: 2, progressCount: 0,
+    bestTier: "high", tiers: { high: 2, mid: 0, low: 0, unstructured: 0 },
+    best: BEST,
+    ...over,
   };
 }
 const entry = (over: Partial<CalendarEntry>): CalendarEntry => ({ customerKey: "c1", companyName: "가나상사", consultant: "김컨설", day: "2026-11-20", dDay: 6, count: 2, ...over });
@@ -86,12 +94,12 @@ describe("날짜 셈 — 서울 날짜 글자만 쓴다", () => {
 
 describe("연락 예정 줄 → 캘린더 줄", () => {
   it("업체 하나는 칩 하나 — 날은 가장 가까운 마감일, 건수는 종류별 공고 수의 합", () => {
-    const rows = contactRowsFor([contact({ kinds: [{ category: "정책자금", count: 2, nearestDDay: 6 }, { category: "수출", count: 1, nearestDDay: 9 }], announcementCount: 3 })], "");
+    const rows = contactRowsFor([contact({ kinds: [{ category: "정책자금", count: 2, nearestDDay: 6, best: BEST }, { category: "수출", count: 1, nearestDDay: 9, best: BEST }], announcementCount: 3 })], "");
     expect(calendarEntries(rows)).toEqual([{ customerKey: "c1", companyName: "가나상사", consultant: "김컨설", day: "2026-11-20", dDay: 6, count: 3 }]);
   });
 
   it("종류를 거르면 그 종류 공고의 마감일·건수로 옮겨 목록의 D-n 딱지와 같은 날에 놓는다", () => {
-    const company = contact({ nearestDDay: 6, nearestApplyEnd: "2026-11-20", kinds: [{ category: "정책자금", count: 1, nearestDDay: 6 }, { category: "수출", count: 2, nearestDDay: 9 }], announcementCount: 3 });
+    const company = contact({ nearestDDay: 6, nearestApplyEnd: "2026-11-20", kinds: [{ category: "정책자금", count: 1, nearestDDay: 6, best: BEST }, { category: "수출", count: 2, nearestDDay: 9, best: BEST }], announcementCount: 3 });
     expect(calendarEntries(contactRowsFor([company], OTHER_KINDS))).toEqual([{ customerKey: "c1", companyName: "가나상사", consultant: "김컨설", day: "2026-11-23", dDay: 9, count: 2 }]);
   });
 });
@@ -232,7 +240,7 @@ describe("PickedCompany — 고른 업체 판", () => {
 });
 
 describe("ContactsCalendar — 달 옮기기·고르기", () => {
-  const rows = contactRowsFor([contact({}), contact({ customerKey: "c2", companyName: "다라상사", nearestApplyEnd: "2026-12-04", nearestDDay: 20, kinds: [{ category: "수출", count: 1, nearestDDay: 20 }], announcementCount: 1 })], "");
+  const rows = contactRowsFor([contact({}), contact({ customerKey: "c2", companyName: "다라상사", nearestApplyEnd: "2026-12-04", nearestDDay: 20, kinds: [{ category: "수출", count: 1, nearestDDay: 20, best: BEST }], announcementCount: 1 })], "");
   const draw = (selectedKey: string | null = null) => {
     const onSelect = vi.fn();
     mounted?.unmount();
@@ -279,8 +287,10 @@ describe("ContactsBoard 캘린더 보기", () => {
   const announcement = {
     bucketKey: "b1", repAnnouncementId: "a1", title: "공고 하나", agency: "기관", category: "정책자금", url: "", applyEnd: "2026-11-20", dDay: 6,
     verdict: "fit", fitLabels: ["업력"], toCheck: [], gaps: [], progress: null,
+    tier: "high", tierScore: 100, tierReason: "조건 6개 모두 맞음", checkItems: [], checkCount: 0, nextAction: "고객에게 연락해 신청 안내", unstructured: false,
+    amountMaxWon: null, dismissed: null,
   };
-  const single = contact({ kinds: [{ category: "정책자금", count: 1, nearestDDay: 6 }], announcementCount: 1 });
+  const single = contact({ kinds: [{ category: "정책자금", count: 1, nearestDDay: 6, best: BEST }], announcementCount: 1 });
   const progressResult = {
     created: true, trackCreated: true, trackId: "t1", policyName: "공고 하나", companyName: "가나상사", todo: "신청 마감", due: "2026-11-20",
     progress: { byName: "김컨설", via: "web", at: "2026-11-14T00:00:00.000Z" },
@@ -291,7 +301,7 @@ describe("ContactsBoard 캘린더 보기", () => {
       const url = String(input);
       if (url.endsWith("/deadline/progress") && init?.method === "POST") return Promise.resolve(jsonResponse({ success: true, data: progressResult }));
       if (url.includes("view=contacts")) return Promise.resolve(jsonResponse({ success: true, data: { companies: [single] } }));
-      if (url.includes("view=company")) return Promise.resolve(jsonResponse({ success: true, data: { company: { customerKey: "c1", companyName: "가나상사" }, announcements: [announcement] } }));
+      if (url.includes("view=company")) return Promise.resolve(jsonResponse({ success: true, data: { company: { customerKey: "c1", companyName: "가나상사" }, announcements: [announcement], dismissed: [] } }));
       return new Promise<Response>(() => {});
     });
   }

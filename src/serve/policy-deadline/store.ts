@@ -1,5 +1,5 @@
 /**
- * 마지막 대조 요약 읽기 — JsonCache 에 남긴 값을 화면의 「마지막 대조」로 읽는다.
+ * 마지막 대조 요약·맞을 확률 설정 읽기 — JsonCache 에 남긴 값을 화면의 「마지막 대조」와 단계 계산이 읽는다.
  * 대조를 **쓰는** 쪽(배치)은 앱 한 곳에만 있어 여기에 없다.
  */
 import type { DeadlineReadDb } from "./db";
@@ -7,6 +7,12 @@ import type { RunSummary } from "./types";
 
 /** 마지막 대조 요약을 두는 JsonCache 열쇠 — 화면의 「마지막 대조」가 읽는다. */
 export const LAST_RUN_KEY = "policy-deadline:last";
+
+/**
+ * 맞을 확률 설정 원본(무게·구간·글자)을 두는 JsonCache 열쇠 — 대조(앱 배치)가 판정 때, 읽기(`deadlineReadSource` 의 tierConfig)가
+ * 옛 줄을 계산할 때 같은 값을 읽어야 두 쪽 단계가 어긋나지 않는다. 값은 `mergeTierConfig` 로 합친다(줄이 없으면 기본 설정).
+ */
+export const TIER_CONFIG_KEY = "policy-deadline:tier-config";
 
 /** JSON 값이 배열 아닌 객체인지 — 저장된 JSON 은 어떤 모양이든 들어 있을 수 있다. */
 function isJsonObject(value: unknown): value is Record<string, unknown> {
@@ -29,4 +35,10 @@ export function runSummaryOf(value: unknown): RunSummary | null {
 export async function readLastRun(db: Pick<DeadlineReadDb, "jsonCache">): Promise<RunSummary | null> {
   const row = await db.jsonCache.findUnique({ where: { key: LAST_RUN_KEY } });
   return row ? runSummaryOf(row.value) : null;
+}
+
+/** 맞을 확률 설정 원본 — 줄이 없으면 null(`mergeTierConfig(null)` = 기본 설정). 모양 확인은 mergeTierConfig 가 한다. */
+export async function readTierConfigRaw(db: Pick<DeadlineReadDb, "jsonCache">): Promise<unknown> {
+  const row = await db.jsonCache.findUnique({ where: { key: TIER_CONFIG_KEY } });
+  return row ? row.value : null;
 }

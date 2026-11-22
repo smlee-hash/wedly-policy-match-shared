@@ -153,6 +153,8 @@ readAnnouncementDetailRow(q, id)   // 없으면 404
 | 묶음 보기인데 공고 열쇠가 비었거나 300자 초과 | 400 `BAD_REQUEST` | "공고를 골라 주세요." |
 | 업체 보기인데 업체 열쇠가 올바르지 않음 | 400 `BAD_REQUEST` | "업체를 골라 주세요." |
 | 분류 값이 100자 초과 | 400 `BAD_REQUEST` | "분류 값이 너무 깁니다." |
+| `sort` 가 `tier｜deadline` 이 아님 | 400 `BAD_REQUEST` | "정렬 값이 올바르지 않습니다." |
+| `tiers` 에 `high｜mid｜low` 밖의 값 | 400 `BAD_REQUEST` | "단계 값이 올바르지 않습니다." |
 | 엑셀 줄(`view=export`)인데 `allowExport` 가 거짓 | 403 `FORBIDDEN` | "엑셀 내려받기를 쓸 수 없습니다." |
 | `scopeOf` 가 막음 | 던진 `DeadlineReadError` 의 status·code·message 그대로(ERP: 403 "관리자만 전체를 봅니다.") | |
 | 묶음 보기인데 그 공고가 없음 | 404 `NOT_FOUND` | "공고를 찾지 못했습니다." |
@@ -187,6 +189,51 @@ readAnnouncementDetailRow(q, id)   // 없으면 404
 그 자료로 「자격 확인」·「서류 준비」·「신청」 단계(`progressStepGroups`)와 서류 칸(`progressDocs`)을 만들어 `createTrack` 의
 `stepGroups`·`docs` 로 넘긴다. 없거나 못 읽거나 모양이 어긋나면 「신청 마감」 한 칸만 만든다(진행은 막지 않는다).
 두 앱 모두 넘겨야 「업무 현황에 추가」 단추 안내 글과 실제로 만들어지는 업무가 맞는다.
+
+### 해당 없음 `POST /api/policy-track/deadline/dismiss` — `readDismissBody(json)` → `setDeadlineDismiss(input, now, deps)`
+
+본문 `{ customerKey, bucketKey, reason }` — `reason` 은 `DISMISS_REASONS` 다섯 가지 중 하나(남기기) 또는 `null`(되돌리기).
+진행 통로와 같이 본문 해석과 호출을 **같은 `try` 안에** 두고, 던진 `DeadlineProgressError` 의 status·code·message 그대로 응답한다.
+같은 (업체, 공고 묶음)에는 한 줄만 남는다 — 다시 남기면 덮어쓰고, 별칭 열쇠가 와도 업체 본 열쇠로 저장한다.
+
+| 결과 | HTTP | 본문 |
+|---|---|---|
+| 남김·되돌림 | 200 | `{ success: true, data: { dismissed: { reason, byName, at } \| null } }` |
+| 본문이 맞지 않음 | 400 `BAD_REQUEST` | "업체·공고·사유를 골라 주세요." |
+| `isAssigned` 가 거짓(없는 업체도 같은 403) | 403 `FORBIDDEN` | 진행 통로와 같은 담당자 문구 |
+| 담당 확인을 통과했는데 업체가 없음 | 404 `NOT_FOUND` | "업체를 찾지 못했습니다." |
+| 그 업체에 맞는 판정 줄이 없음 | 404 `NOT_FOUND` | "이 업체에 맞는 공고가 아닙니다." |
+
+앱이 넘기는 것(`DismissDeps`): `readCompany` · `isAssigned(actor, company|null)` · `hasMatch` · `upsertDismiss(row)` · `deleteDismiss(customerKey, bucketKey)`.
+화면 단추는 앱이 `endpoints.dismiss`(`DEADLINE_DISMISS_ENDPOINT`)를 더해야 그려진다 — 통로를 만들지 않은 앱에는 단추가 없다.
+
+### 다시 맞추기 `POST /api/policy-track/deadline/rematch` — `readRematchBody(json)` → `requestDeadlineRematch(input, now, deps)`
+
+상세창에서 업체 정보를 고치고 닫을 때 화면이 부른다. 본문 `{ customerKey }`. 담당 확인 뒤 업체를 미리 대조 줄(dirty 큐, 업체 본 열쇠)에 넣고,
+앱의 대조 시계가 그 업체를 다시 판정해 줄에서 뺄 때까지 1초마다 보며 최대 25초(`REMATCH_WAIT_MS`) 기다린다 — 판정은 시계가 하고 이 코어는 넣고 기다리기만 한다.
+상한에 닿아도 줄은 지우지 않는다(시계가 곧 맞춘다). 화면은 답을 받은 뒤 목록을 다시 읽는다.
+
+| 결과 | HTTP | 본문 |
+|---|---|---|
+| 다시 맞춤 / 아직(상한) | 200 | `{ success: true, data: { rematched: true \| false } }` |
+| 본문이 맞지 않음 | 400 `BAD_REQUEST` | "업체를 골라 주세요." |
+| `isAssigned` 가 거짓(없는 업체도 같은 403) | 403 `FORBIDDEN` | 진행 통로와 같은 담당자 문구 |
+| 담당 확인을 통과했는데 업체가 없음 | 404 `NOT_FOUND` | "업체를 찾지 못했습니다." |
+
+앱이 넘기는 것(`RematchDeps`): `readCompany` · `isAssigned(actor, company|null)` · `enqueue(customerKey, now)`(실패하면 던진다) · `isQueued(customerKey)` · `sleep(ms)` · `nowMs()`.
+대조 시계는 업체 줄이 있으면 정해진 차례를 기다리지 않고 곧 돌아야 한다(ERP 는 10초마다 업체 줄을 본다) — 그래야 25초 안에 답이 나온다.
+
+### 맞을 확률 칸과 읽기 자리(`ReadSource`)
+
+판정 줄(`PolicyDeadlineMatch`)에 `tier`(high｜mid｜low)·`tierScore`·`tierReason`·`checkItems`(JSON 배열)·`amountMaxWon`(BIGINT, 기업당 최대)·
+`unstructured`(조건 정리 전, 기본 false) 칸이 있고, 해당 없음은 `PolicyDeadlineDismiss`(업체·공고 묶음이 열쇠, 사유·남긴 사람·때) 표에 남는다.
+조건 정리 전은 판정이 둘이다 — `isUnstructuredMatch`(판단 전: 확인할 것이 모두 뭉뚱그린 문구, 연락 예정의 「판단 전 포함」을 켜야 보이고 요약 카드 수가 이 기준)와
+`isPreStructureMatch`(조건 정리 전: 판단 전이거나, 확인할 것에 「공고 원문 확인(조건 정리 전)」이 섞인 확인 필요 줄 — 단계 낮음·「공고 조건 정리 대기」·단계 수 밖·맨 뒤 접기).
+저장 칸 `unstructured` 는 `isPreStructureMatch` 로 쓴다(공용 `tierOf` 의 `unstructured` 와 같다). 단계 거르기는 조건 정리 전 줄에 걸지 않는다.
+대조 배치가 `tierOf` 로 단계를 계산해 저장하고, 읽기는 저장된 값을 쓴다. 단계 칸이 빈 옛 줄(배포 직후 다시 대조하기 전)은 읽을 때 계산한다 —
+목록 수도 그런 줄이 있으면 거르기 칸을 읽어 계산해 센다.
+`ReadSource` 의 `dismissals`(해당 없음 줄)·`tierConfig`(설정 원본 JSON — `mergeTierConfig` 로 합친다)는 선택이다 — 없으면 해당 없음 줄 없음·기본 설정.
+설정 원본은 JsonCache `TIER_CONFIG_KEY`(`policy-deadline:tier-config`)에 둔다 — 두 앱 모두 읽기는 `tierConfig: () => readTierConfigRaw(db)` 로, 대조 배치는 같은 `readTierConfigRaw` 를 `mergeTierConfig` 에 넣어 읽어야 두 쪽 단계가 어긋나지 않는다.
 
 ## 앱이 만드는 `ServeQuery` (요약)
 

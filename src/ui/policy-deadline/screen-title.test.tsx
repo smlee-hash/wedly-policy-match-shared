@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 import PolicyCompaniesScreen from "./PolicyCompaniesScreen";
 import { DEADLINE_ENDPOINTS } from "./endpoints";
 
-const MINE_LINE = "정책마다 맞는 내 담당 고객사를 묶어 보고, 연락할 업체를 마감 순서로 봅니다.";
-const ALL_LINE = "정책마다 맞는 고객사를 묶어 보고, 연락할 업체를 마감 순서로 봅니다. 모든 고객사가 보입니다.";
+const MINE_LINE = "정책마다 맞는 내 담당 고객사를 묶어 보고, 연락할 업체를 맞을 확률 순서로 봅니다.";
+const ALL_LINE = "정책마다 맞는 고객사를 묶어 보고, 연락할 업체를 맞을 확률 순서로 봅니다. 모든 고객사가 보입니다.";
 
 describe("PolicyCompaniesScreen 본문에는 화면 제목이 없다", () => {
   const html = renderToStaticMarkup(<PolicyCompaniesScreen endpoints={DEADLINE_ENDPOINTS} />);
