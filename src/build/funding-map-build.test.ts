@@ -1815,6 +1815,8 @@ describe("bucketAmountTextOf — 정책별 고객사 공고 줄의 지원 금액
     amountText,
     amountMaxWon,
     structure: supportAmountText === undefined ? null : { supportAmountText },
+    ruleStructure: null,
+    structureStatus: "done",
   });
 
   it("숫자 칸이 있으면 자금 지도 「얼마」 칸과 같은 글자 — 금액 앞 낱말 + 통일한 금액", () => {
@@ -1829,8 +1831,20 @@ describe("bucketAmountTextOf — 정책별 고객사 공고 줄의 지원 금액
     expect(bucketAmountTextOf([row("기업당 50백만원 이내", null)])).toBe("기업당 5,000만원 이내");
   });
 
-  it("규칙 글자에 금액이 없으면 정리 결과의 금액 글 — 정리 상태와 상관없이 읽는다", () => {
+  it("규칙 글자에 금액이 없으면 정리 결과의 금액 글", () => {
     expect(bucketAmountTextOf([row("예산 범위 안에서 지원", null, "기업당 2,000만원 이내")])).toBe("기업당 2,000만원 이내");
+  });
+
+  it("AI 가 아직 못 읽은 공고는 자금 지도처럼 규칙 구조의 금액 글 — 실패 흔적(structure)은 읽지 않는다", () => {
+    const pending = {
+      amountText: "",
+      amountMaxWon: null,
+      structure: { supportAmountText: "옛 정리 결과 9억원" },
+      ruleStructure: { supportAmountText: "최대 2,000만원" },
+      structureStatus: "pending",
+    };
+    expect(bucketAmountTextOf([pending])).toBe("최대 2,000만원");
+    expect(bucketAmountTextOf([{ ...pending, structureStatus: "needs_review" }])).toBe("옛 정리 결과 9억원");
   });
 
   it("앞 줄 글자에 금액이 없으면 같은 묶음 다음 줄 글자", () => {
@@ -1844,9 +1858,18 @@ describe("bucketAmountTextOf — 정책별 고객사 공고 줄의 지원 금액
   });
 
   it("긴 글은 40자 + 「…」, 줄바꿈은 공백 하나로", () => {
-    const long = bucketAmountTextOf([row(`과제당 ${"가".repeat(40)} 2억원`, null)]);
-    expect(long.endsWith("…")).toBe(true);
+    const long = bucketAmountTextOf([row(`과제당 2억원 ${"가".repeat(40)}`, null)]);
+    expect(long).toBe(`과제당 2억원 ${"가".repeat(32)}…`);
     expect(long.length).toBe(41);
     expect(bucketAmountTextOf([row("최대\n  2,000만원", null)])).toBe("최대 2,000만원");
+  });
+
+  it("금액이 40자 뒤에 있으면 금액 바로 앞 낱말부터 자른다 — 금액 없는 조각을 금액 자리에 싣지 않는다", () => {
+    const text = `${"가".repeat(50)} 지원 규모는 과제당 최대 2억원 이내이며 자부담 비율과 지급 시기·방법은 세부 공고문을 따른다`;
+    const out = bucketAmountTextOf([row(text, null)]);
+    expect(out).toContain("2억원");
+    expect(out.startsWith("…")).toBe(true);
+    expect(out).toContain("과제당 최대 2억원");
+    expect(out.endsWith("…")).toBe(true);
   });
 });
