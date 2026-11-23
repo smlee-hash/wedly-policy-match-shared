@@ -4,10 +4,14 @@ import { compoundFamiliesIn, maskCompounds, relatedFamiliesOf, SECTOR_FAMILIES, 
 import { SIGUNGU_TO_SIDO, sigunguSido } from "./sigungu";
 import { ORG_TYPE_NAMES, profileOrgTypes } from "./target-org";
 import {
+  APPLICANT_SCOPES,
   AnnouncementStructure,
+  ApplicantScope,
   ConditionCheck,
   IndustryScope,
   MatchGrade,
+  PROGRAM_TYPES,
+  ProgramType,
   StructuredCondition,
   gradeOf,
   opFitsKey,
@@ -240,6 +244,21 @@ function loanUseFits(w: string, u: LoanUse): boolean {
   if (isLoanAgency(w)) return true;
   const sido = u.sido ?? foundationSido(u.name);
   return sido !== null && sido === foundationSido(w);
+}
+
+/** 대상 유형(targetOrg)·대상 분야(targetSector) 사전 이름 — 공고 정리 지시문이 AI 에게 이 이름으로 적게 한다. */
+export { ORG_TYPE_NAMES, SECTOR_FAMILY_NAMES };
+
+/**
+ * 대상 유형·대상 분야 조건의 값이 모두 사전 이름인가 — 그때만 아래 대조가 맞음·안 맞음을 낸다(사전 밖 이름은 늘 확인 필요).
+ * 공고 정리(ERP)가 AI 의 기계 대조 표시를 이 기준으로 받는다(2026-11-23 NO.789 후속 — 값 모양 검사에 두 키가 없어
+ * AI 가 사전 이름으로 적어도 기계 대조가 꺼졌다).
+ */
+export function targetValuesInDictionary(key: string, value: unknown): boolean {
+  if (!Array.isArray(value) || value.length === 0 || !value.every((v) => typeof v === "string")) return false;
+  if (key === "targetOrg") return value.every((v) => ORG_TYPE_NAMES.has(v));
+  if (key === "targetSector") return value.every((v) => SECTOR_FAMILY_NAMES.has(v));
+  return false;
 }
 
 export function checkCondition(c: StructuredCondition, p: BusinessProfile, now: Date): ConditionCheck {
@@ -1206,6 +1225,8 @@ export function readStoredStructure(raw: unknown): AnnouncementStructure {
   if (o.regionScope === "all" || o.regionScope === "restricted" || o.regionScope === "unknown") {
     s.regionScope = o.regionScope;
   }
+  if ((APPLICANT_SCOPES as readonly unknown[]).includes(o.applicantScope)) s.applicantScope = o.applicantScope as ApplicantScope;
+  if ((PROGRAM_TYPES as readonly unknown[]).includes(o.programType)) s.programType = o.programType as ProgramType;
 
   const human: string[] = Array.isArray(o.humanCheck)
     ? o.humanCheck.filter((h): h is string => typeof h === "string" && h.trim() !== "")

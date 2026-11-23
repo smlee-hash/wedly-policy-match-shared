@@ -3,9 +3,12 @@
 // 고객은 성진섬유와 같은 모양(서울 도봉구·양말 임가공 제조·7명·체납 없음)으로 지어낸 값이다.
 import { describe, expect, it } from "vitest";
 import {
+  ATTACHMENT_TO_CHECK,
   displayChecks,
   INDUSTRY_SCOPE_UNKNOWN,
+  NON_COMPANY_REASON,
   nonBenefitReason,
+  NOT_SUPPORT_REASON,
   REGION_SCOPE_UNKNOWN,
   reviewEligibility,
   SCOPE_UNKNOWN_TO_CHECK,
@@ -1059,5 +1062,131 @@ describe("대상 업종 문장을 제외 업종 목록으로 읽지 않는다 �
     );
     const REALTY: BusinessProfile = { ...SOCKS, industry: "부동산업(중개)" };
     expect(shown(startupList, REALTY, "restricted").verdict).toBe("unknown");
+  });
+});
+
+describe("AI 가 읽었지만 사람 확인으로 남은 공고 — AI 조건으로 끝까지 판정한다(2026-11-23 NO.789 후속)", () => {
+  const ALL = { industryScope: "all" as const, regionScope: "all" as const, supportAmountText: "", benefitSummary: "" };
+  /** AI 가 대상 유형을 글자로만 적은 조건(기계 대조 끔) — 운영 사람 확인 공고 815건의 흔한 모양. */
+  const orgText = (values: string[]): ConditionCheck => ({
+    condition: { key: "targetOrg", op: "in", value: values, rawText: values.join(", "), machineReadable: false },
+    verdict: "unknown",
+    note: "기계로 판정할 수 없는 조건",
+  });
+
+  it("「조건 정리 전」을 붙이지 않고 AI 의 업종·지역 범위 답을 본다", () => {
+    const r = reviewEligibility(base({ needsReview: true, checks: [orgText(["가족친화인증기업"])], structure: { ...ALL, industryScope: "unknown" } }));
+    expect(r.toCheck).not.toContain("공고 원문 확인(조건 정리 전)");
+    expect(r.toCheck).toContain(INDUSTRY_SCOPE_UNKNOWN);
+    expect(r.toCheck).toContain("대상 자격: 가족친화인증기업");
+  });
+
+  it("AI 가 글자로만 적은 대상도 고객 정보로 가린다 — 2000년 창업 회사에 「창업기업」 공고는 안 맞음이다", () => {
+    const r = reviewEligibility(base({ needsReview: true, checks: [orgText(["창업기업"])], structure: ALL }));
+    expect(r.verdict).toBe("excluded");
+    expect(r.excludeReason).toBe("대상: 창업기업");
+  });
+
+  it.each([
+    "공고가 길어 AI 가 끝까지 읽지 못했습니다 — 원문을 직접 확인하세요",
+    "자격조건을 본문에서 못 찾음 — 원문·첨부 확인",
+    "첨부를 다 읽지 못함 — 조건이 빠졌을 수 있습니다",
+  ])("읽기 상태 줄 「%s」은 조건으로 판정하지 않는다(다른 수집본을 내리는 근거가 되지 않게)", (note) => {
+    const r = reviewEligibility(base({ needsReview: true, humanCheckTexts: [note] }));
+    expect(r.toCheck.some((t) => t.startsWith("조건 확인:"))).toBe(false);
+    expect(r.verdict).toBe("fit");
+  });
+
+  it("AI 가 적은 대상이 모두 기업이 아니면(대학·연구기관) 안 맞음이다", () => {
+    const r = reviewEligibility(base({ needsReview: true, checks: [orgText(["대학", "연구기관"])], structure: ALL }));
+    expect(r.verdict).toBe("excluded");
+  });
+
+  it("다른 조건이 다 맞아도 못 읽은 첨부가 있으면 맞음이 아니라 「첨부 파일 조건 확인」이다", () => {
+    const r = reviewEligibility(base({ needsReview: true, humanCheckTexts: ["첨부 원문 확인 필요: 공고문.hwp", "첨부를 다 읽지 못함 — 조건이 빠졌을 수 있습니다"] }));
+    expect(r.verdict).toBe("unverified");
+    expect(r.toCheck).toEqual([ATTACHMENT_TO_CHECK]);
+  });
+
+  it("AI 가 기계 대조만 끈 조건이라도 고객 정보로 모두 통과하면 맞음이다(「원문 확인 필요」로 남기지 않는다)", () => {
+    const r = reviewEligibility(base({ needsReview: true, checks: [orgText(["소상공인"])], humanCheckTexts: ["자격조건을 본문에서 못 찾음 — 원문·첨부 확인"] }));
+    expect(r.verdict).toBe("fit");
+    expect(r.toCheck).toEqual([]);
+  });
+
+  it("통과한 조건이 하나도 없으면 사람 확인 공고는 원문 확인이다", () => {
+    const r = reviewEligibility(base({ needsReview: true, checks: [], humanCheckTexts: ["자격조건을 본문에서 못 찾음 — 원문·첨부 확인"] }));
+    expect(r.verdict).toBe("unverified");
+    expect(r.toCheck).toEqual(["자격 조건 원문 확인"]);
+  });
+
+  it("답이 끊겨 빈 구조만 남았으면(범위 답 없음) 범위 두 줄 대신 원문 확인이다", () => {
+    const r = reviewEligibility(base({ needsReview: true, checks: [], humanCheckTexts: ["공고가 길어 AI 가 끝까지 읽지 못했습니다 — 원문을 직접 확인하세요"], structure: { supportAmountText: "", benefitSummary: "" } }));
+    expect(r.verdict).toBe("unverified");
+    expect(r.toCheck).toEqual(["자격 조건 원문 확인"]);
+  });
+
+  it("답이 끊겨 빈 구조에 제목에서 보탠 조건만 통과해도 맞음이 아니라 원문 확인이다(리뷰 review-83407d80 지적 1)", () => {
+    const fromTitle: ConditionCheck = { ...SCALE_PASS, condition: { ...SCALE_PASS.condition, origin: "augmented" } };
+    const r = reviewEligibility(base({ needsReview: true, checks: [fromTitle], humanCheckTexts: ["공고가 길어 AI 가 끝까지 읽지 못했습니다 — 원문을 직접 확인하세요"], structure: { supportAmountText: "", benefitSummary: "" } }));
+    expect(r.verdict).toBe("unverified");
+    expect(r.toCheck).toContain("자격 조건 원문 확인");
+    expect(r.toCheck).not.toContain(INDUSTRY_SCOPE_UNKNOWN);
+  });
+
+  it("AI 가 낸 조건이 하나라도 있으면 빈 범위 답은 범위 확인으로 남긴다", () => {
+    const r = reviewEligibility(base({ needsReview: true, checks: [SCALE_PASS], structure: { supportAmountText: "", benefitSummary: "" } }));
+    expect(r.verdict).toBe("unverified");
+    expect(r.toCheck).toContain(INDUSTRY_SCOPE_UNKNOWN);
+    expect(r.toCheck).not.toContain("자격 조건 원문 확인");
+  });
+
+  it("못 읽은 첨부 줄 앞에 빈칸이 있어도 「첨부 파일 조건 확인」이다", () => {
+    const r = reviewEligibility(base({ needsReview: true, humanCheckTexts: ["  첨부 원문 확인 필요: 공고문.hwp"] }));
+    expect(r.toCheck).toEqual([ATTACHMENT_TO_CHECK]);
+  });
+
+  it("다 읽은(done) 공고는 예전 그대로 맞음이다", () => {
+    expect(reviewEligibility(base()).verdict).toBe("fit");
+  });
+
+  it("못 읽은 첨부는 조건 하나보다 무겁고 조건 수를 모르는 원문 확인보다 가볍다", () => {
+    expect(toCheckWeight([ATTACHMENT_TO_CHECK])).toBe(3);
+  });
+});
+
+describe("AI 가 답한 신청 대상·글 종류 — 기업이 못 내는 공고와 행사·안내는 뺀다(2026-11-23 NO.789 후속)", () => {
+  const ALL = { industryScope: "all" as const, regionScope: "all" as const, supportAmountText: "", benefitSummary: "" };
+  it.each([
+    ["개인·기관만 신청", { applicantScope: "nonCompany" as const }, NON_COMPANY_REASON],
+    ["행사", { programType: "event" as const }, NOT_SUPPORT_REASON],
+    ["안내", { programType: "notice" as const }, NOT_SUPPORT_REASON],
+  ])("%s → 안 맞음", (_n, over, reason) => {
+    const r = reviewEligibility(base({ structure: { ...ALL, ...over } }));
+    expect(r.verdict).toBe("excluded");
+    expect(r.excludeReason).toBe(reason);
+    expect(r.excludedByPlaceOnly).toBeUndefined();
+  });
+
+  it.each([
+    ["답 없음(옛 정리분)", {}],
+    ["모름", { applicantScope: "unknown" as const, programType: "unknown" as const }],
+    ["기업 대상 지원사업", { applicantScope: "company" as const, programType: "support" as const }],
+  ])("%s → 빼지 않는다", (_n, over) => {
+    expect(reviewEligibility(base({ structure: { ...ALL, ...over } })).verdict).toBe("fit");
+  });
+
+  it("금융상품에는 쓰지 않는다", () => {
+    const r = reviewEligibility(base({ kind: "product", group: "policy", structure: { ...ALL, applicantScope: "nonCompany" } }));
+    expect(r.excludeReason).not.toBe(NON_COMPANY_REASON);
+  });
+
+  it("저장 구조를 읽을 때 두 답을 지키고 사전 밖 값은 버린다", () => {
+    const ok = readStoredStructure({ conditions: [], humanCheck: [], applicantScope: "nonCompany", programType: "event" });
+    expect(ok.applicantScope).toBe("nonCompany");
+    expect(ok.programType).toBe("event");
+    const bad = readStoredStructure({ conditions: [], humanCheck: [], applicantScope: "개인", programType: 3 });
+    expect(bad.applicantScope).toBeUndefined();
+    expect(bad.programType).toBeUndefined();
   });
 });

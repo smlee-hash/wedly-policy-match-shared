@@ -16,6 +16,7 @@ import {
   matchAnnouncement,
   parseBusinessProfile,
   readStoredStructure,
+  targetValuesInDictionary,
   type BusinessProfile,
 } from "./match-engine";
 
@@ -1022,5 +1023,21 @@ describe("정밀 맞음 — 지역 외 조건·원문·약칭(리뷰 review-afe4
       { key: "companyScale", op: "in", value: ["소기업"], rawText: "소기업에 한함", machineReadable: true },
       { key: "region", op: "in", value: ["서울"], rawText: "서울", machineReadable: true },
     ], { companyScale: "중소기업", region: "서울" })).toBe("uncertain");
+  });
+});
+
+describe("targetValuesInDictionary — 대상 유형·분야 값이 사전 이름일 때만 기계 대조(2026-11-23 NO.789 후속)", () => {
+  it.each([
+    ["targetOrg", ["사회적기업", "협동조합"], true],
+    ["targetOrg", ["예비창업자"], true],
+    ["targetOrg", ["중소기업"], false],
+    ["targetOrg", ["사회적기업", "대학"], false],
+    ["targetOrg", [], false],
+    ["targetOrg", true, false],
+    ["targetSector", ["식품", "농림어업"], true],
+    ["targetSector", ["제약"], false],
+    ["industry", ["식품"], false],
+  ])("%s %j → %s", (key, value, want) => {
+    expect(targetValuesInDictionary(key as string, value)).toBe(want);
   });
 });
