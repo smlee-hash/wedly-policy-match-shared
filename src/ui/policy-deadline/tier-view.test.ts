@@ -78,16 +78,16 @@ describe("단계 글자·딱지", () => {
     expect(DEFAULT_TIERS).toEqual(["high", "mid"]);
   });
 
-  it("딱지 글자 — 조건을 아직 정리하지 않은 줄은 단계와 상관없이 「판단 전」(내부 용어를 쓰지 않는다)", () => {
+  it("딱지 글자 — AI가 자격 조건을 확정하지 못한 줄은 단계와 상관없이 「원문 확인 필요」(내부 용어를 쓰지 않는다)", () => {
     expect([tierText("high", false), tierText("mid", false), tierText("low", false), tierText("low", true), tierText("high", true)]).toEqual([
-      "높음", "보통", "낮음", "판단 전", "판단 전",
+      "높음", "보통", "낮음", "원문 확인 필요", "원문 확인 필요",
     ]);
-    expect(UNSTRUCTURED_LABEL).toBe("판단 전");
+    expect(UNSTRUCTURED_LABEL).toBe("원문 확인 필요");
   });
 
   it("색 말고도 모양으로 가른다 — ● ◐ ○, 읽어 주는 글은 「맞을 확률 ○○」", () => {
     expect(TIER_MARK).toEqual({ high: "●", mid: "◐", low: "○" });
-    expect([tierAria("high", false), tierAria("low", true)]).toEqual(["맞을 확률 높음", "맞을 확률 판단 전"]);
+    expect([tierAria("high", false), tierAria("low", true)]).toEqual(["맞을 확률 높음", "맞을 확률 원문 확인 필요"]);
   });
 
   it("단계 고르기 — 누르면 켜고 끄되 마지막 하나는 끌 수 없다 · 결과는 늘 높음 → 보통 → 낮음 순", () => {
@@ -166,8 +166,8 @@ describe("묶음 제목·숨김 안내·해당 없음 표시", () => {
   it("업체는 곳, 공고는 건", () => {
     expect(hiddenHint(2, "업체")).toBe("고르지 않은 단계의 업체 2곳은 숨겼습니다");
     expect(hiddenHint(1, "공고")).toBe("고르지 않은 단계의 공고 1건은 숨겼습니다");
-    expect(unstructuredTitle(4, "업체")).toBe("판단 전 업체 4곳 · 공고 조건을 정리하면 맞을 확률이 나옵니다");
-    expect(unstructuredTitle(3, "공고")).toBe("판단 전 공고 3건 · 공고 조건을 정리하면 맞을 확률이 나옵니다");
+    expect(unstructuredTitle(4, "업체")).toBe("원문 확인 필요 업체 4곳 · AI가 공고 자격 조건을 확정하지 못해 맞을 확률 대신 확인할 것을 보여 줍니다");
+    expect(unstructuredTitle(3, "공고")).toBe("원문 확인 필요 공고 3건 · AI가 공고 자격 조건을 확정하지 못해 맞을 확률 대신 확인할 것을 보여 줍니다");
     expect(dismissedTitle(2, "업체")).toBe("해당 없음 업체 2곳");
     expect(dismissedTitle(5, "공고")).toBe("해당 없음 공고 5건");
   });

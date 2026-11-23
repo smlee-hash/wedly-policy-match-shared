@@ -119,7 +119,7 @@ export function Seg<T extends string | number>({
 /**
  * 확인할 조건 칸 — 업체마다 다른 조건만 노랑 조각으로 + 「채울 칸: …」. 없으면 비워 둔다.
  * 「공고 원문 확인(조건 정리 전)」 같은 공고 전체 문구는 칸에 되풀이하지 않는다 —
- * unstructuredChip 이면 짧은 「조건 정리 전」 조각만(연락 예정 업체), 아니면 표 위 한 줄이 알린다(정책별 고객사).
+ * unstructuredChip 이면 짧은 「원문 확인 필요」 조각만(연락 예정 업체), 아니면 표 위 한 줄이 알린다(정책별 고객사).
  */
 export function CheckCell({ toCheck, gaps, unstructuredChip = false }: { toCheck: string[]; gaps: string[]; unstructuredChip?: boolean }) {
   const items = specificToCheck(toCheck);
@@ -130,8 +130,8 @@ export function CheckCell({ toCheck, gaps, unstructuredChip = false }: { toCheck
       {(items.length > 0 || unstructured) && (
         <span className="flex flex-wrap gap-1">
           {unstructured && (
-            <span title="아직 자격 조건을 정리하지 않은 공고입니다. 공고 원문에서 확인해 주세요." className="break-keep rounded bg-wedly-bg-gray px-1.5 text-wedly-hint text-wedly-t2">
-              조건 정리 전
+            <span title="AI가 자격 조건을 확정하지 못한 공고입니다. 공고 원문에서 자격을 확인해 주세요." className="break-keep rounded bg-wedly-bg-gray px-1.5 text-wedly-hint text-wedly-t2">
+              원문 확인 필요
             </span>
           )}
           {items.map((label) => (

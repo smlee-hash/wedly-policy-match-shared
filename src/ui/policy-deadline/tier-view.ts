@@ -33,7 +33,7 @@ export const DEFAULT_TIERS: readonly DeadlineTier[] = ["high", "mid"];
 /** 색 말고도 모양으로 가르는 딱지 표시. */
 export const TIER_MARK: Record<DeadlineTier, string> = { high: "●", mid: "◐", low: "○" };
 
-/** 딱지 글자 — 조건을 아직 정리하지 않은 줄은 단계와 상관없이 「판단 전」. */
+/** 딱지 글자 — AI 가 자격 조건을 확정하지 못한 줄(조건 정리 전)은 단계와 상관없이 「원문 확인 필요」. */
 export function tierText(tier: DeadlineTier, unstructured: boolean): string {
   return unstructured ? UNSTRUCTURED_LABEL : TIER_LABEL[tier];
 }
@@ -105,9 +105,9 @@ export function hiddenHint(n: number, noun: TierNoun): string {
   return n === 0 ? "" : `고르지 않은 단계의 ${noun} ${n}${unitOf(noun)}은 숨겼습니다`;
 }
 
-/** 「판단 전」 묶음 제목. */
+/** 「원문 확인 필요」 묶음 제목. */
 export function unstructuredTitle(n: number, noun: TierNoun): string {
-  return `판단 전 ${noun} ${n}${unitOf(noun)} · 공고 조건을 정리하면 맞을 확률이 나옵니다`;
+  return `원문 확인 필요 ${noun} ${n}${unitOf(noun)} · AI가 공고 자격 조건을 확정하지 못해 맞을 확률 대신 확인할 것을 보여 줍니다`;
 }
 
 /** 「해당 없음」 묶음 제목. */
@@ -125,7 +125,7 @@ export function dismissedNoteText(d: DismissInfo): string {
   return `${head} · ${dateLabel(day)}`;
 }
 
-/** 단계 단추 숫자 — 고른 단계와 상관없이 전부 센다(판단 전은 따로). */
+/** 단계 단추 숫자 — 고른 단계와 상관없이 전부 센다(원문 확인 필요는 따로). */
 export interface TierChipCounts {
   high: number;
   mid: number;
@@ -158,8 +158,8 @@ export function partitionContactRows(
 }
 
 /**
- * 정책별 공고 줄을 나눈다 — 고른 단계 줄이 하나라도 있으면 본 목록, 판단 전 줄만 있으면 판단 전 묶음.
- * 줄이 아예 없는 공고(bestTier 도 판단 전도 없음)는 본 목록에 둔다 — 「0곳 숨기기」가 정한다.
+ * 정책별 공고 줄을 나눈다 — 고른 단계 줄이 하나라도 있으면 본 목록, 원문 확인 필요 줄만 있으면 원문 확인 필요 묶음.
+ * 줄이 아예 없는 공고(bestTier 도 원문 확인 필요도 없음)는 본 목록에 둔다 — 「0곳 숨기기」가 정한다.
  * 단추 숫자는 업체·공고 짝 수를 더한다.
  */
 export function partitionAnnouncements(
@@ -186,7 +186,7 @@ export function partitionAnnouncements(
   return { main, unstructured, hidden, counts };
 }
 
-/** 펼친 줄을 나눈다 — 해당 없음은 단계·판단 전과 상관없이 따로, 판단 전 따로, 나머지는 고른 단계만. 단추 숫자는 해당 없음을 뺀다. */
+/** 펼친 줄을 나눈다 — 해당 없음은 단계·원문 확인 필요와 상관없이 따로, 원문 확인 필요 따로, 나머지는 고른 단계만. 단추 숫자는 해당 없음을 뺀다. */
 export function partitionLines<T extends Pick<TierView, "tier" | "unstructured"> & { dismissed: DismissInfo | null }>(
   rows: readonly T[],
   tiers: readonly DeadlineTier[],

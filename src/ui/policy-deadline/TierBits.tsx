@@ -13,7 +13,7 @@ import { TIER_MARK, TIER_ORDER, checkGroupsOf, dismissedNoteText, firstCheckText
 // 단계 딱지 점 — 높음 초록·보통 노랑(Badge 가 gold-ink 로 그린다)·낮음은 점 없음.
 const TIER_VARIANT: Record<DeadlineTier, "green" | "yellow" | "default"> = { high: "green", mid: "yellow", low: "default" };
 
-/** 맞을 확률 딱지 — 눈에는 단계 글자만, 읽어 주는 글에는 「맞을 확률」을 붙인다. 판단 전은 단계와 상관없이 점 없음. */
+/** 맞을 확률 딱지 — 눈에는 단계 글자만, 읽어 주는 글에는 「맞을 확률」을 붙인다. 원문 확인 필요는 단계와 상관없이 점 없음. */
 export function TierBadge({ tier, unstructured }: { tier: DeadlineTier; unstructured: boolean }) {
   return (
     <Badge variant={unstructured ? "default" : TIER_VARIANT[tier]}>

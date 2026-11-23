@@ -271,7 +271,7 @@ describe("readBucketCompanies — 묶음 하나를 맞을 확률 순으로", () 
     expect(row("b:15")).toMatchObject({ checkItems: [CALL, REF], checkCount: 1, nextAction: ASK_CALL, dismissed: null, amountMaxWon: null });
     expect(row("b:13")).toMatchObject({ nextAction: "공고 원문에서 자격 먼저 확인" });
     expect(row("b:11")).toMatchObject({ tier: "high", checkCount: 0, nextAction: "고객에게 연락해 신청 안내" });
-    expect(row("b:16")).toMatchObject({ unstructured: true, tier: "low", nextAction: "공고 조건 정리 대기" });
+    expect(row("b:16")).toMatchObject({ unstructured: true, tier: "low", nextAction: "공고 원문에서 자격 확인 후 연락" });
   });
 
   it("진행 중인 줄의 다음 할 일은 「업무 현황에서 진행 중」", async () => {
@@ -474,7 +474,7 @@ describe("readContacts — 연락 예정 업체를 맞을 확률 순으로", () 
     const view = await readContacts(ALL, { days: 14, includeUnstructured: true, includeProgress: false, sort: "tier", tiers: ["high"] }, NOW, tierSource());
     expect(namesOf(view.companies)).toEqual(["라온기계", "가온식품", "다온상사", "바다물산"]);
     expect(view.companies[3]).toMatchObject({
-      bestTier: "low", tiers: { high: 0, mid: 0, low: 0, unstructured: 2 }, best: { bucketKey: "TU", unstructured: true, nextAction: "공고 조건 정리 대기" },
+      bestTier: "low", tiers: { high: 0, mid: 0, low: 0, unstructured: 2 }, best: { bucketKey: "TU", unstructured: true, nextAction: "공고 원문에서 자격 확인 후 연락" },
     });
   });
 
@@ -592,7 +592,7 @@ describe("readExport — 엑셀 단계 칸", () => {
       tier: "high", tierReason: "저장된 근거 b:12 T7", nextAction: ASK_TAX, unstructured: false, dismissedReason: "이미 신청함",
     });
     expect(row("공고 T3", "가온식품")).toMatchObject({ inProgress: true, nextAction: "업무 현황에서 진행 중", dismissedReason: "" });
-    expect(row("공고 TU", "바다물산")).toMatchObject({ tier: "low", unstructured: true, nextAction: "공고 조건 정리 대기" });
+    expect(row("공고 TU", "바다물산")).toMatchObject({ tier: "low", unstructured: true, nextAction: "공고 원문에서 자격 확인 후 연락" });
     expect(row("공고 TA1", "마루정밀")).toMatchObject({ dismissedReason: "기타" });
   });
 
@@ -670,20 +670,36 @@ describe("조건 정리 전 문구가 다른 확인과 섞인 줄 — 판단 전
     dismissals: [],
   };
 
-  it("판단 전(isUnstructuredMatch)은 아니고 조건 정리 전(isPreStructureMatch) — 옛 줄도 낮음·「공고 조건 정리 대기」", () => {
+  it("판단 전(isUnstructuredMatch)은 아니고 조건 정리 전(isPreStructureMatch) — 옛 줄도 낮음이고 확인할 것·「공고 원문에서 자격 확인 후 연락」", () => {
     expect(isUnstructuredMatch(mixedOld)).toBe(false);
     expect(isPreStructureMatch(mixedOld)).toBe(true);
     expect(isPreStructureMatch(plainMid)).toBe(false);
+    const preItem: CheckItem = { label: PRE, what: "공고 원문 조건", group: "notice", rank: 8, where: "공고 원문" };
+    // 체납 −8 · 원문 조건 −20 → 72점이지만 단계는 낮음
     expect(tierViewOf(mixedOld, false, DEFAULT_TIER_CONFIG)).toEqual({
-      tier: "low", tierScore: 0, tierReason: "공고 조건을 아직 정리하지 않음", checkItems: [], checkCount: 0, nextAction: "공고 조건 정리 대기", unstructured: true,
+      tier: "low", tierScore: 72, tierReason: "AI가 자격 조건을 확정하지 못함 · 세금 체납 외 1개 확인",
+      checkItems: [
+        { label: "체납 여부 입력", what: "세금 체납", group: "company", rank: 7, field: "taxArrears", where: "기업상태표 › 국세 체납여부", current: "비어 있음" },
+        preItem,
+      ],
+      checkCount: 2, nextAction: "공고 원문에서 자격 확인 후 연락", unstructured: true,
     });
+    // 옛 대조가 확인 항목을 버린 채 저장한 줄(「공고 조건을 아직 정리하지 않음」·빈 확인 항목)도 읽을 때 다시 계산한다 — 다음 대조 전까지.
+    expect(tierViewOf(mixedStored, false, DEFAULT_TIER_CONFIG)).toMatchObject({
+      tier: "low", tierScore: 65, tierReason: "AI가 자격 조건을 확정하지 못함 · 업종 해당 여부(식품) 외 1개 확인", checkCount: 2,
+      nextAction: "공고 원문에서 자격 확인 후 연락", unstructured: true,
+    });
+    // 새 대조가 확인 항목을 채워 저장한 줄은 저장 값 그대로(지금 값이 들어 있다).
+    const saved = { ...mixedStored, tierScore: 65, tierReason: "저장한 근거", checkItems: [{ ...preItem, current: "저장" }] };
+    expect(tierViewOf(saved, false, DEFAULT_TIER_CONFIG)).toMatchObject({ tierScore: 65, tierReason: "저장한 근거", checkItems: [{ ...preItem, current: "저장" }], checkCount: 1 });
   });
 
-  it("연락 예정: 「판단 전 포함」을 꺼도 보이고(요약 카드 수 그대로) 단계 거르기에 걸리지 않으며 늘 맨 뒤", async () => {
+  it("연락 예정: 「조건 모르는 공고 포함」을 꺼도 보이고(요약 카드 수 그대로) 단계 거르기에 걸리지 않으며 늘 맨 뒤", async () => {
     const view = await readContacts(ALL, { ...CONTACT_14, sort: "tier", tiers: ["high", "mid"] }, NOW, tierSource(data));
-    expect(namesOf(view.companies)).toEqual(["차오름", "아름식품", "자람기계"]);
-    expect(view.companies[1]).toMatchObject({
-      bestTier: "low", tiers: { high: 0, mid: 0, low: 0, unstructured: 1 }, best: { bucketKey: "T5", unstructured: true, nextAction: "공고 조건 정리 대기" },
+    // 조건 정리 전끼리는 확인 수가 같으면 점수 높은 순(확인할 것이 가벼운 쪽 먼저) — 자람기계 72점 · 아름식품 65점.
+    expect(namesOf(view.companies)).toEqual(["차오름", "자람기계", "아름식품"]);
+    expect(view.companies[2]).toMatchObject({
+      bestTier: "low", tiers: { high: 0, mid: 0, low: 0, unstructured: 1 }, best: { bucketKey: "T5", unstructured: true, nextAction: "공고 원문에서 자격 확인 후 연락" },
     });
     const summary = await readSummary(ALL, NOW, tierSource(data));
     expect(summary.contacts).toBe(3);

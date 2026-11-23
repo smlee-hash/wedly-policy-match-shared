@@ -80,13 +80,19 @@ describe("tierOf — 점수와 단계", () => {
     expect(nextActionOf({ tier: t.tier, checkItems: t.checkItems, unstructured: false, inProgress: false })).toBe("체납 정리 확인 후 연락");
   });
 
-  it("조건 정리 전 = 낮음 0점, 근거 「공고 조건을 아직 정리하지 않음」, 다음 할 일 「공고 조건 정리 대기」", () => {
+  it("조건 정리 전 = 점수와 상관없이 낮음, 확인 항목 「공고 원문 조건」은 남기고, 다음 할 일 「공고 원문에서 자격 확인 후 연락」", () => {
+    // 2026-11-23 대표님 「판단 전·공고 조건 정리 대기가 무슨 말인지 모르겠다」 — 기다려도 풀리지 않으니 원문에서 확인할 것을 보인다.
+    const pre = { label: "공고 원문 확인(조건 정리 전)", what: "공고 원문 조건", group: "notice", rank: 8, where: "공고 원문" };
     const t = tierOf(input({ toCheck: ["공고 원문 확인(조건 정리 전)"] }));
-    expect(t).toMatchObject({ tier: "low", score: 0, reason: "공고 조건을 아직 정리하지 않음", unstructured: true, checkItems: [] });
-    expect(nextActionOf({ tier: t.tier, checkItems: t.checkItems, unstructured: true, inProgress: false })).toBe("공고 조건 정리 대기");
-    // 확인 필요인데 확인할 것이 하나도 없어도 조건 정리 전(읽기의 isUnstructuredMatch 와 같은 뜻)
-    expect(tierOf(input({})).unstructured).toBe(true);
+    // 점수 80(보통 기준 이상)이어도 단계는 낮음 — AI 가 확정하지 못한 공고에 높음·보통을 주지 않는다.
+    expect(t).toMatchObject({ tier: "low", score: 80, reason: "AI가 자격 조건을 확정하지 못함 · 공고 원문 조건만 확인", unstructured: true, checkItems: [pre] });
+    expect(nextActionOf({ tier: t.tier, checkItems: t.checkItems, unstructured: true, inProgress: false })).toBe("공고 원문에서 자격 확인 후 연락");
+    // 확인 필요인데 확인할 것이 하나도 없어도 조건 정리 전(읽기의 isUnstructuredMatch 와 같은 뜻) — 「확인할 것 없음」이 아니라 공고 원문 조건 하나.
+    const empty = tierOf(input({}));
+    expect(empty).toMatchObject({ tier: "low", unstructured: true, checkItems: [pre], reason: "AI가 자격 조건을 확정하지 못함 · 공고 원문 조건만 확인" });
     expect(tierOf(input({ verdict: "fit" })).unstructured).toBe(false);
+    // 진행 중이면 진행 중이 먼저다.
+    expect(nextActionOf({ tier: t.tier, checkItems: t.checkItems, unstructured: true, inProgress: true })).toBe("업무 현황에서 진행 중");
   });
 
   it("원문을 그대로 줄인 확인 −20 → 80점 보통, 근거 문장 = 원문, 다음 할 일 = 공고 원문 먼저", () => {
@@ -99,13 +105,19 @@ describe("tierOf — 점수와 단계", () => {
     expect(nextActionOf({ tier: t.tier, checkItems: t.checkItems, unstructured: false, inProgress: false })).toBe("공고 원문에서 자격 먼저 확인");
   });
 
-  it("「공고 원문 확인(조건 정리 전)」이 다른 확인과 섞여도 조건 정리 전 — 업체와 상관없이 낮음 0점·확인 항목 없음", () => {
-    // 공고가 아직 AI 로 정리되지 않으면 공용 판정이 늘 이 문구를 붙이고, 무료 규칙 추출이 다른 확인을 더한다(2026-11-23 운영 16.9만 줄).
+  it("「공고 원문 확인(조건 정리 전)」이 다른 확인과 섞여도 조건 정리 전 — 낮음이지만 업체별 확인 항목(지금 값 포함)은 그대로 남긴다", () => {
+    // 공고가 AI 로 확정되지 않으면 공용 판정이 늘 이 문구를 붙이고, 무료 규칙 추출이 다른 확인을 더한다(2026-11-23 운영 16.9만 줄).
     const toCheck = ["업종 해당 여부(식품)", "체납 여부 입력", "공고 원문 확인(조건 정리 전)"];
-    const t = tierOf(input({ fit: [pass("지역")], toCheck }));
-    expect(t).toMatchObject({ tier: "low", score: 0, reason: "공고 조건을 아직 정리하지 않음", unstructured: true, checkItems: [] });
-    expect(nextActionOf({ tier: t.tier, checkItems: t.checkItems, unstructured: t.unstructured, inProgress: false })).toBe("공고 조건 정리 대기");
-    // 판단 전(「판단 전 포함」을 켜야 보이는 줄)은 확인할 것이 모두 일반 문구일 때만 — 섞인 줄은 판단 전이 아니다.
+    const t = tierOf(input({ fit: [pass("지역")], toCheck }), DEFAULT_TIER_CONFIG, (field) => (field === "taxArrears" ? { current: "모름" } : undefined));
+    // 무게 8 + 15 + 20 = 43 → 57점, 단계는 낮음
+    expect(t).toMatchObject({ tier: "low", score: 57, reason: "AI가 자격 조건을 확정하지 못함 · 세금 체납 외 2개 확인", unstructured: true });
+    expect(t.checkItems.map((c) => [c.label, c.what, c.group, c.rank, c.current ?? null])).toEqual([
+      ["체납 여부 입력", "세금 체납", "company", 7, "모름"],
+      ["업종 해당 여부(식품)", "업종 해당 여부(식품)", "notice", 8, null],
+      ["공고 원문 확인(조건 정리 전)", "공고 원문 조건", "notice", 8, null],
+    ]);
+    expect(nextActionOf({ tier: t.tier, checkItems: t.checkItems, unstructured: t.unstructured, inProgress: false })).toBe("공고 원문에서 자격 확인 후 연락");
+    // 판단 전(「조건 모르는 공고 포함」을 켜야 보이는 줄)은 확인할 것이 모두 일반 문구일 때만 — 섞인 줄은 판단 전이 아니다.
     expect(isUnjudgedJudgement({ verdict: "unverified", toCheck })).toBe(false);
     expect(isPreStructureJudgement({ verdict: "unverified", toCheck })).toBe(true);
     for (const only of [[], ["공고 원문 확인(조건 정리 전)"], ["자격 조건 원문 확인"]]) {

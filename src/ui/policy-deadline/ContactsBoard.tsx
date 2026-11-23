@@ -2,7 +2,7 @@
 
 // 「연락 예정 업체」 탭 — 마감이 다가오는 맞음·확인 필요 공고가 있는 업체를 맞을 확률 순(높음 → 보통 → 낮음)으로 보인다.
 // 단계 단추는 화면 안에서만 거르고(다시 읽지 않는다), 순서(맞을 확률 순·마감 순)는 서버가 정해서 바꾸면 다시 읽는다.
-// 공고 조건을 아직 정리하지 않은 「판단 전」 업체는 목록 끝 접힌 묶음에 둔다. 접은 줄은 업체 하나당 가장 좋은 공고 한 줄과 근거 한 줄을 보인다.
+// AI 가 공고 자격 조건을 확정하지 못한 「원문 확인 필요」 업체는 목록 끝 접힌 묶음에 둔다. 접은 줄은 업체 하나당 가장 좋은 공고 한 줄과 근거 한 줄을 보인다.
 // 목록과 캘린더 두 가지 보기(`view`)가 같은 거르기·같은 자료를 쓴다. 줄(칩)을 열면 그 업체의 공고를 읽고,
 // 「업무 현황에 추가」하면 그 공고가 빠진다(「진행 중 포함」이면 「업무 현황에 있음」으로 남는다).
 // 「해당 없음」으로 사유를 남기면 그 공고가 해당 없음 묶음으로 내려가고, 되돌리면 제자리로 돌아온다.
@@ -109,7 +109,7 @@ export function contactsListKey(
 
 /**
  * 연락 예정 업체 목록 카드 — 맞을 확률 순 줄마다 가장 좋은 공고 한 줄과 근거 한 줄을 보이고, 펼치면 그 업체의 공고 표.
- * 「판단 전」 업체는 카드 안 끝 접힌 묶음(본 목록이 비면 처음부터 펼침). 상태는 갖지 않는다.
+ * 「원문 확인 필요」 업체는 카드 안 끝 접힌 묶음(본 목록이 비면 처음부터 펼침). 상태는 갖지 않는다.
  */
 export function ContactsList({
   main,
@@ -335,7 +335,7 @@ export default function ContactsBoard({
   };
 
   // 「해당 없음」 남기기·되돌리기(reason 이 null) — 남기면 그 공고를 해당 없음 묶음(마감 순)으로, 되돌리면 지금 순서의 제자리로 옮긴다.
-  // 되돌린 줄이 지금 거르기(진행 중·판단 전 포함)에 맞지 않으면 표에 다시 넣지 않는다 — 서버 keepsContactLine 과 같게
+  // 되돌린 줄이 지금 거르기(진행 중·조건 모르는 공고 포함)에 맞지 않으면 표에 다시 넣지 않는다 — 서버 keepsContactLine 과 같게
   // (판단 전 = 확인할 것이 모두 뭉뚱그린 문구인 줄. 다른 확인이 섞인 조건 정리 전 줄은 늘 남는다).
   const dismiss = async (company: ContactCompanyRow, announcement: CompanyAnnouncementRow, reason: DismissReason | null) => {
     const key = `${company.customerKey}|${announcement.bucketKey}`;
@@ -394,7 +394,7 @@ export default function ContactsBoard({
         </span>
         {/* 캘린더는 업체가 날짜에 놓이니 순서가 없다. */}
         {view === "list" && <SortSeg value={sort} onChange={setSort} />}
-        <Checkbox label="판단 전 포함" checked={includeUnstructured} onChange={(e) => setIncludeUnstructured(e.target.checked)} />
+        <Checkbox label="조건 모르는 공고 포함" checked={includeUnstructured} onChange={(e) => setIncludeUnstructured(e.target.checked)} />
         <Checkbox label="진행 중 포함" checked={includeProgress} onChange={(e) => setIncludeProgress(e.target.checked)} />
       </div>
       {error && (
@@ -412,7 +412,7 @@ export default function ContactsBoard({
               ? `${hiddenText} — 「맞을 확률」에서 단계를 더 골라 보세요.`
               : includeUnstructured
                 ? "마감 기간을 넓히거나 종류를 바꿔 보세요."
-                : "마감 기간을 넓히거나 「판단 전 포함」을 켜 보세요."}
+                : "마감 기간을 넓히거나 「조건 모르는 공고 포함」을 켜 보세요."}
           </p>
         </div>
       ) : data && view === "calendar" ? (

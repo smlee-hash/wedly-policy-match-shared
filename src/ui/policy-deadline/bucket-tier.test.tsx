@@ -39,6 +39,7 @@ const listOf = (dated: AnnouncementListRow[], always: AnnouncementListRow[] = []
 const item = (over: Partial<CheckItem> & Pick<CheckItem, "what" | "group">): CheckItem => ({ label: over.what, rank: 50, where: "", ...over });
 const TAX = item({ what: "체납", group: "company", rank: 7, field: "taxArrears", where: "기업상태표 「체납」", current: "모름" });
 const EXPORT = item({ what: "수출 실적", group: "notice", rank: 20, where: "공고 원문", evidence: "수출 실적이 있는 중소기업" });
+const PRE = item({ label: "공고 원문 확인(조건 정리 전)", what: "공고 원문 조건", group: "notice", rank: 8, where: "공고 원문" });
 
 const line = (customerKey: string, companyName: string, over: Partial<CompanyMatchRow> = {}): CompanyMatchRow => ({
   customerKey, companyName, consultant: "김컨설", consultantNames: ["김컨설"], statusText: "계약", verdict: "fit",
@@ -55,7 +56,7 @@ const maba = line("cC", "마바상사", {
   verdict: "unverified", tier: "low", tierScore: 40, tierReason: "조건 6개 중 2개 맞음", checkItems: [EXPORT], checkCount: 1, nextAction: "공고 원문에서 자격 먼저 확인",
 });
 const saa = line("cD", "사아상사", {
-  verdict: "unverified", tier: "low", tierScore: 0, tierReason: "공고 조건을 아직 정리하지 않음", nextAction: "공고 조건 정리 대기", unstructured: true,
+  verdict: "unverified", tier: "low", tierScore: 80, tierReason: "AI가 자격 조건을 확정하지 못함 · 공고 원문 조건만 확인", checkItems: [PRE], checkCount: 1, nextAction: "공고 원문에서 자격 확인 후 연락", unstructured: true,
   toCheck: ["공고 원문 확인(조건 정리 전)"],
 });
 const jacha = line("cE", "자차상사", { dismissed: { reason: "이미 신청함", byName: "김컨설", at: "2026-11-21T01:00:00.000Z" } });
@@ -162,7 +163,7 @@ describe("펼친 업체 표 — 맞을 확률 순 한 표(NO.789)", () => {
     expect(headsOf(tables()[0])).toEqual(["업체명", "담당", "맞을 확률", "다음 할 일", "확인할 것", "업무 현황"]);
     expect(namesOf(tables()[0])).toEqual(["가나상사", "다라상사"]);
     expect(flat(root())).toContain("고르지 않은 단계의 업체 1곳은 숨겼습니다");
-    expect(foldButton("판단 전 업체 1곳 · 공고 조건을 정리하면 맞을 확률이 나옵니다")?.props["aria-expanded"]).toBe(false);
+    expect(foldButton("원문 확인 필요 업체 1곳 · AI가 공고 자격 조건을 확정하지 못해 맞을 확률 대신 확인할 것을 보여 줍니다")?.props["aria-expanded"]).toBe(false);
     expect(foldButton("해당 없음 업체 1곳")?.props["aria-expanded"]).toBe(false);
     for (const name of ["마바상사", "사아상사", "자차상사"]) expect(flat(root())).not.toContain(name);
   });
@@ -230,26 +231,30 @@ describe("펼친 업체 표 — 맞을 확률 순 한 표(NO.789)", () => {
     await openAnnouncement();
     await mounted?.act(toggle("맞음만", true));
     expect(namesOf(tables()[0])).toEqual(["가나상사"]);
-    expect(foldButton("판단 전 업체")).toBeUndefined();
+    expect(foldButton("원문 확인 필요 업체")).toBeUndefined();
     expect(foldButton("해당 없음 업체 1곳")?.tag).toBe("button");
     expect(flat(root())).not.toContain("숨겼습니다");
   });
 
-  it("판단 전 묶음을 누르면 같은 표 모양으로 펼친다 — 딱지는 「판단 전」", async () => {
+  it("원문 확인 필요 묶음을 누르면 같은 표 모양으로 펼친다 — 딱지·다음 할 일·확인할 것", async () => {
     await openAnnouncement();
-    await mounted?.click(foldButton("판단 전 업체 1곳"));
-    expect(foldButton("판단 전 업체 1곳")?.props["aria-expanded"]).toBe(true);
+    await mounted?.click(foldButton("원문 확인 필요 업체 1곳"));
+    expect(foldButton("원문 확인 필요 업체 1곳")?.props["aria-expanded"]).toBe(true);
     expect(tables()).toHaveLength(2);
     expect(headsOf(tables()[1])).toEqual(headsOf(tables()[0]));
-    expect(flat(cellOf(tables()[1], "사아상사", "맞을 확률") ?? [])).toContain("판단 전");
+    expect(flat(cellOf(tables()[1], "사아상사", "맞을 확률") ?? [])).toContain("원문 확인 필요");
+    // 기다리라는 말 대신 할 일 — 공고 원문에서 자격을 보고 연락하고, 확인할 것은 「공고 원문 조건」으로 보인다.
+    expect(flat(cellOf(tables()[1], "사아상사", "다음 할 일") ?? [])).toBe("공고 원문에서 자격 확인 후 연락");
+    expect(flat(cellOf(tables()[1], "사아상사", "확인할 것") ?? [])).toBe("확인할 것 1개 · 공고 원문 조건");
+    expect(flat(tables()[1])).not.toContain("조건 정리 전");
   });
 
   it("판단 전 업체만 있는 공고는 묶음을 처음부터 펼친다 — 「맞는 업체가 없습니다」는 쓰지 않는다", async () => {
     const onlyFlat = listRow({ fit: 0, unverified: 1, tiers: { high: 0, mid: 0, low: 0 }, unstructured: 1, bestTier: null });
     await draw(bucketOf([saa]), {}, listOf([onlyFlat]));
-    await mounted?.click(foldButton("판단 전 공고 1건"));
+    await mounted?.click(foldButton("원문 확인 필요 공고 1건"));
     await mounted?.click(buttonsWith(root(), /공고 하나/)[0]);
-    expect(foldButton("판단 전 업체 1곳")?.props["aria-expanded"]).toBe(true);
+    expect(foldButton("원문 확인 필요 업체 1곳")?.props["aria-expanded"]).toBe(true);
     expect(flat(root())).toContain("사아상사");
     expect(flat(root())).not.toContain("맞는 업체가 없습니다");
   });
@@ -369,7 +374,7 @@ describe("공고 목록 — 맞을 확률 순 · 단계 거르기(NO.789)", () =
     expect(titles()[0]).toContain("높은 공고");
     expect(titles()[1]).toContain("보통 공고");
     expect(flat(root())).toContain("고르지 않은 단계의 공고 1건은 숨겼습니다");
-    const fold = foldButton("판단 전 공고 1건 · 공고 조건을 정리하면 맞을 확률이 나옵니다");
+    const fold = foldButton("원문 확인 필요 공고 1건 · AI가 공고 자격 조건을 확정하지 못해 맞을 확률 대신 확인할 것을 보여 줍니다");
     expect(fold?.props["aria-expanded"]).toBe(false);
     expect(flat(root())).not.toContain("판단 전 공고 하나");
     await mounted?.click(tierButton("낮음"));
@@ -400,7 +405,7 @@ describe("공고 목록 — 맞을 확률 순 · 단계 거르기(NO.789)", () =
   it("슬랙 「공고 보기」로 들어오면 단계를 모두 고르고, 판단 전 공고면 그 묶음을 펼친다", async () => {
     await draw(bucketOf([saa]), { initialBucket: "b4" }, FOUR);
     expect(byTag(tierGroup()!, "button").map((b) => b.props["aria-pressed"])).toEqual([true, true, true]);
-    expect(foldButton("판단 전 공고 1건")?.props["aria-expanded"]).toBe(true);
+    expect(foldButton("원문 확인 필요 공고 1건")?.props["aria-expanded"]).toBe(true);
     expect(flat(root())).toContain("사아상사");
   });
 

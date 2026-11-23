@@ -62,7 +62,8 @@ function defaultConfig(): TierConfig {
       askFirst: "고객에게 연락해 {what} 확인",
       checkFirst: "{what} 확인 후 연락",
       noticeFirst: "공고 원문에서 자격 먼저 확인",
-      waitStructure: "공고 조건 정리 대기",
+      // 조건 정리 전 줄의 다음 할 일 — 열쇠 이름은 저장된 설정과 맞추려고 옛 이름 그대로 둔다.
+      waitStructure: "공고 원문에서 자격 확인 후 연락",
       inProgress: "업무 현황에서 진행 중",
     },
     // 기업상태표 실제 칸 이름
@@ -267,7 +268,7 @@ export interface JudgementShape {
 
 /**
  * 「판단 전」 줄인가 — 확인 필요이고 확인할 것이 모두 뭉뚱그린 문구(GENERIC_TO_CHECK, 빈 목록도 해당).
- * 연락 예정의 「판단 전 포함」을 켜야 보이는 줄이다 — 요약 카드 수가 이 기준으로 센다.
+ * 연락 예정의 「조건 모르는 공고 포함」을 켜야 보이는 줄이다 — 요약 카드 수가 이 기준으로 센다.
  */
 export function isUnjudgedJudgement(m: JudgementShape): boolean {
   return m.verdict === "unverified" && m.toCheck.every((t) => GENERIC_TO_CHECK.has(t));
@@ -275,7 +276,7 @@ export function isUnjudgedJudgement(m: JudgementShape): boolean {
 
 /**
  * 「조건 정리 전」 줄인가 — 판단 전이거나, 확인 필요이고 확인할 것에 「공고 원문 확인(조건 정리 전)」이 있다
- * (AI 정리 전 공고에 규칙 추출 확인이 섞인 줄). 점수와 상관없이 낮음·맨 뒤 접기·「공고 조건 정리 대기」.
+ * (AI 가 자격 조건을 확정하지 못한 공고에 규칙 추출 확인이 섞인 줄). 점수와 상관없이 낮음·맨 뒤 접기·「공고 원문에서 자격 확인 후 연락」.
  * 「자격 조건 원문 확인」이 다른 확인과 섞인 줄은 정리된 공고라 해당하지 않는다.
  */
 export function isPreStructureJudgement(m: JudgementShape): boolean {
@@ -348,25 +349,34 @@ function reasonOf(fitTotal: number, fitPass: number, counted: readonly CheckItem
   return [head, tail].filter((s) => s !== "").join(" · ") || "확인할 것 없음";
 }
 
+/** 조건 정리 전 줄의 근거 글 앞머리 — 맞을 확률 대신 무엇을 확인할지 보인다. */
+const UNSTRUCTURED_REASON = "AI가 자격 조건을 확정하지 못함";
+
 /**
- * 한 공고 × 한 업체의 단계. 조건 정리 전이거나 조건이 맞지 않으면 점수 0·낮음.
+ * 한 공고 × 한 업체의 단계. 조건이 맞지 않으면 점수 0·낮음·확인 항목 없음.
  * 점수 = 100 − 확인 항목(참고 뺀)의 갈래별 무게 합(0~100). 높음은 맞은 조건이 하나라도 있어야 한다.
+ * 조건 정리 전 줄은 점수와 상관없이 낮음이지만 확인 항목은 남긴다 — 확인할 것이 비어 있으면 「공고 원문 조건」 하나를 둔다.
  */
 export function tierOf(input: TierInput, config: TierConfig = DEFAULT_TIER_CONFIG, fieldInfo?: FieldInfo): TierResult {
   const fitTotal = input.fit.length;
   const fitPass = input.fit.filter((f) => f.verdict === "pass").length;
   const unstructured = isPreStructureJudgement(input);
-  const lowOf = (reason: string): TierResult => ({ tier: "low", score: 0, reason, checkItems: [], fitTotal, fitPass, unstructured });
-  if (unstructured) return lowOf("공고 조건을 아직 정리하지 않음");
-  if (input.verdict !== "fit" && input.verdict !== "unverified") return lowOf("조건이 맞지 않음");
+  if (input.verdict !== "fit" && input.verdict !== "unverified") {
+    return { tier: "low", score: 0, reason: "조건이 맞지 않음", checkItems: [], fitTotal, fitPass, unstructured };
+  }
 
   // 같은 이름표는 한 번만(먼저 나온 것), rank 순 — 같은 rank 는 들어온 순서 그대로(sort 는 안정 정렬).
   const labels = [...new Set([...input.toCheck, ...(input.obstacles ?? [])])];
+  if (unstructured && labels.length === 0) labels.push(PRE_STRUCTURE_TO_CHECK);
   const classes = labels.map((l) => classifyCheck(l, config)).sort((a, b) => a.rank - b.rank);
   const checkItems = classes.map((c) => itemOf(c, input.fit, fieldInfo));
   const counted = checkItems.filter((c) => c.group !== "ref");
   const weight = classes.reduce((sum, c) => (c.kind === "ref" ? sum : sum + config.weights[c.kind]), 0);
   const score = Math.round(Math.min(100, Math.max(0, 100 - weight)));
+  if (unstructured) {
+    const reason = [UNSTRUCTURED_REASON, reasonOf(0, 0, counted)].join(" · ");
+    return { tier: "low", score, reason, checkItems, fitTotal, fitPass, unstructured };
+  }
   const tier = score >= config.highMin && fitPass > 0 ? "high" : score >= config.midMin ? "mid" : "low";
   return { tier, score, reason: reasonOf(fitTotal, fitPass, counted), checkItems, fitTotal, fitPass, unstructured };
 }
@@ -378,7 +388,7 @@ function fill(template: string, what: string): string {
 
 /**
  * 다음 할 일 한 줄 — 위에서부터 먼저 맞는 것(참고 항목은 셈에서 뺀다).
- * 진행 중 → 조건 정리 대기 → 확인할 것 없음 → 높음이고 업체 칸뿐이면 연락하며 확인 → 원문 줄임이면 공고 원문 먼저
+ * 진행 중 → 조건 정리 전이면 공고 원문에서 자격 확인 → 확인할 것 없음 → 높음이고 업체 칸뿐이면 연락하며 확인 → 원문 줄임이면 공고 원문 먼저
  * → 고객 통화로 풀리면 연락해서 확인 → 그 밖은 확인 후 연락.
  */
 export function nextActionOf(

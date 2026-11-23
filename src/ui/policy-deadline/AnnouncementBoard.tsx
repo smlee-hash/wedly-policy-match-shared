@@ -121,7 +121,7 @@ const sumCounts = (a: TierChipCounts, b: TierChipCounts): TierChipCounts => ({
 });
 
 /**
- * 공고 하나를 펼친 안쪽 — 읽는 중 · 오류(다시 불러오기) · 맞을 확률 순 업체 표 · 「판단 전」·「해당 없음」 접힌 묶음 · 안내 줄.
+ * 공고 하나를 펼친 안쪽 — 읽는 중 · 오류(다시 불러오기) · 맞을 확률 순 업체 표 · 「원문 확인 필요」·「해당 없음」 접힌 묶음 · 안내 줄.
  * 지원 금액은 공고 줄(분야 딱지 옆)에 이미 있어 안쪽에 다시 그리지 않는다(2026-11-23).
  * 고른 단계(tiers)에 없는 업체는 숨기고 몇 곳인지만 알린다. 상태는 갖지 않는다.
  */
@@ -409,7 +409,7 @@ export default function AnnouncementBoard({
   const alwaysParts = partitionAnnouncements(list ? filterAnnouncements(list.always, filter) : [], tiers);
   const datedMain = datedParts.main;
   const alwaysMain = alwaysParts.main;
-  // 판단 전 공고는 마감 있는 줄 먼저, 상시 줄 뒤로 한 묶음에 모은다. 숨긴 수·단추 숫자는 둘을 더한다.
+  // 원문 확인 필요 공고는 마감 있는 줄 먼저, 상시 줄 뒤로 한 묶음에 모은다. 숨긴 수·단추 숫자는 둘을 더한다.
   const unstructuredRows = [...datedParts.unstructured, ...alwaysParts.unstructured];
   const hidden = datedParts.hidden + alwaysParts.hidden;
   const counts = sumCounts(datedParts.counts, alwaysParts.counts);
