@@ -1873,3 +1873,54 @@ describe("bucketAmountTextOf — 정책별 고객사 공고 줄의 지원 금액
     expect(out.endsWith("…")).toBe(true);
   });
 });
+
+describe("사람 확인(needs_review) 공고 — AI 조건으로 판정한다(2026-11-23 NO.789 후속)", () => {
+  const AI = {
+    ...EMPTY_RULE,
+    industryScope: "all",
+    regionScope: "all",
+    _reader: "opus-subscription",
+  };
+  const orgText = (values: string[]) => ({ key: "targetOrg", op: "in", value: values, rawText: values.join(", "), machineReadable: false });
+
+  it("AI 가 대학·연구기관만 대상이라 적은 공고는 「조건 정리 전」이 아니라 안 맞음이다", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({ structureStatus: "needs_review", structure: { ...AI, conditions: [orgText(["대학", "연구기관"])], humanCheck: ["자격조건을 본문에서 못 찾음 — 원문·첨부 확인"] } }),
+    ]);
+    const data = await buildFundingMap({ region: "서울" }, NOW, { filters: { includeExcluded: true } });
+    const it0 = byId(data.groups, "a:a1")!;
+    expect(it0.fitVerdict).toBe("excluded");
+    expect(it0.toCheck ?? []).not.toContain("공고 원문 확인(조건 정리 전)");
+  });
+
+  it("AI 가 개인 대상(nonCompany)이라 답한 공고는 안 맞음이다", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({ structureStatus: "needs_review", structure: { ...AI, applicantScope: "nonCompany", humanCheck: ["자격조건을 본문에서 못 찾음 — 원문·첨부 확인"] } }),
+    ]);
+    const data = await buildFundingMap({ region: "서울" }, NOW, { filters: { includeExcluded: true } });
+    expect(byId(data.groups, "a:a1")!.excludeReason).toBe("기업이 신청하는 공고가 아님");
+  });
+
+  it("AI 가 기계 대조만 끈 지역 조건이 고객 지역과 맞으면 「원문 확인 필요」가 아니라 맞음이다", async () => {
+    loadOpenAnnouncements.mockResolvedValue([
+      ann({
+        structureStatus: "needs_review",
+        structure: {
+          ...AI,
+          conditions: [{ key: "region", op: "in", value: ["서울"], rawText: "서울특별시 소재 기업", machineReadable: false }],
+          humanCheck: ["자격조건을 본문에서 못 찾음 — 원문·첨부 확인"],
+        },
+      }),
+    ]);
+    const data = await buildFundingMap({ region: "서울" }, NOW, { filters: { includeExcluded: true } });
+    const it0 = byId(data.groups, "a:a1")!;
+    expect(it0.fitVerdict).toBe("fit");
+    expect(it0.toCheck ?? []).toEqual([]);
+  });
+
+  it("아직 못 읽은(pending) 공고는 예전처럼 「조건 정리 전」이다", async () => {
+    loadOpenAnnouncements.mockResolvedValue([ann()]);
+    const data = await buildFundingMap({ region: "서울" }, NOW, { filters: { includeExcluded: true } });
+    expect(byId(data.groups, "a:a1")!.toCheck).toContain("공고 원문 확인(조건 정리 전)");
+  });
+});

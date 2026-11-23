@@ -23,9 +23,11 @@ import { GUARANTEE_IN_USE, guarantorsIn, withoutGuarantors } from "./loan-progra
 import { relatedFamiliesOf, sectorFamiliesInTitle, sectorFamiliesOfIndustry } from "./sector";
 import { sigunguInText, sigunguSido } from "./sigungu";
 import { orgRegionsOf, sourceRegionOf, type SourceRegion } from "./source-region";
+import { AI_READ_STATE_NOTE_PREFIXES, ATTACHMENT_UNREAD_PREFIX } from "./structure-types";
 import type { AnnouncementStructure, ConditionCheck, IndustryScope } from "./structure-types";
 import type { FitVerdict } from "./recommend-score";
 import {
+  ATTACHMENT_TO_CHECK,
   GENERIC_TO_CHECK,
   INDUSTRY_SCOPE_UNKNOWN,
   PRE_STRUCTURE_TO_CHECK,
@@ -35,6 +37,11 @@ import {
 } from "../funding/funding-map";
 
 export type EligibilityStep = 1 | 2 | 3 | 4 | 5;
+
+/** AI 가 「개인·대학·기관·단체만 신청」이라 답한 공고의 안 맞음 까닭. */
+export const NON_COMPANY_REASON = "기업이 신청하는 공고가 아님";
+/** AI 가 「행사·설명회·포상·결과 발표·안내」라 답한 글의 안 맞음 까닭. */
+export const NOT_SUPPORT_REASON = "지원사업이 아닌 행사·안내";
 
 export const STEP_LABELS: Record<EligibilityStep, string> = {
   1: "무상 지원",
@@ -77,7 +84,7 @@ export interface EligibilityReview {
 }
 
 /** 내용이 아니라 「정리가 덜 됐다」는 뜻의 확인할 것 — 같은 공고 다른 수집본의 판정을 내리는 근거로 쓰지 않는다(정본은 funding-map). */
-export { GENERIC_TO_CHECK, INDUSTRY_SCOPE_UNKNOWN, REGION_SCOPE_UNKNOWN, SCOPE_UNKNOWN_TO_CHECK, toCheckWeight };
+export { ATTACHMENT_TO_CHECK, GENERIC_TO_CHECK, INDUSTRY_SCOPE_UNKNOWN, REGION_SCOPE_UNKNOWN, SCOPE_UNKNOWN_TO_CHECK, toCheckWeight };
 
 export interface EligibilityInput {
   kind: "announcement" | "product";
@@ -91,11 +98,18 @@ export interface EligibilityInput {
   checks: readonly ConditionCheck[];
   /** 공고의 사람 확인 문장(AI 정리). */
   humanCheckTexts?: readonly string[];
-  structure?: Pick<AnnouncementStructure, "industryScope" | "regionScope" | "supportAmountText" | "benefitSummary"> & {
-    aiSummary?: AnnouncementStructure["aiSummary"];
-  };
-  /** AI 정리가 끝나지 않은 공고(규칙 추출본). */
+  structure?: Pick<AnnouncementStructure, "industryScope" | "regionScope" | "supportAmountText" | "benefitSummary"> &
+    Partial<Pick<AnnouncementStructure, "applicantScope" | "programType">> & {
+      aiSummary?: AnnouncementStructure["aiSummary"];
+    };
+  /** AI 가 아직 읽지 않았거나 읽기에 실패한 공고(규칙 추출본). */
   ruleOnly?: boolean;
+  /**
+   * AI 가 읽었지만 「사람 확인」으로 남긴 공고(needs_review — 기계 대조 조건 0개·첨부 못 읽음·답 잘림).
+   * AI 조건으로 판정한다 — 못 읽은 첨부가 있으면 「첨부 파일 조건 확인」을 남기고, 답이 끊겨 빈 구조면 범위 확인 대신
+   * 「자격 조건 원문 확인」으로 둔다(2026-11-23 NO.789 후속 — 예전엔 규칙 추출본처럼 다뤄 AI 조건을 버렸다).
+   */
+  needsReview?: boolean;
   amountText?: string;
   /** 손 등록 상품 — 창구 안내에 기계로 못 읽은 조건이 남아 있다. */
   manualProduct?: boolean;
@@ -1038,6 +1052,12 @@ export function reviewEligibility(input: EligibilityInput): EligibilityReview {
   // 1) 혜택이 아닌 글.
   const nb = nonBenefitReason(title);
   if (nb) exclude(nb);
+  // 1-2) AI 가 원문 전체를 읽고 「기업이 신청하는 공고가 아님」·「행사·안내」라 한 글(NO.789 후속). 답이 없거나 모름이면 빼지 않는다.
+  if (input.kind === "announcement") {
+    if (input.structure?.applicantScope === "nonCompany") exclude(NON_COMPANY_REASON);
+    const pt = input.structure?.programType;
+    if (pt === "event" || pt === "notice") exclude(NOT_SUPPORT_REASON);
+  }
 
   // 2) 조건 하나하나.
   const resolvedRaw = new Set<string>();
@@ -1094,6 +1114,7 @@ export function reviewEligibility(input: EligibilityInput): EligibilityReview {
   for (const h of input.humanCheckTexts ?? []) {
     const key = compact(h);
     if (!key) continue;
+    if (AI_READ_STATE_NOTE_PREFIXES.some((m) => h.trim().startsWith(m))) continue;
     if ([...resolvedRaw].some((r) => r === key || (r.length >= 12 && key.includes(r)) || (key.length >= 12 && r.includes(key)))) {
       for (const label of profileBlindLabels(h)) addCheck(label);
       continue;
@@ -1173,7 +1194,14 @@ export function reviewEligibility(input: EligibilityInput): EligibilityReview {
   if (input.structure?.regionScope === "restricted" && !aiRegionPass && !anyRegionPass && !sawRegionCondition) addCheck("지역 제한 확인");
   // AI 정리를 마친 공고인데 업종·지역 범위를 「모름」이라 했거나 답하지 않았으면(옛 정리분) 맞음이 아니다(2026-09-24 정밀 맞음 —
   // 제목 글자 규칙만으로는 「굴뚝·악취 배출 사업장」·「선정기업 대상」 같은 대상을 끝까지 못 막았다). 금융상품은 보지 않는다.
-  if (input.kind === "announcement" && !input.ruleOnly) {
+  // 사람 확인 공고 중 AI 답이 끊겨 빈 구조만 남은 것(AI 가 낸 조건·범위 답이 하나도 없음)은 AI 가 자격 조건을 읽지 못한 공고다 —
+  // 범위 두 줄 대신 아래 「자격 조건 원문 확인」으로 두고, 제목에서 보탠 조건이 통과해도 맞음으로 올리지 않는다(리뷰 review-83407d80 지적 1).
+  const aiUnanswered =
+    input.needsReview === true &&
+    input.structure?.industryScope === undefined &&
+    input.structure?.regionScope === undefined &&
+    !input.checks.some((c) => c.condition.origin !== "augmented");
+  if (input.kind === "announcement" && !input.ruleOnly && !aiUnanswered) {
     const ind = input.structure?.industryScope;
     if (ind !== "all" && ind !== "restricted" && !industryResolved) addCheck(INDUSTRY_SCOPE_UNKNOWN);
     const reg = input.structure?.regionScope;
@@ -1181,8 +1209,15 @@ export function reviewEligibility(input: EligibilityInput): EligibilityReview {
     if (reg !== "all" && reg !== "restricted" && !regionKnown) addCheck(REGION_SCOPE_UNKNOWN);
   }
   if (input.ruleOnly) addCheck(PRE_STRUCTURE_TO_CHECK);
+  // 사람 확인 공고 — 못 읽은 첨부가 있으면 그것을 확인할 것으로 남긴다(본문 조건은 위에서 가렸다).
+  if (input.needsReview && !input.ruleOnly && (input.humanCheckTexts ?? []).some((h) => h.trim().startsWith(ATTACHMENT_UNREAD_PREFIX))) {
+    addCheck(ATTACHMENT_TO_CHECK);
+  }
   if (input.manualProduct) addCheck("상품 안내 확인");
-  if (realPass === 0 && toCheck.length === 0 && obstacles.length === 0) addCheck("자격 조건 원문 확인");
+  // 맞음의 근거(고객 정보로 통과한 조건)가 없으면 원문 확인. 사람 확인 공고도 같다 — AI 가 기계 대조 표시만 끈 조건을
+  // 값·문장으로 끝까지 가려 모두 통과하면 맞음이다(「대상: 중소기업」 통과 공고가 「원문 확인 필요」로 남던 자리 — NO.789 후속).
+  // 못 읽은 첨부는 위에서 확인할 것으로 남고, 답이 끊겨 빈 구조는 다른 확인·통과가 있어도 원문 확인을 남긴다.
+  if (aiUnanswered || (realPass === 0 && toCheck.length === 0 && obstacles.length === 0)) addCheck("자격 조건 원문 확인");
 
   if (toCheck.some((t) => /^올해 .+ 지원 이력$/.test(t))) {
     const i = toCheck.indexOf("지원 이력(같은 사업 수혜 여부)");

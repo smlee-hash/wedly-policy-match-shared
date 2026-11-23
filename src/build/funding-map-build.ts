@@ -33,10 +33,10 @@ import {
   readStoredStructure,
   type BusinessProfile,
 } from "../engine/match-engine";
-import { matchStructureOf, visibleConditionChecks } from "../engine/visible-checks";
+import { matchStructureOf, readByAi, visibleConditionChecks } from "../engine/visible-checks";
 import type { StructuredCondition } from "../engine/structure-types";
 import { scoreOf, type FitVerdict } from "../engine/recommend-score";
-import { displayChecks, GENERIC_TO_CHECK, reviewEligibility, SCOPE_UNKNOWN_TO_CHECK, STEP_LABELS, unverifiedStep, type EligibilityReview } from "../engine/eligibility-review";
+import { ATTACHMENT_TO_CHECK, displayChecks, GENERIC_TO_CHECK, reviewEligibility, SCOPE_UNKNOWN_TO_CHECK, STEP_LABELS, unverifiedStep, type EligibilityReview } from "../engine/eligibility-review";
 import { rulesToConditions } from "../funding/products/rules-to-conditions";
 import { MANUAL_PRODUCTS } from "../funding/products/sources/manual";
 import type { ProductTargetRules } from "../funding/products/types";
@@ -403,10 +403,10 @@ function markUnverified(it: FundingItem, toCheck: readonly string[], obstacles: 
   it.stepLabel = STEP_LABELS[it.step];
 }
 
-/** 다른 줄의 판정이 이 줄을 내려야 하는가 — 내용이 있는 확인할 것·걸림돌만 친다(정리 덜 된 표시·범위 「모름」은 빼고). */
+/** 다른 줄의 판정이 이 줄을 내려야 하는가 — 내용이 있는 확인할 것·걸림돌만 친다(정리 덜 된 표시·범위 「모름」·못 읽은 첨부는 빼고). */
 function substantiveChecksOf(it: FundingItem): { toCheck: string[]; obstacles: string[] } | null {
   if (it.fitVerdict !== "unverified") return null;
-  const toCheck = (it.toCheck ?? []).filter((c) => !GENERIC_TO_CHECK.has(c) && !SCOPE_UNKNOWN_TO_CHECK.has(c));
+  const toCheck = (it.toCheck ?? []).filter((c) => !GENERIC_TO_CHECK.has(c) && !SCOPE_UNKNOWN_TO_CHECK.has(c) && c !== ATTACHMENT_TO_CHECK);
   const obstacles = it.obstacles ?? [];
   return toCheck.length > 0 || obstacles.length > 0 ? { toCheck, obstacles } : null;
 }
@@ -434,7 +434,10 @@ function itemOfAnnouncement(r: AnnouncementRow, profile: BusinessProfile, now: D
     checks: m.checks,
     humanCheckTexts: m.humanCheck,
     structure,
-    ruleOnly: r.structureStatus !== "done",
+    // 사람 확인(needs_review) 공고도 AI 가 읽은 조건으로 판정한다 — 대조(matchStructureOf)가 이미 AI 구조를 쓰는데
+    // 판정만 규칙 추출본처럼 다뤄 열린 판정 줄의 74% 가 「원문 확인 필요」였다(2026-11-23 NO.789 후속 운영 실측).
+    ruleOnly: !readByAi(r),
+    needsReview: r.structureStatus === "needs_review",
     amountText: r.amountText ?? "",
     placeOrgs: [r.agency ?? ""],
   });

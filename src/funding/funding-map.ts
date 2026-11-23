@@ -239,11 +239,20 @@ export const INDUSTRY_SCOPE_UNKNOWN = "업종 제한 여부 확인";
 export const REGION_SCOPE_UNKNOWN = "지역 제한 여부 확인";
 export const SCOPE_UNKNOWN_TO_CHECK: ReadonlySet<string> = new Set([INDUSTRY_SCOPE_UNKNOWN, REGION_SCOPE_UNKNOWN]);
 
+/**
+ * AI 가 공고 본문은 읽었지만 첨부 파일을 다 못 읽어 붙는 확인할 것(2026-11-23 NO.789 후속) — 본문 조건은 판정에 썼고,
+ * 첨부에만 있는 조건이 남았을 수 있다. 그 수를 모르니 조건 하나(1)보다 무겁게 센다. 같은 공고의 다른 수집본
+ * (첨부를 읽은 사본)을 내리는 근거로는 쓰지 않는다.
+ */
+export const ATTACHMENT_TO_CHECK = "첨부 파일 조건 확인";
+
 /** 분류하지 못한 원문을 그대로 줄인 확인할 것(「조건 확인: …」·「제외 조건: …」). */
 export const RAW_TO_CHECK = /^(?:조건 확인|제외 조건): /;
 
 /** 조건 정리가 안 된 확인할 것 하나의 무게 — 조건 수를 모른다. */
 const GENERIC_WEIGHT = 6;
+/** 못 읽은 첨부 하나의 무게 — 본문 조건은 가렸고 첨부에만 있는 조건 수를 모른다. */
+const ATTACHMENT_WEIGHT = 3;
 /** 걸림돌 하나의 무게 — 고객 정보로 「안 된다」가 확인된 조건이라 모르는 조건(1)보다 무겁다. */
 const OBSTACLE_WEIGHT = 3;
 
@@ -255,7 +264,9 @@ const OBSTACLE_WEIGHT = 3;
  */
 export function toCheckWeight(labels: readonly string[] | undefined): number {
   let w = 0;
-  for (const l of labels ?? []) w += GENERIC_TO_CHECK.has(l) ? GENERIC_WEIGHT : RAW_TO_CHECK.test(l) ? 2 : 1;
+  for (const l of labels ?? []) {
+    w += GENERIC_TO_CHECK.has(l) ? GENERIC_WEIGHT : l === ATTACHMENT_TO_CHECK ? ATTACHMENT_WEIGHT : RAW_TO_CHECK.test(l) ? 2 : 1;
+  }
   return w;
 }
 

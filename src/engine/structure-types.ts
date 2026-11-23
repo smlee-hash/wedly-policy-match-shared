@@ -124,9 +124,40 @@ export interface AnnouncementStructure {
    * 글자 규칙으로 끝까지 못 읽어(27차 리뷰) AI 판단을 한 겹 더 요구한다. 없으면 모름.
    */
   regionScope?: IndustryScope;
+  /**
+   * 누가 신청하는 공고인가 — AI 가 원문 전체를 읽고 답한다(2026-11-23 NO.789 후속 「공고 조건을 전부 끝까지 확인하고 적용」).
+   * company=사업자(기업·소상공인·개인사업자·예비창업자)가 신청할 수 있음, nonCompany=개인(구직자·근로자·주민·학생)·대학·
+   * 연구기관·단체·지자체만 신청, unknown=판단 못 함. 없으면(옛 정리분) 모름으로 보고 빼지 않는다.
+   */
+  applicantScope?: ApplicantScope;
+  /**
+   * 무엇을 주는 글인가 — support=지원사업·자금·보증·교육 지원처럼 신청해 혜택을 받는 공고, event=행사·설명회·포상·
+   * 모집 행사, notice=결과 발표·변경 안내·일정 알림처럼 신청할 것이 없는 안내, unknown=판단 못 함. 없으면 모름.
+   */
+  programType?: ProgramType;
 }
 
 export type IndustryScope = "all" | "restricted" | "unknown";
+export type ApplicantScope = "company" | "nonCompany" | "unknown";
+export type ProgramType = "support" | "event" | "notice" | "unknown";
+export const APPLICANT_SCOPES: readonly ApplicantScope[] = ["company", "nonCompany", "unknown"];
+export const PROGRAM_TYPES: readonly ProgramType[] = ["support", "event", "notice", "unknown"];
+
+/** ERP 정리 단계가 못 읽은 첨부마다 사람 확인에 남기는 줄의 머리(「첨부 원문 확인 필요: 공고문.hwp」 — 상세 표도 같은 머리로 가린다). */
+export const ATTACHMENT_UNREAD_PREFIX = "첨부 원문 확인 필요";
+/**
+ * ERP 정리 단계가 「AI 가 어디까지 읽었나」를 적는 사람 확인 줄의 머리 — 공고 조건이 아니라 읽기 상태다.
+ * 판정(eligibility-review)은 이 줄을 조건 문장으로 보지 않는다(「조건 확인: 공고가 길어 …」로 떠 같은 공고의 다른 수집본까지
+ * 내렸다 — 2026-11-23 NO.789 후속). 뜻은 사람 확인 공고 판정이 대신 남긴다(첨부 → 「첨부 파일 조건 확인」,
+ * 끊김·조건 없음 → 「자격 조건 원문 확인」). ERP `structurize.ts`·`attachment-read.ts` 의 안내 문장이 이 머리로 시작해야 한다
+ * (ERP 시험이 대조한다).
+ */
+export const AI_READ_STATE_NOTE_PREFIXES: readonly string[] = [
+  ATTACHMENT_UNREAD_PREFIX,
+  "첨부를 다 읽지 못함",
+  "자격조건을 본문에서 못 찾음",
+  "공고가 길어 AI 가 끝까지 읽지 못했습니다",
+];
 
 export type ConditionVerdict = "pass" | "fail" | "unknown";
 export interface ConditionCheck {
