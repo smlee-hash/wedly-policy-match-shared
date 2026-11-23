@@ -20,7 +20,7 @@ export const FREE_GRANT = "무상지원금";
 /** 「연락 예정 업체」 종류 거르기의 「그 밖의 분야」. 분류 이름과 겹치지 않는 값이다. */
 export const OTHER_KINDS = "__other";
 /** 조건을 아직 정리하지 않은 공고의 단계 글자 — 화면과 엑셀이 같이 쓴다. */
-export const UNSTRUCTURED_LABEL = "판단 전";
+export const UNSTRUCTURED_LABEL = "원문 확인 필요";
 
 export type DDayTone = "today" | "soon" | "later" | "always";
 export type KindTone = "fund" | "grant" | "other";

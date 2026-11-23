@@ -34,6 +34,7 @@ const DISMISSED_AT = "2026-11-22T03:00:00.000Z";
 const item = (over: Partial<CheckItem> & Pick<CheckItem, "what" | "group">): CheckItem => ({ label: over.what, rank: 50, where: "", ...over });
 const TAX = item({ what: "체납", group: "company", rank: 7, field: "taxArrears", where: "기업상태표 「체납」", current: "모름" });
 const EXPORT = item({ what: "수출 실적", group: "notice", rank: 20, where: "공고 원문", evidence: "수출 실적이 있는 중소기업" });
+const PRE = item({ label: "공고 원문 확인(조건 정리 전)", what: "공고 원문 조건", group: "notice", rank: 8, where: "공고 원문" });
 
 const line = (bucketKey: string, title: string, over: Partial<CompanyAnnouncementRow> = {}): CompanyAnnouncementRow => ({
   bucketKey, repAnnouncementId: `a-${bucketKey}`, title, agency: "기관", category: "정책자금", url: `https://example.invalid/${bucketKey}`,
@@ -48,7 +49,7 @@ const LOW: Partial<CompanyAnnouncementRow> = {
   verdict: "unverified", toCheck: ["수출 실적 확인"], tier: "low", tierScore: 40, tierReason: "조건 6개 중 2개 맞음", checkItems: [EXPORT], checkCount: 1, nextAction: "공고 원문에서 자격 먼저 확인",
 };
 const FLAT: Partial<CompanyAnnouncementRow> = {
-  verdict: "unverified", toCheck: ["공고 원문 확인(조건 정리 전)"], tier: "low", tierScore: 0, tierReason: "공고 조건을 아직 정리하지 않음", nextAction: "공고 조건 정리 대기", unstructured: true,
+  verdict: "unverified", toCheck: ["공고 원문 확인(조건 정리 전)"], tier: "low", tierScore: 80, tierReason: "AI가 자격 조건을 확정하지 못함 · 공고 원문 조건만 확인", checkItems: [PRE], checkCount: 1, nextAction: "공고 원문에서 자격 확인 후 연락", unstructured: true,
 };
 
 const GA = line("g1", "공고 가", { amountMaxWon: 300_000_000, applyEnd: "2026-11-17", dDay: 3 });
@@ -83,7 +84,7 @@ const BLANK_BEST: ContactBest = {
   bucketKey: "", title: "", category: "", url: "", applyEnd: "", dDay: 0, amountMaxWon: null,
   tier: "low", tierScore: 0, tierReason: "", checkItems: [], checkCount: 0, nextAction: "", unstructured: false,
 };
-/** 「판단 전 포함」이 꺼지면 서버는 판단 전 줄을 싣지 않는다. */
+/** 「조건 모르는 공고 포함」이 꺼지면 서버는 판단 전 줄을 싣지 않는다. */
 const linesOf = (seed: Seed, include: boolean) => seed.lines.filter((l) => include || !l.unstructured);
 /** 서버의 업체 줄 — 남은 공고로 센 값(셈은 화면의 rebuildContactRow 와 같다). 남은 공고가 없으면 목록에 없다. */
 function contactOf(seed: Seed, include: boolean): ContactCompanyRow | null {
@@ -177,7 +178,7 @@ async function draw(props: Partial<ContactsBoardProps> = {}, seeds: readonly See
   return { onDetail, onProgressed };
 }
 const openCompany = async (name = "다라상사") => mounted?.click(companyButton(name));
-const includeFlat = async () => mounted?.act(toggle("판단 전 포함", true));
+const includeFlat = async () => mounted?.act(toggle("조건 모르는 공고 포함", true));
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -198,22 +199,22 @@ describe("연락 예정 업체 목록 — 맞을 확률 순(NO.789)", () => {
     expect(companyOrder()).toEqual(["가나상사", "다라상사"]);
     expect(flat(card() ?? [])).not.toContain("숨겼습니다");
     expect(flat(root())).toContain("고르지 않은 단계의 업체 1곳은 숨겼습니다");
-    expect(foldButton("판단 전 업체")).toBeUndefined();
+    expect(foldButton("원문 확인 필요 업체")).toBeUndefined();
   });
 
-  it("「판단 전 포함」을 켜면 판단 전 업체가 카드 안 끝 접힌 묶음으로 오고, 펼치면 「판단 전」 딱지다", async () => {
+  it("「조건 모르는 공고 포함」을 켜면 판단 전 업체가 카드 안 끝 접힌 묶음으로 오고, 펼치면 「원문 확인 필요」 딱지다", async () => {
     await draw();
     await includeFlat();
     expect(paramsOf(lastUrl("view=contacts")).get("includeUnstructured")).toBe("1");
-    const fold = foldButton("판단 전 업체 1곳 · 공고 조건을 정리하면 맞을 확률이 나옵니다", card());
+    const fold = foldButton("원문 확인 필요 업체 1곳 · AI가 공고 자격 조건을 확정하지 못해 맞을 확률 대신 확인할 것을 보여 줍니다", card());
     expect(fold?.props["aria-expanded"]).toBe(false);
     expect(flat(card() ?? [])).not.toContain("사아상사");
     await mounted?.click(fold);
     expect(companyOrder()).toEqual(["가나상사", "다라상사", "사아상사"]);
-    expect(flat(companyButton("사아상사") ?? [])).toContain("맞을 확률 판단 전");
+    expect(flat(companyButton("사아상사") ?? [])).toContain("맞을 확률 원문 확인 필요");
   });
 
-  it("거르기 줄 — 「맞을 확률」 이름과 단계 단추(숫자), 순서 단추, 「판단 전 포함」", async () => {
+  it("거르기 줄 — 「맞을 확률」 이름과 단계 단추(숫자), 순서 단추, 「조건 모르는 공고 포함」", async () => {
     await draw();
     const row = filters() ?? root();
     expect(find(row, (n) => n.tag === "span" && n.props.role === undefined && flat(n) === "맞을 확률")?.tag).toBe("span");
@@ -221,7 +222,7 @@ describe("연락 예정 업체 목록 — 맞을 확률 순(NO.789)", () => {
     expect(tierButtons().map((b) => b.props["aria-pressed"])).toEqual([true, true, false]);
     expect(sortButton("맞을 확률 순")?.props["aria-pressed"]).toBe(true);
     expect(sortButton("마감 순")?.props["aria-pressed"]).toBe(false);
-    expect(checkbox("판단 전 포함")?.props.checked).toBe(false);
+    expect(checkbox("조건 모르는 공고 포함")?.props.checked).toBe(false);
     expect(checkbox("조건 정리 전 포함")).toBeUndefined();
   });
 
@@ -286,10 +287,10 @@ describe("연락 예정 업체 목록 — 맞을 확률 순(NO.789)", () => {
     expect(flat(dara ?? [])).not.toContain("공고 하나");
   });
 
-  it("업체가 없으면 빈 카드 — 「판단 전 포함」이 꺼졌으면 켜 보라고, 켰으면 종류를 바꿔 보라고", async () => {
+  it("업체가 없으면 빈 카드 — 「조건 모르는 공고 포함」이 꺼졌으면 켜 보라고, 켰으면 종류를 바꿔 보라고", async () => {
     await draw({}, []);
     expect(flat(card() ?? [])).toContain("연락할 업체가 없습니다");
-    expect(flat(card() ?? [])).toContain("마감 기간을 넓히거나 「판단 전 포함」을 켜 보세요.");
+    expect(flat(card() ?? [])).toContain("마감 기간을 넓히거나 「조건 모르는 공고 포함」을 켜 보세요.");
     await includeFlat();
     expect(flat(card() ?? [])).toContain("마감 기간을 넓히거나 종류를 바꿔 보세요.");
   });
@@ -298,11 +299,11 @@ describe("연락 예정 업체 목록 — 맞을 확률 순(NO.789)", () => {
     await draw({}, [SAA]);
     await includeFlat();
     expect(flat(root())).not.toContain("연락할 업체가 없습니다");
-    expect(foldButton("판단 전 업체 1곳", card())?.props["aria-expanded"]).toBe(true);
+    expect(foldButton("원문 확인 필요 업체 1곳", card())?.props["aria-expanded"]).toBe(true);
     expect(flat(card() ?? [])).toContain("사아상사");
   });
 
-  it("캘린더 — 순서 단추가 없고, 단계 거르기와 「판단 전 포함」을 그대로 따른다", async () => {
+  it("캘린더 — 순서 단추가 없고, 단계 거르기와 「조건 모르는 공고 포함」을 그대로 따른다", async () => {
     await draw({ view: "calendar" });
     expect(buttonsWith(root(), "마감 순")).toHaveLength(0);
     expect(buttonsWith(root(), "맞을 확률 순")).toHaveLength(0);
@@ -324,9 +325,9 @@ describe("연락 예정 업체 목록 — 맞을 확률 순(NO.789)", () => {
   it("화면 글에 내부 용어가 나오지 않는다", async () => {
     await draw();
     await includeFlat();
-    await mounted?.click(foldButton("판단 전 업체", card()));
+    await mounted?.click(foldButton("원문 확인 필요 업체", card()));
     await openCompany();
-    await mounted?.click(foldButton("판단 전 공고"));
+    await mounted?.click(foldButton("원문 확인 필요 공고"));
     await mounted?.click(foldButton("해당 없음 공고"));
     expect(flat(root())).not.toMatch(/조건 정리 전|unverified|unstructured|tier/);
   });
@@ -341,7 +342,7 @@ describe("업체를 펼친 공고 표 — 맞을 확률 순 한 표(NO.789)", ()
     expect(headsOf(tables()[0])).toEqual(["공고명", "마감", "맞을 확률", "다음 할 일", "확인할 것", "업무 현황"]);
     expect(titlesOf(tables()[0])).toEqual(["공고 하나", "공고 다섯"]);
     expect(flat(root())).toContain("고르지 않은 단계의 공고 1건은 숨겼습니다");
-    expect(foldButton("판단 전 공고 1건 · 공고 조건을 정리하면 맞을 확률이 나옵니다")?.props["aria-expanded"]).toBe(false);
+    expect(foldButton("원문 확인 필요 공고 1건 · AI가 공고 자격 조건을 확정하지 못해 맞을 확률 대신 확인할 것을 보여 줍니다")?.props["aria-expanded"]).toBe(false);
     expect(foldButton("해당 없음 공고 1건")?.props["aria-expanded"]).toBe(false);
     for (const title of ["공고 둘", "공고 셋", "공고 넷"]) expect(flat(root())).not.toContain(title);
   });
@@ -490,7 +491,7 @@ describe("업체를 펼친 공고 표 — 맞을 확률 순 한 표(NO.789)", ()
     expect(notice()?.text).toBe("다라상사 · 해당 없음을 되돌렸습니다");
   });
 
-  it("되돌린 공고가 판단 전(확인할 것이 모두 뭉뚱그린 문구)이면 「판단 전 포함」이 꺼진 동안 표에 넣지 않고, 다른 확인이 섞인 조건 정리 전 줄은 맨 뒤 접힌 묶음에 남긴다", async () => {
+  it("되돌린 공고가 판단 전(확인할 것이 모두 뭉뚱그린 문구)이면 「조건 모르는 공고 포함」이 꺼진 동안 표에 넣지 않고, 다른 확인이 섞인 조건 정리 전 줄은 맨 뒤 접힌 묶음에 남긴다", async () => {
     const was = { reason: "기타", byName: "김컨설", at: "2026-11-21T01:00:00.000Z" } as const;
     const flatOnly = line("b7", "공고 일곱", { ...FLAT, dismissed: was });
     const mixed = line("b8", "공고 여덟", { ...FLAT, toCheck: ["체납 여부 입력", "공고 원문 확인(조건 정리 전)"], dismissed: was });
@@ -504,7 +505,7 @@ describe("업체를 펼친 공고 표 — 맞을 확률 순 한 표(NO.789)", ()
     expect(bodyOf(callsTo("/deadline/dismiss").at(-1))).toEqual({ customerKey: "cB", bucketKey: "b8", reason: null });
     expect(foldButton("해당 없음 공고")).toBeUndefined();
     expect(flat(root())).not.toContain("공고 여덟");
-    await mounted?.click(foldButton("판단 전 공고 1건"));
+    await mounted?.click(foldButton("원문 확인 필요 공고 1건"));
     expect(flat(root())).toContain("공고 여덟");
   });
 
@@ -512,8 +513,8 @@ describe("업체를 펼친 공고 표 — 맞을 확률 순 한 표(NO.789)", ()
     await draw({}, [SAA]);
     await includeFlat();
     await openCompany("사아상사");
-    expect(foldButton("판단 전 공고 1건")?.props["aria-expanded"]).toBe(true);
-    expect(flat(cellOf(tables()[0], "공고 사", "맞을 확률") ?? [])).toContain("판단 전");
+    expect(foldButton("원문 확인 필요 공고 1건")?.props["aria-expanded"]).toBe(true);
+    expect(flat(cellOf(tables()[0], "공고 사", "맞을 확률") ?? [])).toContain("원문 확인 필요");
     expect(flat(root())).not.toContain("맞는 공고가 없습니다");
   });
 });

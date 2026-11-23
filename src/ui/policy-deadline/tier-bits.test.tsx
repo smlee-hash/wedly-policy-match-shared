@@ -24,8 +24,8 @@ describe("단계 딱지", () => {
     ["high", false, "높음", "bg-wedly-green"],
     ["mid", false, "보통", "bg-wedly-gold-ink"],
     ["low", false, "낮음", null],
-    ["low", true, "판단 전", null],
-    ["high", true, "판단 전", null],
+    ["low", true, "원문 확인 필요", null],
+    ["high", true, "원문 확인 필요", null],
   ] as const)("%s(판단 전 %s) — 「%s」, 점 %s", (tier, unstructured, label, dot) => {
     const { tree } = mountTree(<TierBadge tier={tier} unstructured={unstructured} />);
     expect(flat(tree)).toBe(`맞을 확률 ${label}`);
@@ -281,12 +281,12 @@ describe("해당 없음", () => {
 describe("접는 묶음", () => {
   it("처음엔 접혀 있고 머리를 누르면 펼친다", async () => {
     const root = mountTree(
-      <FoldGroup title="판단 전 업체 4곳 · 공고 조건을 정리하면 맞을 확률이 나옵니다">
+      <FoldGroup title="원문 확인 필요 업체 4곳 · AI가 공고 자격 조건을 확정하지 못해 맞을 확률 대신 확인할 것을 보여 줍니다">
         <p>안쪽 줄</p>
       </FoldGroup>,
     );
     const head = byTag(root.tree, "button")[0];
-    expect(flat(head)).toContain("판단 전 업체 4곳 · 공고 조건을 정리하면 맞을 확률이 나옵니다");
+    expect(flat(head)).toContain("원문 확인 필요 업체 4곳 · AI가 공고 자격 조건을 확정하지 못해 맞을 확률 대신 확인할 것을 보여 줍니다");
     expect(head.props["aria-expanded"]).toBe(false);
     expect(flat(root.tree)).not.toContain("안쪽 줄");
     await root.click(head);

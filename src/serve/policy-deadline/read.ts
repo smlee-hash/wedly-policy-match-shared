@@ -67,7 +67,7 @@ const READ_CONCURRENCY = 4;
 /**
  * 「판단 전」 판정 줄인가 — 확인 필요(unverified)이고 확인할 조건이 모두 공용 GENERIC_TO_CHECK
  * (「공고 원문 확인(조건 정리 전)」·「자격 조건 원문 확인」) 안에 든다(빈 목록도 해당). 맞음(fit)은 늘 false.
- * 연락 예정의 「판단 전 포함」이 꺼져 있으면 이 줄을 뺀다(요약 카드 수가 같은 기준).
+ * 연락 예정의 「조건 모르는 공고 포함」이 꺼져 있으면 이 줄을 뺀다(요약 카드 수가 같은 기준).
  */
 export function isUnstructuredMatch(m: Pick<DeadlineJudgement, "verdict" | "toCheck">): boolean {
   return isUnjudgedJudgement(m);
@@ -75,7 +75,7 @@ export function isUnstructuredMatch(m: Pick<DeadlineJudgement, "verdict" | "toCh
 
 /**
  * 「조건 정리 전」 판정 줄인가 — 판단 전이거나, 확인할 것에 「공고 원문 확인(조건 정리 전)」이 섞인 확인 필요 줄.
- * 단계는 낮음·다음 할 일 「공고 조건 정리 대기」, 단계 수에 넣지 않고 따로 세며 맨 뒤 접기로 간다. 저장 칸 unstructured 가 이 뜻이다.
+ * 단계는 낮음·다음 할 일 「공고 원문에서 자격 확인 후 연락」, 단계 수에 넣지 않고 따로 세며 맨 뒤 접기로 간다. 저장 칸 unstructured 가 이 뜻이다.
  */
 export function isPreStructureMatch(m: Pick<DeadlineJudgement, "verdict" | "toCheck">): boolean {
   return isPreStructureJudgement(m);
@@ -134,6 +134,7 @@ function calculatedTierOf(m: Pick<DeadlineJudgement, "verdict" | "fitLabels" | "
 /**
  * 판정 줄 → 맞을 확률 칸. 단계와 확인 항목이 둘 다 저장돼 있으면 저장 값 그대로, 하나라도 없는 옛 줄은 읽을 때 계산한다.
  * 단계만 저장된 줄은 단계(와 저장된 점수·이유)는 저장 값, 확인 항목만 계산한다 — 거르기·수(lineTierOf)가 저장된 단계로 세므로 표시도 같게.
+ * 조건 정리 전인데 확인 항목이 빈 채 저장된 줄(옛 대조가 확인할 것을 버렸다)은 점수·이유·확인 항목을 읽을 때 계산한다 — 단계는 둘 다 낮음.
  * inProgress 는 다음 할 일(「업무 현황에서 진행 중」)을 정한다.
  */
 export function tierViewOf(m: DeadlineJudgement, inProgress: boolean, config: TierConfig): TierView {
@@ -142,7 +143,13 @@ export function tierViewOf(m: DeadlineJudgement, inProgress: boolean, config: Ti
   let tierScore: number;
   let tierReason: string;
   let checkItems: TierView["checkItems"];
-  if (m.tier !== undefined && m.checkItems !== undefined) {
+  if (unstructured && m.checkItems?.length === 0) {
+    const t = calculatedTierOf(m, config);
+    tier = t.tier;
+    tierScore = t.score;
+    tierReason = t.reason;
+    checkItems = t.checkItems;
+  } else if (m.tier !== undefined && m.checkItems !== undefined) {
     tier = m.tier;
     tierScore = m.tierScore ?? 0;
     tierReason = m.tierReason ?? "";

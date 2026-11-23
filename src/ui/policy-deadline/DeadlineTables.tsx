@@ -17,7 +17,7 @@ const TD = "border-b border-wedly-bd px-2.5 py-2 align-top text-wedly-sub";
 // 없으면 문서 전체를 기준으로 표 오른쪽 끝 자리에 놓여 좁은 화면의 문서 폭을 늘렸다(2026-11-16 390px 운영 QA — 문서 폭 932px).
 const TABLE_BOX = "relative overflow-x-auto rounded-lg border border-wedly-bd bg-white";
 
-// 펼친 업체 표의 칸 — 맞을 확률 순 표와 「판단 전」·「해당 없음」 묶음 표가 같은 칸·같은 폭을 써서 위아래 줄이 맞는다.
+// 펼친 업체 표의 칸 — 맞을 확률 순 표와 「원문 확인 필요」·「해당 없음」 묶음 표가 같은 칸·같은 폭을 써서 위아래 줄이 맞는다.
 // 마지막 내용 칸(확인할 것)은 폭을 두지 않아 남는 폭을 가져간다(담당 칸이 빠지면 더 넓어진다).
 // 「진행상태」 칸은 두지 않는다(2026-11-16 사장님). 엑셀 내려받기 칸은 그대로 둔다.
 export function companyColumns(showConsultant = true): { head: string; width: string }[] {
@@ -106,7 +106,7 @@ function CompanyLine({
 
 /**
  * 공고 하나의 업체 표 — 맞을 확률 순(받은 순서 그대로)으로 줄마다 단계 딱지·근거·다음 할 일·확인할 것을 보인다.
- * 상호명을 누르면 업체 상세(`onDetail` 이 있을 때만 단추, 없으면 글자). 「판단 전」·「해당 없음」 묶음도 같은 표 모양이다.
+ * 상호명을 누르면 업체 상세(`onDetail` 이 있을 때만 단추, 없으면 글자). 「원문 확인 필요」·「해당 없음」 묶음도 같은 표 모양이다.
  */
 export function CompanyTable({
   rows,
@@ -170,7 +170,7 @@ export type CompanyState =
   | { status: "error"; message: string }
   | { status: "ok"; rows: CompanyAnnouncementRow[]; dismissed: CompanyAnnouncementRow[] };
 
-// 펼친 공고 표의 칸 — 맞을 확률 순 표와 「판단 전」·「해당 없음」 묶음 표가 같은 칸·같은 폭을 써서 위아래 줄이 맞는다.
+// 펼친 공고 표의 칸 — 맞을 확률 순 표와 「원문 확인 필요」·「해당 없음」 묶음 표가 같은 칸·같은 폭을 써서 위아래 줄이 맞는다.
 // 공고명은 폭을 두지 않아 남는 폭을 가져가고(920px 에서 180px 넘게), 마지막은 업무 현황 칸(ACTION_COL)이다.
 // 마감 칸(딱지 56px + 날짜 11px 글자)은 140px 이면 한 줄에 들어간다. 「종류」·「확인할 조건」 칸은 두지 않는다 — 종류는 공고명 아래 줄, 확인할 것은 한 칸이 맡는다.
 const CONTACT_COLUMNS: { head: string; width: string }[] = [
@@ -262,7 +262,7 @@ function AnnouncementLine({
 /**
  * 업체 하나의 공고 표 — 받은 순서 그대로(맞을 확률 순·마감 순) 줄마다 마감·단계 딱지와 근거·다음 할 일·확인할 것·업무 현황을 보인다.
  * 공고명 아래에 종류·기관·지원 금액을 두고, 「해당 없음」 줄은 사유 기록과 「되돌리기」만 보인다(`onDismiss` 가 없으면 기록만).
- * 「판단 전」·「해당 없음」 묶음도 같은 표 모양이다.
+ * 「원문 확인 필요」·「해당 없음」 묶음도 같은 표 모양이다.
  */
 export function ContactAnnouncementTable({
   rows,
@@ -317,7 +317,7 @@ export function ContactAnnouncementTable({
 
 /**
  * 펼친 업체의 안쪽 — 읽는 중 · 오류(다시 불러오기) · 「업체 상세 열기」 · 맞을 확률 순 공고 표 · 고르지 않은 단계라 숨긴 공고 수 ·
- * 「판단 전」·「해당 없음」 접힌 묶음. 종류 거르기(kind)에 맞는 공고만 보이고, 고른 단계(tiers)에 없는 공고는 숨기고 몇 건인지만 알린다.
+ * 「원문 확인 필요」·「해당 없음」 접힌 묶음. 종류 거르기(kind)에 맞는 공고만 보이고, 고른 단계(tiers)에 없는 공고는 숨기고 몇 건인지만 알린다.
  * 연락 예정 업체 목록의 펼친 줄과 캘린더의 「고른 업체」 판이 같은 안쪽을 쓴다.
  */
 export function CompanyAnnouncementsPanel({

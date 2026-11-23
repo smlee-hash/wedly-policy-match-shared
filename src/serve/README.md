@@ -227,10 +227,10 @@ readAnnouncementDetailRow(q, id)   // 없으면 404
 
 판정 줄(`PolicyDeadlineMatch`)에 `tier`(high｜mid｜low)·`tierScore`·`tierReason`·`checkItems`(JSON 배열)·`amountMaxWon`(BIGINT, 기업당 최대)·
 `unstructured`(조건 정리 전, 기본 false) 칸이 있고, 해당 없음은 `PolicyDeadlineDismiss`(업체·공고 묶음이 열쇠, 사유·남긴 사람·때) 표에 남는다.
-조건 정리 전은 판정이 둘이다 — `isUnstructuredMatch`(판단 전: 확인할 것이 모두 뭉뚱그린 문구, 연락 예정의 「판단 전 포함」을 켜야 보이고 요약 카드 수가 이 기준)와
-`isPreStructureMatch`(조건 정리 전: 판단 전이거나, 확인할 것에 「공고 원문 확인(조건 정리 전)」이 섞인 확인 필요 줄 — 단계 낮음·「공고 조건 정리 대기」·단계 수 밖·맨 뒤 접기).
+조건 정리 전은 판정이 둘이다 — `isUnstructuredMatch`(판단 전: 확인할 것이 모두 뭉뚱그린 문구, 연락 예정의 「조건 모르는 공고 포함」을 켜야 보이고 요약 카드 수가 이 기준)와
+`isPreStructureMatch`(조건 정리 전: 판단 전이거나, 확인할 것에 「공고 원문 확인(조건 정리 전)」이 섞인 확인 필요 줄 — 단계 낮음·딱지 「원문 확인 필요」·확인할 것은 남김·다음 할 일 「공고 원문에서 자격 확인 후 연락」·단계 수 밖·맨 뒤 접기).
 저장 칸 `unstructured` 는 `isPreStructureMatch` 로 쓴다(공용 `tierOf` 의 `unstructured` 와 같다). 단계 거르기는 조건 정리 전 줄에 걸지 않는다.
-대조 배치가 `tierOf` 로 단계를 계산해 저장하고, 읽기는 저장된 값을 쓴다. 단계 칸이 빈 옛 줄(배포 직후 다시 대조하기 전)은 읽을 때 계산한다 —
+대조 배치가 `tierOf` 로 단계를 계산해 저장하고, 읽기는 저장된 값을 쓴다. 단계 칸이 빈 옛 줄(배포 직후 다시 대조하기 전)과 확인 항목이 빈 채 저장된 조건 정리 전 줄은 읽을 때 계산한다 —
 목록 수도 그런 줄이 있으면 거르기 칸을 읽어 계산해 센다.
 `ReadSource` 의 `dismissals`(해당 없음 줄)·`tierConfig`(설정 원본 JSON — `mergeTierConfig` 로 합친다)는 선택이다 — 없으면 해당 없음 줄 없음·기본 설정.
 설정 원본은 JsonCache `TIER_CONFIG_KEY`(`policy-deadline:tier-config`)에 둔다 — 두 앱 모두 읽기는 `tierConfig: () => readTierConfigRaw(db)` 로, 대조 배치는 같은 `readTierConfigRaw` 를 `mergeTierConfig` 에 넣어 읽어야 두 쪽 단계가 어긋나지 않는다.

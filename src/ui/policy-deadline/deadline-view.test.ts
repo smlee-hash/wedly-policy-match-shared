@@ -232,14 +232,14 @@ describe("엑셀·알림·주소", () => {
       statusText: "진행", verdict: "unverified", fitLabels: ["업력"], toCheck: ["매출", "지역"], gaps: ["매출액"], inProgress: true,
       tier: "mid", tierReason: "조건 6개 중 5개 맞음 · 매출 확인", nextAction: "매출 확인 후 연락", unstructured: false, dismissedReason: "기타",
     };
-    const flat: ExportRow = { ...row, tier: "low", tierReason: "공고 조건을 아직 정리하지 않음", nextAction: "공고 조건 정리 대기", unstructured: true, dismissedReason: "" };
+    const flat: ExportRow = { ...row, tier: "low", tierReason: "AI가 자격 조건을 확정하지 못함 · 공고 원문 조건만 확인", nextAction: "공고 원문에서 자격 확인 후 연락", unstructured: true, dismissedReason: "" };
     const [line, flatLine] = exportBody([row, flat]);
     expect(line).toHaveLength(EXPORT_HEADERS.length);
     expect(line).toEqual([
       "상시", "상시", "공고", "기관", "분류 없음", "가나", "담당 없음", "진행", "보통", "조건 6개 중 5개 맞음 · 매출 확인", "매출 확인 후 연락",
       "확인 필요", "업력", "매출 · 지역", "매출액", "진행 중", "기타", "https://example.com",
     ]);
-    expect(flatLine[8]).toBe("판단 전");
+    expect(flatLine[8]).toBe("원문 확인 필요");
     expect(flatLine[16]).toBe("");
   });
 

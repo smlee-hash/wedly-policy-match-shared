@@ -67,7 +67,7 @@ afterEach(() => {
 });
 
 describe("거르기를 바꾼 첫 화면의 바쁨 표시", () => {
-  it("연락 예정 업체: 「판단 전 포함」을 켠 첫 화면부터 aria-busy=true, 새 답이 오면 false", async () => {
+  it("연락 예정 업체: 「조건 모르는 공고 포함」을 켠 첫 화면부터 aria-busy=true, 새 답이 오면 false", async () => {
     const gate: { release: ((r: Response) => void) | null } = { release: null };
     fetchMock.mockImplementation((input: string) => {
       const url = String(input);
@@ -79,8 +79,8 @@ describe("거르기를 바꾼 첫 화면의 바쁨 표시", () => {
     await mounted.settle();
     expect(busyOfList()).toBe(false);
 
-    await mounted.actFirstFrame(toggle("판단 전 포함", true));
-    expect(checkbox("판단 전 포함")?.props.checked).toBe(true);
+    await mounted.actFirstFrame(toggle("조건 모르는 공고 포함", true));
+    expect(checkbox("조건 모르는 공고 포함")?.props.checked).toBe(true);
     expect(busyOfList()).toBe(true);
 
     await mounted.settle();
