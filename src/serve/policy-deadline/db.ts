@@ -49,6 +49,8 @@ export interface DeadlineReadDb {
         applyEnd: Date | null;
         /** 칸이 없는 옛 Prisma 클라이언트도 맞게 선택 칸 — select 를 쓰지 않아 칸이 있으면 함께 온다. */
         summary?: string;
+        /** 지원 금액 한 줄 — summary 와 같은 까닭으로 선택 칸(2026-11-23). */
+        amountText?: string;
       }>
     >;
   };
@@ -265,6 +267,7 @@ export function deadlineReadSource(db: DeadlineDb, opts?: { tierConfig?: () => P
         url: r.url,
         applyEnd: r.applyEnd,
         summary: r.summary ?? "",
+        amountText: r.amountText ?? "",
       }));
     },
 

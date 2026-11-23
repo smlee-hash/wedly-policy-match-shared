@@ -30,6 +30,7 @@ import {
 } from "../funding/funding-map";
 import {
   checkCondition,
+  readStoredStructure,
   type BusinessProfile,
 } from "../engine/match-engine";
 import { matchStructureOf, visibleConditionChecks } from "../engine/visible-checks";
@@ -212,6 +213,34 @@ function frontAmountText(ruleText: string, aiText: string, maxWon: number | null
     return shortAmountText(normalizeAmountUnits(ai));
   }
   return shortAmountText(normalizeAmountUnits(raw));
+}
+
+/**
+ * 정책별 고객사 공고 줄의 지원 금액 글(2026-11-23 대표 요청 — 「얼마가 지원되는지도 표시해줘」).
+ * 묶음(같은 공고의 여러 출처)을 저장할 때 한 번 지어 두고, 목록은 그 글을 그대로 싣는다.
+ *
+ * 규칙은 자금 지도 「얼마」 칸(`frontAmountText`)과 같다 — 같은 공고가 두 화면에서 다른 금액으로 읽히면 안 된다.
+ *  1. 숫자 칸(`amountMaxWon`)이 있는 첫 줄 → 금액 앞 낱말 + 통일한 금액(「기업당 최대 5,000만원」).
+ *  2. 없으면 규칙 글자·정리 결과(`supportAmountText`) 중 **금액 표현이 든** 첫 줄 → 단위만 통일한 글자.
+ *     「예산 범위 안에서 지원」처럼 금액이 없는 말은 「얼마」에 답하지 못하므로 싣지 않는다.
+ *  3. 어디에도 없으면 빈 글 — 화면은 금액 자리를 그리지 않는다.
+ * `rows` 는 대표 공고를 맨 앞에 둔다. 정리 결과는 정리 상태와 상관없이 읽는다(묶음 핵심 내용과 같은 기준).
+ */
+export function bucketAmountTextOf(rows: readonly Pick<AnnouncementRow, "amountText" | "amountMaxWon" | "structure">[]): string {
+  const withNumber = rows.find((r) => (wonNumber(r.amountMaxWon) ?? 0) > 0);
+  if (withNumber) {
+    return frontAmountText(withNumber.amountText ?? "", readStoredStructure(withNumber.structure).supportAmountText, wonNumber(withNumber.amountMaxWon));
+  }
+  const flat = (t: string) => (t ?? "").replace(/\s+/g, " ").trim();
+  const hasAmount = (t: string) => AMOUNT_EXPR_RE.test(normalizeAmountUnits(t));
+  for (const r of rows) {
+    const rule = flat(r.amountText ?? "");
+    const ai = flat(readStoredStructure(r.structure).supportAmountText);
+    const ruleOk = hasAmount(rule) ? rule : "";
+    const aiOk = hasAmount(ai) ? ai : "";
+    if (ruleOk || aiOk) return frontAmountText(ruleOk, aiOk, null);
+  }
+  return "";
 }
 
 export interface BuildFundingMapOptions {

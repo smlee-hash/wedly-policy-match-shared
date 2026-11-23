@@ -299,6 +299,22 @@ describe("공고 핵심 내용(summary) — 목록 줄에만 실린다", () => {
     expect(bucketMetaOf({ ...BUCKETS[0], summary: SUMMARY }, NOW)).not.toHaveProperty("summary");
   });
 
+  it("지원 금액 글도 목록 줄에만 — 묶음에 저장된 글 그대로, 칸이 없는 옛 묶음은 빈 글(2026-11-23 대표 요청)", async () => {
+    const src = memorySource({
+      buckets: BUCKETS.map((b) => {
+        if (b.bucketKey === "B7") return { ...b, amountText: "최대 5,000만원" };
+        if (b.bucketKey === "B3") return { ...b, amountText: "" };
+        return b;
+      }),
+    });
+    const view = await readAnnouncementList(ALL, { days: "all", hideEmpty: false }, NOW, src);
+    const amountOf = (key: string) => [...view.dated, ...view.always].find((r) => r.bucketKey === key)?.amountText;
+    expect(amountOf("B7")).toBe("최대 5,000만원");
+    expect(amountOf("B3")).toBe("");
+    expect(amountOf("BALW")).toBe("");
+    expect(bucketMetaOf({ ...BUCKETS[0], amountText: "최대 5,000만원" }, NOW)).not.toHaveProperty("amountText");
+  });
+
   it("묶음 펼치기·연락 예정 업체 펼치기·엑셀 줄에도 summary 키가 없다", async () => {
     const opened = await readBucketCompanies(ALL, { bucketKey: "B7" }, NOW, withSummary());
     expect(opened?.bucket).not.toHaveProperty("summary");

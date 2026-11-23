@@ -29,6 +29,8 @@ export interface DeadlineBucket {
   applyEnd: Date | null;
   /** 공고 핵심 내용 한 줄 — 정리된 혜택 한 줄, 없으면 지원 목적. 칸이 없는 옛 표·요약 전이면 없음·빈 글. */
   summary?: string;
+  /** 지원 금액 한 줄(`bucketAmountTextOf` — 자금 지도 「얼마」 칸과 같은 규칙). 칸이 없는 옛 표·금액을 모르면 없음·빈 글(2026-11-23). */
+  amountText?: string;
 }
 
 /** 업체 하나 × 묶음 하나의 판정. */
@@ -220,6 +222,8 @@ export interface AnnouncementListRow extends BucketMeta {
   bestTier: DeadlineTier | null;
   /** 공고 핵심 내용 한 줄 — 요약 전이면 빈 글. */
   summary: string;
+  /** 지원 금액 한 줄 — 분야 딱지 옆에 싣는다. 금액을 모르면 빈 글, 칸이 없는 옛 응답이면 없음(2026-11-23 대표 요청). */
+  amountText?: string;
 }
 
 export interface AnnouncementListView {

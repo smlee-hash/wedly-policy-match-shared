@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  bucketAmountTextOf,
   buildFundingMap as buildWithLoaders,
   PRODUCT_SELECT,
   type BuildFundingMapOptions,
@@ -1806,5 +1807,46 @@ describe("상품 창구가 다른 시도 지역 기관이면 안 맞음(NO.585 �
     const all = byId((await buildFundingMap(SEOUL, NOW, { filters: { includeExcluded: true } })).groups, "a:md")!;
     expect(all.fit[0].verdict).toBe("pass");
     expect(all.fitVerdict).toBe("fit");
+  });
+});
+
+describe("bucketAmountTextOf — 정책별 고객사 공고 줄의 지원 금액(2026-11-23 대표 요청)", () => {
+  const row = (amountText: string, amountMaxWon: bigint | null, supportAmountText?: string) => ({
+    amountText,
+    amountMaxWon,
+    structure: supportAmountText === undefined ? null : { supportAmountText },
+  });
+
+  it("숫자 칸이 있으면 자금 지도 「얼마」 칸과 같은 글자 — 금액 앞 낱말 + 통일한 금액", () => {
+    expect(bucketAmountTextOf([row("기업당 최대 50백만원", BigInt(50_000_000))])).toBe("기업당 최대 5,000만원");
+  });
+
+  it("숫자 칸은 앞 줄이 비면 같은 묶음 다음 줄에서 — 숫자가 글자보다 먼저", () => {
+    expect(bucketAmountTextOf([row("기업당 2,000만원 이내", null), row("최대 3억원", BigInt(300_000_000))])).toBe("최대 3억원");
+  });
+
+  it("숫자가 없으면 금액 표현이 든 규칙 글자를 단위만 통일해서", () => {
+    expect(bucketAmountTextOf([row("기업당 50백만원 이내", null)])).toBe("기업당 5,000만원 이내");
+  });
+
+  it("규칙 글자에 금액이 없으면 정리 결과의 금액 글 — 정리 상태와 상관없이 읽는다", () => {
+    expect(bucketAmountTextOf([row("예산 범위 안에서 지원", null, "기업당 2,000만원 이내")])).toBe("기업당 2,000만원 이내");
+  });
+
+  it("앞 줄 글자에 금액이 없으면 같은 묶음 다음 줄 글자", () => {
+    expect(bucketAmountTextOf([row("", null, ""), row("최대 2,000만원", null)])).toBe("최대 2,000만원");
+  });
+
+  it("금액 표현이 어디에도 없으면 빈 글 — 「얼마」에 답하지 못하는 말은 싣지 않는다", () => {
+    expect(bucketAmountTextOf([row("예산 범위 안에서 지원", null, "무상 지원(참가사 비용 부담 없음)")])).toBe("");
+    expect(bucketAmountTextOf([row("예산 범위", BigInt(0))])).toBe("");
+    expect(bucketAmountTextOf([])).toBe("");
+  });
+
+  it("긴 글은 40자 + 「…」, 줄바꿈은 공백 하나로", () => {
+    const long = bucketAmountTextOf([row(`과제당 ${"가".repeat(40)} 2억원`, null)]);
+    expect(long.endsWith("…")).toBe(true);
+    expect(long.length).toBe(41);
+    expect(bucketAmountTextOf([row("최대\n  2,000만원", null)])).toBe("최대 2,000만원");
   });
 });

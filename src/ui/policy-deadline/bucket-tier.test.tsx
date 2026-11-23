@@ -167,17 +167,16 @@ describe("펼친 업체 표 — 맞을 확률 순 한 표(NO.789)", () => {
     for (const name of ["마바상사", "사아상사", "자차상사"]) expect(flat(root())).not.toContain(name);
   });
 
-  it("맞음·확인 필요 제목과 「조건 정리 전 공고입니다」 안내 없이 — 원문 링크는 한 번, 금액을 알면 위에 한 줄", async () => {
+  it("맞음·확인 필요 제목과 「조건 정리 전 공고입니다」 안내 없이 — 원문 링크는 한 번", async () => {
     await openAnnouncement();
     const text = flat(root());
     expect(text).not.toMatch(/맞음 \d+곳|확인 필요 \d+곳/);
     expect(text).not.toContain("조건 정리 전 공고입니다");
     expect(byTag(root(), "a").filter((a) => a.props.href === meta.url)).toHaveLength(1);
-    expect(text).toContain("지원 금액 최대 3억원");
   });
 
-  it("금액을 모르는 공고는 금액 줄을 그리지 않는다", async () => {
-    await openAnnouncement(bucketOf([line("cA", "가나상사"), line("cB", "다라상사", { tier: "mid" })]));
+  it("지원 금액은 공고 줄에만 — 펼친 안쪽에 같은 금액 줄을 다시 그리지 않는다(2026-11-23)", async () => {
+    await openAnnouncement();
     expect(flat(root())).not.toContain("지원 금액");
   });
 
@@ -423,6 +422,28 @@ describe("공고 목록 — 맞을 확률 순 · 단계 거르기(NO.789)", () =
   it("목록 열쇠에 순서가 들어간다 — 순서를 바꾼 첫 화면부터 「불러오는 중」", () => {
     expect(announcementListKey("all", 7, true, 0)).toBe("all|7|true|0|tier");
     expect(announcementListKey(undefined, "all", false, 2, "deadline")).toBe("-|all|false|2|deadline");
+  });
+});
+
+describe("공고 줄 지원 금액 — 분야 딱지 옆(2026-11-23 대표 요청)", () => {
+  const rowText = (title: RegExp) => flat(buttonsWith(root(), title)[0] ?? []);
+
+  it("묶음에 저장된 금액 글을 분야 딱지 바로 뒤에, 빈 글이면 금액 자리를 그리지 않는다", async () => {
+    await draw(MAIN, {}, listOf([
+      listRow({ bucketKey: "b1", title: "숫자 공고", category: "무상지원금", amountText: "최대 5,000만원" }),
+      listRow({ bucketKey: "b2", title: "글자 공고", category: "무상지원금", amountText: "기업당 2,000만원 이내" }),
+      listRow({ bucketKey: "b3", title: "모르는 공고", category: "무상지원금", amountText: "" }),
+    ]));
+    // 글자를 붙여 읽는 비교라 「분야 딱지 바로 뒤 → 마감」 순서까지 한 번에 본다.
+    expect(rowText(/숫자 공고/)).toContain("무상지원금최대 5,000만원마감");
+    expect(rowText(/글자 공고/)).toContain("무상지원금기업당 2,000만원 이내마감");
+    expect(rowText(/모르는 공고/)).not.toMatch(/최대|만원/);
+  });
+
+  it("금액 칸이 없는 옛 응답도 그대로 그린다", async () => {
+    await draw(MAIN, {}, listOf([listRow({ title: "옛 응답 공고" })]));
+    expect(rowText(/옛 응답 공고/)).toContain("마감");
+    expect(rowText(/옛 응답 공고/)).not.toMatch(/최대|만원/);
   });
 });
 
