@@ -100,6 +100,14 @@ describe("deadlineReadSource — 거르기", () => {
     expect(calls.bucket).toHaveBeenLastCalledWith({ where: {} });
   });
 
+  it("묶음은 지원 금액 글(amountText)도 있으면 그대로, 칸이 없는 옛 클라이언트면 빈 글(2026-11-23)", async () => {
+    const { db, calls } = fakeDb();
+    const base = { bucketKey: "B7", repAnnouncementId: "ann", announcementIds: ["ann"], title: "공고", agency: "기관", category: "정책자금", url: "", applyEnd: null };
+    calls.bucket.mockResolvedValueOnce([{ ...base, amountText: "기업당 5,000만원" }, { ...base, bucketKey: "B3" }]);
+    const rows = await deadlineReadSource(db).buckets();
+    expect(rows.map((r) => [r.bucketKey, r.amountText])).toEqual([["B7", "기업당 5,000만원"], ["B3", ""]]);
+  });
+
   it("판정 줄·진행 줄은 업체 열쇠와 묶음 열쇠를 함께 건다 — null 은 거르지 않음", async () => {
     const { db, calls } = fakeDb();
     const src = deadlineReadSource(db);

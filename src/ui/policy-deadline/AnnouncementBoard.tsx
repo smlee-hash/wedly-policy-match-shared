@@ -35,7 +35,6 @@ import {
 import {
   DEFAULT_TIERS,
   TIER_ORDER,
-  amountLabel,
   dismissedTitle,
   hiddenHint,
   markProgressed,
@@ -122,7 +121,8 @@ const sumCounts = (a: TierChipCounts, b: TierChipCounts): TierChipCounts => ({
 });
 
 /**
- * 공고 하나를 펼친 안쪽 — 읽는 중 · 오류(다시 불러오기) · 지원 금액 · 맞을 확률 순 업체 표 · 「판단 전」·「해당 없음」 접힌 묶음 · 안내 줄.
+ * 공고 하나를 펼친 안쪽 — 읽는 중 · 오류(다시 불러오기) · 맞을 확률 순 업체 표 · 「판단 전」·「해당 없음」 접힌 묶음 · 안내 줄.
+ * 지원 금액은 공고 줄(분야 딱지 옆)에 이미 있어 안쪽에 다시 그리지 않는다(2026-11-23).
  * 고른 단계(tiers)에 없는 업체는 숨기고 몇 곳인지만 알린다. 상태는 갖지 않는다.
  */
 export function BucketPanel({
@@ -159,8 +159,6 @@ export function BucketPanel({
   // 서버가 맞을 확률 순으로 준 줄을 그대로 쓴다 — 「맞음만」이면 맞음 줄만.
   const rows = view ? (fitOnly ? view.rows.filter((r) => r.verdict === "fit") : view.rows) : [];
   const parts = partitionLines(rows, tiers);
-  const biggest = view ? view.rows.reduce<number | null>((max, r) => (r.amountMaxWon !== null && (max === null || r.amountMaxWon > max) ? r.amountMaxWon : max), null) : null;
-  const amount = amountLabel(biggest);
   const hint = hiddenHint(parts.hidden, "업체");
   const table = (list: CompanyMatchRow[]) => (
     <div className="mt-2.5">
@@ -188,7 +186,6 @@ export function BucketPanel({
       )}
       {view && (
         <>
-          {amount && <p className="mt-2.5 text-wedly-sub text-wedly-t1">지원 금액 {amount}</p>}
           {parts.main.length > 0 && table(parts.main)}
           {hint && <p className="mt-2 text-wedly-hint text-wedly-t2">{hint}</p>}
           {parts.unstructured.length > 0 && (
@@ -444,6 +441,8 @@ export default function AnnouncementBoard({
             <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-wedly-hint text-wedly-t2">
               {row.agency && <span>{row.agency}</span>}
               <KindChip category={row.category} />
+              {/* 지원 금액 — 묶음 저장 때 지은 글(자금 지도 「얼마」 칸과 같은 규칙). 모르면 그리지 않는다(2026-11-23 대표 요청). */}
+              {row.amountText && <span className="font-semibold text-wedly-t1">{row.amountText}</span>}
               <span>{row.applyEnd ? `마감 ${dateLabel(row.applyEnd)}` : "상시 모집"}</span>
             </span>
           </span>

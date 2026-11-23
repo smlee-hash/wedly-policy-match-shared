@@ -30,6 +30,7 @@ import {
 } from "../funding/funding-map";
 import {
   checkCondition,
+  readStoredStructure,
   type BusinessProfile,
 } from "../engine/match-engine";
 import { matchStructureOf, visibleConditionChecks } from "../engine/visible-checks";
@@ -212,6 +213,60 @@ function frontAmountText(ruleText: string, aiText: string, maxWon: number | null
     return shortAmountText(normalizeAmountUnits(ai));
   }
   return shortAmountText(normalizeAmountUnits(raw));
+}
+
+/**
+ * 정책별 고객사 공고 줄의 지원 금액 글(2026-11-23 대표 요청 — 「얼마가 지원되는지도 표시해줘」).
+ * 묶음(같은 공고의 여러 출처)을 저장할 때 한 번 지어 두고, 목록은 그 글을 그대로 싣는다.
+ *
+ * 규칙은 자금 지도 「얼마」 칸(`frontAmountText`)과 같다 — 같은 공고가 두 화면에서 다른 금액으로 읽히면 안 된다.
+ *  1. 숫자 칸(`amountMaxWon`)이 있는 첫 줄 → 금액 앞 낱말 + 통일한 금액(「기업당 최대 5,000만원」).
+ *  2. 없으면 규칙 글자·정리 결과(`supportAmountText`) 중 **금액 표현이 든** 첫 줄 → 단위만 통일한 글자.
+ *     「예산 범위 안에서 지원」처럼 금액이 없는 말은 「얼마」에 답하지 못하므로 싣지 않는다.
+ *  3. 어디에도 없으면 빈 글 — 화면은 금액 자리를 그리지 않는다.
+ * `rows` 는 대표 공고를 맨 앞에 둔다. 정리 결과도 자금 지도와 같은 구조에서 읽는다(`matchStructureOf` — AI 가 읽은
+ * 공고는 정리 결과, 아직 못 읽었거나 읽기에 실패한 공고는 저장 때 만든 규칙 구조).
+ *
+ * ★자금 지도와 다른 점 하나: 앞 40자 자르기에 금액이 잘려 나가면 금액 바로 앞부터 다시 자른다(`amountWindowOf`).
+ *  자금 지도는 상세 서랍에 원문이 있지만 공고 줄에는 없어, 금액 없는 문장 조각이 금액 자리에 앉으면 「얼마」에 답하지 못한다.
+ */
+export function bucketAmountTextOf(
+  rows: readonly Pick<AnnouncementRow, "amountText" | "amountMaxWon" | "structure" | "ruleStructure" | "structureStatus">[],
+): string {
+  const aiTextOf = (r: (typeof rows)[number]) => readStoredStructure(matchStructureOf(r)).supportAmountText;
+  const withNumber = rows.find((r) => (wonNumber(r.amountMaxWon) ?? 0) > 0);
+  if (withNumber) {
+    return frontAmountText(withNumber.amountText ?? "", aiTextOf(withNumber), wonNumber(withNumber.amountMaxWon));
+  }
+  const flat = (t: string) => (t ?? "").replace(/\s+/g, " ").trim();
+  const hasAmount = (t: string) => AMOUNT_EXPR_RE.test(normalizeAmountUnits(t));
+  for (const r of rows) {
+    const rule = flat(r.amountText ?? "");
+    const ai = flat(aiTextOf(r));
+    const ruleOk = hasAmount(rule) ? rule : "";
+    const aiOk = hasAmount(ai) ? ai : "";
+    if (!ruleOk && !aiOk) continue;
+    const front = frontAmountText(ruleOk, aiOk, null);
+    return AMOUNT_EXPR_RE.test(front) ? front : amountWindowOf(ruleOk || aiOk);
+  }
+  return "";
+}
+
+/**
+ * 금액 표현 바로 앞(앞 구절 창 `AMOUNT_PREFIX_WINDOW`)부터 40자. 낱말 가운데서 시작하지 않게 창 안의 첫 공백 뒤로 민다.
+ * 앞·뒤를 잘랐으면 「…」를 붙인다 — 원문 낱말을 그대로 두고 지어낸 말(「최대」 등)은 보태지 않는다.
+ */
+function amountWindowOf(text: string): string {
+  const t = normalizeAmountUnits(text);
+  const at = t.match(AMOUNT_EXPR_RE)?.index ?? -1;
+  if (at < 0) return shortAmountText(t);
+  let start = Math.max(0, at - AMOUNT_PREFIX_WINDOW);
+  if (start > 0 && t[start - 1] !== " ") {
+    const space = t.indexOf(" ", start);
+    if (space >= 0 && space < at) start = space + 1;
+  }
+  const end = start + AMOUNT_TEXT_MAX;
+  return `${start > 0 ? "…" : ""}${t.slice(start, end)}${end < t.length ? "…" : ""}`;
 }
 
 export interface BuildFundingMapOptions {

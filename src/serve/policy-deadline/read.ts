@@ -606,7 +606,7 @@ export async function readAnnouncementList(
   const { companies, keys } = await readScope(scope, src);
   // 업체가 0곳이면 세지 않는다 — 빈 범위를 「전체(열쇠 null)」로 세지 않게.
   const countOf = companies.length === 0 ? new Map<string, BucketCount>() : await bucketCountsOf(src, keys, () => readTierConfig(src));
-  // 묶음 표는 한 번만 읽는다 — 요약 글(summary)은 표시 칸(BucketMeta)이 아니라 이 목록 줄에만 붙인다.
+  // 묶음 표는 한 번만 읽는다 — 요약 글(summary)·지원 금액 글(amountText)은 표시 칸(BucketMeta)이 아니라 이 목록 줄에만 붙인다.
   const rows: AnnouncementListRow[] = (await src.buckets()).map((b) => {
     const count = countOf.get(b.bucketKey) ?? emptyBucketCount();
     return {
@@ -617,6 +617,7 @@ export async function readAnnouncementList(
       unstructured: count.unstructured,
       bestTier: bestTierOf(count.tiers),
       summary: b.summary ?? "",
+      amountText: b.amountText ?? "",
     };
   });
   const shown = q.hideEmpty ? rows.filter((r) => r.fit + r.unverified > 0) : rows;
